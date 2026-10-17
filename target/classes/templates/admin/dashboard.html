@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Cổng Quản trị viên (Administrator) · HOT TOPIK')}"></head>
+<body>
+<div style="min-height: 100vh; background: #F4F3EF; font-family: var(--font-body); color: var(--ssak-text-main); display: flex;">
+    
+    <!-- ==================== LEFT SIDEBAR (THANH TÁC VỤ BÊN TRÁI) ==================== -->
+    <aside style="width: 275px; background: #24363D; color: #FFFFFF; display: flex; flex-direction: column; flex-shrink: 0; min-height: 100vh; position: sticky; top: 0; z-index: 100; box-shadow: 4px 0 16px rgba(0,0,0,0.08);">
+        
+        <!-- Sidebar Brand / Logo -->
+        <div style="padding: 24px 24px 18px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;">
+            <a th:href="@{/admin}" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #FFFFFF;">
+                <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 21V11" stroke="#6CC49F" stroke-width="2.5" stroke-linecap="round"/>
+                    <path d="M12 12C12 7 8 4 3.5 4.5C3.5 9 7 12.5 12 12Z" fill="#6CC49F"/>
+                    <path d="M12 10C12 6 15.5 3 20.5 3.5C20.5 8 17 11 12 10Z" fill="#A9D9C0"/>
+                </svg>
+                <span style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #6CC49F; letter-spacing: -0.5px;">HOT TOPIK</span>
+            </a>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 11px; color: #FFE08A; background: rgba(244, 196, 90, 0.15); border: 1px solid rgba(244, 196, 90, 0.35); padding: 3px 10px; border-radius: 12px; font-weight: 800; text-transform: uppercase;">
+                    🛡️ Administrator
+                </span>
+                <span style="font-size: 11px; color: #A9D9C0; background: rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 12px;">Root Access</span>
+            </div>
+        </div>
+
+        <!-- User Profile Card -->
+        <div style="padding: 16px 20px; margin: 12px 14px; background: rgba(0,0,0,0.22); border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
+            <div style="width: 44px; height: 44px; border-radius: 22px; background: #2E7D67; color: #FFFFFF; font-family: var(--font-heading); font-size: 20px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                <span th:text="${#strings.substring(currentUser.fullName, 0, 1)}">Q</span>
+            </div>
+            <div style="display: flex; flex-direction: column; overflow: hidden; min-width: 0;">
+                <span style="font-weight: 800; font-size: 14px; color: #FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" th:text="${currentUser.fullName}">Vũ Minh Quân</span>
+                <span style="font-size: 12px; color: #A9D9C0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" th:text="${currentUser.email}">admin@hottopik.com</span>
+                <div style="display: flex; align-items: center; gap: 5px; margin-top: 2px;">
+                    <span style="width: 7px; height: 7px; border-radius: 50%; background: #6CC49F;"></span>
+                    <span style="font-size: 11px; color: #6CC49F; font-weight: 700;">Trực tuyến</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Navigation Menu Items -->
+        <div style="padding: 6px 14px; display: flex; flex-direction: column; gap: 4px; flex-grow: 1;">
+            <div style="font-size: 11px; font-weight: 800; color: #8ECDB0; padding: 8px 12px 4px 12px; text-transform: uppercase; letter-spacing: 0.8px;">
+                Tác vụ Quản trị
+            </div>
+
+            <!-- Tab 1: Approvals -->
+            <a href="javascript:void(0)" onclick="switchAdminTab('approvals')" id="side-nav-approvals" class="sidebar-item active">
+                <span style="font-size: 17px;">📥</span>
+                <span style="flex-grow: 1;">Hộp duyệt yêu cầu</span>
+                <span class="ssak-badge badge-honey" style="font-size: 11px; padding: 2px 7px;" th:text="${#lists.size(pendingRequests)}">3</span>
+            </a>
+
+            <!-- Tab 2: Staff & Access Reviews -->
+            <a href="javascript:void(0)" onclick="switchAdminTab('staff')" id="side-nav-staff" class="sidebar-item">
+                <span style="font-size: 17px;">👥</span>
+                <span style="flex-grow: 1;">Nhân sự & Phân quyền</span>
+                <span class="ssak-badge badge-mint" style="font-size: 11px; padding: 2px 7px;" th:text="${#lists.size(staffUsers)}">3</span>
+            </a>
+
+            <!-- Tab 3: Configuration & AI Budget -->
+            <a href="javascript:void(0)" onclick="switchAdminTab('aibudget')" id="side-nav-aibudget" class="sidebar-item">
+                <span style="font-size: 17px;">⚙️</span>
+                <span style="flex-grow: 1;">Cấu hình & Ngân sách AI</span>
+            </a>
+
+            <!-- Tab 4: Audit Log -->
+            <a href="javascript:void(0)" onclick="switchAdminTab('audit')" id="side-nav-audit" class="sidebar-item">
+                <span style="font-size: 17px;">📜</span>
+                <span style="flex-grow: 1;">Nhật ký Kiểm toán</span>
+            </a>
+
+            <!-- Tab 5: Break-glass Emergency -->
+            <a href="javascript:void(0)" onclick="switchAdminTab('breakglass')" id="side-nav-breakglass" class="sidebar-item">
+                <span style="font-size: 17px;">🚨</span>
+                <span style="flex-grow: 1;">Quyền Khẩn cấp</span>
+                <span th:if="${breakGlassActive}" class="ssak-badge badge-terracotta" style="font-size: 10px; padding: 2px 6px;">BẬT</span>
+            </a>
+        </div>
+
+        <!-- Sidebar Bottom Footer -->
+        <div style="padding: 16px 14px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;">
+            <a th:href="@{/today}" class="sidebar-bottom-link">
+                <span>🎓</span>
+                <span>Xem Cổng Học viên</span>
+            </a>
+            <a th:href="@{/logout}" class="sidebar-bottom-link logout">
+                <span>🚪</span>
+                <span>Đăng xuất hệ thống</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- ==================== RIGHT MAIN CONTENT AREA ==================== -->
+    <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0;">
+        
+        <!-- Top Header Bar inside Content -->
+        <header style="height: 68px; padding: 0 40px; background: #FFFFFF; border-bottom: 2px solid var(--ssak-border); display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span id="currentSectionIcon" style="font-size: 22px;">📥</span>
+                <div>
+                    <h2 id="currentSectionTitle" style="margin: 0; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D;">
+                        Hộp phê duyệt yêu cầu (Decide Approval Requests)
+                    </h2>
+                    <span id="currentSectionSubtitle" style="font-size: 12px; color: var(--ssak-text-muted);">
+                        Xem xét và đưa ra quyết định phê duyệt hoặc từ chối các đề xuất từ Content Manager và Operation Manager.
+                    </span>
+                </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <span class="ssak-badge badge-mint" style="font-size: 12px; padding: 6px 12px;">
+                    🛡️ Vai trò: Quản trị viên Tối cao
+                </span>
+                <button type="button" class="btn-ssak-primary" style="height: 38px; padding: 0 16px; font-size: 13px;" onclick="switchAdminTab('approvals')">
+                    ⚡ Xử lý ngay (<span th:text="${#lists.size(pendingRequests)}">3</span>)
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main style="padding: 28px 40px; display: flex; flex-direction: column; gap: 24px; flex-grow: 1;">
+            
+            <!-- 4 Metric KPI Cards -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+                <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Yêu cầu chờ duyệt</span>
+                        <span style="font-size: 20px;">📥</span>
+                    </div>
+                    <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; color: #1F6B56; margin: 4px 0;" th:text="${#lists.size(pendingRequests) + ' mục'}">3 mục</div>
+                    <span style="font-size: 12px; color: #1F6B56; font-weight: 700;">Từ Content & Operation</span>
+                </div>
+
+                <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Nhân sự quản lý</span>
+                        <span style="font-size: 20px;">👥</span>
+                    </div>
+                    <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; color: #24363D; margin: 4px 0;" th:text="${#lists.size(staffUsers) + ' tài khoản'}">3 tài khoản</div>
+                    <span style="font-size: 12px; color: var(--ssak-text-muted);">1 Admin · 1 Content · 1 Operation</span>
+                </div>
+
+                <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Dịch vụ AI đang chạy</span>
+                        <span style="font-size: 20px;">⚡</span>
+                    </div>
+                    <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; color: #2F5F7D; margin: 4px 0;">3 Engine</div>
+                    <span style="font-size: 12px; color: var(--ssak-text-muted);">GPT-4o, Gemini 1.5, Azure TTS</span>
+                </div>
+
+                <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Trạng thái hệ thống</span>
+                        <span style="font-size: 20px;">🛡️</span>
+                    </div>
+                    <div style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; margin: 8px 0;"
+                         th:style="${breakGlassActive ? 'color: #9C4A2E;' : 'color: #1F6B56;'}">
+                        <span th:if="${!breakGlassActive}">AN TOÀN</span>
+                        <span th:if="${breakGlassActive}">BREAK-GLASS ⚠️</span>
+                    </div>
+                    <span style="font-size: 12px; color: var(--ssak-text-muted);">Phiên kiểm toán đang ghi nhận</span>
+                </div>
+            </div>
+
+            <!-- TAB 1: DECIDE APPROVAL REQUESTS (Use Case: Decide Approval Requests) -->
+            <section id="pane-approvals" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">
+                            📥 Danh sách yêu cầu cần xem xét phê duyệt
+                        </h3>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
+                            Học viên và nhân viên đang chờ quyết định của bạn để xuất bản đề thi hoặc xử lý hoàn tiền đơn hàng.
+                        </p>
+                    </div>
+                    <span class="ssak-badge badge-honey" style="font-size: 12px; font-weight: 800;" th:text="${'Chờ duyệt: ' + #lists.size(pendingRequests)}">Chờ duyệt: 3</span>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase;">
+                                <th style="padding: 12px 10px;">Mã</th>
+                                <th style="padding: 12px 10px;">Phòng ban gửi</th>
+                                <th style="padding: 12px 10px;">Loại yêu cầu</th>
+                                <th style="padding: 12px 10px;">Tiêu đề & Nội dung chi tiết</th>
+                                <th style="padding: 12px 10px;">Thời gian gửi</th>
+                                <th style="padding: 12px 10px;">Trạng thái</th>
+                                <th style="padding: 12px 10px; text-align: right;">Quyết định của Admin</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="req : ${allRequests}" style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
+                                <td style="padding: 14px 10px; font-weight: 800;" th:text="${'#' + req.id}">#1</td>
+                                <td style="padding: 14px 10px;">
+                                    <div style="font-weight: 700; color: #24363D;" th:text="${req.requesterName}">Lê Thu Hà</div>
+                                    <div style="font-size: 12px; color: var(--ssak-text-muted);" th:text="${req.requesterRole}">Content Manager</div>
+                                </td>
+                                <td style="padding: 14px 10px;">
+                                    <span class="ssak-badge badge-mint" th:if="${req.requestType == 'PUBLISH_EXAM'}">Phát hành đề thi</span>
+                                    <span class="ssak-badge badge-terracotta" th:if="${req.requestType == 'REFUND_ORDER'}">Hoàn tiền đơn</span>
+                                    <span class="ssak-badge badge-honey" th:if="${req.requestType == 'VIP_COMPENSATION'}">Cấp bù VIP</span>
+                                    <span class="ssak-badge badge-sky" th:if="${req.requestType == 'PRICE_UPDATE'}">Điều chỉnh giá</span>
+                                </td>
+                                <td style="padding: 14px 10px; max-width: 400px;">
+                                    <div style="font-weight: 800; color: #24363D;" th:text="${req.title}">Tiêu đề yêu cầu</div>
+                                    <div style="font-size: 13px; color: var(--ssak-text-muted); margin-top: 3px;" th:text="${req.description}">Chi tiết nội dung yêu cầu</div>
+                                    <div th:if="${req.decisionNote != null}" style="font-size: 12px; color: #1F6B56; font-style: italic; margin-top: 4px;" th:text="${'Ghi chú duyệt: ' + req.decisionNote}"></div>
+                                </td>
+                                <td style="padding: 14px 10px; font-size: 13px; color: var(--ssak-text-muted);" th:text="${req.createdAt}">2026-10-06</td>
+                                <td style="padding: 14px 10px;">
+                                    <span class="ssak-badge badge-honey" th:if="${req.status == 'PENDING'}">⏳ Chờ duyệt</span>
+                                    <span class="ssak-badge badge-mint" th:if="${req.status == 'APPROVED'}">✅ Đã phê duyệt</span>
+                                    <span class="ssak-badge badge-terracotta" th:if="${req.status == 'REJECTED'}">❌ Đã từ chối</span>
+                                </td>
+                                <td style="padding: 14px 10px; text-align: right;">
+                                    <div th:if="${req.status == 'PENDING'}" style="display: inline-flex; gap: 8px;">
+                                        <button type="button" class="btn-ssak-primary" style="height: 34px; padding: 0 16px; font-size: 13px; font-weight: 800;"
+                                                th:data-id="${req.id}" onclick="decideRequest(this.getAttribute('data-id'), 'approve')">
+                                            Phê duyệt
+                                        </button>
+                                        <button type="button" class="btn-ssak-outline" style="height: 34px; padding: 0 12px; font-size: 13px; color: #9C4A2E; border-color: #FFA39E;"
+                                                th:data-id="${req.id}" onclick="decideRequest(this.getAttribute('data-id'), 'reject')">
+                                            Từ chối
+                                        </button>
+                                    </div>
+                                    <div th:if="${req.status != 'PENDING'}" style="font-size: 12px; color: var(--ssak-text-muted);">
+                                        Đã xử lý lúc <span th:text="${req.decidedAt != null ? req.decidedAt : 'Gần đây'}">2026-10-07</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB 2: MANAGE STAFF & ACCESS REVIEWS (Use Case: Manage Staff & Access Reviews) -->
+            <section id="pane-staff" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: none; flex-direction: column; gap: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">
+                            👥 Quản lý Nhân sự & Rà soát phân quyền (Manage Staff & Access Reviews)
+                        </h3>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
+                            Kiểm soát danh sách tài khoản nhân sự nội bộ, trạng thái hoạt động và phân quyền chức năng.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase;">
+                                <th style="padding: 12px 10px;">ID</th>
+                                <th style="padding: 12px 10px;">Họ tên nhân sự</th>
+                                <th style="padding: 12px 10px;">Tài khoản / Email</th>
+                                <th style="padding: 12px 10px;">Vai trò hệ thống</th>
+                                <th style="padding: 12px 10px;">Số điện thoại</th>
+                                <th style="padding: 12px 10px;">Trạng thái</th>
+                                <th style="padding: 12px 10px; text-align: right;">Thao tác phân quyền</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="staff : ${staffUsers}" style="border-bottom: 1px solid var(--ssak-border);">
+                                <td style="padding: 14px 10px; font-weight: 800;" th:text="${staff.id}">1</td>
+                                <td style="padding: 14px 10px; font-weight: 700; color: #24363D;" th:text="${staff.fullName}">Vũ Minh Quân</td>
+                                <td style="padding: 14px 10px;">
+                                    <div th:text="${staff.email}">admin@hottopik.com</div>
+                                    <div style="font-size: 12px; color: var(--ssak-text-muted);" th:text="${staff.username}">admin</div>
+                                </td>
+                                <td style="padding: 14px 10px;">
+                                    <span class="ssak-badge badge-honey" th:if="${staff.role == 'ROLE_ADMIN'}">🛡️ Administrator</span>
+                                    <span class="ssak-badge badge-mint" th:if="${staff.role == 'ROLE_CONTENT_MANAGER'}">📝 Content Manager</span>
+                                    <span class="ssak-badge badge-sky" th:if="${staff.role == 'ROLE_OPERATION_MANAGER'}">💼 Operation Manager</span>
+                                </td>
+                                <td style="padding: 14px 10px;" th:text="${staff.phone != null ? staff.phone : '0912345678'}">0912345678</td>
+                                <td style="padding: 14px 10px;">
+                                    <span th:id="${'staff-status-' + staff.id}" class="ssak-badge"
+                                          th:classappend="${staff.status == 'ACTIVE' ? 'badge-mint' : 'badge-terracotta'}"
+                                          th:text="${staff.status == 'ACTIVE' ? 'Đang hoạt động' : 'Tạm khóa'}">
+                                        Đang hoạt động
+                                    </span>
+                                </td>
+                                <td style="padding: 14px 10px; text-align: right;">
+                                    <button th:if="${staff.role != 'ROLE_ADMIN'}" type="button" class="btn-ssak-light" style="height: 34px; padding: 0 14px; font-size: 13px;"
+                                            th:data-id="${staff.id}" onclick="toggleStaffLock(this.getAttribute('data-id'))">
+                                        Khóa / Mở khóa
+                                    </button>
+                                    <span th:if="${staff.role == 'ROLE_ADMIN'}" style="font-size: 12px; color: var(--ssak-text-muted);">
+                                        Tài khoản gốc (Root)
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB 3: MANAGE CONFIGURATION & AI BUDGET (Use Case: Manage Configuration & AI Budget) -->
+            <section id="pane-aibudget" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: none; flex-direction: column; gap: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">
+                            ⚙️ Cấu hình Hệ thống & Ngân sách AI (Manage Configuration & AI Budget)
+                        </h3>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
+                            Giám sát mức tiêu thụ hạn mức AI hàng tháng, cảnh báo vượt trần chi phí và cấu hình hệ thống.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;">
+                    <div th:each="bg : ${aiBudgets}" class="ssak-card" style="padding: 20px; border: 1.5px solid var(--ssak-border); background: #F8FAFC; border-radius: 18px; display: flex; flex-direction: column; gap: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <div style="font-weight: 800; font-size: 15px; color: #24363D;" th:text="${bg.serviceName}">OpenAI GPT-4o</div>
+                                <div style="font-size: 12px; color: var(--ssak-text-muted);">Mục đích: Chấm bài viết / Sinh đề</div>
+                            </div>
+                            <span class="ssak-badge badge-mint" th:if="${bg.status == 'NORMAL'}">An toàn</span>
+                            <span class="ssak-badge badge-terracotta" th:if="${bg.status != 'NORMAL'}">Cảnh báo</span>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                            <span style="font-size: 13px; color: var(--ssak-text-muted);">Chi tiêu hiện tại:</span>
+                            <span style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #1F6B56;" th:text="${'$' + bg.currentUsageUsd}">$186.50</span>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div style="width: 100%; height: 8px; background: #E9E6DF; border-radius: 4px; overflow: hidden;">
+                            <div th:style="${'width: ' + bg.usagePercent + '%; height: 100%; background: ' + (bg.usagePercent > bg.alertThresholdPercent ? '#C25E3E' : '#2E7D67') + '; border-radius: 4px;'}"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--ssak-text-muted);">
+                            <span th:text="${'Đã dùng: ' + #numbers.formatDecimal(bg.usagePercent, 1, 1) + '%'}">62.2%</span>
+                            <span th:text="${'Hạn mức tháng: $' + bg.monthlyLimitUsd}">$300.00</span>
+                        </div>
+
+                        <div style="border-top: 1px dashed var(--ssak-border); padding-top: 10px; display: flex; gap: 8px; align-items: center;">
+                            <input type="number" th:id="${'limit-' + bg.id}" th:value="${bg.monthlyLimitUsd}" class="ssak-input" style="height: 36px; font-size: 13px; padding: 0 8px; width: 85px;" placeholder="Hạn mức">
+                            <span style="font-size: 12px;">$ | Ngưỡng:</span>
+                            <input type="number" th:id="${'thresh-' + bg.id}" th:value="${bg.alertThresholdPercent}" class="ssak-input" style="height: 36px; font-size: 13px; padding: 0 8px; width: 60px;" placeholder="%">
+                            <span style="font-size: 12px;">%</span>
+                            <button type="button" class="btn-ssak-primary" style="height: 36px; padding: 0 12px; font-size: 12px; margin-left: auto;"
+                                    th:data-id="${bg.id}" onclick="updateAiBudget(this.getAttribute('data-id'))">
+                                Lưu
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: AUDIT LOG (Use Case: View Audit Log) -->
+            <section id="pane-audit" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: none; flex-direction: column; gap: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">
+                            📜 Nhật ký Kiểm toán Toàn Hệ thống (System Audit Log)
+                        </h3>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
+                            Ghi lại toàn bộ hành vi của Admin, Content Manager và Operation Manager nhằm mục đích kiểm soát bảo mật.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase;">
+                                <th style="padding: 10px 8px;">Thời gian</th>
+                                <th style="padding: 10px 8px;">Người thực hiện</th>
+                                <th style="padding: 10px 8px;">Vai trò</th>
+                                <th style="padding: 10px 8px;">Hành động</th>
+                                <th style="padding: 10px 8px;">Thực thể tác động</th>
+                                <th style="padding: 10px 8px;">Chi tiết ghi nhận</th>
+                                <th style="padding: 10px 8px;">Địa chỉ IP</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="log : ${auditLogs}" style="border-bottom: 1px solid var(--ssak-border);">
+                                <td style="padding: 12px 8px; color: var(--ssak-text-muted); font-size: 12px;" th:text="${log.timestamp}">2026-10-06 08:30:12</td>
+                                <td style="padding: 12px 8px; font-weight: 700; color: #24363D;" th:text="${log.actorName}">Vũ Minh Quân</td>
+                                <td style="padding: 12px 8px;">
+                                    <span class="ssak-badge badge-honey" th:if="${log.actorRole == 'ROLE_ADMIN'}">Admin</span>
+                                    <span class="ssak-badge badge-mint" th:if="${log.actorRole == 'ROLE_CONTENT_MANAGER'}">Content</span>
+                                    <span class="ssak-badge badge-sky" th:if="${log.actorRole == 'ROLE_OPERATION_MANAGER'}">Operation</span>
+                                </td>
+                                <td style="padding: 12px 8px; font-weight: 800;" th:text="${log.action}">LOGIN</td>
+                                <td style="padding: 12px 8px; color: var(--ssak-text-muted);" th:text="${log.targetEntity}">AUTH</td>
+                                <td style="padding: 12px 8px;" th:text="${log.details}">Admin đăng nhập từ IP an toàn</td>
+                                <td style="padding: 12px 8px; font-family: monospace; font-size: 12px;" th:text="${log.ipAddress}">192.168.1.10</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB 5: USE BREAK-GLASS ACCESS (Use Case: Use Break-glass Access) -->
+            <section id="pane-breakglass" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: none; flex-direction: column; gap: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #9C4A2E;">
+                            🚨 Chế độ Quyền Khẩn cấp (Break-glass Access)
+                        </h3>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
+                            Cơ chế vượt rào phân quyền khẩn cấp chỉ dùng khi hệ thống gặp thảm họa, tấn công mạng hoặc cứu vãn dữ liệu.
+                        </p>
+                    </div>
+                    <span class="ssak-badge badge-terracotta" style="font-size: 12px; font-weight: 800;">Quyền hạn tối cao</span>
+                </div>
+
+                <div style="padding: 18px; border-radius: 16px; background: #FFF1F0; border: 1.5px solid #FFA39E; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="font-weight: 800; font-size: 15px; color: #CF1322;">
+                        ⚠️ CẢNH BÁO QUAN TRỌNG VỀ BẢO MẬT & KIỂM TOÁN
+                    </div>
+                    <div style="font-size: 13px; color: #5C1D11; line-height: 1.6;">
+                        Khi kích hoạt Break-glass, tài khoản Administrator sẽ tạm thời được cấp quyền bypass qua tất cả các chốt chặn duyệt (Auto-approve bypass) và ghi lại toàn bộ hoạt động với mức độ giám sát cao nhất. Mọi thao tác đều được gửi thông báo khẩn cấp tới hội đồng quản trị.
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; align-items: center; margin-top: 8px;">
+                    <input type="text" id="breakGlassReason" class="ssak-input" placeholder="Nhập lý do bắt buộc để kích hoạt Break-glass..." style="flex-grow: 1; height: 46px;">
+                    <button type="button" class="btn-ssak-primary" style="height: 46px; padding: 0 24px; font-weight: 800; background: #C25E3E;" onclick="toggleBreakGlass()">
+                        <span th:if="${!breakGlassActive}">Kích hoạt Break-glass</span>
+                        <span th:if="${breakGlassActive}">Tắt Break-glass</span>
+                    </button>
+                </div>
+            </section>
+
+        </main>
+    </div>
+</div>
+
+<style>
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    color: #CFE9DC;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+    transform: translateX(3px);
+}
+.sidebar-item.active {
+    background: #2E7D67;
+    color: #FFFFFF;
+    font-weight: 800;
+    box-shadow: 0 4px 14px rgba(46, 125, 103, 0.35);
+}
+.sidebar-bottom-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    color: #A9D9C0;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    transition: all 0.2s;
+}
+.sidebar-bottom-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+}
+.sidebar-bottom-link.logout {
+    color: #FFA39E;
+}
+.sidebar-bottom-link.logout:hover {
+    background: rgba(207, 19, 34, 0.15);
+    color: #FF7875;
+}
+</style>
+
+<script>
+    const tabMeta = {
+        approvals: {
+            icon: '📥',
+            title: 'Hộp phê duyệt yêu cầu (Decide Approval Requests)',
+            subtitle: 'Xem xét và đưa ra quyết định phê duyệt hoặc từ chối các đề xuất từ Content Manager và Operation Manager.'
+        },
+        staff: {
+            icon: '👥',
+            title: 'Quản lý Nhân sự & Phân quyền (Manage Staff & Access Reviews)',
+            subtitle: 'Kiểm soát danh sách tài khoản nhân sự nội bộ, trạng thái hoạt động và phân quyền chức năng.'
+        },
+        aibudget: {
+            icon: '⚙️',
+            title: 'Cấu hình Hệ thống & Ngân sách AI (Manage Configuration & AI Budget)',
+            subtitle: 'Giám sát mức tiêu thụ hạn mức AI hàng tháng, cảnh báo vượt trần chi phí và cấu hình hệ thống.'
+        },
+        audit: {
+            icon: '📜',
+            title: 'Nhật ký Kiểm toán Toàn Hệ thống (System Audit Log)',
+            subtitle: 'Ghi lại toàn bộ hành vi của Admin, Content Manager và Operation Manager nhằm mục đích kiểm soát bảo mật.'
+        },
+        breakglass: {
+            icon: '🚨',
+            title: 'Chế độ Quyền Khẩn cấp (Break-glass Access)',
+            subtitle: 'Cơ chế vượt rào phân quyền khẩn cấp chỉ dùng khi hệ thống gặp thảm họa, tấn công mạng hoặc cứu vãn dữ liệu.'
+        }
+    };
+
+    function switchAdminTab(tabName) {
+        const tabs = ['approvals', 'staff', 'aibudget', 'audit', 'breakglass'];
+        tabs.forEach(t => {
+            const pane = document.getElementById('pane-' + t);
+            const sideNav = document.getElementById('side-nav-' + t);
+            if (pane) {
+                pane.style.display = (t === tabName) ? 'flex' : 'none';
+            }
+            if (sideNav) {
+                if (t === tabName) {
+                    sideNav.classList.add('active');
+                } else {
+                    sideNav.classList.remove('active');
+                }
+            }
+        });
+
+        if (tabMeta[tabName]) {
+            document.getElementById('currentSectionIcon').innerText = tabMeta[tabName].icon;
+            document.getElementById('currentSectionTitle').innerText = tabMeta[tabName].title;
+            document.getElementById('currentSectionSubtitle').innerText = tabMeta[tabName].subtitle;
+        }
+    }
+
+    function decideRequest(id, decision) {
+        const note = prompt(decision === 'approve' ? 'Nhập ghi chú phê duyệt (nếu có):' : 'Nhập lý do từ chối:');
+        if (note === null) return;
+
+        const formData = new FormData();
+        formData.append('requestId', id);
+        formData.append('decision', decision);
+        formData.append('note', note);
+
+        fetch('/admin/approval/decide', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showSsakToast(data.message);
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showSsakToast('Lỗi: ' + data.message);
+            }
+        })
+        .catch(e => showSsakToast('Có lỗi xảy ra: ' + e));
+    }
+
+    function toggleStaffLock(id) {
+        if (!confirm('Bạn có chắc chắn muốn thay đổi trạng thái hoạt động của nhân sự này?')) return;
+
+        const formData = new FormData();
+        formData.append('userId', id);
+
+        fetch('/admin/staff/toggle-lock', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showSsakToast(data.message);
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showSsakToast('Lỗi: ' + data.message);
+            }
+        })
+        .catch(e => showSsakToast('Có lỗi xảy ra: ' + e));
+    }
+
+    function updateAiBudget(id) {
+        const limit = document.getElementById('limit-' + id).value;
+        const thresh = document.getElementById('thresh-' + id).value;
+
+        const formData = new FormData();
+        formData.append('budgetId', id);
+        formData.append('monthlyLimit', limit);
+        formData.append('threshold', thresh);
+
+        fetch('/admin/ai-budget/update', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showSsakToast(data.message);
+            } else {
+                showSsakToast('Lỗi: ' + data.message);
+            }
+        })
+        .catch(e => showSsakToast('Có lỗi xảy ra: ' + e));
+    }
+
+    function toggleBreakGlass() {
+        const reason = document.getElementById('breakGlassReason').value;
+        const formData = new FormData();
+        formData.append('reason', reason);
+
+        fetch('/admin/break-glass/toggle', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showSsakToast(data.message);
+                setTimeout(() => window.location.reload(), 800);
+            }
+        })
+        .catch(e => showSsakToast('Có lỗi: ' + e));
+    }
+</script>
+</body>
+</html>

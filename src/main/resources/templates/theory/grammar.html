@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Chi tiết Ngữ pháp · HOT TOPIK')}"></head>
+<body>
+<div style="min-width: 1280px; max-width: 1440px; min-height: 100vh; margin: 0 auto; background: var(--ssak-bg); display: flex; flex-direction: column;">
+    <div th:replace="~{fragments/navbar :: navbar('theory')}"></div>
+
+    <main style="flex-grow: 1; padding: 32px 48px; display: flex; gap: 28px; align-items: flex-start;">
+        
+        <!-- Left: Grammar Content -->
+        <section style="flex-grow: 1; display: flex; flex-direction: column; gap: 20px;">
+            <div class="ssak-card" style="padding: 32px; display: flex; flex-direction: column; gap: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; gap: 8px;">
+                        <span class="ssak-badge badge-mint">TOPIK II · Cấp 3~4</span>
+                        <span class="ssak-badge badge-sky">Nhóm Tương phản / So sánh</span>
+                    </div>
+                    <span style="font-size: 13px; font-weight: 700; color: var(--ssak-text-muted);">Mã: G-042</span>
+                </div>
+
+                <div>
+                    <h1 class="korean-text" style="margin: 0; font-size: 38px; font-weight: 800; color: var(--ssak-primary);">
+                        V-느니 차라리
+                    </h1>
+                    <span style="font-size: 18px; font-weight: 700; color: var(--ssak-text-main);">Ý nghĩa: "Thà rằng... còn hơn là..."</span>
+                </div>
+
+                <!-- Usage Rule -->
+                <div style="padding: 18px 24px; border-radius: 18px; background: var(--ssak-bg); display: flex; flex-direction: column; gap: 8px;">
+                    <span style="font-weight: 800; font-size: 15px; color: var(--ssak-primary-dark);">📌 Công thức kết hợp:</span>
+                    <div style="font-family: var(--font-korean); font-size: 16px;">
+                        <b>Động từ + 느니 차라리</b> (Không phụ thuộc vào patchim)<br>
+                        Ví dụ: 가다 → 가느니 차라리 / 먹다 → 먹느니 차라리
+                    </div>
+                </div>
+
+                <!-- Examples -->
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <span style="font-weight: 800; font-size: 16px;">Ví dụ thực tế trong đề thi:</span>
+                    
+                    <div style="padding: 14px 18px; border-radius: 14px; background: #FFFFFF; border: 1.5px solid var(--ssak-border); display: flex; flex-direction: column; gap: 4px;">
+                        <span class="korean-text" style="font-size: 17px; font-weight: 600;">1. 그런 사람에게 부탁하느니 차라리 혼자 밤을 새우겠다.</span>
+                        <span style="font-size: 14px; color: var(--ssak-text-muted);">(Thà tự mình thức trắng đêm còn hơn là đi nhờ vả con người đó.)</span>
+                    </div>
+
+                    <div style="padding: 14px 18px; border-radius: 14px; background: #FFFFFF; border: 1.5px solid var(--ssak-border); display: flex; flex-direction: column; gap: 4px;">
+                        <span class="korean-text" style="font-size: 17px; font-weight: 600;">2. 맛없는 음식을 비싸게 사 먹느니 차라리 굶는 게 낫다.</span>
+                        <span style="font-size: 14px; color: var(--ssak-text-muted);">(Thà nhịn đói còn hơn là bỏ tiền đắt mua đồ ăn dở.)</span>
+                    </div>
+                </div>
+
+                <!-- Note / Pitfalls -->
+                <div style="padding: 16px 20px; border-radius: 18px; background: var(--ssak-honey-light); border: 2px dashed var(--ssak-honey); display: flex; gap: 14px;">
+                    <span style="font-size: 22px;">⚠️</span>
+                    <div style="font-size: 14px; color: var(--ssak-honey-text); line-height: 1.6;">
+                        <b>Lưu ý bẫy đề thi:</b> Vế sau thường đi cùng các từ biểu thị sự so sánh hơn như <b>'차라리', '차라리 ~는 게 낫다', '~겠다'</b>. Tuyệt đối không dùng cho tính từ.
+                    </div>
+                </div>
+
+                <!-- Practice Questions Linked -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--ssak-border);">
+                    <span style="font-size: 14px; color: var(--ssak-text-muted);">Xuất hiện trong các câu: Đọc 1–2, Đọc 3–4</span>
+                    <a th:href="@{/practice/play(mode='practice')}" class="btn-ssak-primary" style="height: 44px; padding: 0 20px; font-size: 14px;">
+                        Luyện bài tập chứa ngữ pháp này →
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right: Related Grammar List -->
+        <aside style="width: 340px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px;">
+            <div class="ssak-card" style="padding: 22px; display: flex; flex-direction: column; gap: 14px;">
+                <span style="font-family: var(--font-heading); font-size: 18px; font-weight: 800;">Ngữ pháp tương đồng</span>
+                
+                <a th:href="@{/theory/grammar(id='2')}" style="padding: 12px; border-radius: 12px; background: var(--ssak-bg); text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 2px;">
+                    <span class="korean-text" style="font-weight: 700; font-size: 16px;">-느니보다</span>
+                    <span style="font-size: 12px; color: var(--ssak-text-muted);">So với việc làm A thì làm B tốt hơn</span>
+                </a>
+
+                <a th:href="@{/theory/grammar(id='3')}" style="padding: 12px; border-radius: 12px; background: var(--ssak-bg); text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 2px;">
+                    <span class="korean-text" style="font-weight: 700; font-size: 16px;">-(으)ㄹ 바에야</span>
+                    <span style="font-size: 12px; color: var(--ssak-text-muted);">Một khi đã phải làm A thì thà làm B</span>
+                </a>
+            </div>
+        </aside>
+
+    </main>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+</body>
+</html>

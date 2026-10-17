@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Danh sách từ chưa thuộc · HOT TOPIK')}"></head>
+<body style="background: var(--ssak-bg); color: var(--ssak-text-main); font-family: var(--font-body); min-height: 100vh;">
+
+<!-- Navbar -->
+<div th:replace="~{fragments/navbar :: navbar('theory')}"></div>
+
+<main class="container my-4" style="max-width: 1080px;">
+    <!-- Tiêu đề & Nút ôn tập theo mục 10.2 -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <a th:href="@{/ly-thuyet}" class="text-decoration-none fw-bold small text-muted">
+                ‹ Sổ tay Lý thuyết
+            </a>
+            <h1 style="font-family: var(--font-heading); font-size: 28px; font-weight: 800;" class="mt-1 mb-0">
+                Từ chưa thuộc (14 từ)
+            </h1>
+            <p class="text-muted small mt-1 mb-0">
+                Tập hợp các từ vựng bạn đã đánh dấu Chưa nhớ hoặc trả lời sai trong bài luyện tập & quiz.
+            </p>
+        </div>
+
+        <!-- 2 Nút ôn tập nhanh -->
+        <div class="d-flex gap-2">
+            <a th:href="@{/ly-thuyet/the}" class="btn-ssak-primary px-4 py-2 rounded-pill fw-bold text-decoration-none shadow-sm" style="font-size: 14px;">
+                <i class="bi bi-card-text me-2"></i>Ôn bằng thẻ (14 từ)
+            </a>
+            <a th:href="@{/ly-thuyet/quiz}" class="btn-ssak-outline px-4 py-2 rounded-pill fw-bold text-decoration-none shadow-sm" style="font-size: 14px; background: #fff;">
+                <i class="bi bi-question-circle me-2"></i>Làm Quiz ôn tập
+            </a>
+        </div>
+    </div>
+
+    <!-- Bảng danh sách từ chưa thuộc kèm Nguồn theo mục 10.2 -->
+    <div class="p-4 rounded-4 bg-white border shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead style="background: var(--ssak-bg);">
+                    <tr>
+                        <th style="width: 25%;">Từ vựng & Phiên âm</th>
+                        <th style="width: 30%;">Nghĩa tiếng Việt</th>
+                        <th style="width: 25%;">Nguồn thêm vào</th>
+                        <th style="width: 20%; text-align: center;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <strong style="font-family: var(--font-korean); font-size: 18px; color: var(--ssak-terracotta);">온실효과</strong>
+                            <small class="text-muted d-block">[on-sil-hyo-gwa]</small>
+                        </td>
+                        <td>Hiệu ứng nhà kính</td>
+                        <td>
+                            <span class="badge bg-light text-danger border">Sai trong quiz · Môi trường</span>
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-success rounded-pill px-3" onclick="alert('Đã bỏ khỏi danh sách Chưa thuộc!'); this.closest('tr').remove();">
+                                Đã nhớ (Bỏ đi)
+                            </button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong style="font-family: var(--font-korean); font-size: 18px; color: var(--ssak-terracotta);">생태계 파괴</strong>
+                            <small class="text-muted d-block">[saengtae-gye pagwoe]</small>
+                        </td>
+                        <td>Phá hủy hệ sinh thái</td>
+                        <td>
+                            <span class="badge bg-light text-warning text-dark border">Bấm Chưa nhớ · Thẻ</span>
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-success rounded-pill px-3" onclick="alert('Đã bỏ khỏi danh sách Chưa thuộc!'); this.closest('tr').remove();">
+                                Đã nhớ (Bỏ đi)
+                            </button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong style="font-family: var(--font-korean); font-size: 18px; color: var(--ssak-terracotta);">기후 변화</strong>
+                            <small class="text-muted d-block">[gihu byeonhwa]</small>
+                        </td>
+                        <td>Biến đổi khí hậu toàn cầu</td>
+                        <td>
+                            <span class="badge bg-light text-info text-dark border">Lưu từ giải thích Đọc 13–15</span>
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-success rounded-pill px-3" onclick="alert('Đã bỏ khỏi danh sách Chưa thuộc!'); this.closest('tr').remove();">
+                                Đã nhớ (Bỏ đi)
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

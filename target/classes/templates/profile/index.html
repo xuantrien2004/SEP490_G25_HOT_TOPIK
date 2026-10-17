@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Hồ sơ và cài đặt · HOT TOPIK')}"></head>
+<body>
+<div style="min-width: 1280px; max-width: 1440px; min-height: 100vh; margin: 0 auto; background: var(--ssak-bg); font-family: var(--font-body); color: var(--ssak-text-main); display: flex; flex-direction: column;">
+
+    <!-- TopBar Navigation -->
+    <div th:replace="~{fragments/navbar :: navbar('profile')}"></div>
+
+    <!-- Main Content Area: Sidebar + Profile Tab Content -->
+    <main style="flex-grow: 1; box-sizing: border-box; padding: 28px 48px; display: flex; gap: 24px; align-items: flex-start;">
+        
+        <!-- Left Sidebar: Profile Card & Navigation Tabs (280px) -->
+        <aside style="width: 280px; flex-shrink: 0; display: flex; flex-direction: column; gap: 14px;">
+            <h1 style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Hồ sơ và cài đặt</h1>
+            
+            <!-- User Summary Card -->
+            <div style="padding: 24px; border-radius: 28px; background: #FFFFFF; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <span style="width: 84px; height: 84px; border-radius: 42px; background: var(--ssak-primary); color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-size: 36px; font-weight: 800;"
+                      th:text="${session.LOGGED_IN_USER != null ? #strings.substring(session.LOGGED_IN_USER.fullName, 0, 1) : 'M'}">
+                    M
+                </span>
+                <span id="aside-user-name" style="font-family: var(--font-heading); font-size: 20px; font-weight: 800;"
+                      th:text="${session.LOGGED_IN_USER != null ? session.LOGGED_IN_USER.fullName : 'Minh Anh'}">
+                    Minh Anh
+                </span>
+                <span style="font-size: 13px; color: var(--ssak-text-muted);"
+                      th:text="${session.LOGGED_IN_USER != null ? session.LOGGED_IN_USER.email : 'minhanh@gmail.com'}">
+                    minhanh@gmail.com
+                </span>
+                <span th:if="${session.LOGGED_IN_USER != null && session.LOGGED_IN_USER.vip}" style="height: 26px; padding: 0 14px; border-radius: 13px; background: #24363D; color: #FFE08A; font-size: 12px; font-weight: 800; display: flex; align-items: center; margin-top: 4px;">
+                    👑 VIP Trọn đời
+                </span>
+                <span th:if="${session.LOGGED_IN_USER == null || !session.LOGGED_IN_USER.vip}" style="height: 26px; padding: 0 14px; border-radius: 13px; background: #E9E6DF; color: #24363D; font-size: 12px; font-weight: 700; display: flex; align-items: center; margin-top: 4px;">
+                    🎓 Học viên Basic
+                </span>
+            </div>
+
+            <!-- Profile Tabs Nav -->
+            <nav style="display: flex; flex-direction: column; gap: 4px;">
+                <button type="button" class="profile-tab-btn active" data-tab="profile" onclick="switchProfileTab('profile')">
+                    Hồ sơ
+                </button>
+                <button type="button" class="profile-tab-btn" data-tab="study" onclick="switchProfileTab('study')">
+                    Trình độ và lộ trình
+                </button>
+                <button type="button" class="profile-tab-btn" data-tab="habit" onclick="switchProfileTab('habit')">
+                    Thói quen và nhắc học
+                </button>
+                <button type="button" class="profile-tab-btn" data-tab="xu" onclick="switchProfileTab('xu')">
+                    Xu của bạn
+                </button>
+                <button type="button" class="profile-tab-btn" data-tab="vip" onclick="switchProfileTab('vip')">
+                    Gói VIP
+                </button>
+                <button type="button" class="profile-tab-btn" data-tab="sec" onclick="switchProfileTab('sec')">
+                    Bảo mật
+                </button>
+            </nav>
+
+            <!-- Logout Link -->
+            <a th:href="@{/logout}" style="display: inline-flex; align-items: center; justify-content: center; height: 50px; padding: 0 22px; border-radius: 16px; background: #FFFFFF; color: #24363D; text-decoration: none; font-weight: 800; font-size: 15px; border: 2px solid #24363D; cursor: pointer; box-sizing: border-box; margin-top: 6px;">
+                Đăng xuất
+            </a>
+        </aside>
+
+        <!-- Right Main Panel: Tabs Content -->
+        <section style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+            
+            <!-- Toast Notification Box -->
+            <div id="profile-toast" style="display: none; padding: 14px 18px; border-radius: 14px; background: var(--ssak-mint); color: var(--ssak-primary-dark); font-weight: 800; font-size: 14px; border: 1.5px solid var(--ssak-primary);">
+            </div>
+
+            <!-- TAB 1: HỒ SƠ CÁ NHÂN -->
+            <div id="tab-pane-profile" class="profile-pane active" style="display: flex; flex-direction: column; gap: 16px;">
+                
+                <!-- Personal Info Card -->
+                <div style="padding: 24px 28px; border-radius: 28px; background: #FFFFFF; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 16px;">
+                    <span style="font-family: var(--font-heading); font-size: 24px; font-weight: 800;">Thông tin cá nhân</span>
+                    
+                    <div>
+                        <label style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); display: block; margin-bottom: 6px;">
+                            TÊN HIỂN THỊ (2–40 ký tự)
+                        </label>
+                        <input id="input-profile-name" type="text" value="Minh Anh" oninput="validateProfileName()"
+                               style="width: 420px; max-width: 100%; height: 46px; padding: 0 16px; border-radius: 12px; border: 2px solid var(--ssak-border); font-size: 15px; box-sizing: border-box; outline: none;">
+                        <span id="name-error-msg" style="display: none; font-size: 12px; color: var(--ssak-terracotta); font-weight: 700; margin-top: 6px;">
+                            Tên hiển thị phải dài từ 2 đến 40 ký tự.
+                        </span>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #F1EEE6;">
+                        <span style="font-size: 14px; font-weight: 700;">Email</span>
+                        <span style="font-size: 14px; color: var(--ssak-text-muted);">minhanh@gmail.com (không đổi được)</span>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #F1EEE6;">
+                        <span style="font-size: 14px; font-weight: 700;">Ảnh đại diện</span>
+                        <span style="font-size: 14px; color: var(--ssak-primary-dark); font-weight: 800; cursor: pointer;">Đổi ảnh · JPG/PNG ≤ 2 MB</span>
+                    </div>
+
+                    <button type="button" onclick="saveProfileName()" class="btn-ssak-primary" style="height: 50px; padding: 0 28px; font-size: 15px; align-self: flex-start;">
+                        Lưu thay đổi
+                    </button>
+                </div>
+
+                <!-- Your Learning Journey Stats Card -->
+                <div style="padding: 24px 28px; border-radius: 28px; background: #FFFFFF; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 14px;">
+                    <span style="font-family: var(--font-heading); font-size: 20px; font-weight: 800;">Hành trình của bạn</span>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+                        <div style="padding: 16px; border-radius: 16px; background: #F8F6EF;">
+                            <div style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted);">THAM GIA</div>
+                            <div style="font-family: var(--font-heading); font-size: 20px; font-weight: 800; margin-top: 4px;">28/09/2026</div>
+                        </div>
+                        <div style="padding: 16px; border-radius: 16px; background: #F8F6EF;">
+                            <div style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted);">ĐÃ HỌC</div>
+                            <div style="font-family: var(--font-heading); font-size: 20px; font-weight: 800; margin-top: 4px;">12 ngày</div>
+                        </div>
+                        <div style="padding: 16px; border-radius: 16px; background: #F8F6EF;">
+                            <div style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted);">TỪ ĐÃ THUỘC</div>
+                            <div style="font-family: var(--font-heading); font-size: 20px; font-weight: 800; margin-top: 4px;">52 từ</div>
+                        </div>
+                        <div style="padding: 16px; border-radius: 16px; background: #F8F6EF;">
+                            <div style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted);">THI THỬ</div>
+                            <div style="font-family: var(--font-heading); font-size: 20px; font-weight: 800; margin-top: 4px;">1 Full Mock</div>
+                        </div>
+                    </div>
+
+                    <a th:href="@{/progress}" style="font-size: 14px; font-weight: 800; color: var(--ssak-primary-dark); text-decoration: none; margin-top: 4px;">
+                        Xem chi tiết trong Tiến độ →
+                    </a>
+                </div>
+            </div>
+
+            <!-- TAB 2: TRÌNH ĐỘ VÀ LỘ TRÌNH -->
+            <div id="tab-pane-study" class="profile-pane" style="display: none; flex-direction: column; gap: 16px;">
+                <div style="padding: 24px 28px; border-radius: 28px; background: #FFFFFF; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 8px;">
+                    <span style="font-family: var(--font-heading); font-size: 24px; font-weight: 800;">Trình độ và lộ trình</span>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #F1EEE6;">
+                        <span style="font-size: 14px; font-weight: 700;">Cấp hiện tại</span>
+                        <span style="font-weight: 800; font-size: 15px;">TOPIK II · Cấp 3 · theo bài kiểm tra trình độ 28/09</span>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #F1EEE6;">
+                        <span style="font-size: 14px; font-weight: 700;">Lộ trình</span>
+                        <span style="font-weight: 800; font-size: 15px;">TOPIK 3 → 4 · 28/09 – 27/11 (60 ngày)</span>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; padding-top: 14px; flex-wrap: wrap;">
+                        <a th:href="@{/placement}" class="btn-ssak-secondary" style="height: 48px; padding: 0 20px; text-decoration: none;">
+                            Làm lại bài kiểm tra
+                        </a>
+                        <a th:href="@{/onboarding}" class="btn-ssak-secondary" style="height: 48px; padding: 0 20px; text-decoration: none;">
+                            Chọn cấp khác
+                        </a>
+                        <a th:href="@{/roadmap/adjust}" class="btn-ssak-secondary" style="height: 48px; padding: 0 20px; text-decoration: none;">
+                            Điều chỉnh lộ trình
+                        </a>
+                    </div>
+
+                    <span style="font-size: 13px; color: var(--ssak-text-muted); padding-top: 10px; line-height: 1.5;">
+                        Đổi cấp không tự đổi lộ trình đang chạy. Free làm lại bài kiểm tra mỗi 7 ngày; VIP lúc nào cũng được.
+                    </span>
+                </div>
+            </div>
+
+            <!-- TAB 3: THÓI QUEN VÀ NHẮC HỌC -->
+            <div id="tab-pane-habit" class="profile-pane" style="display: none; flex-direction: column; gap: 16px;">
+                <div style="padding: 24px 28px; border-radius: 28px; background: #FFFFFF; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 12px;">
+                    <span style="font-family: var(--font-heading); font-size: 24px; font-weight: 800;">Thói quen và nhắc học</span>
+                    
+                    <span style="font-size: 14px; font-weight: 700; margin-top: 4px;">
+                        Mục tiêu thời gian mỗi ngày <span style="color: var(--ssak-text-muted); font-weight: 600;">(chỉ để tính chuỗi, áp dụng từ ngày mai)</span>
+                    </span>
+
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;" id="time-goal-selector">
+                        <button type="button" class="goal-pill-btn" onclick="selectTimeGoal(10)">10 phút</button>
+                        <button type="button" class="goal-pill-btn" onclick="selectTimeGoal(15)">15 phút</button>
+                        <button type="button" class="goal-pill-btn active" onclick="selectTimeGoal(20)">20 phút</button>
+                        <button type="button" class="goal-pill-btn" onclick="selectTimeGoal(30)">30 phút</button>
+                        <button type="button" class="goal-pill-btn" onclick="selectTimeGoal(45)">45 phút</button>
+                        <button type="button" class="goal-pill-btn" onclick="selectTimeGoal(60)">60 phút</button>
+                    </div>
+
+                    <!-- 4 Toggle switches -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #F1EEE6;">
+                        <span style="font-size: 14px; font-weight: 700;">Nhắc học trong web lúc 20:00</span>
+                        <div class="ssak-toggle active" id="toggle-remind" onclick="toggleSetting('remind')">
+                            <span class="ssak-toggle-circle"></span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #F1EEE6;">
+                        <span style="font-size: 14px; font-weight: 700;">Thông báo trình duyệt (tự bật, không gửi email)</span>
+                        <div class="ssak-toggle" id="toggle-push" onclick="toggleSetting('push')">
+                            <span class="ssak-toggle-circle"></span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #F1EEE6;">
+                        <span style="font-size: 14px; font-weight: 700;">Âm thanh hiệu ứng</span>
+                        <div class="ssak-toggle" id="toggle-sound" onclick="toggleSetting('sound')">
+                            <span class="ssak-toggle-circle"></span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #F1EEE6;">
+                        <span style="font-size: 14px; font-weight: 700;">Thông báo khi AI chấm xong bài Viết</span>
+                        <div class="ssak-toggle active" id="toggle-ai" onclick="toggleSetting('ai')">
+                            <span class="ssak-toggle-circle"></span>
+                        </div>
+                    </div>
+
+                    <span style="font-size: 13px; color: var(--ssak-text-muted); margin-top: 6px;">
+                        HOT TOPIK không gửi email nhắc học. Email chỉ dùng cho xác minh, đặt lại mật khẩu và hoá đơn.
+                    </span>
+                </div>
+            </div>
+
+            <!-- TAB 4: XU CỦA BẠN -->
+            <div id="tab-pane-xu" class="profile-pane" style="display: none; flex-direction: column; gap: 16px;">
+                <div style="padding: 24px 28px; border-radius: 28px; background: #FFFFFF; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 12px;">
+                    <span style="font-family: var(--font-heading); font-size: 24px; font-weight: 800;">Xu của bạn</span>
+                    
+                    <div style="display: flex; align-items: baseline; gap: 8px;">
+                        <span id="display-coins-count" style="font-family: var(--font-heading); font-size: 38px; font-weight: 800; color: #7A5A12;">185</span>
+                        <span style="font-size: 16px; color: var(--ssak-text-muted); font-weight: 700;">Xu tích lũy</span>
+                    </div>
+
+                    <span style="font-size: 14px; color: var(--ssak-text-muted); line-height: 1.6;">
+                        Nhận Xu khi: xong bài theo lộ trình (+3), Ôn tuần (+5), thi thử (+20), báo lỗi được xác nhận (+20). Xu không bao giờ hết hạn.
+                    </span>
+
+                    <span style="font-size: 16px; font-weight: 800; margin-top: 8px;">Dùng Xu để</span>
+
+                    <!-- Rewards List -->
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-radius: 14px; border: 2px solid var(--ssak-border); background: #FFFFFF;">
+                            <span style="font-weight: 700;">1 lượt AI chấm bài Viết</span>
+                            <button type="button" onclick="redeemReward('1 lượt AI chấm bài Viết', 50)" class="btn-redeem-xu">
+                                Đổi 50 Xu
+                            </button>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-radius: 14px; border: 2px solid var(--ssak-border); background: #FFFFFF;">
+                            <span style="font-weight: 700;">Đổi màu lá cho Bé Ssak</span>
+                            <button type="button" onclick="redeemReward('Đổi màu lá cho Bé Ssak', 120)" class="btn-redeem-xu">
+                                Đổi 120 Xu
+                            </button>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-radius: 14px; border: 2px solid var(--ssak-border); background: #F8F6EF;">
+                            <span style="font-weight: 700; color: var(--ssak-text-muted);">Mở thêm 1 bài Full Mock (300 Xu)</span>
+                            <button type="button" onclick="redeemReward('Mở thêm 1 bài Full Mock', 300)" class="btn-redeem-xu">
+                                Đổi 300 Xu
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: GÓI VIP -->
+            <div id="tab-pane-vip" class="profile-pane" style="display: none; flex-direction: column; gap: 16px;">
+                <div style="padding: 24px 28px; border-radius: 28px; background: #FFFFFF; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 8px;">
+                    <span style="font-family: var(--font-heading); font-size: 24px; font-weight: 800;">Gói VIP</span>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #F1EEE6;">
+                        <span style="font-size: 14px; font-weight: 700;">Gói hiện tại</span>
+                        <span style="font-weight: 800; font-size: 15px; color: var(--ssak-primary-dark);">VIP 3 tháng · Còn 83 ngày (hết hạn 28/12/2026)</span>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #F1EEE6;">
+                        <span style="font-size: 14px; font-weight: 700;">Lượt AI chấm hôm nay</span>
+                        <span style="font-weight: 800; font-size: 15px;">Còn 20/20 lượt VIP</span>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #F1EEE6;">
+                        <span style="font-size: 14px; font-weight: 700;">Đơn gần nhất</span>
+                        <span style="font-size: 14px; color: var(--ssak-text-muted);">HT10021 · 249.000đ · 28/09/2026</span>
+                    </div>
+
+                    <a th:href="@{/vip}" class="btn-ssak-primary" style="height: 50px; padding: 0 28px; font-size: 15px; align-self: flex-start; text-decoration: none; margin-top: 10px;">
+                        Xem các gói VIP
+                    </a>
+
+                    <span style="font-size: 13px; color: var(--ssak-text-muted); margin-top: 6px;">
+                        Mua thêm gói có thời hạn thì thời hạn được cộng nối liên tục.
+                    </span>
+                </div>
+            </div>
+
+            <!-- TAB 6: BẢO MẬT -->
+            <div id="tab-pane-sec" class="profile-pane" style="display: none; flex-direction: column; gap: 16px;">
+                <div style="padding: 24px 28px; border-radius: 28px; background: #FFFFFF; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 14px;">
+                    <span style="font-family: var(--font-heading); font-size: 24px; font-weight: 800;">Bảo mật & Mật khẩu</span>
+                    
+                    <input type="password" id="current-pwd" placeholder="Mật khẩu hiện tại"
+                           style="width: 420px; max-width: 100%; height: 46px; padding: 0 16px; border-radius: 12px; border: 2px solid var(--ssak-border); font-size: 14px; box-sizing: border-box; outline: none;">
+                    
+                    <input type="password" id="new-pwd" placeholder="Mật khẩu mới (ít nhất 8 ký tự, có chữ và số)"
+                           style="width: 420px; max-width: 100%; height: 46px; padding: 0 16px; border-radius: 12px; border: 2px solid var(--ssak-border); font-size: 14px; box-sizing: border-box; outline: none;">
+
+                    <button type="button" onclick="handleChangePassword()" class="btn-ssak-secondary" style="height: 48px; padding: 0 24px; align-self: flex-start;">
+                        Đổi mật khẩu
+                    </button>
+                    
+                    <span style="font-size: 12px; color: var(--ssak-text-muted);">
+                        Đổi xong, tất cả các thiết bị khác sẽ được đăng xuất tự động.
+                    </span>
+
+                    <!-- Danger Zone: Delete Account -->
+                    <div style="margin-top: 16px; padding: 18px 22px; border-radius: 20px; background: #FBE6DA; display: flex; flex-direction: column; gap: 8px;">
+                        <b style="color: #9C4A2E; font-size: 16px;">Xoá tài khoản</b>
+                        <span style="font-size: 13px; color: #4A5B60; line-height: 1.5;">
+                            Thông tin cá nhân sẽ bị ẩn, gói VIP còn hạn bị huỷ và chuỗi học tập sẽ mất. Cần nhập mật khẩu để xác nhận.
+                        </span>
+                        <button type="button" id="btn-delete-acc" onclick="handleDeleteAccount()"
+                                style="align-self: flex-start; height: 42px; padding: 0 18px; border-radius: 12px; border: 2px solid #9C4A2E; background: #FFFFFF; color: #9C4A2E; font-weight: 800; font-size: 14px; cursor: pointer; margin-top: 4px;">
+                            Xoá tài khoản
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+
+<!-- Inline Styles for Profile Tabs & Switch -->
+<style>
+.profile-tab-btn {
+    height: 46px;
+    border-radius: 14px;
+    border: 0;
+    cursor: pointer;
+    text-align: left;
+    padding: 0 16px;
+    font-size: 14px;
+    font-weight: 800;
+    background: transparent;
+    color: var(--ssak-text-main);
+    transition: all 0.15s ease;
+}
+.profile-tab-btn:hover {
+    background: #EAF4EE;
+    color: var(--ssak-primary-dark);
+}
+.profile-tab-btn.active {
+    background: var(--ssak-mint);
+    color: var(--ssak-primary-dark);
+}
+
+.goal-pill-btn {
+    height: 44px;
+    padding: 0 18px;
+    border-radius: 22px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 800;
+    border: 2px solid var(--ssak-border);
+    background: #FFFFFF;
+    color: var(--ssak-text-main);
+    transition: all 0.15s ease;
+}
+.goal-pill-btn.active {
+    border: 2px solid var(--ssak-primary);
+    background: var(--ssak-primary);
+    color: #FFFFFF;
+}
+
+.ssak-toggle {
+    width: 52px;
+    height: 30px;
+    border-radius: 15px;
+    background: #C9D3D0;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+.ssak-toggle.active {
+    background: var(--ssak-primary);
+}
+.ssak-toggle-circle {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    background: #FFFFFF;
+    transition: left 0.2s ease;
+}
+.ssak-toggle.active .ssak-toggle-circle {
+    left: 25px;
+}
+
+.btn-redeem-xu {
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 12px;
+    border: 2px solid #7A5A12;
+    background: var(--ssak-honey-light);
+    color: #7A5A12;
+    font-weight: 800;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.btn-redeem-xu:hover {
+    background: var(--ssak-honey);
+    color: #5C430B;
+}
+</style>
+
+<!-- Profile Interactivity Scripts -->
+<script>
+let currentCoins = 185;
+
+function showProfileToast(msg) {
+    const toast = document.getElementById('profile-toast');
+    toast.textContent = msg;
+    toast.style.display = 'block';
+    clearTimeout(window.__profileToastTimer);
+    window.__profileToastTimer = setTimeout(() => {
+        toast.style.display = 'none';
+    }, 3800);
+}
+
+function switchProfileTab(tabName) {
+    // Buttons
+    document.querySelectorAll('.profile-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-tab') === tabName);
+    });
+    // Panes
+    document.querySelectorAll('.profile-pane').forEach(pane => {
+        pane.style.display = 'none';
+    });
+    const targetPane = document.getElementById('tab-pane-' + tabName);
+    if (targetPane) {
+        targetPane.style.display = 'flex';
+    }
+}
+
+function validateProfileName() {
+    const input = document.getElementById('input-profile-name');
+    const val = input.value.trim();
+    const errMsg = document.getElementById('name-error-msg');
+    if (val.length < 2 || val.length > 40) {
+        input.style.borderColor = 'var(--ssak-terracotta)';
+        errMsg.style.display = 'block';
+        return false;
+    } else {
+        input.style.borderColor = 'var(--ssak-border)';
+        errMsg.style.display = 'none';
+        return true;
+    }
+}
+
+function saveProfileName() {
+    if (validateProfileName()) {
+        const val = document.getElementById('input-profile-name').value.trim();
+        document.getElementById('aside-user-name').textContent = val;
+        showProfileToast('Đã lưu thay đổi hồ sơ cá nhân thành công!');
+    }
+}
+
+function selectTimeGoal(mins) {
+    document.querySelectorAll('#time-goal-selector .goal-pill-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.includes(mins));
+    });
+    showProfileToast(`Mục tiêu ${mins} phút mỗi ngày sẽ được áp dụng từ ngày mai.`);
+}
+
+function toggleSetting(key) {
+    const toggle = document.getElementById('toggle-' + key);
+    if (toggle) {
+        toggle.classList.toggle('active');
+        showProfileToast('Đã lưu cài đặt thói quen.');
+    }
+}
+
+function redeemReward(rewardName, cost) {
+    if (currentCoins < cost) {
+        showProfileToast('Chưa đủ Xu tích lũy. Học thêm vài bài là bạn sẽ có ngay!');
+        return;
+    }
+    currentCoins -= cost;
+    document.getElementById('display-coins-count').textContent = currentCoins;
+    const topbarCoins = document.getElementById('topbar-coins');
+    if (topbarCoins) topbarCoins.textContent = currentCoins;
+    showProfileToast(`Đã đổi ${cost} Xu để nhận: ${rewardName}!`);
+}
+
+function handleChangePassword() {
+    const cur = document.getElementById('current-pwd').value;
+    const nw = document.getElementById('new-pwd').value;
+    if (!cur || !nw) {
+        showProfileToast('Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới.');
+        return;
+    }
+    if (nw.length < 8) {
+        showProfileToast('Mật khẩu mới phải có ít nhất 8 ký tự.');
+        return;
+    }
+    document.getElementById('current-pwd').value = '';
+    document.getElementById('new-pwd').value = '';
+    showProfileToast('Đã đổi mật khẩu thành công! Các thiết bị khác đã được đăng xuất.');
+}
+
+let deleteConfirmed = false;
+function handleDeleteAccount() {
+    const btn = document.getElementById('btn-delete-acc');
+    if (!deleteConfirmed) {
+        deleteConfirmed = true;
+        btn.textContent = 'Bấm lần nữa để xác nhận XOÁ tài khoản vĩnh viễn';
+        btn.style.background = '#9C4A2E';
+        btn.style.color = '#FFFFFF';
+    } else {
+        showProfileToast('Yêu cầu xoá tài khoản đã được ghi nhận.');
+        setTimeout(() => {
+            window.location.href = '/login';
+        }, 1500);
+    }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+/**
+ * HOT TOPIK - Design System Variables (Bé Ssak Concept)
+ * Inspired by HotTopik_Prototype (11)
+ */
+:root {
+  /* Brand Primary Green (Bé Ssak Sprout) */
+  --ssak-primary: #2E7D67;
+  --ssak-primary-hover: #246553;
+  --ssak-primary-dark: #1F6B56;
+  --ssak-primary-light: #E3F2EA;
+  --ssak-primary-border: #1F5E4D;
+  --ssak-leaf-accent: #6CC49F;
+
+  /* Neutrals & Warm Backgrounds */
+  --ssak-bg: #F8F6EF;
+  --ssak-bg-card: #FFFFFF;
+  --ssak-bg-muted: #F1EEE6;
+  --ssak-border: #E6E1D3;
+  --ssak-border-subtle: #D8D1C2;
+
+  /* Typography Colors */
+  --ssak-text-main: #24363D;
+  --ssak-text-muted: #5C6E72;
+  --ssak-text-light: #8E9EA2;
+
+  /* Soft Accent Tones (Anti-Stress Philosophy) */
+  --ssak-honey: #F4C45A;
+  --ssak-honey-light: #FBF0D3;
+  --ssak-honey-text: #7A5A12;
+
+  --ssak-sky: #E4EEF5;
+  --ssak-sky-text: #2F5F7D;
+
+  --ssak-peach: #FBE6DA;
+  --ssak-terracotta: #9C4A2E; /* Replaces harsh red for warnings & corrections */
+
+  /* Fonts */
+  --font-heading: 'Baloo 2', 'Nunito', sans-serif;
+  --font-body: 'Nunito', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-korean: 'Noto Sans KR', sans-serif;
+
+  /* Radii */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+  --radius-pill: 9999px;
+
+  /* Elevation Shadows */
+  --shadow-sm: 0 2px 8px rgba(36, 54, 61, 0.05);
+  --shadow-md: 0 6px 18px rgba(36, 54, 61, 0.08);
+  --shadow-lg: 0 12px 32px rgba(36, 54, 61, 0.12);
+  --btn-press-shadow: 0 4px 0 #1F5E4D;
+}

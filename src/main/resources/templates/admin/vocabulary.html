@@ -1,0 +1,1860 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<div style="min-height: 100vh; background: #F4F3EF; font-family: var(--font-body); color: var(--ssak-text-main); display: flex;">
+
+    <!-- Hidden State Anchors for JS -->
+    <input type="hidden" id="currentViewLevel" th:value="${currentLevel}" />
+    <input type="hidden" id="currentViewTopic" th:value="${currentTopic}" />
+    <input type="hidden" id="currentViewRole" th:value="${currentRole}" />
+
+    <!-- ==================== LEFT SIDEBAR (THANH TÁC VỤ BÊN TRÁI) ==================== -->
+    <aside style="width: 275px; background: #24363D; color: #FFFFFF; display: flex; flex-direction: column; flex-shrink: 0; min-height: 100vh; position: sticky; top: 0; z-index: 100; box-shadow: 4px 0 16px rgba(0,0,0,0.08);">
+        
+        <!-- Sidebar Brand / Logo -->
+        <div style="padding: 24px 24px 18px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;">
+            <a th:href="@{/content}" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #FFFFFF;">
+                <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 21V11" stroke="#6CC49F" stroke-width="2.5" stroke-linecap="round"/>
+                    <path d="M12 12C12 7 8 4 3.5 4.5C3.5 9 7 12.5 12 12Z" fill="#6CC49F"/>
+                    <path d="M12 10C12 6 15.5 3 20.5 3.5C20.5 8 17 11 12 10Z" fill="#A9D9C0"/>
+                </svg>
+                <span style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #6CC49F; letter-spacing: -0.5px;">HOT TOPIK</span>
+            </a>
+            <div>
+                <span style="font-size: 11px; color: #6CC49F; background: rgba(46, 125, 103, 0.35); border: 1px solid rgba(108, 196, 159, 0.4); padding: 3px 10px; border-radius: 12px; font-weight: 800; text-transform: uppercase;">
+                    📝 Content Manager
+                </span>
+            </div>
+        </div>
+
+        <!-- User Profile Card (click → /content/profile) -->
+        <a th:href="@{/content/profile}" style="padding: 14px 20px; margin: 12px 14px; background: rgba(0,0,0,0.22); border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px; text-decoration: none;">
+            <div style="width: 40px; height: 40px; border-radius: 20px; background: #1F6B56; color: #FFFFFF; font-family: var(--font-heading); font-size: 18px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <span th:text="${#strings.substring(userName, 0, 1)}">H</span>
+            </div>
+            <div style="display: flex; flex-direction: column; overflow: hidden; min-width: 0; flex-grow: 1;">
+                <span style="font-weight: 800; font-size: 14px; color: #FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" th:text="${userName}">Lê Thu Hà</span>
+                <span style="font-size: 11px; color: #6CC49F; font-weight: 600;">Xem hồ sơ →</span>
+            </div>
+        </a>
+
+        <!-- Sidebar Navigation Menu Items -->
+        <div style="padding: 6px 14px; display: flex; flex-direction: column; gap: 2px; flex-grow: 1; overflow-y: auto;">
+            <div style="font-size: 11px; font-weight: 800; color: #8ECDB0; padding: 8px 12px 4px 12px; text-transform: uppercase; letter-spacing: 0.8px;">
+                Tác vụ Chuyên môn
+            </div>
+
+            <!-- Tổng quan -->
+            <a th:href="@{/content}" class="sidebar-item">
+                <span style="font-size: 17px;">🏠</span>
+                <span style="flex-grow: 1;">Tổng quan</span>
+            </a>
+
+            <!-- Quản lý Lý thuyết (parent, expanded since we're inside vocabulary) -->
+            <a th:href="@{/content}" class="sidebar-item" style="background: rgba(255,255,255,0.06);">
+                <span style="font-size: 17px;">📖</span>
+                <span style="flex-grow: 1;">Quản lý Lý thuyết</span>
+                <span style="font-size: 12px; color: #A9D9C0;">▾</span>
+            </a>
+
+            <!-- Sub-item: Kho Từ vựng (ACTIVE) -->
+            <a th:href="@{/content/vocabulary}" class="sidebar-sub-item active-sub">
+                <span style="font-size: 14px;">↳</span>
+                <span style="flex-grow: 1;">Kho Từ vựng TOPIK 1-6</span>
+                <span class="ssak-badge badge-mint" style="font-size: 10px; padding: 1px 6px;" th:text="${totalCount}">42</span>
+            </a>
+
+            <!-- Sub-item: Kho Ngữ pháp -->
+            <a th:href="@{/content/grammar}" class="sidebar-sub-item">
+                <span style="font-size: 14px;">↳</span>
+                <span style="flex-grow: 1;">Kho Ngữ pháp TOPIK 1-6</span>
+            </a>
+
+            <!-- Quản lý Đề -->
+            <a th:href="@{/content}" class="sidebar-item">
+                <span style="font-size: 17px;">📋</span>
+                <span style="flex-grow: 1;">Quản lý Đề</span>
+            </a>
+
+            <!-- Ngân hàng câu hỏi -->
+            <a th:href="@{/content}" class="sidebar-item">
+                <span style="font-size: 17px;">📝</span>
+                <span style="flex-grow: 1;">Ngân hàng câu hỏi</span>
+            </a>
+
+            <!-- Xử lý Báo lỗi -->
+            <a th:href="@{/content}" class="sidebar-item">
+                <span style="font-size: 17px;">⚠️</span>
+                <span style="flex-grow: 1;">Xử lý Báo lỗi</span>
+            </a>
+
+            <!-- Nhật ký Thao tác -->
+            <a th:href="@{/content}" class="sidebar-item">
+                <span style="font-size: 17px;">📜</span>
+                <span style="flex-grow: 1;">Nhật ký Thao tác</span>
+            </a>
+        </div>
+
+        <!-- Sidebar Bottom Footer -->
+        <div style="padding: 16px 14px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;">
+            <a th:href="@{/content}" class="sidebar-bottom-link">
+                <span>←</span>
+                <span>Về Bàn làm việc Content</span>
+            </a>
+            <a th:href="@{/logout}" class="sidebar-bottom-link logout">
+                <span>🚪</span>
+                <span>Đăng xuất hệ thống</span>
+            </a>
+        </div>
+    </aside>
+
+
+    <!-- ==================== RIGHT MAIN CONTENT AREA ==================== -->
+    <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0;">
+        
+        <!-- Top Header Bar inside Content -->
+        <header style="height: 68px; padding: 0 40px; background: #FFFFFF; border-bottom: 2px solid var(--ssak-border); display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 24px;">📖</span>
+                <div>
+                    <h2 style="margin: 0; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D;">
+                        Kho Từ vựng TOPIK 1–6 (Vocabulary Management)
+                    </h2>
+                    <span style="font-size: 12px; color: var(--ssak-text-muted);">
+                        Quản lý phân cấp TOPIK 1-6 & Chủ đề · Thêm/Sửa từ, Tự động phiên âm & Nhập Excel
+                    </span>
+                </div>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span class="ssak-badge badge-mint" style="font-size: 12px; padding: 6px 12px;">
+                    Tổng số: <strong th:text="${totalCount}">42</strong> từ
+                </span>
+                <span class="ssak-badge badge-sky" style="font-size: 12px; padding: 6px 12px;">
+                    Chủ đề: <strong th:text="${topicCount}">12</strong>
+                </span>
+            </div>
+        </header>
+
+        <!-- Main Container -->
+        <main style="flex-grow: 1; padding: 24px 40px; display: flex; flex-direction: column; gap: 20px;">
+        
+        <!-- BREADCRUMB NAVIGATION -->
+        <nav style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700;">
+            <a th:href="@{/admin/vocabulary(role=${currentRole})}" style="color: #2E7D67; text-decoration: none;">
+                🏠 Cấp độ TOPIK (1–6)
+            </a>
+            
+            <th:block th:if="${viewMode == 'TOPIC_LIST' or viewMode == 'VOCAB_LIST'}">
+                <span style="color: var(--ssak-text-muted);">›</span>
+                <a th:href="@{/admin/vocabulary(role=${currentRole}, level=${currentLevel})}" 
+                   th:style="${viewMode == 'TOPIC_LIST' ? 'color: var(--ssak-text-main); font-weight: 800;' : 'color: #2E7D67;'}"
+                   style="text-decoration: none;" th:text="${currentLevelName}">
+                    TOPIK I · Cấp 1
+                </a>
+            </th:block>
+
+            <th:block th:if="${viewMode == 'VOCAB_LIST'}">
+                <span style="color: var(--ssak-text-muted);">›</span>
+                <span style="color: var(--ssak-text-main); font-weight: 800;" th:text="${'Chủ đề: ' + currentTopic}">
+                    Chủ đề: Gia đình
+                </span>
+            </th:block>
+        </nav>
+
+        <!-- ============================================================== -->
+        <!-- MÀN HÌNH 1: LEVEL_LIST (DANH SÁCH 6 CẤP TOPIK VỚI SỐ LƯỢNG CHỦ ĐỀ) -->
+        <!-- ============================================================== -->
+        <th:block th:if="${viewMode == 'LEVEL_LIST'}">
+            
+            <!-- Banner Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #FFFFFF; padding: 22px 28px; border-radius: 20px; border: 2px solid var(--ssak-border);">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <h1 style="margin: 0; font-family: var(--font-heading); font-size: 26px; font-weight: 800; color: #1F6B56;">
+                            📖 Phân cấp Từ vựng TOPIK (Cấp 1 – 6)
+                        </h1>
+                        <span class="ssak-badge badge-mint" style="font-size: 12px;">Hệ thống chuẩn TOPIK I & II</span>
+                    </div>
+                    <span style="font-size: 13px; color: var(--ssak-text-muted);">
+                        Chọn một cấp độ TOPIK để quản lý danh sách chủ đề, tạo chủ đề mới hoặc xem từ vựng chi tiết.
+                    </span>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span class="ssak-badge" style="background: #E8F5EE; color: #1F6B56; font-size: 13px; font-weight: 800; padding: 8px 14px;">
+                        📚 Tổng cộng: <span th:text="${totalCount}">42</span> từ vựng / <span th:text="${topicCount}">23</span> chủ đề
+                    </span>
+                </div>
+            </div>
+
+            <!-- 6 TOPIK Level Cards Grid -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <div th:each="lvl : ${levelSummaries}" 
+                     class="ssak-card" 
+                     style="padding: 24px; display: flex; flex-direction: column; justify-content: space-between; gap: 20px; transition: transform 0.2s, box-shadow 0.2s; border: 2px solid var(--ssak-border);"
+                     onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='#2E7D67';"
+                     onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='var(--ssak-border)';">
+                    
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <!-- Level Header Badge & Tier -->
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span class="ssak-badge" 
+                                  th:style="${lvl.level <= 2 ? 'background: #E8F5EE; color: #1F6B56; font-weight: 800;' : (lvl.level <= 4 ? 'background: #EAF3F9; color: #2F5F7D; font-weight: 800;' : 'background: #FDF4E5; color: #7A5A12; font-weight: 800;')}" 
+                                  style="font-size: 12px;" th:text="${lvl.tier}">
+                                TOPIK I
+                            </span>
+
+                            <!-- Status & Quick Toggle Switch -->
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span th:id="${'badge-level-status-' + lvl.level}" 
+                                      class="ssak-badge"
+                                      th:style="${lvl.active ? 'background: #E8F5EE; color: #1F6B56;' : 'background: #E0DFD8; color: #666;'}" 
+                                      style="font-size: 11px; font-weight: 700;"
+                                      th:text="${lvl.active ? '🟢 Kích hoạt' : '⚪ Đang ẩn'}">
+                                    🟢 Kích hoạt
+                                </span>
+                                <button type="button" class="btn-ssak-light" style="padding: 2px 8px; height: 26px; font-size: 11px;"
+                                        th:data-level="${lvl.level}"
+                                        th:data-active="${lvl.active}"
+                                        onclick="handleLevelToggleClick(this)">
+                                    Bật/Ẩn
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Level Title & Subtitle -->
+                        <div>
+                            <h2 style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: #1F6B56; margin: 0;" th:text="${lvl.name}">
+                                TOPIK I · Cấp 1
+                            </h2>
+                            <div style="font-size: 13px; color: var(--ssak-text-muted); margin-top: 4px;" th:text="${lvl.subTitle}">
+                                Sơ cấp 1 (Sơ khai)
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Highlighted Metrics: Số lượng chủ đề & Số từ vựng -->
+                    <div style="background: #FAF9F5; border-radius: 14px; border: 1px solid var(--ssak-border); padding: 14px 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <span style="font-size: 11px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Số lượng chủ đề</span>
+                            <div style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #2E7D67; margin-top: 2px;">
+                                <span th:text="${lvl.topicCount}">6</span> chủ đề
+                            </div>
+                        </div>
+                        <div>
+                            <span style="font-size: 11px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Tổng từ vựng</span>
+                            <div style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #2F5F7D; margin-top: 2px;">
+                                <span th:text="${lvl.wordCount}">22</span> từ
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Open Action Button -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--ssak-border); padding-top: 14px;">
+                        <span style="font-size: 12px; color: var(--ssak-text-muted);" th:text="${lvl.activeWordCount + ' từ đang hiển thị'}">22 từ đang hiển thị</span>
+                        <a th:href="@{/admin/vocabulary(role=${currentRole}, level=${lvl.level})}"
+                           style="font-weight: 800; font-size: 13px; color: #2E7D67; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                            Khám phá chủ đề ➔
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </th:block>
+
+        <!-- ============================================================== -->
+        <!-- MÀN HÌNH 2: TOPIC_LIST (DANH SÁCH CÁC CHỦ ĐỀ CỦA CẤP ĐƯỢC CHỌN) -->
+        <!-- ============================================================== -->
+        <th:block th:if="${viewMode == 'TOPIC_LIST'}">
+            
+            <!-- Banner Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #FFFFFF; padding: 22px 28px; border-radius: 20px; border: 2px solid var(--ssak-border);">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <a th:href="@{/admin/vocabulary(role=${currentRole})}" class="btn-ssak-light" style="padding: 4px 10px; height: 32px; font-size: 13px; text-decoration: none;">
+                            ← Quay lại
+                        </a>
+                        <h1 style="margin: 0; font-family: var(--font-heading); font-size: 26px; font-weight: 800; color: #1F6B56;" th:text="${'Danh sách Chủ đề · ' + currentLevelName}">
+                            Danh sách Chủ đề · TOPIK I · Cấp 1
+                        </h1>
+                        <span class="ssak-badge badge-mint" style="font-size: 12px;" th:text="${topics.size() + ' chủ đề'}">6 chủ đề</span>
+                    </div>
+                    <span style="font-size: 13px; color: var(--ssak-text-muted); margin-left: 82px;">
+                        Bấm vào chủ đề để xem danh sách từ vựng. Bạn có thể tạo chủ đề mới, đổi tên hoặc xóa chủ đề tại đây.
+                    </span>
+                </div>
+
+                <!-- Action Toolbar -->
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" class="btn-ssak-primary" style="height: 42px; padding: 0 18px; font-size: 14px; font-weight: 800;" onclick="openCreateTopicModal()">
+                        + Tạo chủ đề mới
+                    </button>
+                    <button type="button" class="btn-ssak-outline" style="height: 42px; padding: 0 16px; font-size: 13px; font-weight: 700;" 
+                            th:data-level="${currentLevel}"
+                            onclick="handleActivateWholeLevel(this)">
+                        ⚙️ Kích hoạt toàn bộ TOPIK
+                    </button>
+                </div>
+            </div>
+
+            <!-- Topics Grid -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;">
+                <div th:each="t : ${topics}" 
+                     class="ssak-card" 
+                     style="padding: 22px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; border: 2px solid var(--ssak-border); transition: all 0.2s;"
+                     onmouseover="this.style.borderColor='#2E7D67';"
+                     onmouseout="this.style.borderColor='var(--ssak-border)';">
+                    
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <!-- Topic Header & Status -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <span class="ssak-badge badge-mint" style="font-size: 11px; font-weight: 700;" th:text="${'Chủ đề #' + t.id}">#1</span>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span class="ssak-badge" 
+                                      th:style="${t.active ? 'background: #E8F5EE; color: #1F6B56;' : 'background: #E0DFD8; color: #666;'}" 
+                                      style="font-size: 11px;"
+                                      th:text="${t.active ? '🟢 Kích hoạt' : '⚪ Đang ẩn'}">
+                                    🟢 Kích hoạt
+                                </span>
+                                <button type="button" class="btn-ssak-light" style="padding: 2px 7px; height: 24px; font-size: 10px;"
+                                        th:data-level="${currentLevel}"
+                                        th:data-name="${t.name}"
+                                        th:data-active="${t.active}"
+                                        onclick="handleTopicToggleClick(this)">
+                                    Bật/Ẩn
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Topic Name -->
+                        <h3 style="font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #1F6B56; margin: 0;" th:text="${t.name}">
+                            Gia đình
+                        </h3>
+                        <p style="font-size: 13px; color: var(--ssak-text-muted); margin: 0; min-height: 38px; line-height: 1.4;" th:text="${t.description != null ? t.description : 'Chủ đề từ vựng TOPIK'}">
+                            Từ vựng về các thành viên và quan hệ gia đình
+                        </p>
+                    </div>
+
+                    <!-- Word Count Box -->
+                    <div style="background: #FAF9F5; border-radius: 12px; border: 1px solid var(--ssak-border); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 12px; font-weight: 700; color: var(--ssak-text-muted);">SỐ LƯỢNG TỪ VỰNG</span>
+                        <span style="font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #2E7D67;" th:text="${t.wordCount + ' từ'}">
+                            5 từ
+                        </span>
+                    </div>
+
+                    <!-- Topic Actions: Xem từ, Sửa tên, Xóa -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--ssak-border); padding-top: 12px;">
+                        <a th:href="@{/admin/vocabulary(role=${currentRole}, level=${currentLevel}, topic=${t.name})}" 
+                           class="btn-ssak-primary" 
+                           style="height: 34px; padding: 0 14px; font-size: 12px; font-weight: 800; text-decoration: none; display: flex; align-items: center;">
+                            Xem từ vựng ➔
+                        </a>
+
+                        <div style="display: flex; gap: 6px;">
+                            <button type="button" class="btn-ssak-light" style="height: 34px; padding: 0 10px; font-size: 12px;" 
+                                    th:data-level="${currentLevel}"
+                                    th:data-name="${t.name}"
+                                    th:data-desc="${t.description}"
+                                    onclick="handleTopicEditClick(this)"
+                                    title="Sửa tên chủ đề">
+                                ✏️ Sửa
+                            </button>
+                            <button type="button" class="btn-ssak-outline" style="height: 34px; padding: 0 10px; font-size: 12px; color: var(--ssak-terracotta); border-color: var(--ssak-terracotta);" 
+                                    th:data-level="${currentLevel}"
+                                    th:data-name="${t.name}"
+                                    onclick="handleTopicDeleteClick(this)"
+                                    title="Xóa chủ đề">
+                                🗑️ Xóa
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </th:block>
+
+        <!-- ============================================================== -->
+        <!-- MÀN HÌNH 3: VOCAB_LIST (DANH SÁCH TỪ VỰNG CỦA CHỦ ĐỀ ĐƯỢC CHỌN) -->
+        <!-- ============================================================== -->
+        <th:block th:if="${viewMode == 'VOCAB_LIST'}">
+            
+            <!-- Banner Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #FFFFFF; padding: 20px 28px; border-radius: 20px; border: 2px solid var(--ssak-border);">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <a th:href="@{/admin/vocabulary(role=${currentRole}, level=${currentLevel})}" class="btn-ssak-light" style="padding: 4px 10px; height: 32px; font-size: 13px; text-decoration: none;">
+                            ← Danh sách chủ đề
+                        </a>
+                        <h1 style="margin: 0; font-family: var(--font-heading); font-size: 26px; font-weight: 800; color: #1F6B56;" th:text="${'Chủ đề: ' + currentTopic}">
+                            Chủ đề: Gia đình
+                        </h1>
+                        <span class="ssak-badge badge-mint" style="font-size: 12px;" th:text="${currentLevelName}">TOPIK I · Cấp 1</span>
+                    </div>
+                    <span style="font-size: 13px; color: var(--ssak-text-muted); margin-left: 145px;">
+                        Quản lý từ vựng, tự động sinh phiên âm khi gõ tiếng Hàn, kiểm tra phát âm giọng chuẩn và nhập file Excel.
+                    </span>
+                </div>
+
+                <!-- Action Buttons Toolbar -->
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <button type="button" class="btn-ssak-primary" style="height: 42px; padding: 0 18px; font-size: 14px; font-weight: 800;" onclick="openAddModal()">
+                        + Thêm từ thủ công
+                    </button>
+                    <button type="button" class="btn-ssak-light" style="height: 42px; padding: 0 16px; font-size: 14px; font-weight: 700; background: #E8F5EE; border-color: #2E7D67; color: #1F6B56;" onclick="openImportModal()">
+                        📥 Nhập Excel (Import)
+                    </button>
+                    <button type="button" class="btn-ssak-light" style="height: 42px; padding: 0 14px; font-size: 13px; font-weight: 700;" onclick="downloadSampleExcel()">
+                        📄 Tải file mẫu Excel
+                    </button>
+                </div>
+            </div>
+
+            <!-- Instant Search & Live Filter Toolbar (Lọc tức thì không cần bấm nút) -->
+            <div class="ssak-card" style="padding: 16px 24px; background: #FFFFFF;">
+                <div style="display: grid; grid-template-columns: 2.5fr 1.5fr 1.5fr auto; gap: 14px; align-items: center;">
+                    <!-- Instant Search Input -->
+                    <div style="position: relative;">
+                        <input type="text" id="liveSearchInput" 
+                               placeholder="🔍 Gõ để tìm ngay theo từ tiếng Hàn, phiên âm, nghĩa tiếng Việt..." 
+                               class="form-control ssak-input" 
+                               style="height: 42px; font-size: 14px; padding-left: 14px; border-radius: 10px;"
+                               oninput="performInstantFilter()" />
+                    </div>
+
+                    <!-- Instant Word Type Dropdown -->
+                    <div>
+                        <select id="liveTypeSelect" class="form-select ssak-input" style="height: 42px; font-size: 14px; border-radius: 10px;" onchange="performInstantFilter()">
+                            <option value="ALL">🏷️ Tất cả loại từ</option>
+                            <option th:each="wt : ${allWordTypes}" th:value="${wt}" th:text="${wt}"></option>
+                        </select>
+                    </div>
+
+                    <!-- Instant Status Dropdown -->
+                    <div>
+                        <select id="liveStatusSelect" class="form-select ssak-input" style="height: 42px; font-size: 14px; border-radius: 10px;" onchange="performInstantFilter()">
+                            <option value="ALL">⚡ Tất cả trạng thái</option>
+                            <option value="ACTIVE">🟢 Đang kích hoạt</option>
+                            <option value="INACTIVE">⚪ Đang ẩn</option>
+                        </select>
+                    </div>
+
+                </div>
+                <div style="font-size: 11px; color: #2E7D67; margin-top: 8px; font-weight: 600;">
+                    ⚡ Bộ lọc tức thời: Bảng danh sách tự động cập nhật ngay khi bạn gõ từ khóa hoặc thay đổi tùy chọn!
+                </div>
+            </div>
+
+            <!-- Vocabulary Data Table -->
+            <div class="ssak-card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+                <div style="padding: 16px 24px; border-bottom: 2px solid var(--ssak-border); display: flex; justify-content: space-between; align-items: center; background: #FAF9F5;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-weight: 800; font-size: 15px; color: var(--ssak-text-main);">DANH SÁCH TỪ VỰNG</span>
+                        <span class="ssak-badge badge-mint" style="font-size: 12px;" id="tableResultCount" th:text="${vocabularies.size() + ' từ vựng'}">5 từ vựng</span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--ssak-text-muted);">
+                        💡 Nhấp vào biểu tượng 🔊 để nghe giọng đọc chuẩn AI Hàn Quốc
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px; text-align: left;">
+                        <thead>
+                            <tr style="background: #FFFFFF; border-bottom: 2px solid var(--ssak-border); color: var(--ssak-text-muted); font-size: 13px;">
+                                <th style="padding: 14px 16px; width: 60px;">ID</th>
+                                <th style="padding: 14px 16px; min-width: 170px;">Từ vựng tiếng Hàn</th>
+                                <th style="padding: 14px 16px; min-width: 130px;">Phiên âm</th>
+                                <th style="padding: 14px 16px; min-width: 200px;">Nghĩa tiếng Việt</th>
+                                <th style="padding: 14px 16px; width: 110px;">Loại từ</th>
+                                <th style="padding: 14px 16px; width: 130px;">Trạng thái</th>
+                                <th style="padding: 14px 16px; width: 140px;">Ngày cập nhật</th>
+                                <th style="padding: 14px 16px; width: 150px; text-align: right;">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vocabTableBody">
+                            <tr th:if="${vocabularies.empty}">
+                                <td colspan="8" style="padding: 40px; text-align: center; color: var(--ssak-text-muted);">
+                                    <div style="font-size: 32px; margin-bottom: 8px;">📭</div>
+                                    <div style="font-size: 16px; font-weight: 700;">Chưa có từ vựng nào trong chủ đề này!</div>
+                                    <div style="font-size: 13px; margin-top: 4px;">Hãy bấm "+ Thêm từ thủ công" hoặc "Nhập Excel" để thêm từ mới.</div>
+                                </td>
+                            </tr>
+
+                            <tr th:each="item : ${vocabularies}" 
+                                class="vocab-data-row"
+                                th:id="${'row-vocab-' + item.id}"
+                                th:data-word="${item.word != null ? item.word.toLowerCase() : ''}"
+                                th:data-romanization="${item.romanization != null ? item.romanization.toLowerCase() : ''}"
+                                th:data-meaning="${item.meaning != null ? item.meaning.toLowerCase() : ''}"
+                                th:data-type="${item.wordType != null ? item.wordType : ''}"
+                                th:data-status="${item.status != null ? item.status : 'ACTIVE'}"
+                                style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;" 
+                                onmouseover="this.style.background='#FDFCF7'" 
+                                onmouseout="this.style.background='transparent'">
+                                
+                                <!-- ID -->
+                                <td style="padding: 14px 16px; font-weight: 700; color: var(--ssak-text-muted);" th:text="${'#' + item.id}">#1</td>
+
+                                <!-- Korean Word & Speaker -->
+                                <td style="padding: 14px 16px;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span style="font-family: var(--font-korean); font-size: 18px; font-weight: 800; color: #1F6B56;" th:text="${item.word}">가족</span>
+                                        <button type="button" class="btn-ssak-light" style="padding: 2px 7px; height: 26px; border-radius: 6px; font-size: 12px;" 
+                                                th:data-word="${item.word}"
+                                                th:data-audio="${item.audioUrl}"
+                                                onclick="handleVocabSpeakClick(this)"
+                                                title="Nghe phát âm chuẩn">
+                                            🔊
+                                        </button>
+                                    </div>
+                                </td>
+
+                                <!-- Romanization -->
+                                <td style="padding: 14px 16px; color: var(--ssak-text-muted); font-style: italic;" th:text="${item.romanization}">
+                                    ga-jok
+                                </td>
+
+                                <!-- Meaning -->
+                                <td style="padding: 14px 16px; font-weight: 700;" th:text="${item.meaning}">
+                                    Gia đình
+                                </td>
+
+                                <!-- Word Type -->
+                                <td style="padding: 14px 16px;">
+                                    <span class="ssak-badge badge-mint" style="font-size: 11px;" th:text="${item.wordType}">Danh từ</span>
+                                </td>
+
+                                <!-- Status Badge -->
+                                <td style="padding: 14px 16px;">
+                                    <span th:id="${'badge-status-' + item.id}"
+                                          class="ssak-badge"
+                                          th:style="${item.active ? 'background: #E8F5EE; color: #1F6B56;' : 'background: #E0DFD8; color: #666;'}"
+                                          th:text="${item.active ? 'Kích hoạt' : 'Đang ẩn'}">
+                                        Kích hoạt
+                                    </span>
+                                </td>
+
+                                <!-- Updated At -->
+                                <td style="padding: 14px 16px; font-size: 12px; color: var(--ssak-text-muted);" th:text="${item.updatedAt}">
+                                    05/10/2026 22:30
+                                </td>
+
+                                <!-- Action Buttons -->
+                                <td style="padding: 14px 16px; text-align: right;">
+                                    <div style="display: flex; justify-content: flex-end; gap: 6px;">
+                                        <!-- View Detail -->
+                                        <button type="button" class="btn-ssak-light" style="padding: 4px 8px; height: 32px; font-size: 12px;" 
+                                                th:data-id="${item.id}"
+                                                onclick="handleVocabDetailClick(this)"
+                                                title="Xem chi tiết">
+                                            👁️ Xem
+                                        </button>
+
+                                        <!-- Edit -->
+                                        <button type="button" class="btn-ssak-light" style="padding: 4px 8px; height: 32px; font-size: 12px;" 
+                                                th:data-id="${item.id}"
+                                                onclick="handleVocabEditClick(this)"
+                                                title="Sửa từ vựng">
+                                            ✏️ Sửa
+                                        </button>
+
+                                        <!-- Toggle Status -->
+                                        <button type="button" 
+                                                th:id="${'btn-toggle-' + item.id}"
+                                                class="btn-ssak-outline"
+                                                style="padding: 4px 8px; height: 32px; font-size: 12px;" 
+                                                th:data-id="${item.id}"
+                                                onclick="handleVocabToggleClick(this)"
+                                                th:title="${item.active ? 'Bấm để ẩn từ này' : 'Bấm để kích hoạt từ này'}"
+                                                th:text="${item.active ? 'Ẩn' : 'Bật'}">
+                                            Ẩn
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </th:block>
+
+    </main>
+
+    <!-- ============================================================== -->
+    <!-- MODAL TẠO CHỦ ĐỀ MỚI -->
+    <!-- ============================================================== -->
+    <div class="modal fade" id="modalCreateTopic" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 20px; border: 2px solid var(--ssak-border); padding: 8px;">
+                <div class="modal-header" style="border-bottom: 2px solid var(--ssak-border); padding: 16px 20px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 22px;">📁</span>
+                        <div>
+                            <h5 class="modal-title" style="font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #1F6B56; margin: 0;">
+                                Tạo Chủ đề mới
+                            </h5>
+                            <span style="font-size: 12px; color: var(--ssak-text-muted);" th:text="${'Dành cho ' + (currentLevelName != null ? currentLevelName : 'TOPIK')}">Dành cho TOPIK</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <form id="formCreateTopic" onsubmit="handleCreateTopic(event)">
+                    <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                        <input type="hidden" id="createTopicLevel" th:value="${currentLevel}" />
+                        
+                        <div>
+                            <label class="form-label" style="font-weight: 700; font-size: 13px;">
+                                Tên chủ đề <span style="color: var(--ssak-terracotta);">*</span>
+                            </label>
+                            <input type="text" id="createTopicName" class="form-control ssak-input" required 
+                                   placeholder="Ví dụ: Du lịch & Khách sạn, Thể thao..." />
+                        </div>
+
+                        <div>
+                            <label class="form-label" style="font-weight: 700; font-size: 13px;">Mô tả chủ đề (Tùy chọn)</label>
+                            <textarea id="createTopicDesc" class="form-control ssak-input" rows="2" 
+                                      placeholder="Mô tả nội dung hoặc phạm vi từ vựng của chủ đề..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px;">
+                        <button type="button" class="btn-ssak-outline" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn-ssak-primary" style="height: 40px; padding: 0 20px; font-weight: 800;">
+                            + Tạo chủ đề
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL SỬA TÊN CHỦ ĐỀ -->
+    <!-- ============================================================== -->
+    <div class="modal fade" id="modalEditTopic" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 20px; border: 2px solid var(--ssak-border); padding: 8px;">
+                <div class="modal-header" style="border-bottom: 2px solid var(--ssak-border); padding: 16px 20px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 22px;">✏️</span>
+                        <div>
+                            <h5 class="modal-title" style="font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #1F6B56; margin: 0;">
+                                Chỉnh sửa Tên Chủ đề
+                            </h5>
+                            <span style="font-size: 12px; color: var(--ssak-text-muted);">Tất cả từ vựng thuộc chủ đề này sẽ được cập nhật tên mới</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <form id="formEditTopic" onsubmit="handleEditTopic(event)">
+                    <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                        <input type="hidden" id="editTopicLevel" value="" />
+                        <input type="hidden" id="editTopicOldName" value="" />
+                        
+                        <div>
+                            <label class="form-label" style="font-weight: 700; font-size: 13px;">
+                                Tên chủ đề mới <span style="color: var(--ssak-terracotta);">*</span>
+                            </label>
+                            <input type="text" id="editTopicNewName" class="form-control ssak-input" required />
+                        </div>
+
+                        <div>
+                            <label class="form-label" style="font-weight: 700; font-size: 13px;">Mô tả chủ đề</label>
+                            <textarea id="editTopicDesc" class="form-control ssak-input" rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px;">
+                        <button type="button" class="btn-ssak-outline" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn-ssak-primary" style="height: 40px; padding: 0 20px; font-weight: 800;">
+                            💾 Lưu thay đổi
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL XÁC NHẬN XÓA CHỦ ĐỀ KÈM CẢNH BÁO SỐ LƯỢNG TỪ VỰNG BỊ XÓA -->
+    <!-- ============================================================== -->
+    <div class="modal fade" id="modalDeleteTopic" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 20px; border: 2px solid var(--ssak-terracotta); padding: 8px;">
+                <div class="modal-header" style="border-bottom: 2px solid var(--ssak-border); padding: 16px 20px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 26px;">⚠️</span>
+                        <div>
+                            <h5 class="modal-title" style="font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: var(--ssak-terracotta); margin: 0;">
+                                Cảnh báo Xóa Chủ đề!
+                            </h5>
+                            <span style="font-size: 12px; color: var(--ssak-text-muted);">Thao tác này sẽ xóa vĩnh viễn và không thể khôi phục</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+                    <input type="hidden" id="deleteTopicLevel" value="" />
+                    <input type="hidden" id="deleteTopicName" value="" />
+
+                    <div style="font-size: 15px; color: var(--ssak-text-main);">
+                        Bạn có chắc chắn muốn xóa chủ đề: <strong id="deleteTopicNameDisplay" style="color: #1F6B56; font-size: 17px;">Gia đình</strong>?
+                    </div>
+
+                    <!-- Warning Box Showing Exact Count of Vocabularies That Will Be Deleted -->
+                    <div style="background: #FFF5F5; border-radius: 14px; border: 2px solid #F8D7DA; padding: 16px; display: flex; align-items: flex-start; gap: 12px;">
+                        <span style="font-size: 24px;">❗</span>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span style="font-weight: 800; font-size: 14px; color: #721C24;">LƯU Ý QUAN TRỌNG:</span>
+                            <div style="font-size: 13px; color: #721C24; line-height: 1.5;">
+                                Nếu xóa chủ đề này, hệ thống sẽ đồng thời <strong style="text-decoration: underline;">XÓA TẤT CẢ TỔNG SỐ LƯỢNG <span id="deleteTopicWordCountDisplay" style="font-size: 16px; color: #C82333;">0</span> TỪ VỰNG</strong> đang có trong chủ đề này!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px; display: flex; justify-content: space-between;">
+                    <button type="button" class="btn-ssak-outline" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="button" class="btn-ssak-primary" style="background: var(--ssak-terracotta); border-color: var(--ssak-terracotta); height: 42px; padding: 0 20px; font-weight: 800;" onclick="executeDeleteTopic()">
+                        🗑️ Xác nhận Xóa vĩnh viễn
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 1: THÊM & SỬA TỪ VỰNG (CÓ TỰ ĐỘNG SINH PHIÊN ÂM KHI GÕ) -->
+    <!-- ============================================================== -->
+    <div class="modal fade" id="modalAddEdit" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content" style="border-radius: 20px; border: 2px solid var(--ssak-border); padding: 8px;">
+                <div class="modal-header" style="border-bottom: 2px solid var(--ssak-border); padding: 16px 20px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 22px;">✍️</span>
+                        <div>
+                            <h5 class="modal-title" id="addEditModalTitle" style="font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #1F6B56; margin: 0;">
+                                Thêm Từ vựng mới
+                            </h5>
+                            <span style="font-size: 12px; color: var(--ssak-text-muted);">Nhập từ tiếng Hàn để tự động sinh phiên âm chuẩn tức thì</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <form id="formAddEdit" onsubmit="handleSaveVocabulary(event)">
+                    <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+                        <input type="hidden" id="vocabId" value="" />
+
+                        <!-- Row 1: Word & Romanization (with Auto Romanization Indicator) -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label class="form-label" style="font-weight: 700; font-size: 13px;">
+                                    Từ tiếng Hàn <span style="color: var(--ssak-terracotta);">*</span>
+                                </label>
+                                <input type="text" id="vocabWord" class="form-control ssak-input" required 
+                                       placeholder="Ví dụ: 가족, 학교, 공부하다" 
+                                       style="font-family: var(--font-korean); font-size: 16px; font-weight: 700;"
+                                       oninput="handleKoreanInput(this.value)" />
+                                <div style="font-size: 11px; color: #2E7D67; margin-top: 4px; font-weight: 600;">
+                                    ✨ Tự động chuyển âm Hangul sang Romaja khi bạn gõ
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <label class="form-label" style="font-weight: 700; font-size: 13px;">
+                                        Phiên âm Latin
+                                    </label>
+                                    <button type="button" class="btn-ssak-light" style="padding: 1px 6px; height: 22px; font-size: 11px;" onclick="forceGenerateRomanization()">
+                                        Làm mới phiên âm
+                                    </button>
+                                </div>
+                                <input type="text" id="vocabRomanization" class="form-control ssak-input" 
+                                       placeholder="Ví dụ: ga-jok, hak-gyo" />
+                            </div>
+                        </div>
+
+                        <!-- Row 2: Meaning & Word Type -->
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px;">
+                            <div>
+                                <label class="form-label" style="font-weight: 700; font-size: 13px;">
+                                    Nghĩa tiếng Việt <span style="color: var(--ssak-terracotta);">*</span>
+                                </label>
+                                <input type="text" id="vocabMeaning" class="form-control ssak-input" required 
+                                       placeholder="Ví dụ: Gia đình, Trường học" />
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-weight: 700; font-size: 13px;">
+                                    Loại từ <span style="color: var(--ssak-terracotta);">*</span>
+                                </label>
+                                <select id="vocabWordType" class="form-select ssak-input" required>
+                                    <option value="Danh từ">Danh từ</option>
+                                    <option value="Động từ">Động từ</option>
+                                    <option value="Tính từ">Tính từ</option>
+                                    <option value="Phó từ">Phó từ</option>
+                                    <option value="Cụm từ">Cụm từ</option>
+                                    <option value="Liên từ">Liên từ</option>
+                                    <option value="Đại từ">Đại từ</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Row 3: TOPIK Level, Topic & Status -->
+                        <div style="display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 16px;">
+                            <div>
+                                <label class="form-label" style="font-weight: 700; font-size: 13px;">
+                                    Cấp TOPIK <span style="color: var(--ssak-terracotta);">*</span>
+                                </label>
+                                <select id="vocabTopikLevel" class="form-select ssak-input" required>
+                                    <option value="1">TOPIK I · Cấp 1</option>
+                                    <option value="2">TOPIK I · Cấp 2</option>
+                                    <option value="3">TOPIK II · Cấp 3</option>
+                                    <option value="4">TOPIK II · Cấp 4</option>
+                                    <option value="5">TOPIK II · Cấp 5</option>
+                                    <option value="6">TOPIK II · Cấp 6</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-weight: 700; font-size: 13px;">
+                                    Chủ đề <span style="color: var(--ssak-terracotta);">*</span>
+                                </label>
+                                <input type="text" id="vocabTopic" class="form-control ssak-input" required 
+                                       th:value="${currentTopic}" placeholder="Gia đình, Trường học..." />
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-weight: 700; font-size: 13px;">
+                                    Trạng thái <span style="color: var(--ssak-terracotta);">*</span>
+                                </label>
+                                <select id="vocabStatus" class="form-select ssak-input" required>
+                                    <option value="ACTIVE">🟢 Kích hoạt</option>
+                                    <option value="INACTIVE">⚪ Đang ẩn</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Row 4: Audio URL -->
+                        <div>
+                            <label class="form-label" style="font-weight: 700; font-size: 13px;">
+                                File âm thanh phát âm (Audio URL - Tùy chọn)
+                            </label>
+                            <input type="text" id="vocabAudioUrl" class="form-control ssak-input" 
+                                   placeholder="Đường dẫn file .mp3 (Để trống nếu muốn hệ thống tự động phát âm chuẩn tiếng Hàn)" />
+                        </div>
+
+                        <!-- Row 5: Example Korean & Vietnamese -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label class="form-label" style="font-weight: 700; font-size: 13px;">
+                                    Câu ví dụ tiếng Hàn
+                                </label>
+                                <textarea id="vocabExampleKr" class="form-control ssak-input" rows="2" 
+                                          style="font-family: var(--font-korean);"
+                                          placeholder="Ví dụ: 우리 가족은 모두 네 명입니다."></textarea>
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-weight: 700; font-size: 13px;">
+                                    Dịch nghĩa câu ví dụ
+                                </label>
+                                <textarea id="vocabExampleVi" class="form-control ssak-input" rows="2" 
+                                          placeholder="Ví dụ: Gia đình tôi có tất cả 4 người."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px;">
+                        <button type="button" class="btn-ssak-outline" data-bs-dismiss="modal">Hủy bỏ</button>
+                        <button type="submit" class="btn-ssak-primary" style="padding: 0 24px; height: 42px; font-weight: 800;">
+                            💾 Lưu từ vựng
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 2: XEM CHI TIẾT THÔNG TIN TỪ VỰNG -->
+    <!-- ============================================================== -->
+    <div class="modal fade" id="modalDetail" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content" style="border-radius: 20px; border: 2px solid var(--ssak-border); padding: 12px;">
+                <div class="modal-header" style="border-bottom: 2px solid var(--ssak-border); padding: 16px 20px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 22px;">🔍</span>
+                        <div>
+                            <h5 class="modal-title" style="font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #1F6B56; margin: 0;">
+                                Thông tin chi tiết Từ vựng
+                            </h5>
+                            <span id="detailSubTitle" style="font-size: 12px; color: var(--ssak-text-muted);">Mã từ vựng #ID</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body" style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
+                    <div style="background: #FAF9F5; border-radius: 16px; border: 2px solid var(--ssak-border); padding: 20px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span id="detailWord" style="font-family: var(--font-korean); font-size: 32px; font-weight: 800; color: #1F6B56;">가족</span>
+                                <button type="button" class="btn-ssak-primary" id="btnDetailSpeak" style="padding: 4px 12px; height: 32px; font-size: 13px;">
+                                    🔊 Nghe phát âm
+                                </button>
+                            </div>
+                            <div id="detailRomanization" style="font-size: 15px; color: var(--ssak-text-muted); font-style: italic;">ga-jok</div>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                            <div style="display: flex; gap: 6px;">
+                                <span id="detailLevelBadge" class="ssak-badge badge-mint" style="font-size: 12px; font-weight: 800;">TOPIK I · Cấp 1</span>
+                                <span id="detailWordTypeBadge" class="ssak-badge badge-sky" style="font-size: 12px;">Danh từ</span>
+                            </div>
+                            <span id="detailStatusBadge" class="ssak-badge badge-mint" style="font-size: 12px;">🟢 Đang kích hoạt</span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Ý nghĩa tiếng Việt</span>
+                        <div id="detailMeaning" style="font-size: 18px; font-weight: 800; color: #2E7D67; background: #FFFFFF; padding: 14px 18px; border-radius: 12px; border: 1px solid var(--ssak-border);">
+                            Gia đình
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Câu ví dụ minh họa</span>
+                            <button type="button" class="btn-ssak-light" id="btnDetailSpeakExample" style="padding: 2px 10px; height: 26px; font-size: 11px;">
+                                🔊 Nghe câu ví dụ
+                            </button>
+                        </div>
+                        <div style="background: #F0F7F4; border-radius: 12px; border: 1px solid #C4E2D5; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+                            <div id="detailExampleKr" style="font-family: var(--font-korean); font-size: 16px; font-weight: 700; color: #1F6B56;">
+                                우리 가족은 모두 네 명입니다.
+                            </div>
+                            <div id="detailExampleVi" style="font-size: 14px; color: var(--ssak-text-muted);">
+                                Gia đình tôi có tất cả 4 người.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; background: #FAF9F5; padding: 14px; border-radius: 12px; border: 1px solid var(--ssak-border); font-size: 13px;">
+                        <div>
+                            <span style="color: var(--ssak-text-muted); display: block;">Chủ đề:</span>
+                            <span id="detailTopic" style="font-weight: 700; color: #2F5F7D;">Gia đình</span>
+                        </div>
+                        <div>
+                            <span style="color: var(--ssak-text-muted); display: block;">Ngày tạo:</span>
+                            <span id="detailCreatedAt" style="font-weight: 700;">02/10/2026 10:15</span>
+                        </div>
+                        <div>
+                            <span style="color: var(--ssak-text-muted); display: block;">Ngày sửa:</span>
+                            <span id="detailUpdatedAt" style="font-weight: 700;">05/10/2026 22:30</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px; display: flex; justify-content: space-between;">
+                    <button type="button" class="btn-ssak-outline" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn-ssak-primary" id="btnEditFromDetail" style="padding: 0 20px; height: 40px; font-weight: 800;">
+                        ✏️ Chỉnh sửa từ này
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 3: IMPORT EXCEL PIPELINE -->
+    <!-- Excel -> Upload -> Parse Excel -> Validate -> Create nhiều Vocabulary -->
+    <!-- ============================================================== -->
+    <div class="modal fade" id="modalImportExcel" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content" style="border-radius: 20px; border: 2px solid var(--ssak-border); padding: 10px;">
+                <div class="modal-header" style="border-bottom: 2px solid var(--ssak-border); padding: 16px 20px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 24px;">📥</span>
+                        <div>
+                            <h5 class="modal-title" style="font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #1F6B56; margin: 0;">
+                                Nhập từ vựng hàng loạt từ file Excel
+                            </h5>
+                            <span style="font-size: 12px; color: var(--ssak-text-muted);">Quy trình: Upload ➔ Parse Excel ➔ Validate ➔ Create nhiều Vocabulary</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="resetImportModal()"></button>
+                </div>
+
+                <div class="modal-body" style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
+                    
+                    <!-- 4-Step Pipeline Flow Diagram Indicator -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; background: #FAF9F5; padding: 16px 24px; border-radius: 14px; border: 2px solid var(--ssak-border);">
+                        <div id="step-node-1" style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 32px; height: 32px; border-radius: 50%; background: #2E7D67; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;">1</div>
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-weight: 800; font-size: 13px; color: #1F6B56;">Chọn file Excel</span>
+                                <span style="font-size: 11px; color: var(--ssak-text-muted);">Upload .xlsx/.csv</span>
+                            </div>
+                        </div>
+                        <div style="height: 2px; flex-grow: 1; background: var(--ssak-border); margin: 0 16px;"></div>
+
+                        <div id="step-node-2" style="display: flex; align-items: center; gap: 10px;">
+                            <div id="step-badge-2" style="width: 32px; height: 32px; border-radius: 50%; background: #E0DFD8; color: #666; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;">2</div>
+                            <div style="display: flex; flex-direction: column;">
+                                <span id="step-title-2" style="font-weight: 800; font-size: 13px; color: var(--ssak-text-muted);">Parse Excel</span>
+                                <span style="font-size: 11px; color: var(--ssak-text-muted);">Phân tích bảng tính</span>
+                            </div>
+                        </div>
+                        <div style="height: 2px; flex-grow: 1; background: var(--ssak-border); margin: 0 16px;"></div>
+
+                        <div id="step-node-3" style="display: flex; align-items: center; gap: 10px;">
+                            <div id="step-badge-3" style="width: 32px; height: 32px; border-radius: 50%; background: #E0DFD8; color: #666; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;">3</div>
+                            <div style="display: flex; flex-direction: column;">
+                                <span id="step-title-3" style="font-weight: 800; font-size: 13px; color: var(--ssak-text-muted);">Validate</span>
+                                <span style="font-size: 11px; color: var(--ssak-text-muted);">Kiểm tra từng dòng</span>
+                            </div>
+                        </div>
+                        <div style="height: 2px; flex-grow: 1; background: var(--ssak-border); margin: 0 16px;"></div>
+
+                        <div id="step-node-4" style="display: flex; align-items: center; gap: 10px;">
+                            <div id="step-badge-4" style="width: 32px; height: 32px; border-radius: 50%; background: #E0DFD8; color: #666; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;">4</div>
+                            <div style="display: flex; flex-direction: column;">
+                                <span id="step-title-4" style="font-weight: 800; font-size: 13px; color: var(--ssak-text-muted);">Create Vocabulary</span>
+                                <span style="font-size: 11px; color: var(--ssak-text-muted);">Lưu nhiều từ vựng</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 1 & 2: Dropzone -->
+                    <div id="importUploadArea" style="border: 2px dashed #2E7D67; border-radius: 16px; background: #FAF9F5; padding: 36px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; cursor: pointer;"
+                         onclick="document.getElementById('excelFileInput').click()"
+                         ondragover="event.preventDefault(); this.style.background='#F0F7F4';"
+                         ondragleave="this.style.background='#FAF9F5';"
+                         ondrop="handleFileDrop(event)">
+                        
+                        <div style="font-size: 48px;">📊</div>
+                        <div>
+                            <div style="font-weight: 800; font-size: 16px; color: #1F6B56;">Kéo và thả file Excel (.xlsx, .xls, .csv) vào đây</div>
+                            <div style="font-size: 13px; color: var(--ssak-text-muted); margin-top: 4px;">hoặc bấm vào khung để duyệt file từ máy tính</div>
+                        </div>
+                        
+                        <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleFileSelect(event)" />
+
+                        <div style="margin-top: 8px;">
+                            <button type="button" class="btn-ssak-light" onclick="event.stopPropagation(); downloadSampleExcel()" style="height: 36px; padding: 0 16px; font-size: 13px;">
+                                📄 Tải file Excel mẫu (.xlsx chuẩn)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Validation & Preview Section -->
+                    <div id="importPreviewArea" style="display: none; flex-direction: column; gap: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; background: #FFFFFF; padding: 14px 20px; border-radius: 14px; border: 2px solid var(--ssak-border);">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <div style="font-weight: 800; font-size: 14px; color: var(--ssak-text-main);">Kết quả phân tích:</div>
+                                <span class="ssak-badge" style="background: #E8F5EE; color: #1F6B56; font-size: 12px; font-weight: 800;" id="kpiTotalParsed">Đã đọc: 0 dòng</span>
+                                <span class="ssak-badge badge-mint" style="font-size: 12px; font-weight: 800;" id="kpiValidCount">✅ Hợp lệ: 0</span>
+                                <span class="ssak-badge badge-terracotta" style="font-size: 12px; font-weight: 800;" id="kpiErrorCount">❌ Lỗi: 0</span>
+                            </div>
+
+                            <button type="button" class="btn-ssak-outline" style="height: 34px; padding: 0 14px; font-size: 12px;" onclick="resetImportModal()">
+                                ↺ Chọn lại file khác
+                            </button>
+                        </div>
+
+                        <div style="max-height: 280px; overflow-y: auto; border: 1px solid var(--ssak-border); border-radius: 12px;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+                                <thead style="position: sticky; top: 0; background: #FAF9F5; border-bottom: 2px solid var(--ssak-border); z-index: 10;">
+                                    <tr>
+                                        <th style="padding: 10px 12px; width: 50px;">Dòng</th>
+                                        <th style="padding: 10px 12px; width: 140px;">Từ tiếng Hàn</th>
+                                        <th style="padding: 10px 12px; width: 100px;">Phiên âm (Auto)</th>
+                                        <th style="padding: 10px 12px; width: 160px;">Nghĩa</th>
+                                        <th style="padding: 10px 12px; width: 90px;">Loại từ</th>
+                                        <th style="padding: 10px 12px; width: 90px;">Cấp TOPIK</th>
+                                        <th style="padding: 10px 12px; width: 130px;">Chủ đề</th>
+                                        <th style="padding: 10px 12px; width: 160px;">Trạng thái kiểm tra</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="importPreviewTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px; display: flex; justify-content: space-between;">
+                    <button type="button" class="btn-ssak-outline" data-bs-dismiss="modal" onclick="resetImportModal()">Hủy bỏ</button>
+                    <button type="button" class="btn-ssak-primary" id="btnConfirmBulkCreate" style="height: 42px; padding: 0 24px; font-weight: 800; display: none;" onclick="executeBulkCreate()">
+                        🚀 Xác nhận Tạo Từ vựng vào hệ thống
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+    </div>
+</div>
+
+<style>
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    color: #CFE9DC;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+    transform: translateX(3px);
+}
+.sidebar-item.active {
+    background: #2E7D67;
+    color: #FFFFFF;
+    font-weight: 800;
+    box-shadow: 0 4px 14px rgba(46, 125, 103, 0.35);
+}
+.sidebar-sub-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px 8px 32px;
+    border-radius: 10px;
+    color: #A9D9C0;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.sidebar-sub-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+}
+.sidebar-bottom-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    color: #A9D9C0;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    transition: all 0.2s;
+}
+.sidebar-bottom-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+}
+.sidebar-bottom-link.logout {
+    color: #FFA39E;
+}
+.sidebar-bottom-link.logout:hover {
+    background: rgba(207, 19, 34, 0.15);
+    color: #FF7875;
+}
+.sidebar-sub-item.active-sub {
+    background: rgba(46, 125, 103, 0.55);
+    color: #FFFFFF;
+    font-weight: 800;
+    border-left: 3px solid #6CC49F;
+}
+</style>
+
+<!-- Bootstrap 5 Bundle JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- SheetJS for Excel Upload / Parse / Export -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script>
+    // ==========================================
+    // 1. KOREAN HANGUL AUTO-ROMANIZER (JS)
+    // ==========================================
+    const CHOSEONG = ["g", "kk", "n", "d", "tt", "r", "m", "b", "pp", "s", "ss", "", "j", "jj", "ch", "k", "t", "p", "h"];
+    const JUNGSEONG = ["a", "ae", "ya", "yae", "eo", "e", "yeo", "ye", "o", "wa", "wae", "oe", "yo", "u", "wo", "we", "wi", "yu", "eu", "ui", "i"];
+    const JONGSEONG = ["", "k", "k", "k", "n", "n", "n", "t", "l", "k", "m", "p", "l", "t", "p", "l", "m", "p", "p", "t", "t", "ng", "t", "t", "k", "t", "p", "t"];
+
+    function romanizeHangul(text) {
+        if (!text) return "";
+        let result = "";
+        for (let i = 0; i < text.length; i++) {
+            const code = text.charCodeAt(i);
+            if (code >= 0xAC00 && code <= 0xD7A3) {
+                const unicode = code - 0xAC00;
+                const choseongIndex = Math.floor(unicode / (21 * 28));
+                const jungseongIndex = Math.floor((unicode % (21 * 28)) / 28);
+                const jongseongIndex = unicode % 28;
+
+                if (result.length > 0 && result.slice(-1) !== ' ' && result.slice(-1) !== '-') {
+                    result += "-";
+                }
+                result += CHOSEONG[choseongIndex];
+                result += JUNGSEONG[jungseongIndex];
+                result += JONGSEONG[jongseongIndex];
+            } else {
+                result += text.charAt(i);
+            }
+        }
+        return result.trim();
+    }
+
+    function handleKoreanInput(val) {
+        const romanized = romanizeHangul(val);
+        const romInput = document.getElementById('vocabRomanization');
+        if (romInput) {
+            romInput.value = romanized;
+        }
+    }
+
+    function forceGenerateRomanization() {
+        const word = document.getElementById('vocabWord').value;
+        if (word) {
+            document.getElementById('vocabRomanization').value = romanizeHangul(word);
+            showSsakToast("Đã tự động tạo phiên âm: " + document.getElementById('vocabRomanization').value);
+        }
+    }
+
+    // ==========================================
+    // 2. INSTANT SEARCH & LIVE FILTER (LỌC TỨC THÌ)
+    // ==========================================
+    function performInstantFilter() {
+        const query = (document.getElementById('liveSearchInput')?.value || '').trim().toLowerCase();
+        const type = document.getElementById('liveTypeSelect')?.value || 'ALL';
+        const status = document.getElementById('liveStatusSelect')?.value || 'ALL';
+
+        const rows = document.querySelectorAll('.vocab-data-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const word = row.getAttribute('data-word') || '';
+            const rom = row.getAttribute('data-romanization') || '';
+            const mean = row.getAttribute('data-meaning') || '';
+            const rowType = row.getAttribute('data-type') || '';
+            const rowStatus = row.getAttribute('data-status') || '';
+
+            let matchText = true;
+            if (query.length > 0) {
+                matchText = word.includes(query) || rom.includes(query) || mean.includes(query);
+            }
+            let matchType = (type === 'ALL' || rowType === type);
+            let matchStatus = (status === 'ALL' || rowStatus === status);
+
+            if (matchText && matchType && matchStatus) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        const countEl = document.getElementById('tableResultCount');
+        if (countEl) {
+            countEl.innerText = visibleCount + " từ vựng";
+        }
+    }
+
+    function resetInstantFilter() {
+        if (document.getElementById('liveSearchInput')) document.getElementById('liveSearchInput').value = '';
+        if (document.getElementById('liveTypeSelect')) document.getElementById('liveTypeSelect').value = 'ALL';
+        if (document.getElementById('liveStatusSelect')) document.getElementById('liveStatusSelect').value = 'ALL';
+        performInstantFilter();
+    }
+
+    // ==========================================
+    // 3. TOPIC & LEVEL ACTIONS
+    // ==========================================
+    function handleLevelToggleClick(btn) {
+        const level = parseInt(btn.getAttribute('data-level'));
+        const active = btn.getAttribute('data-active') === 'true';
+        toggleLevelStatus(level, !active);
+    }
+
+    function handleActivateWholeLevel(btn) {
+        const level = parseInt(btn.getAttribute('data-level'));
+        toggleLevelStatus(level, true);
+    }
+
+    function toggleLevelStatus(level, active) {
+        fetch('/admin/vocabulary/bulk-toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'LEVEL', target: level.toString(), active: active })
+        })
+        .then(res => res.json())
+        .then(resp => {
+            if (resp.success) {
+                showSsakToast(resp.message);
+                setTimeout(() => window.location.reload(), 600);
+            } else {
+                alert(resp.message || "Lỗi khi áp dụng!");
+            }
+        });
+    }
+
+    function handleTopicToggleClick(btn) {
+        const level = parseInt(btn.getAttribute('data-level'));
+        const name = btn.getAttribute('data-name');
+        const active = btn.getAttribute('data-active') === 'true';
+
+        fetch('/admin/vocabulary/topic/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ level: level, name: name, active: !active })
+        })
+        .then(res => res.json())
+        .then(resp => {
+            if (resp.success) {
+                showSsakToast(resp.message);
+                setTimeout(() => window.location.reload(), 600);
+            } else {
+                alert(resp.message || "Lỗi khi đổi trạng thái chủ đề!");
+            }
+        });
+    }
+
+    function openCreateTopicModal() {
+        document.getElementById('formCreateTopic').reset();
+        const modal = new bootstrap.Modal(document.getElementById('modalCreateTopic'));
+        modal.show();
+    }
+
+    function handleCreateTopic(e) {
+        e.preventDefault();
+        const level = document.getElementById('createTopicLevel').value;
+        const name = document.getElementById('createTopicName').value.trim();
+        const desc = document.getElementById('createTopicDesc').value.trim();
+
+        fetch('/admin/vocabulary/topic/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ level: parseInt(level), name: name, description: desc })
+        })
+        .then(res => res.json())
+        .then(resp => {
+            if (resp.success) {
+                showSsakToast(resp.message);
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalCreateTopic'));
+                if (modal) modal.hide();
+                setTimeout(() => window.location.reload(), 600);
+            } else {
+                alert(resp.message || "Lỗi khi tạo chủ đề!");
+            }
+        })
+        .catch(err => alert("Lỗi kết nối máy chủ!"));
+    }
+
+    function handleTopicEditClick(btn) {
+        const level = btn.getAttribute('data-level');
+        const name = btn.getAttribute('data-name');
+        const desc = btn.getAttribute('data-desc');
+
+        document.getElementById('editTopicLevel').value = level;
+        document.getElementById('editTopicOldName').value = name;
+        document.getElementById('editTopicNewName').value = name;
+        document.getElementById('editTopicDesc').value = desc || '';
+        const modal = new bootstrap.Modal(document.getElementById('modalEditTopic'));
+        modal.show();
+    }
+
+    function handleEditTopic(e) {
+        e.preventDefault();
+        const level = document.getElementById('editTopicLevel').value;
+        const oldName = document.getElementById('editTopicOldName').value;
+        const newName = document.getElementById('editTopicNewName').value.trim();
+        const desc = document.getElementById('editTopicDesc').value.trim();
+
+        fetch('/admin/vocabulary/topic/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ level: parseInt(level), oldName: oldName, newName: newName, description: desc })
+        })
+        .then(res => res.json())
+        .then(resp => {
+            if (resp.success) {
+                showSsakToast(resp.message);
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditTopic'));
+                if (modal) modal.hide();
+                setTimeout(() => window.location.reload(), 600);
+            } else {
+                alert(resp.message || "Lỗi khi cập nhật chủ đề!");
+            }
+        })
+        .catch(err => alert("Lỗi kết nối máy chủ!"));
+    }
+
+    function handleTopicDeleteClick(btn) {
+        const level = btn.getAttribute('data-level');
+        const name = btn.getAttribute('data-name');
+
+        fetch('/admin/vocabulary/topic/check-delete?level=' + level + '&name=' + encodeURIComponent(name))
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('deleteTopicLevel').value = level;
+                document.getElementById('deleteTopicName').value = name;
+                document.getElementById('deleteTopicNameDisplay').innerText = name;
+                document.getElementById('deleteTopicWordCountDisplay').innerText = data.wordCount;
+
+                const modal = new bootstrap.Modal(document.getElementById('modalDeleteTopic'));
+                modal.show();
+            })
+            .catch(err => alert("Không thể kiểm tra thông tin chủ đề!"));
+    }
+
+    function executeDeleteTopic() {
+        const level = document.getElementById('deleteTopicLevel').value;
+        const name = document.getElementById('deleteTopicName').value;
+
+        fetch('/admin/vocabulary/topic/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ level: parseInt(level), name: name })
+        })
+        .then(res => res.json())
+        .then(resp => {
+            if (resp.success) {
+                showSsakToast(resp.message);
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalDeleteTopic'));
+                if (modal) modal.hide();
+                setTimeout(() => window.location.reload(), 600);
+            } else {
+                alert(resp.message || "Lỗi khi xóa chủ đề!");
+            }
+        })
+        .catch(err => alert("Lỗi kết nối máy chủ!"));
+    }
+
+    // ==========================================
+    // 4. TTS (KOREAN AUDIO)
+    // ==========================================
+    function handleVocabSpeakClick(btn) {
+        const word = btn.getAttribute('data-word');
+        const audio = btn.getAttribute('data-audio');
+        speakKorean(word, audio);
+    }
+
+    function speakKorean(text, audioUrl) {
+        if (!text) return;
+        if (audioUrl && audioUrl.trim().length > 0) {
+            try {
+                const audio = new Audio(audioUrl);
+                audio.play();
+                return;
+            } catch (e) {
+                console.log("Audio URL fallback to TTS:", e);
+            }
+        }
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ko-KR';
+            utterance.rate = 0.85;
+            window.speechSynthesis.speak(utterance);
+        } else {
+            showSsakToast("Trình duyệt không hỗ trợ phát âm tự động!");
+        }
+    }
+
+    // ==========================================
+    // 5. VOCABULARY CRUD (ADD / EDIT / TOGGLE / DETAIL)
+    // ==========================================
+    function openAddModal() {
+        document.getElementById('formAddEdit').reset();
+        document.getElementById('vocabId').value = "";
+        document.getElementById('addEditModalTitle').innerText = "Thêm Từ vựng mới";
+        document.getElementById('vocabStatus').value = "ACTIVE";
+        document.getElementById('vocabWordType').value = "Danh từ";
+
+        const curLvl = document.getElementById('currentViewLevel')?.value;
+        const curTopic = document.getElementById('currentViewTopic')?.value;
+        if (document.getElementById('vocabTopikLevel') && curLvl) {
+            document.getElementById('vocabTopikLevel').value = curLvl;
+        }
+        if (document.getElementById('vocabTopic') && curTopic) {
+            document.getElementById('vocabTopic').value = curTopic;
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('modalAddEdit'));
+        modal.show();
+    }
+
+    function handleVocabEditClick(btn) {
+        const id = btn.getAttribute('data-id');
+        openEditModal(id);
+    }
+
+    function openEditModal(id) {
+        fetch('/admin/vocabulary/' + id)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('vocabId').value = data.id;
+                document.getElementById('vocabWord').value = data.word || "";
+                document.getElementById('vocabRomanization').value = data.romanization || "";
+                document.getElementById('vocabMeaning').value = data.meaning || "";
+                document.getElementById('vocabWordType').value = data.wordType || "Danh từ";
+                document.getElementById('vocabTopikLevel').value = data.topikLevel || "1";
+                document.getElementById('vocabTopic').value = data.topic || "";
+                document.getElementById('vocabAudioUrl').value = data.audioUrl || "";
+                document.getElementById('vocabExampleKr').value = data.exampleKr || "";
+                document.getElementById('vocabExampleVi').value = data.exampleVi || "";
+                document.getElementById('vocabStatus').value = data.status || "ACTIVE";
+
+                document.getElementById('addEditModalTitle').innerText = "Chỉnh sửa Từ vựng #" + data.id + " (" + data.word + ")";
+                const modal = new bootstrap.Modal(document.getElementById('modalAddEdit'));
+                modal.show();
+            })
+            .catch(err => showSsakToast("Không thể tải thông tin từ vựng!"));
+    }
+
+    function handleSaveVocabulary(e) {
+        e.preventDefault();
+        const idVal = document.getElementById('vocabId').value;
+        const wordVal = document.getElementById('vocabWord').value.trim();
+        let romVal = document.getElementById('vocabRomanization').value.trim();
+        if (!romVal) {
+            romVal = romanizeHangul(wordVal);
+        }
+
+        const payload = {
+            id: idVal ? parseInt(idVal) : null,
+            word: wordVal,
+            romanization: romVal,
+            meaning: document.getElementById('vocabMeaning').value.trim(),
+            wordType: document.getElementById('vocabWordType').value,
+            topikLevel: parseInt(document.getElementById('vocabTopikLevel').value),
+            topic: document.getElementById('vocabTopic').value.trim(),
+            audioUrl: document.getElementById('vocabAudioUrl').value.trim(),
+            exampleKr: document.getElementById('vocabExampleKr').value.trim(),
+            exampleVi: document.getElementById('vocabExampleVi').value.trim(),
+            status: document.getElementById('vocabStatus').value
+        };
+
+        fetch('/admin/vocabulary/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(resp => {
+            if (resp.success) {
+                showSsakToast(resp.message || "Đã lưu từ vựng thành công!");
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalAddEdit'));
+                if (modal) modal.hide();
+                setTimeout(() => window.location.reload(), 600);
+            } else {
+                alert(resp.message || "Có lỗi xảy ra khi lưu từ vựng!");
+            }
+        })
+        .catch(err => alert("Lỗi kết nối máy chủ!"));
+    }
+
+    function handleVocabDetailClick(btn) {
+        const id = btn.getAttribute('data-id');
+        fetch('/admin/vocabulary/' + id)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('detailSubTitle').innerText = "Mã từ vựng #" + data.id;
+                document.getElementById('detailWord').innerText = data.word;
+                document.getElementById('detailRomanization').innerText = data.romanization || "Không có phiên âm";
+                document.getElementById('detailMeaning').innerText = data.meaning;
+                document.getElementById('detailTopic').innerText = data.topic;
+                document.getElementById('detailCreatedAt').innerText = data.createdAt || "-";
+                document.getElementById('detailUpdatedAt').innerText = data.updatedAt || "-";
+                document.getElementById('detailLevelBadge').innerText = data.topikLevelName || ("Cấp " + data.topikLevel);
+                document.getElementById('detailWordTypeBadge').innerText = data.wordType || "Từ vựng";
+
+                const isAct = (data.status === 'ACTIVE');
+                const stBadge = document.getElementById('detailStatusBadge');
+                stBadge.innerText = isAct ? "🟢 Đang kích hoạt" : "⚪ Đang ẩn";
+                stBadge.style.background = isAct ? "#E8F5EE" : "#E0DFD8";
+                stBadge.style.color = isAct ? "#1F6B56" : "#666";
+
+                document.getElementById('detailExampleKr').innerText = data.exampleKr || "(Chưa có câu ví dụ tiếng Hàn)";
+                document.getElementById('detailExampleVi').innerText = data.exampleVi || "(Chưa có dịch nghĩa câu ví dụ)";
+
+                document.getElementById('btnDetailSpeak').onclick = function() {
+                    speakKorean(data.word, data.audioUrl);
+                };
+                document.getElementById('btnDetailSpeakExample').onclick = function() {
+                    if (data.exampleKr) speakKorean(data.exampleKr, null);
+                };
+
+                document.getElementById('btnEditFromDetail').onclick = function() {
+                    const detailModal = bootstrap.Modal.getInstance(document.getElementById('modalDetail'));
+                    if (detailModal) detailModal.hide();
+                    setTimeout(() => openEditModal(data.id), 300);
+                };
+
+                const modal = new bootstrap.Modal(document.getElementById('modalDetail'));
+                modal.show();
+            });
+    }
+
+    function handleVocabToggleClick(btn) {
+        const id = btn.getAttribute('data-id');
+        fetch('/admin/vocabulary/toggle/' + id, { method: 'POST' })
+            .then(res => res.json())
+            .then(resp => {
+                if (resp.success) {
+                    showSsakToast(resp.message);
+                    const isAct = (resp.newStatus === 'ACTIVE');
+                    const badge = document.getElementById('badge-status-' + id);
+                    const row = document.getElementById('row-vocab-' + id);
+
+                    if (badge) {
+                        badge.innerText = isAct ? "Kích hoạt" : "Đang ẩn";
+                        badge.style.background = isAct ? "#E8F5EE" : "#E0DFD8";
+                        badge.style.color = isAct ? "#1F6B56" : "#666";
+                    }
+                    if (btn) {
+                        btn.innerText = isAct ? "Ẩn" : "Bật";
+                    }
+                    if (row) {
+                        row.setAttribute('data-status', resp.newStatus);
+                    }
+                }
+            });
+    }
+
+    // ==========================================
+    // 6. EXCEL IMPORT PIPELINE (Upload -> Parse -> Validate -> Create)
+    // ==========================================
+    let validatedExcelRows = [];
+
+    function openImportModal() {
+        resetImportModal();
+        const modal = new bootstrap.Modal(document.getElementById('modalImportExcel'));
+        modal.show();
+    }
+
+    function resetImportModal() {
+        document.getElementById('excelFileInput').value = "";
+        document.getElementById('importUploadArea').style.display = 'flex';
+        document.getElementById('importPreviewArea').style.display = 'none';
+        document.getElementById('btnConfirmBulkCreate').style.display = 'none';
+        document.getElementById('importPreviewTableBody').innerHTML = "";
+        validatedExcelRows = [];
+        setStepIndicator(1);
+    }
+
+    function setStepIndicator(activeStep) {
+        for (let i = 2; i <= 4; i++) {
+            const badge = document.getElementById('step-badge-' + i);
+            const title = document.getElementById('step-title-' + i);
+            if (i <= activeStep) {
+                badge.style.background = "#2E7D67";
+                badge.style.color = "#FFFFFF";
+                title.style.color = "#1F6B56";
+            } else {
+                badge.style.background = "#E0DFD8";
+                badge.style.color = "#666";
+                title.style.color = "var(--ssak-text-muted)";
+            }
+        }
+    }
+
+    function handleFileDrop(e) {
+        e.preventDefault();
+        e.currentTarget.style.background = '#FAF9F5';
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            processExcelFile(e.dataTransfer.files[0]);
+        }
+    }
+
+    function handleFileSelect(e) {
+        if (e.target.files && e.target.files.length > 0) {
+            processExcelFile(e.target.files[0]);
+        }
+    }
+
+    function processExcelFile(file) {
+        setStepIndicator(2);
+        showSsakToast("Đang đọc file Excel: " + file.name + "...");
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                if (!rows || rows.length < 2) {
+                    alert("File Excel rỗng hoặc không có dữ liệu!");
+                    resetImportModal();
+                    return;
+                }
+                setStepIndicator(3);
+                validateAndPreview(rows);
+            } catch (err) {
+                alert("Lỗi đọc file Excel. Vui lòng kiểm tra định dạng .xlsx/.csv!");
+                resetImportModal();
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function validateAndPreview(rawRows) {
+        const header = rawRows[0].map(h => (h ? h.toString().toLowerCase().trim() : ''));
+        const findCol = (keywords) => header.findIndex(h => keywords.some(k => h.includes(k)));
+        const colWord = findCol(['từ', 'tiếng hàn', 'word', 'korean']);
+        const colRom = findCol(['phiên âm', 'roman']);
+        const colMean = findCol(['nghĩa', 'meaning', 'tiếng việt']);
+        const colType = findCol(['loại từ', 'type']);
+        const colLevel = findCol(['topik', 'cấp', 'level']);
+        const colTopic = findCol(['chủ đề', 'topic']);
+
+        const curLvl = parseInt(document.getElementById('currentViewLevel')?.value) || 1;
+        const curTopic = document.getElementById('currentViewTopic')?.value || '';
+
+        const parsedList = [];
+        let validCount = 0;
+        let errorCount = 0;
+
+        for (let i = 1; i < rawRows.length; i++) {
+            const r = rawRows[i];
+            if (!r || r.length === 0 || r.every(cell => !cell || cell.toString().trim() === '')) continue;
+
+            const word = colWord !== -1 && r[colWord] ? r[colWord].toString().trim() : (r[0] ? r[0].toString().trim() : '');
+            let rom = colRom !== -1 && r[colRom] ? r[colRom].toString().trim() : (r[1] ? r[1].toString().trim() : '');
+            if (!rom && word) {
+                rom = romanizeHangul(word); // Auto Romanize!
+            }
+
+            const mean = colMean !== -1 && r[colMean] ? r[colMean].toString().trim() : (r[2] ? r[2].toString().trim() : '');
+            const wtype = colType !== -1 && r[colType] ? r[colType].toString().trim() : (r[3] ? r[3].toString().trim() : 'Danh từ');
+            
+            let levelRaw = colLevel !== -1 && r[colLevel] ? r[colLevel].toString().trim() : (r[4] ? r[4].toString().trim() : (curLvl || '1'));
+            let level = parseInt(levelRaw.toString().replace(/\D/g, '')) || (curLvl || 1);
+            if (level < 1 || level > 6) level = 1;
+
+            const topic = colTopic !== -1 && r[colTopic] ? r[colTopic].toString().trim() : (r[5] ? r[5].toString().trim() : (curTopic || 'Tổng hợp'));
+
+            let isValid = true;
+            let errorMsg = "";
+            if (!word) {
+                isValid = false;
+                errorMsg = "Thiếu từ tiếng Hàn";
+            } else if (!mean) {
+                isValid = false;
+                errorMsg = "Thiếu nghĩa tiếng Việt";
+            }
+
+            if (isValid) validCount++; else errorCount++;
+
+            parsedList.push({
+                rowIndex: i + 1,
+                word: word,
+                romanization: rom,
+                meaning: mean,
+                wordType: wtype || 'Danh từ',
+                topikLevel: level,
+                topic: topic || 'Đời sống',
+                status: 'ACTIVE',
+                isValid: isValid,
+                errorMsg: errorMsg
+            });
+        }
+
+        validatedExcelRows = parsedList.filter(item => item.isValid);
+
+        document.getElementById('importUploadArea').style.display = 'none';
+        document.getElementById('importPreviewArea').style.display = 'flex';
+        document.getElementById('kpiTotalParsed').innerText = "Đã đọc: " + parsedList.length + " dòng";
+        document.getElementById('kpiValidCount').innerText = "✅ Hợp lệ: " + validCount;
+        document.getElementById('kpiErrorCount').innerText = "❌ Lỗi: " + errorCount;
+
+        const tbody = document.getElementById('importPreviewTableBody');
+        tbody.innerHTML = "";
+
+        parsedList.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = "1px solid var(--ssak-border)";
+            if (!item.isValid) tr.style.background = "#FFF5F5";
+
+            tr.innerHTML = `
+                <td style="padding: 8px 12px; font-weight: 700; color: var(--ssak-text-muted);">${item.rowIndex}</td>
+                <td style="padding: 8px 12px; font-family: var(--font-korean); font-weight: 800; color: #1F6B56;">${item.word || '<span style="color:red">Trống</span>'}</td>
+                <td style="padding: 8px 12px; color: var(--ssak-text-muted); font-style: italic;">${item.romanization || '-'}</td>
+                <td style="padding: 8px 12px; font-weight: 700;">${item.meaning || '<span style="color:red">Trống</span>'}</td>
+                <td style="padding: 8px 12px;"><span class="ssak-badge badge-mint" style="font-size: 11px;">${item.wordType}</span></td>
+                <td style="padding: 8px 12px;"><span class="ssak-badge badge-sky" style="font-size: 11px;">Cấp ${item.topikLevel}</span></td>
+                <td style="padding: 8px 12px; color: #2F5F7D;">${item.topic}</td>
+                <td style="padding: 8px 12px;">
+                    ${item.isValid 
+                        ? '<span class="ssak-badge badge-mint" style="font-size: 11px;">✅ Hợp lệ</span>' 
+                        : '<span class="ssak-badge badge-terracotta" style="font-size: 11px;">❌ ' + item.errorMsg + '</span>'}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        if (validCount > 0) {
+            setStepIndicator(4);
+            const btnConfirm = document.getElementById('btnConfirmBulkCreate');
+            btnConfirm.style.display = 'block';
+            btnConfirm.innerText = "🚀 Xác nhận Tạo " + validCount + " Từ vựng vào hệ thống";
+        }
+    }
+
+    function executeBulkCreate() {
+        if (!validatedExcelRows || validatedExcelRows.length === 0) return;
+        const btn = document.getElementById('btnConfirmBulkCreate');
+        btn.disabled = true;
+        btn.innerText = "⏳ Đang lưu dữ liệu...";
+
+        fetch('/admin/vocabulary/bulk-create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(validatedExcelRows)
+        })
+        .then(res => res.json())
+        .then(resp => {
+            if (resp.success) {
+                showSsakToast(resp.message);
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalImportExcel'));
+                if (modal) modal.hide();
+                setTimeout(() => window.location.reload(), 700);
+            } else {
+                alert(resp.message || "Lỗi khi lưu dữ liệu!");
+                btn.disabled = false;
+            }
+        });
+    }
+
+    function downloadSampleExcel() {
+        const curTopic = document.getElementById('currentViewTopic')?.value || 'Gia đình';
+        const curLvl = parseInt(document.getElementById('currentViewLevel')?.value) || 1;
+
+        const sampleData = [
+            ["Từ tiếng Hàn", "Phiên âm", "Nghĩa tiếng Việt", "Loại từ", "Cấp TOPIK", "Chủ đề", "Ví dụ tiếng Hàn", "Ví dụ tiếng Việt"],
+            ["가족", "ga-jok", "Gia đình", "Danh từ", curLvl, curTopic, "우리 가족은 모두 네 명입니다.", "Gia đình tôi có tất cả 4 người."],
+            ["선생님", "seon-saeng-nim", "Thầy cô giáo", "Danh từ", curLvl, curTopic, "선생님 안녕하세요!", "Em chào thầy cô ạ!"],
+            ["지하철", "ji-ha-cheol", "Tàu điện ngầm", "Danh từ", 2, "Giao thông cơ bản", "지하철을 타고 학교에 갑니다.", "Tôi đi tàu điện ngầm đến trường."]
+        ];
+
+        const ws = XLSX.utils.aoa_to_sheet(sampleData);
+        ws['!cols'] = [
+            { wch: 16 }, { wch: 16 }, { wch: 22 }, { wch: 12 }, { wch: 12 }, { wch: 22 }, { wch: 38 }, { wch: 38 }
+        ];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "MauTuVung");
+        XLSX.writeFile(wb, "HotTopik_Mau_Nhap_Tu_Vung.xlsx");
+        showSsakToast("Đã tải xuống file mẫu HotTopik_Mau_Nhap_Tu_Vung.xlsx!");
+    }
+</script>
+</body>
+</html>

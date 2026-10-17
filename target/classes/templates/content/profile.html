@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<div style="min-height: 100vh; background: #F4F3EF; font-family: var(--font-body); color: var(--ssak-text-main); display: flex;">
+    
+    <!-- ==================== LEFT SIDEBAR (THANH TÁC VỤ BÊN TRÁI) ==================== -->
+    <aside style="width: 275px; background: #24363D; color: #FFFFFF; display: flex; flex-direction: column; flex-shrink: 0; min-height: 100vh; position: sticky; top: 0; z-index: 100; box-shadow: 4px 0 16px rgba(0,0,0,0.08);">
+        
+        <!-- Sidebar Brand / Logo -->
+        <div style="padding: 24px 24px 18px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;">
+            <a th:href="@{/content}" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #FFFFFF;">
+                <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 21V11" stroke="#6CC49F" stroke-width="2.5" stroke-linecap="round"/>
+                    <path d="M12 12C12 7 8 4 3.5 4.5C3.5 9 7 12.5 12 12Z" fill="#6CC49F"/>
+                    <path d="M12 10C12 6 15.5 3 20.5 3.5C20.5 8 17 11 12 10Z" fill="#A9D9C0"/>
+                </svg>
+                <span style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #6CC49F; letter-spacing: -0.5px;">HOT TOPIK</span>
+            </a>
+            <div>
+                <span style="font-size: 11px; color: #6CC49F; background: rgba(46, 125, 103, 0.35); border: 1px solid rgba(108, 196, 159, 0.4); padding: 3px 10px; border-radius: 12px; font-weight: 800; text-transform: uppercase;">
+                    📝 Content Manager
+                </span>
+            </div>
+        </div>
+
+        <!-- User Profile Card (Active style) -->
+        <a th:href="@{/content/profile}" style="padding: 14px 20px; margin: 12px 14px; background: rgba(46, 125, 103, 0.4); border-radius: 16px; border: 1.5px solid #6CC49F; display: flex; align-items: center; gap: 12px; text-decoration: none;">
+            <div style="width: 42px; height: 42px; border-radius: 21px; background: #2E7D67; color: #FFFFFF; font-family: var(--font-heading); font-size: 19px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                <span th:text="${#strings.substring(currentUser.fullName, 0, 1)}">H</span>
+            </div>
+            <div style="display: flex; flex-direction: column; overflow: hidden; min-width: 0; flex-grow: 1;">
+                <span style="font-weight: 800; font-size: 14px; color: #FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" th:text="${currentUser.fullName}">Lê Thu Hà</span>
+                <span style="font-size: 11px; color: #A9D9C0; font-weight: 700;">Hồ sơ cá nhân (Đang mở)</span>
+            </div>
+        </a>
+
+        <!-- Sidebar Navigation Menu Items -->
+        <div style="padding: 6px 14px; display: flex; flex-direction: column; gap: 4px; flex-grow: 1; overflow-y: auto;">
+            <div style="font-size: 11px; font-weight: 800; color: #8ECDB0; padding: 8px 12px 4px 12px; text-transform: uppercase; letter-spacing: 0.8px;">
+                Tác vụ Chuyên môn
+            </div>
+
+            <!-- Tổng quan -->
+            <a th:href="@{/content}" class="sidebar-item">
+                <span style="font-size: 17px;">🏠</span>
+                <span style="flex-grow: 1;">Tổng quan</span>
+            </a>
+
+            <!-- Quản lý Lý thuyết -->
+            <div style="display: flex; flex-direction: column;">
+                <a th:href="@{/content}" class="sidebar-item">
+                    <span style="font-size: 17px;">📖</span>
+                    <span style="flex-grow: 1;">Quản lý Lý thuyết</span>
+                </a>
+                <a th:href="@{/content/vocabulary}" class="sidebar-sub-item">
+                    <span style="font-size: 14px;">↳</span>
+                    <span style="flex-grow: 1;">Kho Từ vựng TOPIK 1-6</span>
+                </a>
+                <a th:href="@{/content/grammar}" class="sidebar-sub-item">
+                    <span style="font-size: 14px;">↳</span>
+                    <span style="flex-grow: 1;">Kho Ngữ pháp TOPIK 1-6</span>
+                </a>
+            </div>
+
+            <!-- Quản lý Đề -->
+            <a th:href="@{/content?tab=exams}" class="sidebar-item">
+                <span style="font-size: 17px;">📋</span>
+                <span style="flex-grow: 1;">Quản lý Đề</span>
+            </a>
+
+            <!-- Ngân hàng câu hỏi -->
+            <a th:href="@{/content?tab=questions}" class="sidebar-item">
+                <span style="font-size: 17px;">📝</span>
+                <span style="flex-grow: 1;">Ngân hàng câu hỏi</span>
+            </a>
+
+            <!-- Xử lý Báo lỗi -->
+            <a th:href="@{/content?tab=reports}" class="sidebar-item">
+                <span style="font-size: 17px;">⚠️</span>
+                <span style="flex-grow: 1;">Xử lý Báo lỗi</span>
+            </a>
+
+            <!-- Nhật ký Thao tác -->
+            <a th:href="@{/content?tab=audit}" class="sidebar-item">
+                <span style="font-size: 17px;">📜</span>
+                <span style="flex-grow: 1;">Nhật ký Thao tác</span>
+            </a>
+        </div>
+
+        <!-- Sidebar Bottom Footer -->
+        <div style="padding: 16px 14px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;">
+            <a th:href="@{/logout}" class="sidebar-bottom-link logout">
+                <span>🚪</span>
+                <span>Đăng xuất hệ thống</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- ==================== RIGHT MAIN CONTENT AREA ==================== -->
+    <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0;">
+        
+        <!-- Top Header Bar inside Content -->
+        <header style="height: 68px; padding: 0 40px; background: #FFFFFF; border-bottom: 2px solid var(--ssak-border); display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 24px;">👤</span>
+                <div>
+                    <h2 style="margin: 0; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D;">
+                        Hồ sơ Quản lý Chuyên môn (Content Manager Profile)
+                    </h2>
+                    <span style="font-size: 12px; color: var(--ssak-text-muted);">
+                        Xem và chỉnh sửa thông tin tài khoản, quản lý bảo mật và xem lịch sử hoạt động
+                    </span>
+                </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <a th:href="@{/content}" class="btn-ssak-light" style="height: 38px; padding: 0 16px; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                    ← Về Trang Tổng quan
+                </a>
+                <a th:href="@{/logout}" class="btn-ssak-outline" style="height: 38px; padding: 0 14px; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; color: #CF1322; border-color: #FFA39E;">
+                    🚪 Đăng xuất
+                </a>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main style="padding: 32px 40px; display: flex; flex-direction: column; gap: 24px; flex-grow: 1;">
+            
+            <!-- SECTION 1: USER INFO CARD -->
+            <div class="ssak-card" style="padding: 28px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="display: flex; align-items: center; gap: 20px;">
+                        <div style="width: 80px; height: 80px; border-radius: 40px; background: #2E7D67; color: #FFFFFF; font-family: var(--font-heading); font-size: 34px; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(46, 125, 103, 0.3);">
+                            <span th:text="${#strings.substring(currentUser.fullName, 0, 1)}">H</span>
+                        </div>
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <h3 style="margin: 0; font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #24363D;" th:text="${currentUser.fullName}">Lê Thu Hà</h3>
+                                <span class="ssak-badge badge-mint" style="font-size: 12px; padding: 3px 10px;">🟢 Đang hoạt động</span>
+                            </div>
+                            <div style="font-size: 14px; color: var(--ssak-text-muted); margin-top: 4px;" th:text="${currentUser.email}">content@hottopik.com</div>
+                            <div style="display: flex; gap: 8px; margin-top: 8px;">
+                                <span class="ssak-badge badge-sky" style="font-size: 11px;">Vai trò: Quản lý Chuyên môn</span>
+                                <span class="ssak-badge badge-honey" style="font-size: 11px;">Quyền hạn: Lý thuyết & Đề thi</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-ssak-primary" style="height: 40px; padding: 0 20px; font-weight: 800; font-size: 13px;" data-bs-toggle="modal" data-bs-target="#modalEditProfile">
+                        ✏️ Chỉnh sửa thông tin
+                    </button>
+                </div>
+
+                <!-- Info Grid -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding-top: 16px; border-top: 1px solid var(--ssak-border);">
+                    <div style="padding: 14px 18px; background: #F8FAFC; border-radius: 14px; border: 1px solid var(--ssak-border);">
+                        <div style="font-size: 12px; color: var(--ssak-text-muted); font-weight: 700; text-transform: uppercase;">Mã tài khoản</div>
+                        <div style="font-size: 15px; font-weight: 800; color: #24363D; margin-top: 4px;" th:text="${'#UID-' + currentUser.id}">#UID-2</div>
+                    </div>
+                    <div style="padding: 14px 18px; background: #F8FAFC; border-radius: 14px; border: 1px solid var(--ssak-border);">
+                        <div style="font-size: 12px; color: var(--ssak-text-muted); font-weight: 700; text-transform: uppercase;">Tên đăng nhập</div>
+                        <div style="font-size: 15px; font-weight: 800; color: #24363D; margin-top: 4px;" th:text="${currentUser.username}">content_manager</div>
+                    </div>
+                    <div style="padding: 14px 18px; background: #F8FAFC; border-radius: 14px; border: 1px solid var(--ssak-border);">
+                        <div style="font-size: 12px; color: var(--ssak-text-muted); font-weight: 700; text-transform: uppercase;">Trình độ TOPIK thẩm định</div>
+                        <div style="font-size: 15px; font-weight: 800; color: #1F6B56; margin-top: 4px;">TOPIK II · Cấp 6 (Master)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2 COLUMNS: SECURITY & RECENT ACTIVITIES -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                
+                <!-- SECURITY: CHANGE PASSWORD -->
+                <div class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 18px;">
+                    <div>
+                        <h4 style="margin: 0; font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: #24363D;">
+                            🔒 Bảo mật & Đổi mật khẩu
+                        </h4>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
+                            Khuyến nghị đổi mật khẩu định kỳ 90 ngày để đảm bảo an toàn tài khoản quản trị.
+                        </p>
+                    </div>
+
+                    <form id="formChangePassword" onsubmit="handleChangePassword(event)" style="display: flex; flex-direction: column; gap: 14px;">
+                        <div>
+                            <label class="form-label" style="font-size: 13px; font-weight: 700;">Mật khẩu hiện tại <span style="color:red">*</span></label>
+                            <input type="password" id="oldPassword" class="form-control ssak-input" required placeholder="Nhập mật khẩu đang dùng" />
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 13px; font-weight: 700;">Mật khẩu mới <span style="color:red">*</span></label>
+                            <input type="password" id="newPassword" class="form-control ssak-input" required placeholder="Tối thiểu 8 ký tự" />
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 13px; font-weight: 700;">Xác nhận mật khẩu mới <span style="color:red">*</span></label>
+                            <input type="password" id="confirmPassword" class="form-control ssak-input" required placeholder="Nhập lại mật khẩu mới" />
+                        </div>
+                        <button type="submit" class="btn-ssak-primary" style="height: 42px; font-weight: 800; margin-top: 6px;">
+                            💾 Cập nhật mật khẩu
+                        </button>
+                    </form>
+                </div>
+
+                <!-- RECENT ACTIONS -->
+                <div class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 16px;">
+                    <div>
+                        <h4 style="margin: 0; font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: #24363D;">
+                            📜 Lịch sử thao tác gần đây
+                        </h4>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
+                            5 hành vi mới nhất được hệ thống ghi nhận trong phiên làm việc.
+                        </p>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div th:each="log : ${recentLogs}" style="padding: 12px 14px; background: #F8FAFC; border-radius: 12px; border: 1px solid var(--ssak-border); display: flex; flex-direction: column; gap: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span class="ssak-badge badge-mint" style="font-size: 11px;" th:text="${log.action}">CREATE</span>
+                                <span style="font-size: 11px; color: var(--ssak-text-muted);" th:text="${log.timestamp}">2026-10-15 14:00</span>
+                            </div>
+                            <div style="font-size: 13px; font-weight: 700; color: #24363D;" th:text="${log.details}">Thao tác gần đây</div>
+                        </div>
+                        <div th:if="${#lists.isEmpty(recentLogs)}" style="padding: 24px; text-align: center; color: var(--ssak-text-muted); font-size: 13px;">
+                            Chưa có thao tác nào trong phiên gần đây
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<!-- MODAL EDIT PROFILE -->
+<div class="modal fade" id="modalEditProfile" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; border: 2px solid var(--ssak-border); padding: 8px;">
+            <div class="modal-header" style="border-bottom: 2px solid var(--ssak-border); padding: 16px 20px;">
+                <h5 class="modal-title" style="font-family: var(--font-heading); font-weight: 800; color: #24363D; margin: 0;">
+                    Chỉnh sửa thông tin cá nhân
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form onsubmit="handleUpdateProfile(event)">
+                <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                    <div>
+                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Họ và tên</label>
+                        <input type="text" id="editFullName" class="form-control ssak-input" th:value="${currentUser.fullName}" required />
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Email (Không thể thay đổi)</label>
+                        <input type="email" class="form-control ssak-input" th:value="${currentUser.email}" disabled />
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px;">
+                    <button type="button" class="btn-ssak-outline" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-ssak-primary" style="height: 40px; padding: 0 20px; font-weight: 800;">
+                        💾 Lưu thay đổi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    color: #CFE9DC;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+    transform: translateX(3px);
+}
+.sidebar-item.active {
+    background: #2E7D67;
+    color: #FFFFFF;
+    font-weight: 800;
+    box-shadow: 0 4px 14px rgba(46, 125, 103, 0.35);
+}
+.sidebar-sub-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px 8px 32px;
+    border-radius: 10px;
+    color: #A9D9C0;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.sidebar-sub-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+}
+.sidebar-bottom-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    color: #A9D9C0;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    transition: all 0.2s;
+}
+.sidebar-bottom-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+}
+.sidebar-bottom-link.logout {
+    color: #FFA39E;
+}
+.sidebar-bottom-link.logout:hover {
+    background: rgba(207, 19, 34, 0.15);
+    color: #FF7875;
+}
+</style>
+
+<!-- Bootstrap 5 Bundle JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    function handleUpdateProfile(e) {
+        e.preventDefault();
+        const fullName = document.getElementById('editFullName').value.trim();
+        fetch('/content/profile/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fullName: fullName })
+        })
+        .then(res => res.json())
+        .then(resp => {
+            showSsakToast(resp.message || "Đã cập nhật thông tin!");
+            setTimeout(() => window.location.reload(), 600);
+        });
+    }
+
+    function handleChangePassword(e) {
+        e.preventDefault();
+        const oldP = document.getElementById('oldPassword').value;
+        const newP = document.getElementById('newPassword').value;
+        const confP = document.getElementById('confirmPassword').value;
+        if (newP !== confP) {
+            alert('Mật khẩu mới và xác nhận mật khẩu không khớp!');
+            return;
+        }
+        fetch('/content/profile/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ oldPassword: oldP, newPassword: newP })
+        })
+        .then(res => res.json())
+        .then(resp => {
+            showSsakToast(resp.message || "Đã đổi mật khẩu thành công!");
+            document.getElementById('formChangePassword').reset();
+        });
+    }
+</script>
+</body>
+</html>

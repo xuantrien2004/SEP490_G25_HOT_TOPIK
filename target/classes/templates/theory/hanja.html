@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Cầu nối Hán Việt · HOT TOPIK')}"></head>
+<body style="background: #F8F6EF; color: #24363D; font-family: var(--font-body); margin: 0; padding: 0;">
+
+<div th:replace="~{fragments/navbar :: navbar('theory')}"></div>
+
+<main style="max-width: 1380px; margin: 0 auto; padding: 28px 32px; box-sizing: border-box;">
+
+    <!-- 4 TOP TABS (same as theory/index.html) -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px;">
+        <a th:href="@{/ly-thuyet}" class="theory-tab-link">
+            <div class="theory-tab-icon" style="background: #E8F5E9; color: #2E7D67;">가</div>
+            <div><span class="theory-tab-title">Từ vựng</span><span class="theory-tab-sub">Theo chủ đề · flashcard · quiz</span></div>
+        </a>
+        <a th:href="@{/theory/grammar}" class="theory-tab-link">
+            <div class="theory-tab-icon" style="background: #EBF3F8; color: #2B6CB0;">문</div>
+            <div><span class="theory-tab-title">Ngữ pháp</span><span class="theory-tab-sub">Theo nhóm chức năng</span></div>
+        </a>
+        <a th:href="@{/ly-thuyet/han-viet}" class="theory-tab-link active">
+            <div class="theory-tab-icon" style="background: #FDF2EB; color: #C05621;">學</div>
+            <div><span class="theory-tab-title">Cầu nối Hán Việt</span><span class="theory-tab-sub">32 gốc chữ Hán</span></div>
+        </a>
+        <a th:href="@{/ly-thuyet/dac-thu}" class="theory-tab-link">
+            <div class="theory-tab-icon" style="background: #FEF9E7; color: #B7791F;">한</div>
+            <div><span class="theory-tab-title">Đặc thù tiếng Hàn</span><span class="theory-tab-sub">Biến âm, ngữ pháp dễ nhầm</span></div>
+        </a>
+    </div>
+
+    <!-- PAGE TITLE & DESC -->
+    <h1 style="margin: 0; font-family: var(--font-heading); font-size: 28px; font-weight: 800; color: #24363D;">Cầu nối Hán Việt</h1>
+    <p style="margin: 8px 0 20px; font-size: 14px; color: #53646C; line-height: 1.6;">
+        Khoảng 60% từ vựng tiếng Hàn có gốc chữ Hán, và người Việt đã quen âm Hán Việt. Học một gốc, đoán được cả họ từ. Đã học <b>0/32 gốc</b>.
+    </p>
+
+    <!-- SUB-TAB TOGGLE: Học theo gốc | Đoán nghĩa từ mới -->
+    <div style="display: flex; gap: 10px; margin-bottom: 24px;">
+        <button type="button" id="btnLearn" class="hanja-mode-btn active" onclick="setMode('learn')">Học theo gốc</button>
+        <button type="button" id="btnGuess" class="hanja-mode-btn" onclick="setMode('guess')">Đoán nghĩa từ mới</button>
+    </div>
+
+    <!-- MAIN: TWO COLUMN LAYOUT -->
+    <div style="display: grid; grid-template-columns: 280px 1fr; gap: 24px; align-items: flex-start;">
+
+        <!-- LEFT: Root Grid -->
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+            <!-- Search input -->
+            <input type="text" id="hanjaSearch" placeholder="Tìm: 學, hoc, 학..." oninput="filterHanja(this.value)"
+                   style="width: 100%; height: 42px; border-radius: 12px; border: 1.5px solid #E8E5DC; padding: 0 14px; font-size: 14px; font-family: inherit; outline: none; box-sizing: border-box; background: #FFFFFF;">
+
+            <!-- 4-per-row grid of 32 roots -->
+            <div id="hanjaGrid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                <!-- rendered by JS -->
+            </div>
+        </div>
+
+        <!-- RIGHT: Root Detail Panel -->
+        <div id="rootDetailPanel" style="background: #FFFFFF; border: 1.5px solid #E8E5DC; border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+
+            <!-- Root header -->
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <div style="width: 72px; height: 72px; border-radius: 18px; background: #FDF2EB; color: #C05621; display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-size: 42px; font-weight: 900; flex-shrink: 0;">
+                    學
+                </div>
+                <div>
+                    <h2 id="rootTitle" style="margin: 0; font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: #24363D;">
+                        Âm Hàn 학 · âm Hán Việt "học"
+                    </h2>
+                    <span id="rootSub" style="font-size: 13.5px; color: #53646C; margin-top: 4px; display: block;">
+                        Nghĩa gốc: học · 5 từ cùng họ
+                    </span>
+                </div>
+            </div>
+
+            <!-- Word Table -->
+            <table id="rootWordTable" style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                <tbody>
+                    <!-- rows rendered by JS -->
+                </tbody>
+            </table>
+
+            <!-- Mark Learned Button & Tip -->
+            <div style="display: flex; align-items: center; gap: 16px; padding-top: 4px; border-top: 1px solid #F1EEE6;">
+                <button type="button" id="btnMarkLearned" class="btn-hanja-primary" onclick="markLearned()">
+                    Đánh dấu đã học
+                </button>
+                <span style="font-size: 12.5px; color: #8C9BA2;">
+                    Mẹo: nhìn chữ tô màu đỏ để thấy gốc lặp lại trong mỗi từ.
+                </span>
+            </div>
+        </div>
+
+    </div>
+
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<style>
+.theory-tab-link {
+    background: #FFFFFF;
+    border: 1.5px solid #E8E5DC;
+    border-radius: 18px;
+    padding: 16px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+.theory-tab-link:hover { border-color: #2E7D67; }
+.theory-tab-link.active { background: #F4FAF7; border: 2px solid #2E7D67; }
+.theory-tab-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-heading); font-size: 20px; font-weight: 800; flex-shrink: 0;
+}
+.theory-tab-title { display: block; font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #24363D; }
+.theory-tab-sub   { display: block; font-size: 12.5px; color: #53646C; margin-top: 2px; }
+
+.hanja-mode-btn {
+    height: 40px; padding: 0 20px; border-radius: 12px;
+    border: 1.5px solid #E8E5DC; background: #FFFFFF;
+    font-size: 14px; font-weight: 800; color: #24363D;
+    cursor: pointer; font-family: inherit; transition: all 0.15s ease;
+}
+.hanja-mode-btn.active { background: #2E7D67; color: #FFFFFF; border-color: #2E7D67; }
+
+/* Root Cell */
+.root-cell {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    border: 1.5px solid #E8E5DC;
+    background: #FFFFFF;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 4px; cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: var(--font-heading);
+}
+.root-cell:hover { border-color: #2E7D67; transform: scale(1.04); }
+.root-cell.selected { background: #F4FAF7; border: 2.5px solid #2E7D67; }
+.root-cell.learned { background: #E8F5E9; border-color: #96D3B6; }
+.root-cell .hanja-char { font-size: 24px; font-weight: 900; color: #24363D; }
+.root-cell .sino-vi   { font-size: 11px; font-weight: 700; color: #53646C; }
+
+/* Word table row */
+.word-row { border-bottom: 1px solid #F8F6EF; }
+.word-row td { padding: 12px 8px; vertical-align: middle; }
+.word-ko  { font-family: var(--font-heading); font-size: 15px; font-weight: 800; color: #24363D; width: 70px; }
+.word-hanja { font-size: 15px; color: #C05621; font-weight: 700; width: 70px; }
+.word-sino  { font-size: 13px; color: #2E7D67; font-weight: 800; }
+.word-vi    { font-size: 13px; color: #53646C; }
+.word-audio { width: 36px; text-align: right; }
+.btn-audio  { width: 30px; height: 30px; border-radius: 50%; border: 1px solid #E8E5DC; background: #F8F6EF; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+
+.btn-hanja-primary {
+    height: 42px; padding: 0 22px; border-radius: 12px;
+    background: #2E7D67; color: #FFFFFF; border: none;
+    font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit;
+    transition: background 0.15s ease;
+}
+.btn-hanja-primary:hover { background: #235F4F; }
+.btn-hanja-primary.done { background: #96D3B6; color: #1A5C48; }
+</style>
+
+<script>
+// 32 Hanja Roots Data
+const hanjaRoots = [
+    { char: '學', sinoVi: 'học', koReading: '학', meaning: 'học tập, trường học',
+      words: [
+        { ko: '학교', hanja: '學校', sinoVi: 'học hiệu', vi: 'trường học' },
+        { ko: '학생', hanja: '學生', sinoVi: 'học sinh', vi: 'học sinh' },
+        { ko: '대학', hanja: '大學', sinoVi: 'đại học', vi: 'đại học' },
+        { ko: '과학', hanja: '科學', sinoVi: 'khoa học', vi: 'khoa học' },
+        { ko: '학원', hanja: '學院', sinoVi: 'học viện', vi: 'trung tâm học thêm' }
+    ]},
+    { char: '生', sinoVi: 'sinh', koReading: '생', meaning: 'sự sống, phát sinh',
+      words: [
+        { ko: '학생', hanja: '學生', sinoVi: 'học sinh', vi: 'học sinh' },
+        { ko: '선생님', hanja: '先生', sinoVi: 'tiên sinh', vi: 'giáo viên' },
+        { ko: '생활', hanja: '生活', sinoVi: 'sinh hoạt', vi: 'sinh hoạt, cuộc sống' },
+        { ko: '생각', hanja: '生覺', sinoVi: 'sinh giác', vi: 'suy nghĩ, ý kiến' }
+    ]},
+    { char: '人', sinoVi: 'nhân', koReading: '인', meaning: 'con người, nhân cách',
+      words: [
+        { ko: '인간', hanja: '人間', sinoVi: 'nhân gian', vi: 'con người, loài người' },
+        { ko: '외국인', hanja: '外國人', sinoVi: 'ngoại quốc nhân', vi: 'người nước ngoài' },
+        { ko: '인기', hanja: '人氣', sinoVi: 'nhân khí', vi: 'sự nổi tiếng' },
+        { ko: '인사', hanja: '人事', sinoVi: 'nhân sự', vi: 'chào hỏi, nhân sự' }
+    ]},
+    { char: '國', sinoVi: 'quốc', koReading: '국', meaning: 'đất nước, quốc gia',
+      words: [
+        { ko: '한국', hanja: '韓國', sinoVi: 'hàn quốc', vi: 'Hàn Quốc' },
+        { ko: '외국', hanja: '外國', sinoVi: 'ngoại quốc', vi: 'nước ngoài' },
+        { ko: '국가', hanja: '國家', sinoVi: 'quốc gia', vi: 'quốc gia, đất nước' }
+    ]},
+    { char: '會', sinoVi: 'hội', koReading: '회', meaning: 'hội họp, tập hợp',
+      words: [
+        { ko: '회의', hanja: '會議', sinoVi: 'hội nghị', vi: 'cuộc họp' },
+        { ko: '사회', hanja: '社會', sinoVi: 'xã hội', vi: 'xã hội' },
+        { ko: '회사', hanja: '會社', sinoVi: 'hội xã', vi: 'công ty' }
+    ]},
+    { char: '大', sinoVi: 'đại', koReading: '대', meaning: 'lớn, vĩ đại',
+      words: [
+        { ko: '대학', hanja: '大學', sinoVi: 'đại học', vi: 'đại học' },
+        { ko: '대통령', hanja: '大統領', sinoVi: 'đại thống lĩnh', vi: 'tổng thống' },
+        { ko: '위대하다', hanja: '偉大', sinoVi: 'vĩ đại', vi: 'vĩ đại' }
+    ]},
+    { char: '電', sinoVi: 'điện', koReading: '전', meaning: 'điện, điện lực',
+      words: [
+        { ko: '전화', hanja: '電話', sinoVi: 'điện thoại', vi: 'điện thoại' },
+        { ko: '전기', hanja: '電氣', sinoVi: 'điện khí', vi: 'điện' },
+        { ko: '전자', hanja: '電子', sinoVi: 'điện tử', vi: 'điện tử' }
+    ]},
+    { char: '話', sinoVi: 'thoại', koReading: '화', meaning: 'lời nói, câu chuyện',
+      words: [
+        { ko: '전화', hanja: '電話', sinoVi: 'điện thoại', vi: 'điện thoại' },
+        { ko: '이야기', hanja: '話', sinoVi: 'thoại', vi: 'câu chuyện' },
+        { ko: '대화', hanja: '對話', sinoVi: 'đối thoại', vi: 'đối thoại' }
+    ]},
+    { char: '時', sinoVi: 'thời', koReading: '시', meaning: 'thời gian, giờ',
+      words: [
+        { ko: '시간', hanja: '時間', sinoVi: 'thời gian', vi: 'thời gian' },
+        { ko: '시작', hanja: '始作', sinoVi: 'thủy tác', vi: 'bắt đầu' },
+        { ko: '시험', hanja: '試驗', sinoVi: 'thí nghiệm', vi: 'kỳ thi, bài kiểm tra' }
+    ]},
+    { char: '間', sinoVi: 'gian', koReading: '간', meaning: 'khoảng cách, giữa',
+      words: [
+        { ko: '시간', hanja: '時間', sinoVi: 'thời gian', vi: 'thời gian' },
+        { ko: '인간', hanja: '人間', sinoVi: 'nhân gian', vi: 'con người' },
+        { ko: '기간', hanja: '期間', sinoVi: 'kỳ gian', vi: 'khoảng thời gian' }
+    ]},
+    { char: '家', sinoVi: 'gia', koReading: '가', meaning: 'gia đình, chuyên gia',
+      words: [
+        { ko: '가족', hanja: '家族', sinoVi: 'gia tộc', vi: 'gia đình' },
+        { ko: '국가', hanja: '國家', sinoVi: 'quốc gia', vi: 'quốc gia' },
+        { ko: '작가', hanja: '作家', sinoVi: 'tác gia', vi: 'nhà văn' }
+    ]},
+    { char: '動', sinoVi: 'động', koReading: '동', meaning: 'hoạt động, chuyển động',
+      words: [
+        { ko: '운동', hanja: '運動', sinoVi: 'vận động', vi: 'thể thao, vận động' },
+        { ko: '활동', hanja: '活動', sinoVi: 'hoạt động', vi: 'hoạt động' },
+        { ko: '이동', hanja: '移動', sinoVi: 'di động', vi: 'di chuyển' }
+    ]},
+    { char: '物', sinoVi: 'vật', koReading: '물', meaning: 'vật, đồ vật',
+      words: [
+        { ko: '물건', hanja: '物件', sinoVi: 'vật kiện', vi: 'đồ vật' },
+        { ko: '동물', hanja: '動物', sinoVi: 'động vật', vi: 'động vật' },
+        { ko: '식물', hanja: '植物', sinoVi: 'thực vật', vi: 'thực vật' }
+    ]},
+    { char: '文', sinoVi: 'văn', koReading: '문', meaning: 'chữ viết, văn hóa',
+      words: [
+        { ko: '문화', hanja: '文化', sinoVi: 'văn hóa', vi: 'văn hóa' },
+        { ko: '문자', hanja: '文字', sinoVi: 'văn tự', vi: 'chữ viết, văn tự' },
+        { ko: '논문', hanja: '論文', sinoVi: 'luận văn', vi: 'luận văn' }
+    ]},
+    { char: '化', sinoVi: 'hóa', koReading: '화', meaning: 'biến đổi, chuyển hóa',
+      words: [
+        { ko: '문화', hanja: '文化', sinoVi: 'văn hóa', vi: 'văn hóa' },
+        { ko: '변화', hanja: '變化', sinoVi: 'biến hóa', vi: 'sự thay đổi' },
+        { ko: '현대화', hanja: '現代化', sinoVi: 'hiện đại hóa', vi: 'hiện đại hóa' }
+    ]},
+    { char: '心', sinoVi: 'tâm', koReading: '심', meaning: 'tâm, trái tim, tâm hồn',
+      words: [
+        { ko: '관심', hanja: '關心', sinoVi: 'quan tâm', vi: 'quan tâm, sự chú ý' },
+        { ko: '중심', hanja: '中心', sinoVi: 'trung tâm', vi: 'trung tâm' },
+        { ko: '걱정', hanja: '憂心', sinoVi: 'ưu tâm', vi: 'lo lắng, lo âu' }
+    ]},
+    { char: '安', sinoVi: 'an', koReading: '안', meaning: 'an toàn, bình an',
+      words: [
+        { ko: '안전', hanja: '安全', sinoVi: 'an toàn', vi: 'an toàn' },
+        { ko: '안심', hanja: '安心', sinoVi: 'an tâm', vi: 'yên tâm, an lòng' },
+        { ko: '불안', hanja: '不安', sinoVi: 'bất an', vi: 'lo âu, bất an' }
+    ]},
+    { char: '全', sinoVi: 'toàn', koReading: '전', meaning: 'toàn, hoàn toàn, đầy đủ',
+      words: [
+        { ko: '안전', hanja: '安全', sinoVi: 'an toàn', vi: 'an toàn' },
+        { ko: '전부', hanja: '全部', sinoVi: 'toàn bộ', vi: 'tất cả, toàn bộ' },
+        { ko: '완전', hanja: '完全', sinoVi: 'hoàn toàn', vi: 'hoàn toàn' }
+    ]},
+    { char: '社', sinoVi: 'xã', koReading: '사', meaning: 'xã hội, tổ chức',
+      words: [
+        { ko: '사회', hanja: '社會', sinoVi: 'xã hội', vi: 'xã hội' },
+        { ko: '회사', hanja: '會社', sinoVi: 'hội xã', vi: 'công ty' },
+        { ko: '사원', hanja: '社員', sinoVi: 'xã viên', vi: 'nhân viên công ty' }
+    ]},
+    { char: '新', sinoVi: 'tân', koReading: '신', meaning: 'mới, tươi mới',
+      words: [
+        { ko: '신문', hanja: '新聞', sinoVi: 'tân văn', vi: 'báo (giấy)' },
+        { ko: '신상품', hanja: '新商品', sinoVi: 'tân thương phẩm', vi: 'sản phẩm mới' },
+        { ko: '혁신', hanja: '革新', sinoVi: 'cách tân', vi: 'cải tiến, đổi mới' }
+    ]},
+    // Additional 12 roots to reach 32
+    { char: '力', sinoVi: 'lực', koReading: '력', meaning: 'sức lực, năng lực', words: [{ ko: '능력', hanja: '能力', sinoVi: 'năng lực', vi: 'năng lực' }, { ko: '노력', hanja: '努力', sinoVi: 'nỗ lực', vi: 'nỗ lực' }] },
+    { char: '場', sinoVi: 'trường', koReading: '장', meaning: 'địa điểm, sân bãi', words: [{ ko: '시장', hanja: '市場', sinoVi: 'thị trường', vi: 'chợ, thị trường' }, { ko: '공장', hanja: '工場', sinoVi: 'công trường', vi: 'nhà máy' }] },
+    { char: '地', sinoVi: 'địa', koReading: '지', meaning: 'đất, địa điểm', words: [{ ko: '지역', hanja: '地域', sinoVi: 'địa vực', vi: 'khu vực' }, { ko: '지도', hanja: '地圖', sinoVi: 'địa đồ', vi: 'bản đồ' }] },
+    { char: '方', sinoVi: 'phương', koReading: '방', meaning: 'phương, hướng, cách', words: [{ ko: '방법', hanja: '方法', sinoVi: 'phương pháp', vi: 'phương pháp' }, { ko: '지방', hanja: '地方', sinoVi: 'địa phương', vi: 'địa phương' }] },
+    { char: '語', sinoVi: 'ngữ', koReading: '어', meaning: 'ngôn ngữ, lời nói', words: [{ ko: '한국어', hanja: '韓國語', sinoVi: 'hàn quốc ngữ', vi: 'tiếng Hàn' }, { ko: '외국어', hanja: '外國語', sinoVi: 'ngoại quốc ngữ', vi: 'ngoại ngữ' }] },
+    { char: '業', sinoVi: 'nghiệp', koReading: '업', meaning: 'nghề nghiệp, công nghiệp', words: [{ ko: '직업', hanja: '職業', sinoVi: 'chức nghiệp', vi: 'nghề nghiệp' }, { ko: '사업', hanja: '事業', sinoVi: 'sự nghiệp', vi: 'sự nghiệp, kinh doanh' }] },
+    { char: '工', sinoVi: 'công', koReading: '공', meaning: 'công việc, thủ công', words: [{ ko: '공부', hanja: '工夫', sinoVi: 'công phu', vi: 'học bài, học tập' }, { ko: '공장', hanja: '工場', sinoVi: 'công trường', vi: 'nhà máy' }] },
+    { char: '本', sinoVi: 'bản', koReading: '본', meaning: 'bản gốc, chính', words: [{ ko: '기본', hanja: '基本', sinoVi: 'cơ bản', vi: 'cơ bản' }, { ko: '본래', hanja: '本來', sinoVi: 'bản lai', vi: 'vốn dĩ, ban đầu' }] },
+    { char: '事', sinoVi: 'sự', koReading: '사', meaning: 'sự việc, công việc', words: [{ ko: '사건', hanja: '事件', sinoVi: 'sự kiện', vi: 'sự kiện, vụ việc' }, { ko: '사실', hanja: '事實', sinoVi: 'sự thật', vi: 'sự thật, thực tế' }] },
+    { char: '命', sinoVi: 'mệnh', koReading: '명', meaning: 'mệnh lệnh, số mệnh', words: [{ ko: '생명', hanja: '生命', sinoVi: 'sinh mệnh', vi: 'sinh mệnh, tính mạng' }, { ko: '운명', hanja: '運命', sinoVi: 'vận mệnh', vi: 'vận mệnh, số phận' }] },
+    { char: '法', sinoVi: 'pháp', koReading: '법', meaning: 'pháp luật, phương pháp', words: [{ ko: '방법', hanja: '方法', sinoVi: 'phương pháp', vi: 'phương pháp' }, { ko: '법률', hanja: '法律', sinoVi: 'pháp luật', vi: 'pháp luật' }] },
+    { char: '理', sinoVi: 'lý', koReading: '리', meaning: 'lý lẽ, nguyên lý', words: [{ ko: '관리', hanja: '管理', sinoVi: 'quản lý', vi: 'quản lý' }, { ko: '이유', hanja: '理由', sinoVi: 'lý do', vi: 'lý do' }] }
+];
+
+let selectedRoot = hanjaRoots[0];
+let learnedRoots = new Set();
+let currentMode = 'learn';
+
+function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('btnLearn').classList.toggle('active', mode === 'learn');
+    document.getElementById('btnGuess').classList.toggle('active', mode === 'guess');
+}
+
+function filterHanja(q) {
+    renderGrid(q.toLowerCase());
+}
+
+function renderGrid(filter = '') {
+    const grid = document.getElementById('hanjaGrid');
+    grid.innerHTML = '';
+
+    hanjaRoots.forEach((root, idx) => {
+        const matchQ = !filter || root.char.includes(filter) || root.sinoVi.includes(filter) || root.koReading.includes(filter);
+        if (!matchQ) return;
+
+        const cell = document.createElement('div');
+        cell.className = 'root-cell' + (root === selectedRoot ? ' selected' : '') + (learnedRoots.has(idx) ? ' learned' : '');
+        cell.onclick = () => selectRoot(idx);
+        cell.innerHTML = `<span class="hanja-char">${root.char}</span><span class="sino-vi">${root.sinoVi}</span>`;
+        grid.appendChild(cell);
+    });
+}
+
+function selectRoot(idx) {
+    selectedRoot = hanjaRoots[idx];
+    renderGrid();
+
+    const panel = document.getElementById('rootDetailPanel');
+    panel.querySelector('#rootTitle').textContent = `Âm Hàn ${selectedRoot.koReading} · âm Hán Việt "${selectedRoot.sinoVi}"`;
+    panel.querySelector('#rootSub').textContent = `Nghĩa gốc: ${selectedRoot.meaning} · ${selectedRoot.words.length} từ cùng họ`;
+
+    // Update the big char
+    panel.querySelector('[style*="font-size: 42px"]').textContent = selectedRoot.char;
+
+    // Render word table
+    const tbody = document.getElementById('rootWordTable').querySelector('tbody');
+    tbody.innerHTML = '';
+    selectedRoot.words.forEach(w => {
+        tbody.innerHTML += `
+            <tr class="word-row">
+                <td class="word-ko">${w.ko}</td>
+                <td class="word-hanja">${w.hanja}</td>
+                <td class="word-sino">${w.sinoVi}</td>
+                <td class="word-vi">${w.vi}</td>
+                <td class="word-audio">
+                    <button class="btn-audio" title="Nghe">🔊</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    // Update mark button
+    const btn = document.getElementById('btnMarkLearned');
+    const rootIdx = hanjaRoots.indexOf(selectedRoot);
+    if (learnedRoots.has(rootIdx)) {
+        btn.textContent = '✓ Đã học gốc này';
+        btn.classList.add('done');
+    } else {
+        btn.textContent = 'Đánh dấu đã học';
+        btn.classList.remove('done');
+    }
+}
+
+function markLearned() {
+    const idx = hanjaRoots.indexOf(selectedRoot);
+    if (learnedRoots.has(idx)) {
+        learnedRoots.delete(idx);
+    } else {
+        learnedRoots.add(idx);
+    }
+    selectRoot(idx);
+    renderGrid();
+}
+
+// Initial render
+renderGrid();
+selectRoot(0);
+</script>
+</body>
+</html>

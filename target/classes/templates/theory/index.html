@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Lý thuyết · HOT TOPIK')}"></head>
+<body style="background: #F8F6EF; color: #24363D; font-family: var(--font-body); margin: 0; padding: 0;">
+
+<!-- Navbar 7 mục -->
+<div th:replace="~{fragments/navbar :: navbar('theory')}"></div>
+
+<main style="max-width: 1380px; margin: 0 auto; padding: 28px 32px; box-sizing: border-box;">
+
+    <!-- TOP ROW: TITLE "Lý thuyết" & SEARCH INPUT -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h1 style="margin: 0; font-family: var(--font-heading); font-size: 32px; font-weight: 800; color: #24363D;">
+            Lý thuyết
+        </h1>
+
+        <!-- Search Bar matching image -->
+        <div style="position: relative; width: 340px;">
+            <input type="text" id="theorySearchInput" oninput="handleSearch(this.value)"
+                   placeholder='Tìm chủ đề, ví dụ "du lịch" hoặc "여행"'
+                   style="width: 100%; height: 44px; border-radius: 14px; border: 1.5px solid #E8E5DC; background: #FFFFFF; padding: 0 16px; font-size: 13.5px; outline: none; font-family: inherit; box-sizing: border-box; color: #24363D;">
+        </div>
+    </div>
+
+    <!-- 4 EQUAL TABS: Từ vựng | Ngữ pháp | Cầu nối Hán Việt | Đặc thù tiếng Hàn -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+        
+        <!-- Tab 1: Từ vựng (Active in image 4 & 5) -->
+        <div id="tab-vocab" class="theory-main-tab active" onclick="switchTheoryCategory('vocab')">
+            <div class="theory-tab-icon" style="background: #E8F5E9; color: #2E7D67;">
+                가
+            </div>
+            <div>
+                <span class="theory-tab-title">Từ vựng</span>
+                <span class="theory-tab-sub">Theo chủ đề · flashcard · quiz</span>
+            </div>
+        </div>
+
+        <!-- Tab 2: Ngữ pháp -->
+        <div id="tab-grammar" class="theory-main-tab" onclick="switchTheoryCategory('grammar')">
+            <div class="theory-tab-icon" style="background: #EBF3F8; color: #2B6CB0;">
+                문
+            </div>
+            <div>
+                <span class="theory-tab-title">Ngữ pháp</span>
+                <span class="theory-tab-sub">Theo nhóm chức năng</span>
+            </div>
+        </div>
+
+        <!-- Tab 3: Cầu nối Hán Việt -->
+        <div id="tab-hanja" class="theory-main-tab" onclick="switchTheoryCategory('hanja')">
+            <div class="theory-tab-icon" style="background: #FDF2EB; color: #C05621;">
+                學
+            </div>
+            <div>
+                <span class="theory-tab-title">Cầu nối Hán Việt</span>
+                <span class="theory-tab-sub">32 gốc chữ Hán</span>
+            </div>
+        </div>
+
+        <!-- Tab 4: Đặc thù tiếng Hàn -->
+        <div id="tab-special" class="theory-main-tab" onclick="switchTheoryCategory('special')">
+            <div class="theory-tab-icon" style="background: #FEF9E7; color: #B7791F;">
+                한
+            </div>
+            <div>
+                <span class="theory-tab-title">Đặc thù tiếng Hàn</span>
+                <span class="theory-tab-sub">Biến âm, ngữ pháp dễ nhầm</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- LEVEL SELECTOR ROW (TOPIK 1 - 6) (only visible in Vocab & Grammar) -->
+    <div id="levelSelectorRow" style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
+        <span style="font-size: 13.5px; font-weight: 800; color: #53646C; width: 40px;">Cấp</span>
+        
+        <div style="flex-grow: 1; background: #EFECE3; border-radius: 14px; padding: 4px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px;">
+            <button type="button" class="level-btn active" onclick="selectLevel(1)">
+                <span class="level-main">TOPIK 1</span>
+                <span class="level-sub">Sơ cấp 1</span>
+            </button>
+            <button type="button" class="level-btn" onclick="selectLevel(2)">
+                <span class="level-main">TOPIK 2</span>
+                <span class="level-sub">Sơ cấp 2</span>
+            </button>
+            <button type="button" class="level-btn" onclick="selectLevel(3)">
+                <span class="level-main">TOPIK 3</span>
+                <span class="level-sub">Trung cấp 1</span>
+            </button>
+            <button type="button" class="level-btn" onclick="selectLevel(4)">
+                <span class="level-main">TOPIK 4</span>
+                <span class="level-sub">Trung cấp 2</span>
+            </button>
+            <button type="button" class="level-btn" onclick="selectLevel(5)">
+                <span class="level-main">TOPIK 5</span>
+                <span class="level-sub">Cao cấp 1</span>
+            </button>
+            <button type="button" class="level-btn" onclick="selectLevel(6)">
+                <span class="level-main">TOPIK 6</span>
+                <span class="level-sub">Cao cấp 2</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- SECTION TITLE ROW: e.g. "TOPIK 1 · 6 chủ đề" AND "11 từ chưa thuộc ➔" -->
+    <div id="sectionHeaderRow" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+        <h2 id="currentCategoryTitle" style="margin: 0; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D;">
+            TOPIK 1 · 6 chủ đề
+        </h2>
+
+        <!-- Shortcut to Unlearned Words / Quiz -->
+        <a th:href="@{/tu-chua-thuoc}" id="unlearnedShortcut" style="display: inline-flex; align-items: center; gap: 4px; background: #FEF9E7; color: #B7791F; border: 1.5px solid #F6E05E; padding: 6px 14px; border-radius: 12px; font-size: 13px; font-weight: 800; text-decoration: none; transition: background 0.15s ease;">
+            11 từ chưa thuộc ➔
+        </a>
+    </div>
+
+    <!-- MAIN CONTENT CARDS GRID (3 COLUMNS) -->
+    <div id="cardsGridContainer" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+        <!-- Rendered dynamically by JS to allow seamless switching between levels & tabs -->
+    </div>
+
+</main>
+
+<!-- Footer -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<style>
+/* 4 Main Tabs at Top */
+.theory-main-tab {
+    background: #FFFFFF;
+    border: 1.5px solid #E8E5DC;
+    border-radius: 18px;
+    padding: 16px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: all 0.15s ease;
+}
+.theory-main-tab:hover {
+    border-color: #2E7D67;
+}
+.theory-main-tab.active {
+    background: #F4FAF7;
+    border: 2px solid #2E7D67;
+}
+
+.theory-tab-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.theory-tab-title {
+    display: block;
+    font-family: var(--font-heading);
+    font-size: 17px;
+    font-weight: 800;
+    color: #24363D;
+}
+.theory-tab-sub {
+    display: block;
+    font-size: 12.5px;
+    color: #53646C;
+    margin-top: 2px;
+}
+
+/* Level Selector Buttons */
+.level-btn {
+    border: none;
+    background: transparent;
+    border-radius: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    transition: all 0.15s ease;
+}
+.level-btn.active {
+    background: #FFFFFF;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+.level-btn .level-main {
+    font-family: var(--font-heading);
+    font-size: 14px;
+    font-weight: 800;
+    color: #53646C;
+}
+.level-btn.active .level-main {
+    color: #2E7D67;
+}
+.level-btn .level-sub {
+    font-size: 11px;
+    color: #8C9BA2;
+}
+
+/* Topic Card */
+.topic-card {
+    background: #FFFFFF;
+    border: 1.5px solid #E8E5DC;
+    border-radius: 18px;
+    padding: 18px 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    text-decoration: none;
+}
+.topic-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+}
+.topic-card.highlighted {
+    border: 2px solid #2E7D67;
+}
+
+.topic-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: #E8F5E9;
+    color: #2E7D67;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+</style>
+
+<script>
+let currentCategory = 'vocab'; // 'vocab', 'grammar', 'hanja', 'special'
+let currentLevel = 1;          // 1 .. 6
+
+// Mock Topics Data matching Image 4 (TOPIK 1) and Image 5 (TOPIK 3)
+const vocabData = {
+    1: [
+        { char: '가', name: 'Gia đình 가족', count: '7/8 từ', percent: 87 },
+        { char: '학', name: 'Trường học 학교', count: '4/8 từ', percent: 50 },
+        { char: '쇼', name: 'Mua sắm 쇼핑', count: '4/8 từ', percent: 50 },
+        { char: '음', name: 'Ẩm thực 음식', count: '4/8 từ', percent: 50 },
+        { char: '날', name: 'Thời tiết 날씨', count: '✓ Thuộc hết', percent: 100, isDone: true },
+        { char: '교', name: 'Giao thông 교통', count: '4/8 từ', percent: 50 }
+    ],
+    2: [
+        { char: '취', name: 'Sở thích 취미', count: '5/8 từ', percent: 62 },
+        { char: '건', name: 'Sức khoẻ 건강', count: '3/8 từ', percent: 37 },
+        { char: '직', name: 'Nghề nghiệp 직업', count: '4/8 từ', percent: 50 },
+        { char: '감', name: 'Cảm xúc 감정', count: '6/8 từ', percent: 75 },
+        { char: '위', name: 'Vị trí & phương hướng 위치', count: '2/8 từ', percent: 25 },
+        { char: '계', name: 'Kế hoạch & hẹn gặp 약속', count: '4/8 từ', percent: 50 }
+    ],
+    3: [
+        { char: '환', name: 'Môi trường 환경', count: '0/8 từ', percent: 0 },
+        { char: '문', name: 'Văn hoá 문화', count: '0/8 từ', percent: 0 },
+        { char: '경', name: 'Đời sống kinh tế 경제생활', count: '0/8 từ', percent: 0 },
+        { char: '매', name: 'Truyền thông 매체', count: '0/8 từ', percent: 0 }
+    ],
+    4: [
+        { char: '사', name: 'Hiện tượng xã hội 사회현상', count: '0/8 từ', percent: 0 },
+        { char: '과', name: 'Khoa học công nghệ 과학기술', count: '0/8 từ', percent: 0 },
+        { char: '예', name: 'Nghệ thuật biểu diễn 예술', count: '0/8 từ', percent: 0 },
+        { char: '법', name: 'Pháp luật & quy tắc 법과 규칙', count: '0/8 từ', percent: 0 }
+    ],
+    5: [
+        { char: '정', name: 'Chính trị chính sách 정책', count: '0/8 từ', percent: 0 },
+        { char: '철', name: 'Triết học nhân sinh 철학', count: '0/8 từ', percent: 0 },
+        { char: '역', name: 'Lịch sử & truyền thống 역사', count: '0/8 từ', percent: 0 }
+    ],
+    6: [
+        { char: '학', name: 'Học thuật chuyên sâu 학문', count: '0/8 từ', percent: 0 },
+        { char: '국', name: 'Quan hệ quốc tế 국제관계', count: '0/8 từ', percent: 0 }
+    ]
+};
+
+// Grammar data
+const grammarData = {
+    1: [
+        { char: '이', name: 'Tiểu từ chủ ngữ 이/가', count: '3 mẫu', percent: 100, isDone: true },
+        { char: '은', name: 'Tiểu từ chủ đề 은/는', count: '3 mẫu', percent: 80 },
+        { char: '을', name: 'Tiểu từ tân ngữ 을/를', count: '2 mẫu', percent: 50 },
+        { char: '아', name: 'Đuôi câu thân mật 아/어요', count: '4 mẫu', percent: 90 }
+    ],
+    2: [
+        { char: '고', name: 'Liên kết liệt kê -고', count: '4 mẫu', percent: 70 },
+        { char: '서', name: 'Nguyên nhân -아서/어서', count: '3 mẫu', percent: 60 }
+    ],
+    3: [
+        { char: '기', name: 'Mục đích -기 위해(서)', count: '5 mẫu', percent: 40 },
+        { char: '도', name: 'Nhượng bộ -더라도', count: '4 mẫu', percent: 20 },
+        { char: '느', name: 'Lý do -느라고', count: '3 mẫu', percent: 0 }
+    ],
+    4: [
+        { char: '바', name: 'Nguyên nhân tiêu cực -는 바람에', count: '4 mẫu', percent: 0 },
+        { char: '탓', name: 'Đổ lỗi -는 탓에', count: '3 mẫu', percent: 0 }
+    ],
+    5: [
+        { char: '기', name: 'Hệ quả tất yếu -기 마련이다', count: '3 mẫu', percent: 0 }
+    ],
+    6: [
+        { char: '법', name: 'Quy luật tự nhiên -는 법이다', count: '3 mẫu', percent: 0 }
+    ]
+};
+
+// Hanja 32 roots data
+const hanjaRootsData = [
+    { char: '學', name: 'Gốc HỌC (학) · Học tập, trường học', count: '12 từ', percent: 60 },
+    { char: '生', name: 'Gốc SINH (생) · Sự sống, phát sinh', count: '10 từ', percent: 50 },
+    { char: '人', name: 'Gốc NHÂN (인) · Con người, nhân cách', count: '14 từ', percent: 70 },
+    { char: '家', name: 'Gốc GIA (가) · Gia đình, chuyên gia', count: '8 từ', percent: 80 },
+    { char: '國', name: 'Gốc QUỐC (국) · Đất nước, quốc gia', count: '9 từ', percent: 40 },
+    { char: '動', name: 'Gốc ĐỘNG (동) · Hoạt động, động tác', count: '11 từ', percent: 30 }
+];
+
+// Special Korean Nuances data
+const specialData = [
+    { char: '音', name: 'Biến âm & chép chính tả (12 quy tắc)', count: '12 câu', percent: 40 },
+    { char: '聲', name: 'Phụ âm thường / bật hơi / căng (ㄱ-ㅋ-ㄲ)', count: '10 câu', percent: 20 },
+    { char: '誤', name: 'Ngữ pháp dễ nhầm (-아서 vs -니까)', count: '8 câu', percent: 50 },
+    { char: '格', name: 'Quy tắc giấy ô vuông 원고지 (Câu 53-54)', count: '6 bài', percent: 0 }
+];
+
+function switchTheoryCategory(cat) {
+    currentCategory = cat;
+    document.querySelectorAll('.theory-main-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + cat).classList.add('active');
+
+    const levelRow = document.getElementById('levelSelectorRow');
+    if (cat === 'vocab' || cat === 'grammar') {
+        levelRow.style.display = 'flex';
+    } else {
+        levelRow.style.display = 'none'; // Hanja & Special have standalone structure
+    }
+
+    renderCards();
+}
+
+function selectLevel(lvl) {
+    currentLevel = lvl;
+    document.querySelectorAll('.level-btn').forEach((btn, idx) => {
+        btn.classList.toggle('active', (idx + 1) === lvl);
+    });
+    renderCards();
+}
+
+function renderCards(filterQuery = '') {
+    const container = document.getElementById('cardsGridContainer');
+    const titleEl = document.getElementById('currentCategoryTitle');
+    container.innerHTML = '';
+
+    let list = [];
+    if (currentCategory === 'vocab') {
+        list = vocabData[currentLevel] || [];
+        titleEl.textContent = `TOPIK ${currentLevel} · ${list.length} chủ đề`;
+    } else if (currentCategory === 'grammar') {
+        list = grammarData[currentLevel] || [];
+        titleEl.textContent = `TOPIK ${currentLevel} · ${list.length} nhóm ngữ pháp`;
+    } else if (currentCategory === 'hanja') {
+        list = hanjaRootsData;
+        titleEl.textContent = `Cầu nối Hán Việt · ${list.length} gốc chữ Hán`;
+    } else if (currentCategory === 'special') {
+        list = specialData;
+        titleEl.textContent = `Đặc thù tiếng Hàn · 4 chuyên đề luyện sâu`;
+    }
+
+    if (filterQuery.trim()) {
+        const q = filterQuery.toLowerCase();
+        list = list.filter(item => item.name.toLowerCase().includes(q) || item.char.toLowerCase().includes(q));
+    }
+
+    list.forEach(item => {
+        const card = document.createElement('a');
+        card.className = 'topic-card' + (item.isDone ? ' highlighted' : '');
+        card.href = currentCategory === 'vocab' ? '/ly-thuyet/tu-vung' : (currentCategory === 'grammar' ? '/theory/grammar' : (currentCategory === 'hanja' ? '/ly-thuyet/han-viet' : '/ly-thuyet/dac-thu'));
+
+        let countColor = '#53646C';
+        let barColor = '#2E7D67';
+        if (item.isDone) {
+            countColor = '#2E7D67';
+        }
+
+        card.innerHTML = `
+            <div class="topic-icon-box">
+                ${item.char}
+            </div>
+            <div style="flex-grow: 1; min-width: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+                    <span style="font-family: var(--font-heading); font-size: 15px; font-weight: 800; color: #24363D; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        ${item.name}
+                    </span>
+                    <span style="font-size: 12px; font-weight: 800; color: ${countColor}; flex-shrink: 0; margin-left: 8px;">
+                        ${item.count}
+                    </span>
+                </div>
+                <!-- Progress Bar -->
+                <div style="height: 6px; border-radius: 3px; background: #EFECE3; overflow: hidden;">
+                    <div style="width: ${item.percent}%; height: 100%; background: ${barColor}; border-radius: 3px;"></div>
+                </div>
+            </div>
+        `;
+
+        container.appendChild(card);
+    });
+}
+
+function handleSearch(val) {
+    renderCards(val);
+}
+
+// Initial render for TOPIK 1 Vocab (Image 4)
+renderCards();
+</script>
+</body>
+</html>

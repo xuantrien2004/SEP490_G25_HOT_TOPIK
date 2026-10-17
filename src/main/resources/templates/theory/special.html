@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Đặc thù tiếng Hàn · HOT TOPIK')}"></head>
+<body style="background: #F8F6EF; color: #24363D; font-family: var(--font-body); margin: 0; padding: 0;">
+
+<div th:replace="~{fragments/navbar :: navbar('theory')}"></div>
+
+<main style="max-width: 1380px; margin: 0 auto; padding: 28px 32px; box-sizing: border-box;">
+
+    <!-- 4 TOP TABS -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px;">
+        <a th:href="@{/ly-thuyet}" class="theory-tab-link">
+            <div class="theory-tab-icon" style="background: #E8F5E9; color: #2E7D67;">가</div>
+            <div><span class="theory-tab-title">Từ vựng</span><span class="theory-tab-sub">Theo chủ đề · flashcard · quiz</span></div>
+        </a>
+        <a th:href="@{/theory/grammar}" class="theory-tab-link">
+            <div class="theory-tab-icon" style="background: #EBF3F8; color: #2B6CB0;">문</div>
+            <div><span class="theory-tab-title">Ngữ pháp</span><span class="theory-tab-sub">Theo nhóm chức năng</span></div>
+        </a>
+        <a th:href="@{/ly-thuyet/han-viet}" class="theory-tab-link">
+            <div class="theory-tab-icon" style="background: #FDF2EB; color: #C05621;">學</div>
+            <div><span class="theory-tab-title">Cầu nối Hán Việt</span><span class="theory-tab-sub">32 gốc chữ Hán</span></div>
+        </a>
+        <a th:href="@{/ly-thuyet/dac-thu}" class="theory-tab-link active">
+            <div class="theory-tab-icon" style="background: #FEF9E7; color: #B7791F;">한</div>
+            <div><span class="theory-tab-title">Đặc thù tiếng Hàn</span><span class="theory-tab-sub">Biến âm, ngữ pháp dễ nhầm</span></div>
+        </a>
+    </div>
+
+    <!-- PAGE TITLE & DESC -->
+    <h1 style="margin: 0; font-family: var(--font-heading); font-size: 28px; font-weight: 800; color: #24363D;">Đặc thù tiếng Hàn cho người Việt</h1>
+    <p style="margin: 8px 0 20px; font-size: 14px; color: #53646C; line-height: 1.6;">
+        Những điểm người Việt hay vấp: biến âm khi nghe, phụ âm thường/bật hơi/căng, ngữ pháp gần nghĩa, trình bày bài Viết trên ô 원고지.
+    </p>
+
+    <!-- 4 SUB-TABS: Biến âm | Phụ âm | Ngữ pháp dễ nhầm | Ô 원고지 -->
+    <div style="display: flex; gap: 10px; margin-bottom: 28px; flex-wrap: wrap;">
+        <button type="button" id="subBtn0" class="sub-tab-btn active" onclick="switchSubTab(0)">Biến âm · chép chính tả</button>
+        <button type="button" id="subBtn1" class="sub-tab-btn" onclick="switchSubTab(1)">Phụ âm thường / bật hơi / căng</button>
+        <button type="button" id="subBtn2" class="sub-tab-btn" onclick="switchSubTab(2)">Ngữ pháp dễ nhầm</button>
+        <button type="button" id="subBtn3" class="sub-tab-btn" onclick="switchSubTab(3)">Ô 원고지 câu 53–54</button>
+    </div>
+
+    <!-- MAIN CONTENT: TWO COLUMN LAYOUT -->
+    <div style="display: grid; grid-template-columns: 260px 1fr; gap: 24px; align-items: flex-start;">
+
+        <!-- LEFT: Lesson List -->
+        <div id="lessonList" style="background: #FFFFFF; border: 1.5px solid #E8E5DC; border-radius: 20px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+            <div id="lessonListHeader" style="padding: 14px 18px; background: #F8F6EF; border-bottom: 1px solid #F1EEE6; font-size: 12px; font-weight: 800; color: #53646C;">
+                Đúng 0/12 câu
+            </div>
+            <div id="lessonListBody" style="display: flex; flex-direction: column;">
+                <!-- rendered by JS -->
+            </div>
+        </div>
+
+        <!-- RIGHT: Practice Panel -->
+        <div id="practicePanel" style="background: #FFFFFF; border: 1.5px solid #E8E5DC; border-radius: 20px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 20px;">
+            <!-- Content rendered by JS -->
+        </div>
+
+    </div>
+
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<style>
+.theory-tab-link {
+    background: #FFFFFF; border: 1.5px solid #E8E5DC; border-radius: 18px;
+    padding: 16px 20px; cursor: pointer; display: flex; align-items: center;
+    gap: 14px; text-decoration: none; transition: all 0.15s ease;
+}
+.theory-tab-link:hover { border-color: #2E7D67; }
+.theory-tab-link.active { background: #F4FAF7; border: 2px solid #2E7D67; }
+.theory-tab-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-heading); font-size: 20px; font-weight: 800; flex-shrink: 0;
+}
+.theory-tab-title { display: block; font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #24363D; }
+.theory-tab-sub   { display: block; font-size: 12.5px; color: #53646C; margin-top: 2px; }
+
+.sub-tab-btn {
+    height: 40px; padding: 0 18px; border-radius: 12px;
+    border: 1.5px solid #E8E5DC; background: #FFFFFF;
+    font-size: 13.5px; font-weight: 800; color: #24363D;
+    cursor: pointer; font-family: inherit; transition: all 0.15s ease;
+}
+.sub-tab-btn:hover { border-color: #2E7D67; }
+.sub-tab-btn.active { background: #2E7D67; color: #FFFFFF; border-color: #2E7D67; }
+
+.lesson-item {
+    padding: 12px 18px; border-bottom: 1px solid #F8F6EF;
+    font-size: 13px; cursor: pointer; transition: background 0.15s ease;
+    font-weight: 700; color: #24363D;
+}
+.lesson-item:hover { background: #F8F6EF; }
+.lesson-item.active { background: #E8F5E9; color: #24363D; border-left: 3px solid #2E7D67; }
+.lesson-item.correct { color: #2E7D67; }
+
+/* Practice Panel */
+.panel-label {
+    font-size: 11.5px; font-weight: 800; color: #53646C; letter-spacing: 0.5px; text-transform: uppercase;
+}
+.audio-btn {
+    display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 20px;
+    border-radius: 12px; background: #2E7D67; color: #FFFFFF; border: none;
+    font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit;
+    transition: background 0.15s ease;
+}
+.audio-btn:hover { background: #235F4F; }
+.audio-btn.secondary { background: #FFFFFF; color: #24363D; border: 1.5px solid #E8E5DC; }
+.audio-btn.secondary:hover { background: #F8F6EF; }
+.dictation-input {
+    width: 100%; min-height: 56px; border-radius: 12px; border: 1.5px solid #E8E5DC;
+    padding: 14px 16px; font-size: 15px; outline: none; font-family: inherit;
+    box-sizing: border-box; resize: none; line-height: 1.5;
+    transition: border-color 0.15s ease;
+}
+.dictation-input:focus { border-color: #2E7D67; }
+.btn-check {
+    height: 44px; padding: 0 24px; border-radius: 12px;
+    background: #2E7D67; color: #FFFFFF; border: none;
+    font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit;
+    transition: background 0.15s ease;
+}
+.btn-check:hover { background: #235F4F; }
+.btn-see-answer {
+    height: 44px; padding: 0 20px; border-radius: 12px;
+    background: #FFFFFF; color: #24363D; border: 1.5px solid #E8E5DC;
+    font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit;
+    transition: all 0.15s ease;
+}
+.btn-see-answer:hover { border-color: #24363D; }
+</style>
+
+<script>
+// Data for 4 sub-tabs
+const subTabData = {
+    0: { // Biến âm chính tả
+        headerLabel: 'CHÉP CHÍNH TẢ · Nối âm 연음',
+        lessons: [
+            { id: 1, name: 'Nối âm 연음', answer: '음악이 있어요', type: 'dictation' },
+            { id: 2, name: 'Mũi hoá 비음화', answer: '국민이 많다', type: 'dictation' },
+            { id: 3, name: 'Mũi hoá 비음화 (2)', answer: '박물관에 가요', type: 'dictation' },
+            { id: 4, name: 'Căng hoá 경음화', answer: '학교 식당에서', type: 'dictation' },
+            { id: 5, name: 'Vòm hoá 구개음화', answer: '같이 해요', type: 'dictation' },
+            { id: 6, name: 'Lược ㅎ', answer: '전화해요', type: 'dictation' },
+            { id: 7, name: 'Lưu âm hoá 유음화', answer: '연락 드려요', type: 'dictation' },
+            { id: 8, name: 'Nối âm patchim kép', answer: '읽어요 닭볶음', type: 'dictation' },
+            { id: 9, name: 'Bật hơi hoá 격음화', answer: '좋하다→조타', type: 'dictation' },
+            { id: 10, name: 'Thêm ㄴ 첨가', answer: '꽃잎이 피어요', type: 'dictation' },
+            { id: 11, name: 'Mũi hoá (3) 비음화', answer: '믿는다', type: 'dictation' },
+            { id: 12, name: 'Nối âm phức tạp', answer: '넋을 잃다', type: 'dictation' }
+        ]
+    },
+    1: { // Phụ âm
+        headerLabel: 'PHÂN BIỆT ÂM · Căng / Bật hơi / Thường',
+        lessons: [
+            { id: 1, name: 'ㄱ / ㅋ / ㄲ — gà/ca/kka', answer: '', type: 'comparison' },
+            { id: 2, name: 'ㄷ / ㅌ / ㄸ — đa/ta/dda', answer: '', type: 'comparison' },
+            { id: 3, name: 'ㅂ / ㅍ / ㅃ — ba/pa/bba', answer: '', type: 'comparison' },
+            { id: 4, name: 'ㅈ / ㅊ / ㅉ — ja/cha/jja', answer: '', type: 'comparison' },
+            { id: 5, name: 'ㅅ / ㅆ — sa/ssa', answer: '', type: 'comparison' }
+        ]
+    },
+    2: { // Ngữ pháp dễ nhầm
+        headerLabel: 'NGỮ PHÁP DỄ NHẦM · Chọn nghĩa đúng',
+        lessons: [
+            { id: 1, name: '-아서/어서 vs -니까', answer: '', type: 'grammar' },
+            { id: 2, name: '-는데 vs -지만', answer: '', type: 'grammar' },
+            { id: 3, name: '-(으)면 vs -(으)면 되다', answer: '', type: 'grammar' },
+            { id: 4, name: '-아/어도 vs -더라도', answer: '', type: 'grammar' },
+            { id: 5, name: '-는 것 vs -기', answer: '', type: 'grammar' },
+            { id: 6, name: '-(으)ㄹ 것 vs -(으)ㄹ 것 같다', answer: '', type: 'grammar' }
+        ]
+    },
+    3: { // Ô 원고지
+        headerLabel: 'QUY TẮC VIẾT TRÊN Ô VUÔNG · câu 53–54',
+        lessons: [
+            { id: 1, name: 'Cách đặt chữ trong ô', answer: '', type: 'wongoJi' },
+            { id: 2, name: 'Dấu chấm, phẩy, hỏi trong 원고지', answer: '', type: 'wongoJi' },
+            { id: 3, name: 'Cách xuống dòng & lùi dòng đầu đoạn', answer: '', type: 'wongoJi' },
+            { id: 4, name: 'Cách viết số và ký tự tiếng Anh', answer: '', type: 'wongoJi' },
+            { id: 5, name: 'Cách xoá và viết lại trong ô', answer: '', type: 'wongoJi' }
+        ]
+    }
+};
+
+let activeSubTab = 0;
+let selectedLesson = 0;
+let scores = {};
+
+function switchSubTab(idx) {
+    activeSubTab = idx;
+    selectedLesson = 0;
+    scores = {};
+    document.querySelectorAll('.sub-tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === idx));
+    renderLessonList();
+    renderPracticePanel();
+}
+
+function renderLessonList() {
+    const data = subTabData[activeSubTab];
+    const body = document.getElementById('lessonListBody');
+    const header = document.getElementById('lessonListHeader');
+
+    const totalCorrect = Object.values(scores).filter(v => v === true).length;
+    header.textContent = `Đúng ${totalCorrect}/${data.lessons.length} câu`;
+
+    body.innerHTML = '';
+    data.lessons.forEach((lesson, idx) => {
+        const item = document.createElement('div');
+        item.className = 'lesson-item' + (idx === selectedLesson ? ' active' : '') + (scores[idx] === true ? ' correct' : '');
+        item.onclick = () => { selectedLesson = idx; renderLessonList(); renderPracticePanel(); };
+        item.innerHTML = `${lesson.id}. ${lesson.name}`;
+        body.appendChild(item);
+    });
+}
+
+function renderPracticePanel() {
+    const data = subTabData[activeSubTab];
+    const lesson = data.lessons[selectedLesson];
+    const panel = document.getElementById('practicePanel');
+
+    if (lesson.type === 'dictation') {
+        panel.innerHTML = `
+            <div class="panel-label">${data.headerLabel}</div>
+
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="audio-btn" onclick="playAudio('normal')">▶ Nghe câu</button>
+                <button class="audio-btn secondary" onclick="playAudio('slow')">▶ Nghe chậm</button>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <label style="font-size: 13px; font-weight: 700; color: #53646C;">
+                    Gõ lại câu bạn nghe được (chữ viết chuẩn, không phải cách đọc)
+                </label>
+                <textarea id="dictationAnswer" class="dictation-input" placeholder="Gõ tiếng Hàn vào đây..."></textarea>
+            </div>
+
+            <div id="checkResultBox" style="display: none; padding: 14px 18px; border-radius: 12px; font-weight: 700; font-size: 14px;"></div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-check" onclick="checkDictation()">Kiểm tra</button>
+                <button class="btn-see-answer" onclick="seeAnswer()">Xem đáp án</button>
+            </div>
+        `;
+    } else if (lesson.type === 'comparison') {
+        panel.innerHTML = `
+            <div class="panel-label">${data.headerLabel}</div>
+            <h3 style="margin: 0; font-family: var(--font-heading); font-size: 22px; font-weight: 800;">${lesson.name}</h3>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                ${['Thường (bình thường)', 'Bật hơi (aspirated)', 'Căng (fortis)'].map((label, i) => `
+                    <div style="padding: 20px; border-radius: 16px; background: #F8F6EF; border: 1.5px solid #E8E5DC; text-align: center;">
+                        <div style="font-size: 11px; font-weight: 800; color: #8C9BA2; margin-bottom: 8px;">${label}</div>
+                        <div style="font-family: var(--font-heading); font-size: 36px; font-weight: 900; color: #24363D;">
+                            ${['ㄱ', 'ㅋ', 'ㄲ'][i]}
+                        </div>
+                        <button class="audio-btn" style="margin-top: 12px; font-size: 13px; height: 36px; padding: 0 14px;">🔊 Nghe</button>
+                    </div>
+                `).join('')}
+            </div>
+
+            <div style="background: #F4FAF7; border: 1px solid #D1EAD9; border-radius: 14px; padding: 16px 20px; font-size: 13.5px; color: #1E4620; line-height: 1.6;">
+                💡 <b>Mẹo nhận biết:</b> Phụ âm thường phát âm nhẹ. Bật hơi thêm luồng hơi mạnh. Căng như thể căng cơ cổ họng khi phát âm.
+            </div>
+        `;
+    } else if (lesson.type === 'grammar') {
+        panel.innerHTML = `
+            <div class="panel-label">${data.headerLabel}</div>
+            <h3 style="margin: 0; font-family: var(--font-heading); font-size: 22px; font-weight: 800;">${lesson.name}</h3>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div style="padding: 20px; border-radius: 16px; background: #F8F6EF; border: 1.5px solid #E8E5DC;">
+                    <div style="font-size: 12px; font-weight: 800; color: #2E7D67; margin-bottom: 8px;">-아서/어서</div>
+                    <p style="font-size: 14px; margin: 0 0 8px; line-height: 1.6;"><b>Dùng để diễn đạt:</b> Lý do tự nhiên, trình tự hành động</p>
+                    <p style="font-size: 14px; margin: 0; color: #53646C;">Ví dụ: 배가 아파서 병원에 갔어요.<br>(<i>Đau bụng nên đến bệnh viện.</i>)</p>
+                    <div style="margin-top: 12px; padding: 10px; background: #FEF2F2; border-radius: 8px; font-size: 12.5px; color: #991B1B;">
+                        ⚠️ Không dùng được với câu mệnh lệnh, đề nghị (-으세요/-자)
+                    </div>
+                </div>
+
+                <div style="padding: 20px; border-radius: 16px; background: #F8F6EF; border: 1.5px solid #E8E5DC;">
+                    <div style="font-size: 12px; font-weight: 800; color: #2B6CB0; margin-bottom: 8px;">-(으)니까</div>
+                    <p style="font-size: 14px; margin: 0 0 8px; line-height: 1.6;"><b>Dùng để diễn đạt:</b> Lý do chủ quan, nhấn mạnh lý do</p>
+                    <p style="font-size: 14px; margin: 0; color: #53646C;">Ví dụ: 비가 오니까 우산을 가져가세요.<br>(<i>Vì trời mưa nên hãy mang ô.</i>)</p>
+                    <div style="margin-top: 12px; padding: 10px; background: #EBF4FF; border-radius: 8px; font-size: 12.5px; color: #1E40AF;">
+                        ✓ Dùng được với câu mệnh lệnh và đề nghị
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: #FFFBEB; border: 1.5px solid #FDE68A; border-radius: 14px; padding: 16px 20px; font-size: 13.5px; line-height: 1.7;">
+                <b>Bảng phân biệt nhanh:</b>
+                <table style="width: 100%; margin-top: 10px; border-collapse: collapse; font-size: 13px;">
+                    <tr>
+                        <th style="padding: 6px; text-align: left; border-bottom: 1px solid #FDE68A; color: #53646C; font-weight: 800;">Tiêu chí</th>
+                        <th style="padding: 6px; text-align: center; border-bottom: 1px solid #FDE68A; color: #2E7D67; font-weight: 800;">-아/어서</th>
+                        <th style="padding: 6px; text-align: center; border-bottom: 1px solid #FDE68A; color: #2B6CB0; font-weight: 800;">-(으)니까</th>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px; color: #53646C;">Câu lệnh / đề nghị</td>
+                        <td style="padding: 6px; text-align: center; color: #E53E3E;">✗</td>
+                        <td style="padding: 6px; text-align: center; color: #2E7D67;">✓</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px; color: #53646C;">Ý nghĩa trình tự</td>
+                        <td style="padding: 6px; text-align: center; color: #2E7D67;">✓</td>
+                        <td style="padding: 6px; text-align: center; color: #E53E3E;">✗</td>
+                    </tr>
+                </table>
+            </div>
+        `;
+    } else if (lesson.type === 'wongoJi') {
+        panel.innerHTML = `
+            <div class="panel-label">${data.headerLabel}</div>
+            <h3 style="margin: 0; font-family: var(--font-heading); font-size: 22px; font-weight: 800;">${lesson.name}</h3>
+
+            <!-- 원고지 grid demo -->
+            <div style="overflow-x: auto;">
+                <div style="display: inline-grid; grid-template-columns: repeat(10, 36px); grid-template-rows: repeat(3, 36px); gap: 2px; border: 2px solid #24363D;">
+                    ${Array(30).fill(0).map((_, i) => {
+                        const chars = ['저', '는', '한', '국', '어', '를', '공', '부', '해', '요', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''];
+                        return `<div style="width: 36px; height: 36px; border: 1px solid #24363D; display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-size: 16px; font-weight: 700; background: ${i === 0 ? '#E8F5E9' : '#FFFFFF'}; color: #24363D;">${chars[i] || ''}</div>`;
+                    }).join('')}
+                </div>
+            </div>
+
+            <div style="background: #F4FAF7; border: 1.5px solid #D1EAD9; border-radius: 14px; padding: 16px 20px; font-size: 13.5px; color: #1E4620; line-height: 1.8;">
+                📋 <b>Quy tắc cơ bản:</b><br>
+                1. Mỗi chữ Hàn chiếm <b>1 ô vuông</b>, bao gồm cả dấu câu.<br>
+                2. Đầu đoạn văn lùi <b>1 ô trống</b> (tương đương tab).<br>
+                3. Dấu chấm, phẩy đặt ở <b>góc trái dưới</b> của ô.<br>
+                4. Số và chữ cái Latin: mỗi ký tự chiếm <b>nửa ô</b> (2 ký tự/ô).<br>
+                5. Khi xuống dòng: ô cuối dòng cũ bỏ trống nếu cần.
+            </div>
+        `;
+    }
+}
+
+function playAudio(speed) {
+    const label = speed === 'slow' ? 'Nghe chậm 0.8x' : 'Nghe câu bình thường';
+    // Simulate audio play feedback
+    const btn = event.currentTarget;
+    btn.textContent = (speed === 'slow' ? '⏸ ' : '⏸ ') + label;
+    setTimeout(() => {
+        btn.textContent = (speed === 'slow' ? '▶ Nghe chậm' : '▶ Nghe câu');
+    }, 2000);
+}
+
+function checkDictation() {
+    const input = document.getElementById('dictationAnswer').value.trim();
+    const lesson = subTabData[activeSubTab].lessons[selectedLesson];
+    const resultBox = document.getElementById('checkResultBox');
+    resultBox.style.display = 'block';
+
+    if (input && input === lesson.answer) {
+        resultBox.style.background = '#E8F5E9';
+        resultBox.style.color = '#1E4620';
+        resultBox.innerHTML = '✅ Chính xác! Bạn đã chép đúng.';
+        scores[selectedLesson] = true;
+    } else {
+        resultBox.style.background = '#FEF2F2';
+        resultBox.style.color = '#991B1B';
+        resultBox.innerHTML = `❌ Chưa đúng. Hãy thử lại hoặc bấm "Xem đáp án".`;
+        scores[selectedLesson] = false;
+    }
+    renderLessonList();
+}
+
+function seeAnswer() {
+    const lesson = subTabData[activeSubTab].lessons[selectedLesson];
+    const resultBox = document.getElementById('checkResultBox');
+    resultBox.style.display = 'block';
+    resultBox.style.background = '#EBF4FF';
+    resultBox.style.color = '#1E40AF';
+    resultBox.innerHTML = `📝 Đáp án chuẩn: <b>${lesson.answer}</b>`;
+}
+
+// Initial render
+renderLessonList();
+renderPracticePanel();
+</script>
+</body>
+</html>

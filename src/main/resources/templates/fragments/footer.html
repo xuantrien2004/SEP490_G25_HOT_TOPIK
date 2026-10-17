@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<footer th:fragment="footer" class="ssak-footer mt-5 pb-5 pb-lg-4">
+    <div style="max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: 32px; padding: 0 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 40px; flex-wrap: wrap;">
+            <!-- Brand -->
+            <div style="display: flex; flex-direction: column; gap: 12px; max-width: 380px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 21V11" stroke="#2E7D67" stroke-width="2.4" stroke-linecap="round"/>
+                        <path d="M12 12C12 7 8 4 3.5 4.5C3.5 9 7 12.5 12 12Z" fill="#6CC49F"/>
+                        <path d="M12 10C12 6 15.5 3 20.5 3.5C20.5 8 17 11 12 10Z" fill="#2E7D67"/>
+                    </svg>
+                    <span style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: var(--ssak-text-main);">HOT TOPIK</span>
+                </div>
+                <p style="font-size: 14px; color: var(--ssak-text-muted); margin: 0; line-height: 1.6;">
+                    Hệ thống luyện thi TOPIK thông minh với linh vật Bé Ssak. Học ngắt quãng, nhẹ nhàng không áp lực, bứt phá mục tiêu TOPIK I & TOPIK II.
+                </p>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <span class="ssak-badge badge-mint">🌱 Micro-learning</span>
+                    <span class="ssak-badge badge-sky">🌿 Không so bì áp lực</span>
+                    <span class="ssak-badge badge-honey">🪴 Lớn lên mỗi ngày</span>
+                </div>
+            </div>
+
+            <!-- Links: Dành cho Người học -->
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <span style="font-weight: 800; font-size: 14px; color: var(--ssak-text-main); text-transform: uppercase; letter-spacing: 0.5px;">Góc học viên</span>
+                <a th:href="@{/hom-nay}" style="font-size: 14px; color: var(--ssak-text-muted); text-decoration: none;">Nhiệm vụ hôm nay</a>
+                <a th:href="@{/lo-trinh}" style="font-size: 14px; color: var(--ssak-text-muted); text-decoration: none;">Lộ trình học theo ngày</a>
+                <a th:href="@{/luyen-tap}" style="font-size: 14px; color: var(--ssak-text-muted); text-decoration: none;">Luyện tập 3 kỹ năng</a>
+                <a th:href="@{/de-thi}" style="font-size: 14px; color: var(--ssak-text-muted); text-decoration: none;">Thi thử Full Mock & Mini</a>
+                <a th:href="@{/ly-thuyet}" style="font-size: 14px; color: var(--ssak-text-muted); text-decoration: none;">Sổ tay Lý thuyết TOPIK</a>
+            </div>
+
+            <!-- Links: Kỳ thi TOPIK -->
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <span style="font-weight: 800; font-size: 14px; color: var(--ssak-text-main); text-transform: uppercase; letter-spacing: 0.5px;">Cẩm nang TOPIK</span>
+                <a th:href="@{/ve-topik}" style="font-size: 14px; color: var(--ssak-text-muted); text-decoration: none;">Cấu trúc bài thi TOPIK</a>
+                <a th:href="@{/ve-topik(tab='levels')}" style="font-size: 14px; color: var(--ssak-text-muted); text-decoration: none;">Thang điểm 6 cấp độ</a>
+                <a th:href="@{/ve-topik(tab='tips')}" style="font-size: 14px; color: var(--ssak-text-muted); text-decoration: none;">Tips & Kinh nghiệm phòng thi</a>
+                <a th:href="@{/lam-thu}" style="font-size: 14px; color: var(--ssak-text-muted); text-decoration: none;">Làm thử 8 câu miễn phí</a>
+            </div>
+
+            <!-- Links: Support & Docs -->
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <span style="font-weight: 800; font-size: 14px; color: var(--ssak-text-main); text-transform: uppercase; letter-spacing: 0.5px;">Hỗ trợ & Chính sách</span>
+                <a th:href="@{/faq}" style="font-size: 14px; color: var(--ssak-text-muted); text-decoration: none;">Câu hỏi thường gặp (FAQ)</a>
+                <a th:href="@{/vip}" style="font-size: 14px; color: var(--ssak-text-muted); text-decoration: none;">Bảng giá gói VIP</a>
+                <a th:href="@{/terms}" style="font-size: 14px; color: var(--ssak-text-muted); text-decoration: none;">Điều khoản dịch vụ</a>
+                <a th:href="@{/terms}" style="font-size: 14px; color: var(--ssak-text-muted); text-decoration: none;">Chính sách bảo mật</a>
+                <a th:href="@{/ho-tro}" style="font-size: 14px; color: var(--ssak-text-muted); text-decoration: none;">Liên hệ ban quản trị</a>
+            </div>
+        </div>
+
+        <div style="border-top: 1px solid var(--ssak-border); padding-top: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--ssak-text-muted);">
+            <div>© 2026 HOT TOPIK · Đồ án tốt nghiệp Fall 2026 · Group SEP490_G25 · FPT University</div>
+            <div style="display: flex; gap: 16px;">
+                <span>Điểm quy đổi & AI là ước tính tham khảo</span>
+                <span>•</span>
+                <span>Linh vật Bé Ssak</span>
+            </div>
+        </div>
+    </div>
+</footer>
+</body>
+</html>

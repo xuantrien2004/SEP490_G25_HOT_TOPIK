@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Nhìn lại Tuần 1 · HOT TOPIK')}"></head>
+<body style="background: var(--ssak-bg); color: var(--ssak-text-main); font-family: var(--font-body); min-height: 100vh;">
+
+<div th:replace="~{fragments/navbar :: navbar('roadmap')}"></div>
+
+<main class="container my-5" style="max-width: 960px;">
+    
+    <div class="text-center mb-4">
+        <span class="badge rounded-pill bg-success px-3 py-1 mb-2" style="background: var(--ssak-primary) !important;">
+            CỘT MỐC NGÀY 7
+        </span>
+        <h1 style="font-family: var(--font-heading); font-size: 34px; font-weight: 800; margin: 0;">
+            Nhìn lại Tuần 1: Những bước đi đầu tiên
+        </h1>
+        <p class="text-muted mt-2">
+            Tổng kết các dạng đã học, tỉ lệ đúng và chuẩn bị hành trang bước vào Tuần 2.
+        </p>
+    </div>
+
+    <div class="p-4 p-md-5 rounded-5 bg-white border shadow-sm mb-4">
+        <!-- Bé Ssak chúc mừng -->
+        <div class="d-flex flex-wrap gap-4 align-items-center pb-4 border-bottom mb-4">
+            <div th:replace="~{fragments/ssak :: mascot('cheer', 'young', 130, 'Bé Ssak hoa nở')}"></div>
+            <div class="flex-grow-1">
+                <h3 style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: var(--ssak-primary-dark);" class="mb-1">
+                    Bé Ssak đã mọc thêm 6 chiếc lá non!
+                </h3>
+                <p class="text-muted mb-0" style="line-height: 1.6;">
+                    Bạn đã hoàn thành toàn bộ 7 ngày học của Tuần 1 với tỉ lệ đúng trung bình <strong>78%</strong> (vượt mốc mục tiêu 70%).
+                </p>
+            </div>
+        </div>
+
+        <!-- 4 Chỉ số tuần theo mục 8.2: số dạng, câu đã làm, tỉ lệ đúng (thay đổi), thời gian học -->
+        <div class="row g-3 text-center mb-4">
+            <div class="col-sm-3 col-6">
+                <div class="p-3 rounded-4" style="background: var(--ssak-primary-light);">
+                    <div class="fs-3 fw-bold text-success" style="color: var(--ssak-primary) !important;">6 dạng</div>
+                    <small class="text-muted fw-bold">Dạng câu đã học</small>
+                </div>
+            </div>
+            <div class="col-sm-3 col-6">
+                <div class="p-3 rounded-4" style="background: var(--ssak-sky);">
+                    <div class="fs-3 fw-bold" style="color: #2F5F7D;">52 câu</div>
+                    <small class="text-muted fw-bold">Tổng câu đã làm</small>
+                </div>
+            </div>
+            <div class="col-sm-3 col-6">
+                <div class="p-3 rounded-4" style="background: #FBF0D3;">
+                    <div class="fs-3 fw-bold" style="color: #7A5A12;">78%</div>
+                    <small class="text-muted fw-bold">Tỉ lệ đúng (+12%)</small>
+                </div>
+            </div>
+            <div class="col-sm-3 col-6">
+                <div class="p-3 rounded-4" style="background: #F8F6EF;">
+                    <div class="fs-3 fw-bold text-dark">145 phút</div>
+                    <small class="text-muted fw-bold">Thời gian học thật</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dạng tiến bộ nhất & Dạng cần chú ý theo mục 8.2 -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="p-3 rounded-4 border h-100" style="background: var(--ssak-primary-light); border-color: var(--ssak-primary) !important;">
+                    <span class="badge bg-success mb-2" style="background: var(--ssak-primary) !important;">🌟 TIẾN BỘ NHẤT</span>
+                    <h5 class="fw-bold mb-1">Nghe 1–3 (Chọn tranh tương ứng)</h5>
+                    <p class="small text-muted mb-0">Đạt độ chính xác 100% trong bài Ôn tuần. Khả năng bắt từ khóa hành động rất tốt!</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="p-3 rounded-4 border h-100" style="background: #FBE6DA; border-color: #F4C45A !important;">
+                    <span class="badge bg-warning text-dark mb-2">⚡ CẦN CHÚ Ý</span>
+                    <h5 class="fw-bold mb-1" style="color: var(--ssak-terracotta);">Đọc 13–15 (Sắp xếp trật tự câu)</h5>
+                    <p class="small text-muted mb-0">Tỉ lệ đúng 50%. Hãy chú ý kỹ các liên từ nối đối lập (하지만, 그런데) và nguyên nhân.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bảng các dạng trong tuần theo mục 8.2 -->
+        <h5 class="fw-bold mb-3" style="font-family: var(--font-heading); font-size: 18px;">
+            Bảng chi tiết các dạng câu Tuần 1
+        </h5>
+        <div class="table-responsive mb-4">
+            <table class="table table-bordered rounded-4 overflow-hidden mb-0 align-middle">
+                <thead style="background: var(--ssak-bg);">
+                    <tr>
+                        <th>Dạng câu</th>
+                        <th>Kỹ năng</th>
+                        <th>Số câu</th>
+                        <th>Đúng</th>
+                        <th>Tỉ lệ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Nghe 1–3</strong> · Chọn tranh phù hợp</td>
+                        <td><span class="badge bg-info text-dark">Nghe</span></td>
+                        <td>8</td>
+                        <td>8</td>
+                        <td class="text-success fw-bold">100%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Đọc 1–2</strong> · Điền ngữ pháp vào chỗ trống</td>
+                        <td><span class="badge bg-secondary">Đọc</span></td>
+                        <td>8</td>
+                        <td>7</td>
+                        <td class="text-success fw-bold">87.5%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Đọc 3–4</strong> · Tìm câu có nghĩa gần nhất</td>
+                        <td><span class="badge bg-secondary">Đọc</span></td>
+                        <td>8</td>
+                        <td>6</td>
+                        <td class="text-success fw-bold">75%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Đọc 13–15</strong> · Sắp xếp trật tự câu</td>
+                        <td><span class="badge bg-secondary">Đọc</span></td>
+                        <td>8</td>
+                        <td>4</td>
+                        <td class="text-danger fw-bold">50%</td>
+                    </tr>
+                    <tr style="background: var(--ssak-sky);">
+                        <td><strong>Bài Ôn tuần 1</strong> · 20 câu tổng hợp</td>
+                        <td><span class="badge bg-primary">Trộn dạng</span></td>
+                        <td>20</td>
+                        <td>16</td>
+                        <td class="text-primary fw-bold" style="color: #2F5F7D !important;">80%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Câu hỏi tùy chọn độ khó theo mục 8.2 -->
+        <div class="p-3 rounded-4 mb-4 text-center border" style="background: var(--ssak-bg);">
+            <label class="fw-bold small d-block mb-2">Bài ôn tuần này với bạn cảm thấy thế nào?</label>
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-3 me-2" onclick="alert('Cảm ơn bạn đã phản hồi! Ghi nhận: Dễ.')">🌱 Dễ</button>
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-3 me-2 active" onclick="alert('Cảm ơn bạn đã phản hồi! Ghi nhận: Vừa sức.')">🌿 Vừa sức</button>
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-3" onclick="alert('Cảm ơn bạn đã phản hồi! Ghi nhận: Khó.')">🪴 Khó</button>
+            </div>
+        </div>
+
+        <!-- Nút hành động -->
+        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+            <a th:href="@{/lo-trinh}" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-bold">
+                Xem Lộ trình
+            </a>
+            <div class="d-flex gap-2">
+                <a th:href="@{/lam-bai/weekly-1-retake}" class="btn-ssak-outline rounded-pill px-4 py-2 fw-bold text-decoration-none">
+                    Làm lại bài ôn tuần
+                </a>
+                <a th:href="@{/hom-nay}" class="btn-ssak-primary rounded-pill px-4 py-2 fw-bold text-decoration-none">
+                    Bắt đầu Tuần 2 →
+                </a>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Điều chỉnh lộ trình học · HOT TOPIK')}"></head>
+<body style="background: var(--ssak-bg); color: var(--ssak-text-main); font-family: var(--font-body); min-height: 100vh;">
+
+<div th:replace="~{fragments/navbar :: navbar('roadmap')}"></div>
+
+<main class="container my-5" style="max-width: 920px;">
+    <div class="mb-4">
+        <a th:href="@{/lo-trinh}" class="text-decoration-none small fw-bold text-muted">
+            <i class="bi bi-chevron-left me-1"></i>Quay lại Lộ trình
+        </a>
+        <h1 style="font-family: var(--font-heading); font-size: 32px; font-weight: 800;" class="mt-2 mb-1">
+            Điều chỉnh lộ trình học tập
+        </h1>
+        <p class="text-muted">
+            Lịch học linh hoạt theo thời gian biểu của bạn. Các bài đã hoàn thành sẽ được giữ nguyên 100%.
+        </p>
+    </div>
+
+    <div class="p-4 p-md-5 rounded-5 bg-white border shadow-sm">
+        <form th:action="@{/lo-trinh}" method="GET">
+            
+            <!-- 1. Điều chỉnh thời gian kết thúc (Sớm hơn / Muộn hơn 1-60 ngày) -->
+            <div class="mb-4 pb-4 border-bottom">
+                <label class="form-label fw-bold text-muted small">1. ĐIỀU CHỈNH THỜI GIAN KẾT THÚC</label>
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3" onclick="adjustDays(-14)">-14 ngày (Sớm hơn)</button>
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3" onclick="adjustDays(-7)">-7 ngày</button>
+                    <button type="button" class="btn btn-success rounded-pill px-3 fw-bold" style="background: var(--ssak-primary) !important;" onclick="adjustDays(0)">Giữ nguyên</button>
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3" onclick="adjustDays(14)">+14 ngày (Thong thả)</button>
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3" onclick="adjustDays(30)">+30 ngày</button>
+                </div>
+                <div class="row align-items-center g-3">
+                    <div class="col-sm-6">
+                        <label class="small text-muted mb-1">Số ngày điều chỉnh (-60 đến +60):</label>
+                        <input type="number" class="form-control rounded-3" id="adjustInput" value="0" min="-60" max="60" onchange="calcComparison()">
+                    </div>
+                    <div class="col-sm-6">
+                        <small class="text-muted d-block mt-sm-4">
+                            * Giới hạn: Còn tối thiểu 14 ngày để ôn tập và tổng lộ trình không quá 200 ngày.
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Đổi mục tiêu -->
+            <div class="mb-4 pb-4 border-bottom">
+                <label class="form-label fw-bold text-muted small">2. MỤC TIÊU CẤP ĐỘ</label>
+                <select class="form-select rounded-3 py-2" id="targetSelect" onchange="calcComparison()">
+                    <option value="TOPIK_4" selected>TOPIK Cấp 4 (Hiện tại)</option>
+                    <option value="TOPIK_5">TOPIK Cấp 5 (Nâng cao mục tiêu)</option>
+                    <option value="TOPIK_6">TOPIK Cấp 6 (Chuyên sâu)</option>
+                </select>
+            </div>
+
+            <!-- 3. Bảng so sánh TRƯỚC / SAU theo mục 6.7 -->
+            <div class="mb-4">
+                <h5 class="fw-bold mb-3" style="font-family: var(--font-heading); font-size: 18px;">
+                    Bảng so sánh trước và sau điều chỉnh
+                </h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered rounded-4 overflow-hidden mb-0 align-middle">
+                        <thead style="background: var(--ssak-bg);">
+                            <tr>
+                                <th style="width: 35%;">Thông số</th>
+                                <th style="width: 32%;">Hiện tại (Trước)</th>
+                                <th style="width: 33%; color: var(--ssak-primary-dark);">Dự kiến (Sau điều chỉnh)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Mục tiêu cấp độ</td>
+                                <td><strong>TOPIK 4</strong></td>
+                                <td class="text-success fw-bold" id="cmpTarget">TOPIK 4</td>
+                            </tr>
+                            <tr>
+                                <td>Ngày kết thúc</td>
+                                <td>16/12/2026</td>
+                                <td class="text-success fw-bold" id="cmpEndDate">16/12/2026</td>
+                            </tr>
+                            <tr>
+                                <td>Số ngày còn lại</td>
+                                <td>48 ngày</td>
+                                <td class="text-success fw-bold" id="cmpRemaining">48 ngày</td>
+                            </tr>
+                            <tr>
+                                <td>Số bài mỗi ngày</td>
+                                <td>1.3 bài / ngày</td>
+                                <td class="text-success fw-bold" id="cmpPerDay">1.3 bài / ngày</td>
+                            </tr>
+                            <tr>
+                                <td>Bài đã hoàn thành</td>
+                                <td><strong>24 bài (Giữ nguyên)</strong></td>
+                                <td class="text-success fw-bold">24 bài (Giữ nguyên)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-3 mt-4">
+                <a th:href="@{/lo-trinh}" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-bold">Hủy bỏ</a>
+                <button type="submit" class="btn-ssak-primary rounded-pill px-5 py-2 fw-bold" onclick="alert('Đã cập nhật lộ trình thành công!')">
+                    Lưu thay đổi lộ trình
+                </button>
+            </div>
+        </form>
+    </div>
+</main>
+
+<script>
+    function adjustDays(days) {
+        document.getElementById('adjustInput').value = days;
+        calcComparison();
+    }
+    function calcComparison() {
+        const offset = parseInt(document.getElementById('adjustInput').value) || 0;
+        const target = document.getElementById('targetSelect').value.replace('_', ' ');
+        document.getElementById('cmpTarget').innerText = target;
+        
+        const rem = 48 + offset;
+        document.getElementById('cmpRemaining').innerText = rem + ' ngày';
+
+        const d = new Date(2026, 11, 16);
+        d.setDate(d.getDate() + offset);
+        document.getElementById('cmpEndDate').innerText = d.toLocaleDateString('vi-VN');
+
+        const perDay = (40 / rem).toFixed(1);
+        document.getElementById('cmpPerDay').innerText = perDay + ' bài / ngày';
+    }
+</script>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

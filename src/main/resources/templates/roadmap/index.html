@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Lộ trình học theo ngày · HOT TOPIK')}"></head>
+<body style="background: #F8F6EF; color: #24363D; font-family: var(--font-body); margin: 0; padding: 0;">
+
+<!-- Navbar 7 mục -->
+<div th:replace="~{fragments/navbar :: navbar('roadmap')}"></div>
+
+<main style="max-width: 1380px; margin: 0 auto; padding: 24px 32px; box-sizing: border-box;">
+
+    <!-- 1. THANH 3 GIAI ĐOẠN (Làm quen · Ngày 1–23 | Tăng tốc · Ngày 24–47 | Nước rút · Ngày 48–60) -->
+    <div style="margin-bottom: 24px; position: relative;">
+        <!-- Progress bar track -->
+        <div style="display: flex; gap: 8px; position: relative; margin-bottom: 8px;">
+            <!-- Segment 1: Làm quen (active green line) -->
+            <div style="flex: 23; height: 10px; background: #96D3B6; border-radius: 6px; position: relative;">
+                <!-- Mascot Bé Ssak on top of current position (Day 11) -->
+                <div id="ssakPin" style="position: absolute; left: 48%; top: -34px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; transition: left 0.3s ease;">
+                    <div style="width: 32px; height: 32px; background: #FFFFFF; border-radius: 50%; border: 2px solid #2E7D67; display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 2px 6px rgba(0,0,0,0.12);">
+                        🌱
+                    </div>
+                </div>
+            </div>
+            <!-- Segment 2: Tăng tốc -->
+            <div style="flex: 24; height: 10px; background: #BEE3D3; border-radius: 6px;"></div>
+            <!-- Segment 3: Nước rút -->
+            <div style="flex: 13; height: 10px; background: #2E7D67; border-radius: 6px;"></div>
+        </div>
+
+        <!-- Phase labels below bar -->
+        <div style="display: flex; justify-content: space-between; font-size: 13px; color: #53646C; font-weight: 700;">
+            <span><b style="color: #24363D;">Làm quen</b> · Ngày 1–23</span>
+            <span><b style="color: #24363D;">Tăng tốc</b> · Ngày 24–47</span>
+            <span><b style="color: #24363D;">Nước rút</b> · Ngày 48–60</span>
+        </div>
+    </div>
+
+    <!-- MAIN TWO-COLUMN CONTENT AREA -->
+    <div style="display: flex; gap: 24px; align-items: flex-start;">
+        
+        <!-- LEFT COLUMN: TUẦN CARDS + BẢN ĐỒ LỘ TRÌNH (approx 70%) -->
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
+
+            <!-- NAVIGATION HEADER: < Tuần trước | Tuần 2 · Ngày 8–14 | Tuần sau > -->
+            <div style="display: flex; justify-content: space-between; align-items: center; background: transparent; padding: 0 4px;">
+                <button type="button" class="btn-week-nav" onclick="changeWeek(-1)">
+                    ‹ Tuần trước
+                </button>
+                <h2 id="currentWeekTitle" style="margin: 0; font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #24363D;">
+                    Tuần 2 · Ngày 8–14
+                </h2>
+                <button type="button" class="btn-week-nav" onclick="changeWeek(1)">
+                    Tuần sau ›
+                </button>
+            </div>
+
+            <!-- 7 THẺ NGÀY TRONG TUẦN (Ngày 8 -> Ngày 14) -->
+            <div id="weekCardsContainer" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px;">
+                <!-- Dynamically rendered via JS to allow smooth switching between weeks 1-9 -->
+            </div>
+
+            <!-- BẢN ĐỒ LỘ TRÌNH (MAP 60 NGÀY) -->
+            <div style="background: #FFFFFF; border: 1.5px solid #E8E5DC; border-radius: 20px; padding: 22px 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                <!-- Map Header & Legend -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div style="display: flex; align-items: baseline; gap: 12px;">
+                        <span style="font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: #24363D;">
+                            Bản đồ lộ trình
+                        </span>
+                        <a href="javascript:void(0)" onclick="toggleMap()" id="toggleMapBtn" style="font-size: 13px; font-weight: 700; color: #2E7D67; text-decoration: underline;">
+                            Thu gọn
+                        </a>
+                    </div>
+
+                    <!-- Legend -->
+                    <div style="display: flex; gap: 14px; align-items: center; font-size: 12px; font-weight: 700; color: #53646C;">
+                        <span style="display: flex; align-items: center; gap: 5px;">
+                            <span style="width: 14px; height: 14px; background: #2E7D67; border-radius: 4px; display: inline-block;"></span> Xong
+                        </span>
+                        <span style="display: flex; align-items: center; gap: 5px;">
+                            <span style="width: 14px; height: 14px; background: #F5A623; border-radius: 4px; display: inline-block;"></span> Còn thiếu bài
+                        </span>
+                        <span style="display: flex; align-items: center; gap: 5px;">
+                            <span style="width: 14px; height: 14px; background: #F3EEFA; border: 1.5px dashed #8E71C8; border-radius: 4px; display: inline-block;"></span> Ôn tuần
+                        </span>
+                        <span style="display: flex; align-items: center; gap: 5px;">
+                            <span style="width: 14px; height: 14px; background: #235F4F; border-radius: 4px; display: inline-block;"></span> Thi thử
+                        </span>
+                        <span style="display: flex; align-items: center; gap: 5px;">
+                            <span style="width: 14px; height: 14px; background: #FFFFFF; border: 2.5px solid #2E7D67; border-radius: 4px; display: inline-block;"></span> Hôm nay
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Map Grid (9 Weeks, 7 days per column) -->
+                <div id="mapGridContainer" style="overflow-x: auto;">
+                    <div style="display: grid; grid-template-columns: repeat(9, 1fr); gap: 10px; min-width: 680px; text-align: center;">
+                        <!-- Column headers: Tuần 1 .. Tuần 9 -->
+                        <div style="font-size: 12px; font-weight: 800; color: #53646C; margin-bottom: 2px;">Tuần 1</div>
+                        <div style="font-size: 12px; font-weight: 800; color: #2E7D67; margin-bottom: 2px;">Tuần 2</div>
+                        <div style="font-size: 12px; font-weight: 800; color: #53646C; margin-bottom: 2px;">Tuần 3</div>
+                        <div style="font-size: 12px; font-weight: 800; color: #53646C; margin-bottom: 2px;">Tuần 4</div>
+                        <div style="font-size: 12px; font-weight: 800; color: #53646C; margin-bottom: 2px;">Tuần 5</div>
+                        <div style="font-size: 12px; font-weight: 800; color: #53646C; margin-bottom: 2px;">Tuần 6</div>
+                        <div style="font-size: 12px; font-weight: 800; color: #53646C; margin-bottom: 2px;">Tuần 7</div>
+                        <div style="font-size: 12px; font-weight: 800; color: #53646C; margin-bottom: 2px;">Tuần 8</div>
+                        <div style="font-size: 12px; font-weight: 800; color: #53646C; margin-bottom: 2px;">Tuần 9</div>
+                    </div>
+
+                    <!-- Map Days Table Body (Rows 1 to 7) -->
+                    <div id="roadmapMapTable" style="display: grid; grid-template-columns: repeat(9, 1fr); gap: 10px; margin-top: 6px; min-width: 680px;">
+                        <!-- Rendered via JS -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN: CHI TIẾT BÀI ĐANG CHỌN + TUẦN CỦA BẠN + GHI CHÚ (320px) -->
+        <div style="width: 330px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px;">
+            
+            <!-- Box 1: Chi tiết ngày đang chọn -->
+            <div style="background: #FFFFFF; border: 1.5px solid #E8E5DC; border-radius: 20px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 14px;">
+                <span id="detailDayBadge" style="font-size: 12px; font-weight: 800; color: #53646C; text-transform: uppercase;">
+                    NGÀY 11 · 08/10 · HÔM NAY
+                </span>
+
+                <h3 id="detailDayTitle" style="margin: 0; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D; line-height: 1.3;">
+                    Đọc 9–12 · Nội dung giống
+                </h3>
+
+                <!-- 4 Capsule Indicators: ĐÃ TÍNH 0/4 LẦN CHO DẠNG NÀY -->
+                <div>
+                    <span id="detailSessionsText" style="display: block; font-size: 12px; font-weight: 800; color: #53646C; margin-bottom: 6px;">
+                        ĐÃ TÍNH 0/4 LẦN CHO DẠNG NÀY
+                    </span>
+                    <div id="detailCapsules" style="display: flex; gap: 6px;">
+                        <span style="flex: 1; height: 8px; border-radius: 4px; background: #E4E1D8;"></span>
+                        <span style="flex: 1; height: 8px; border-radius: 4px; background: #E4E1D8;"></span>
+                        <span style="flex: 1; height: 8px; border-radius: 4px; background: #E4E1D8;"></span>
+                        <span style="flex: 1; height: 8px; border-radius: 4px; background: #E4E1D8;"></span>
+                    </div>
+                </div>
+
+                <!-- CTA Button -->
+                <a id="detailCtaBtn" th:href="@{/lam-bai/ATT-8921}" class="btn-roadmap-start" style="text-decoration: none; text-align: center; margin-top: 4px;">
+                    Bắt đầu
+                </a>
+            </div>
+
+            <!-- Box 2: Tuần 2 của bạn (5/13 bài) -->
+            <div style="background: #FFFFFF; border: 1.5px solid #E8E5DC; border-radius: 20px; padding: 22px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                    <h4 id="weekProgressTitle" style="margin: 0; font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #24363D;">
+                        Tuần 2 của bạn
+                    </h4>
+                    <span id="weekProgressRatio" style="font-size: 13px; font-weight: 800; color: #2E7D67;">
+                        5/13 bài
+                    </span>
+                </div>
+
+                <!-- Week Summary Status Pill -->
+                <div id="weekStatusLine" style="font-size: 12px; font-weight: 700; color: #53646C; border-bottom: 1px solid #F1EEE6; padding-bottom: 12px;">
+                    <span style="color: #2E7D67;">✓ 5 xong</span> · <span style="color: #D97706;">⏰ 1 làm bù</span> · <span>⭕ 7 chưa tới</span>
+                </div>
+
+                <!-- Skill List with 4 Dots Each -->
+                <div id="weekSkillsList" style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 700;">Nghe 1–3 · Chọn tranh</span>
+                        <span style="display: flex; gap: 4px;">
+                            <span class="dot-filled"></span><span class="dot-filled"></span><span class="dot-filled"></span><span class="dot-empty"></span>
+                        </span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 700;">Đọc 1–2 · Điền ngữ pháp</span>
+                        <span style="display: flex; gap: 4px;">
+                            <span class="dot-filled"></span><span class="dot-filled"></span><span class="dot-filled"></span><span class="dot-empty"></span>
+                        </span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 700;">Nghe 4–8 · Câu nối tiếp</span>
+                        <span style="display: flex; gap: 4px;">
+                            <span class="dot-filled"></span><span class="dot-filled"></span><span class="dot-filled"></span><span class="dot-empty"></span>
+                        </span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 700;">Đọc 3–4 · Ngữ pháp gần nghĩa</span>
+                        <span style="display: flex; gap: 4px;">
+                            <span class="dot-filled"></span><span class="dot-filled"></span><span class="dot-filled"></span><span class="dot-empty"></span>
+                        </span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 700;">Nghe 9–12 · Hành động tiếp</span>
+                        <span style="display: flex; gap: 4px;">
+                            <span class="dot-filled"></span><span class="dot-filled"></span><span class="dot-empty"></span><span class="dot-empty"></span>
+                        </span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 700;">Đọc 5–8 · Quảng cáo</span>
+                        <span style="display: flex; gap: 4px;">
+                            <span class="dot-filled"></span><span class="dot-empty"></span><span class="dot-empty"></span><span class="dot-empty"></span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Box 3: Bé Ssak Mascot Tip Box -->
+            <div style="background: #EAF4EE; border: 1.5px solid #C8E6D8; border-radius: 16px; padding: 16px; display: flex; align-items: flex-start; gap: 12px;">
+                <span style="font-size: 24px; line-height: 1;">🌱</span>
+                <p style="margin: 0; font-size: 12.5px; color: #235F4F; line-height: 1.5; font-weight: 600;">
+                    Ngày 7 mỗi tuần là bài <b>Ôn tuần khoảng 20 câu</b>. Làm bài nào trước cũng được; mỗi dạng tính tối đa 1 lần mỗi ngày.
+                </p>
+            </div>
+
+        </div>
+
+    </div>
+
+</main>
+
+<!-- Footer -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<style>
+/* Button Week Navigation pill */
+.btn-week-nav {
+    height: 38px;
+    padding: 0 18px;
+    border-radius: 20px;
+    border: 1.5px solid #24363D;
+    background: #FFFFFF;
+    color: #24363D;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.btn-week-nav:hover {
+    background: #F1EEE6;
+}
+
+/* Day card container styles */
+.day-card {
+    background: #FFFFFF;
+    border: 1.5px solid #E8E5DC;
+    border-radius: 18px;
+    padding: 14px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    min-height: 250px;
+}
+.day-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+.day-card.active-today {
+    border: 2.5px solid #2E7D67 !important;
+}
+.day-card.has-makeup {
+    border: 1.5px dashed #F5A623 !important;
+}
+.day-card.weekly-review {
+    background: #FAF8FD !important;
+    border: 1.5px dashed #8E71C8 !important;
+}
+
+.day-card-header {
+    font-family: var(--font-heading);
+    font-size: 15px;
+    font-weight: 800;
+    color: #24363D;
+    text-align: left;
+    padding-left: 2px;
+}
+
+/* Task block inside day card */
+.task-block {
+    padding: 10px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.task-block.done {
+    background: #E8F5E9;
+    color: #2E7D67;
+}
+.task-block.done .task-name {
+    font-weight: 800;
+    color: #24363D;
+}
+.task-block.makeup {
+    background: #FEF3C7;
+    color: #D97706;
+}
+.task-block.makeup .task-name {
+    font-weight: 800;
+    color: #24363D;
+}
+.task-block.active-selection {
+    background: #FFFFFF;
+    border: 1.5px solid #24363D;
+}
+.task-block.active-selection .task-name {
+    font-weight: 800;
+    color: #24363D;
+}
+.task-block.upcoming {
+    background: #FFFFFF;
+    border: 1px solid #E8E5DC;
+    color: #53646C;
+}
+.task-block.upcoming .task-name {
+    font-weight: 800;
+    color: #24363D;
+}
+
+/* Map cells */
+.map-cell {
+    height: 38px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    border: 1px solid transparent;
+}
+.map-cell:hover {
+    transform: scale(1.06);
+}
+.map-cell.done {
+    background: #2E7D67;
+    color: #FFFFFF;
+}
+.map-cell.makeup {
+    background: #F5A623;
+    color: #FFFFFF;
+}
+.map-cell.today {
+    background: #FFFFFF;
+    border: 2.5px solid #2E7D67;
+    color: #24363D;
+}
+.map-cell.weekly-review {
+    background: #FFFFFF;
+    border: 1.5px dashed #8E71C8;
+    color: #8E71C8;
+}
+.map-cell.weekly-review.done {
+    background: #2E7D67;
+    border: none;
+    color: #FFFFFF;
+}
+.map-cell.mock {
+    background: #235F4F;
+    color: #FFFFFF;
+}
+.map-cell.neutral {
+    background: #FFFFFF;
+    border: 1px solid #E8E5DC;
+    color: #24363D;
+}
+
+/* 4 Progress dots */
+.dot-filled {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #2E7D67;
+    display: inline-block;
+}
+.dot-empty {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #E4E1D8;
+    display: inline-block;
+}
+
+/* Large CTA Button */
+.btn-roadmap-start {
+    display: block;
+    width: 100%;
+    height: 48px;
+    line-height: 48px;
+    background: #2E7D67;
+    color: #FFFFFF;
+    border-radius: 14px;
+    font-family: var(--font-heading);
+    font-size: 16px;
+    font-weight: 800;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    box-sizing: border-box;
+}
+.btn-roadmap-start:hover {
+    background: #235F4F;
+}
+</style>
+
+<script>
+// Mock Roadmap 60 Days Data
+const roadmapDaysData = {};
+
+// Generate days 1 to 60 data according to Spec 5.1 & Prototype 21
+for (let d = 1; d <= 60; d++) {
+    const week = Math.ceil(d / 7);
+    const dayInWeek = ((d - 1) % 7) + 1;
+    let isReviewWeek = (dayInWeek === 7);
+    let status = 'upcoming';
+    
+    if (d < 10) status = 'done';
+    else if (d === 10) status = 'makeup';
+    else if (d === 11) status = 'today';
+    else status = 'upcoming';
+
+    if (d === 52 || d === 55) {
+        status = 'mock';
+    }
+
+    let tasks = [];
+    if (isReviewWeek) {
+        tasks = [
+            { type: 'Ôn tuần', name: 'Ôn tuần ' + week, status: (d < 11 ? '✓ Đã xong' : 'Làm trước'), isReview: true }
+        ];
+    } else {
+        const typesList = [
+            ['Đọc 5–8', 'Quảng cáo'],
+            ['Nghe 1–3', 'Chọn tranh'],
+            ['Nghe 13–16', 'Hội thoại ngắn'],
+            ['Nghe 9–12', 'Hành động tiếp'],
+            ['Đọc 1–2', 'Điền ngữ pháp'],
+            ['Nghe 4–8', 'Câu nối tiếp'],
+            ['Đọc 9–12', 'Nội dung giống'],
+            ['Nghe 17–20', 'Suy nghĩ nhân vật'],
+            ['Đọc 3–4', 'Ngữ pháp gần nghĩa'],
+            ['Đọc 13–15', 'Thứ tự đoạn văn']
+        ];
+        const t1 = typesList[(d * 2) % typesList.length];
+        const t2 = typesList[(d * 2 + 1) % typesList.length];
+
+        let t1Status = d < 11 ? '✓ Đã xong' : (d === 11 ? 'Học mới' : 'Làm trước');
+        let t2Status = d < 10 ? '✓ Đã xong' : (d === 10 ? 'Làm bù' : (d === 11 ? 'Ôn lại' : 'Làm trước'));
+
+        tasks = [
+            { label: 'Lần 1 · mới', name: t1[0], sub: t1[1], status: t1Status },
+            { label: 'Lần 2 · ôn', name: t2[0], sub: t2[1], status: t2Status }
+        ];
+    }
+
+    roadmapDaysData[d] = {
+        day: d,
+        week: week,
+        dayInWeek: dayInWeek,
+        status: status,
+        isReviewWeek: isReviewWeek,
+        tasks: tasks,
+        dateFormatted: d === 11 ? '08/10 · HÔM NAY' : (d < 11 ? 'Đã học' : 'Chưa tới')
+    };
+}
+
+let currentSelectedWeek = 2;
+let currentSelectedDay = 11;
+
+function renderWeekCards(weekNum) {
+    const container = document.getElementById('weekCardsContainer');
+    container.innerHTML = '';
+    
+    const startDay = (weekNum - 1) * 7 + 1;
+    const endDay = Math.min(weekNum * 7, 60);
+
+    for (let d = startDay; d <= endDay; d++) {
+        const data = roadmapDaysData[d];
+        const card = document.createElement('div');
+        card.className = 'day-card';
+        if (d === currentSelectedDay) card.classList.add('active-today');
+        if (data.status === 'makeup') card.classList.add('has-makeup');
+        if (data.isReviewWeek) card.classList.add('weekly-review');
+
+        card.onclick = () => selectDay(d);
+
+        let tasksHtml = '';
+        data.tasks.forEach(task => {
+            let blockClass = 'task-block upcoming';
+            if (task.status === '✓ Đã xong') blockClass = 'task-block done';
+            else if (task.status === 'Làm bù') blockClass = 'task-block makeup';
+            else if (d === currentSelectedDay && task.name.includes('Đọc 9–12')) blockClass = 'task-block active-selection';
+
+            tasksHtml += `
+                <div class="${blockClass}">
+                    <span style="font-size: 11px; opacity: 0.85;">${task.label || task.type}</span>
+                    <span class="task-name" style="font-size: 13px;">${task.name}</span>
+                    <span style="font-size: 11px; font-weight: 700; margin-top: 2px;">${task.status}</span>
+                </div>
+            `;
+        });
+
+        card.innerHTML = `
+            <div class="day-card-header">Ngày ${d}</div>
+            ${tasksHtml}
+        `;
+
+        container.appendChild(card);
+    }
+
+    document.getElementById('currentWeekTitle').textContent = `Tuần ${weekNum} · Ngày ${startDay}–${endDay}`;
+}
+
+function renderMap() {
+    const table = document.getElementById('roadmapMapTable');
+    table.innerHTML = '';
+
+    // Render by rows: row 1 to row 7 (representing day 1-7 in each week)
+    for (let row = 1; row <= 7; row++) {
+        for (let col = 1; col <= 9; col++) {
+            const dayNum = (col - 1) * 7 + row;
+            if (dayNum > 60) {
+                table.innerHTML += `<div></div>`;
+                continue;
+            }
+
+            const data = roadmapDaysData[dayNum];
+            let cellClass = 'map-cell neutral';
+            let label = dayNum;
+
+            if (data.status === 'done') cellClass = 'map-cell done';
+            else if (data.status === 'makeup') cellClass = 'map-cell makeup';
+            else if (data.status === 'today') cellClass = 'map-cell today';
+            else if (data.isReviewWeek) {
+                cellClass = data.status === 'done' ? 'map-cell weekly-review done' : 'map-cell weekly-review';
+                label = dayNum + ' ôn';
+            } else if (data.status === 'mock') {
+                cellClass = 'map-cell mock';
+                label = dayNum + ' thi';
+            }
+
+            table.innerHTML += `
+                <div class="${cellClass}" onclick="selectDay(${dayNum})">
+                    ${label}
+                </div>
+            `;
+        }
+    }
+}
+
+function selectDay(dayNum) {
+    currentSelectedDay = dayNum;
+    currentSelectedWeek = Math.ceil(dayNum / 7);
+    
+    renderWeekCards(currentSelectedWeek);
+    updateDetailPanel(dayNum);
+
+    // Update Bé Ssak Pin position proportionally (1 to 60)
+    const pinPercent = Math.min(100, Math.max(0, ((dayNum - 1) / 59) * 100));
+    const ssakPin = document.getElementById('ssakPin');
+    if (ssakPin) {
+        ssakPin.style.left = pinPercent + '%';
+    }
+}
+
+function updateDetailPanel(dayNum) {
+    const data = roadmapDaysData[dayNum];
+    const badge = document.getElementById('detailDayBadge');
+    const title = document.getElementById('detailDayTitle');
+    const sessionsText = document.getElementById('detailSessionsText');
+    const ctaBtn = document.getElementById('detailCtaBtn');
+
+    if (dayNum === 11) {
+        badge.textContent = `NGÀY 11 · 08/10 · HÔM NAY`;
+        title.textContent = `Đọc 9–12 · Nội dung giống`;
+        sessionsText.textContent = `ĐÃ TÍNH 0/4 LẦN CHO DẠNG NÀY`;
+        ctaBtn.textContent = `Bắt đầu`;
+        ctaBtn.style.background = '#2E7D67';
+    } else if (data.isReviewWeek) {
+        badge.textContent = `NGÀY ${dayNum} · ÔN TUẦN ${data.week}`;
+        title.textContent = `Bài Ôn tuần ${data.week} (20 câu trộn)`;
+        sessionsText.textContent = `ĐÃ TÍNH 1/1 LẦN CHO TUẦN NÀY`;
+        ctaBtn.textContent = dayNum < 11 ? `Làm lại bài ôn tuần` : `Làm trước bài ôn tuần`;
+        ctaBtn.style.background = '#8E71C8';
+    } else {
+        const firstTask = data.tasks[0];
+        badge.textContent = `NGÀY ${dayNum} · ${dayNum < 11 ? 'ĐÃ HỌC' : 'LÀM TRƯỚC'}`;
+        title.textContent = `${firstTask.name} · ${firstTask.sub || 'Luyện tập'}`;
+        sessionsText.textContent = dayNum < 11 ? `ĐÃ TÍNH 1/4 LẦN CHO DẠNG NÀY` : `ĐÃ TÍNH 0/4 LẦN CHO DẠNG NÀY`;
+        ctaBtn.textContent = dayNum < 11 ? `Làm tiếp dạng này` : `Làm trước`;
+        ctaBtn.style.background = dayNum < 11 ? '#2E7D67' : '#24363D';
+    }
+
+    // Update capsules
+    const capsules = document.getElementById('detailCapsules');
+    if (dayNum < 11) {
+        capsules.innerHTML = `
+            <span style="flex: 1; height: 8px; border-radius: 4px; background: #2E7D67;"></span>
+            <span style="flex: 1; height: 8px; border-radius: 4px; background: #E4E1D8;"></span>
+            <span style="flex: 1; height: 8px; border-radius: 4px; background: #E4E1D8;"></span>
+            <span style="flex: 1; height: 8px; border-radius: 4px; background: #E4E1D8;"></span>
+        `;
+    } else {
+        capsules.innerHTML = `
+            <span style="flex: 1; height: 8px; border-radius: 4px; background: #E4E1D8;"></span>
+            <span style="flex: 1; height: 8px; border-radius: 4px; background: #E4E1D8;"></span>
+            <span style="flex: 1; height: 8px; border-radius: 4px; background: #E4E1D8;"></span>
+            <span style="flex: 1; height: 8px; border-radius: 4px; background: #E4E1D8;"></span>
+        `;
+    }
+}
+
+function changeWeek(delta) {
+    const newWeek = currentSelectedWeek + delta;
+    if (newWeek >= 1 && newWeek <= 9) {
+        currentSelectedWeek = newWeek;
+        renderWeekCards(currentSelectedWeek);
+    }
+}
+
+function toggleMap() {
+    const grid = document.getElementById('mapGridContainer');
+    const btn = document.getElementById('toggleMapBtn');
+    if (grid.style.display === 'none') {
+        grid.style.display = 'block';
+        btn.textContent = 'Thu gọn';
+    } else {
+        grid.style.display = 'none';
+        btn.textContent = 'Mở rộng';
+    }
+}
+
+// Initial Render
+renderWeekCards(2);
+renderMap();
+selectDay(11);
+</script>
+</body>
+</html>

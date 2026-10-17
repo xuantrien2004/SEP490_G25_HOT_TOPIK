@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Bài Viết gửi Mentor · HOT TOPIK')}"></head>
+<body style="background: var(--ssak-bg); color: var(--ssak-text-main); font-family: var(--font-body); min-height: 100vh;">
+
+<!-- Navbar -->
+<div th:replace="~{fragments/navbar :: navbar('today')}"></div>
+
+<main class="container my-4" style="max-width: 1140px;">
+    
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <a th:href="@{/luyen-tap}" class="text-decoration-none fw-bold small text-muted">
+                ‹ Luyện tập · Viết
+            </a>
+            <h1 style="font-family: var(--font-heading); font-size: 28px; font-weight: 800;" class="mt-1 mb-0">
+                Bài Viết gửi Giáo viên (Mentor) chấm
+            </h1>
+            <p class="text-muted small mt-1 mb-0">
+                Giáo viên TOPIK chấm bài chi tiết theo từng câu, đối chiếu trực tiếp với điểm số AI ước tính trong 48 giờ.
+            </p>
+        </div>
+
+        <div class="badge rounded-pill bg-light text-muted border px-3 py-2">
+            Quyền lợi VIP: <strong>Còn 4 bài / tháng</strong> (hoặc đổi 100 Xu/bài)
+        </div>
+    </div>
+
+    <!-- Danh sách bài gửi Mentor -->
+    <div class="d-flex flex-column gap-4">
+        
+        <!-- Bài 1: Đã chấm xong (kèm so sánh điểm AI vs Mentor theo mục 9.6) -->
+        <div class="p-4 p-md-5 rounded-5 bg-white border shadow-sm">
+            <div class="d-flex flex-wrap justify-content-between align-items-center pb-3 border-bottom mb-4 gap-2">
+                <div>
+                    <span class="badge bg-success mb-1" style="background: var(--ssak-primary) !important;">✓ Đã chấm xong</span>
+                    <h3 class="fw-bold mb-0" style="font-size: 20px;">
+                        Luyện tập · Viết Câu 53 (Biểu đồ 20대의 여가 활동)
+                    </h3>
+                    <small class="text-muted">Gửi lúc: 15/10/2026 10:30 · Giáo viên chấm: Cô Mai (TOPIK 6)</small>
+                </div>
+                
+                <!-- So sánh điểm AI vs Mentor -->
+                <div class="d-flex align-items-center gap-3 p-3 rounded-4" style="background: var(--ssak-bg);">
+                    <div class="text-center">
+                        <small class="text-muted d-block" style="font-size: 11px;">Điểm AI ước tính</small>
+                        <strong class="fs-5 text-secondary">23 / 30</strong>
+                    </div>
+                    <div class="fs-4 text-muted">→</div>
+                    <div class="text-center">
+                        <small class="text-success d-block fw-bold" style="font-size: 11px;">Điểm Mentor chính thức</small>
+                        <strong class="fs-4 text-success" style="color: var(--ssak-primary) !important;">25 / 30</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bài làm của bạn -->
+            <div class="mb-4">
+                <label class="fw-bold small text-muted">Bài viết của bạn:</label>
+                <div class="p-3 rounded-3 border bg-light small" style="font-family: var(--font-korean); line-height: 1.7;">
+                    20대가 여가 시간에 하는 활동을 조사한 결과, 2016년에는 여행이 30%로 가장 높았으나 2024년에는 운동이 35%로 가장 많았다. 게임은 18%에서 24%로 증가한 반면, 독서는 20%에서 9%로 크게 감소하였다. 이러한 결과는 20대의 건강에 대한 관심이 증가했기 때문이다.
+                </div>
+            </div>
+
+            <!-- Nhận xét chi tiết của Mentor theo khuôn chuẩn v3 -->
+            <div class="mb-4">
+                <label class="fw-bold small text-success" style="color: var(--ssak-primary) !important;">
+                    <i class="bi bi-chat-quote-fill me-1"></i>Nhận xét từ Cô Mai (Mentor):
+                </label>
+                <div class="p-3 rounded-4 border" style="background: #E3F2EA; font-size: 14px; line-height: 1.6;">
+                    "Em nắm rất vững cấu trúc mô tả biểu đồ so sánh hai mốc thời gian. Các liên từ tương phản <em>'반면'</em> được sử dụng rất tự nhiên. Lưu ý nhỏ: Khi nói về tỷ lệ phần trăm chênh lệch, em nên dùng đơn vị <strong>'%p (포인트)'</strong> thay vì chỉ ghi '%' để bài viết đạt điểm ngữ pháp cao nhất nhé. Làm tốt lắm!"
+                </div>
+            </div>
+
+            <!-- 3 Thao tác sau khi nhận kết quả theo mục 9.6: Hỏi lại 1 lần, Đánh giá 1-5 sao, Khiếu nại điểm -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center pt-3 border-top gap-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="small fw-bold">Đánh giá Mentor:</span>
+                    <div class="text-warning fs-5">
+                        <i class="bi bi-star-fill cursor-pointer"></i>
+                        <i class="bi bi-star-fill cursor-pointer"></i>
+                        <i class="bi bi-star-fill cursor-pointer"></i>
+                        <i class="bi bi-star-fill cursor-pointer"></i>
+                        <i class="bi bi-star-fill cursor-pointer"></i>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="prompt('Hỏi lại Mentor (tối thiểu 5 ký tự):', '')">
+                        <i class="bi bi-chat-dots me-1"></i>Hỏi lại Mentor (1 lần)
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="prompt('Lý do khiếu nại điểm (tối thiểu 10 ký tự):', '')">
+                        <i class="bi bi-exclamation-octagon me-1"></i>Khiếu nại điểm
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bài 2: Chờ Mentor nhận -->
+        <div class="p-4 rounded-4 bg-white border shadow-sm d-flex justify-content-between align-items-center">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-warning text-dark">Chờ Mentor nhận</span>
+                    <small class="text-muted">Gửi lúc: 17/10/2026 12:00 (Hôm nay)</small>
+                </div>
+                <h5 class="fw-bold mb-0">Viết Câu 54 · Nghị luận về Trí tuệ nhân tạo (AI)</h5>
+                <small class="text-muted">Cam kết trả kết quả trong vòng 48 giờ</small>
+            </div>
+            <span class="badge rounded-pill bg-light text-muted border px-3 py-2">
+                Hạn chót: Còn 46 giờ
+            </span>
+        </div>
+
+    </div>
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

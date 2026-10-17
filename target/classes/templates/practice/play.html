@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Làm bài luyện tập · HOT TOPIK')}"></head>
+<body>
+<div style="min-width: 1280px; max-width: 1440px; min-height: 100vh; margin: 0 auto; background: var(--ssak-bg); display: flex; flex-direction: column;">
+
+    <!-- Exam Header -->
+    <header style="height: 76px; padding: 0 36px; background: #FFFFFF; border-bottom: 2px solid var(--ssak-border); display: flex; align-items: center; gap: 20px;">
+        <a th:href="@{/practice}" class="btn-ssak-light" style="height: 42px; padding: 0 16px; font-size: 14px;">
+            ← Thoát bài
+        </a>
+        <div style="display: flex; flex-direction: column;">
+            <h1 style="margin: 0; font-family: var(--font-heading); font-size: 20px; font-weight: 800; line-height: 1.2;">
+                Đọc 13–15 · Sắp xếp thứ tự câu
+            </h1>
+            <span style="font-size: 12px; font-weight: 700; color: var(--ssak-text-muted);">Lộ trình ngày 12 · Luyện tập ngắt quãng lần 2/4</span>
+        </div>
+        <span class="ssak-badge badge-mint" style="margin-left: 8px;">TOPIK II</span>
+        <div style="flex-grow: 1;"></div>
+
+        <!-- Question Progress Bar -->
+        <div style="display: flex; align-items: center; gap: 12px; width: 280px;">
+            <span style="font-size: 14px; font-weight: 800; color: var(--ssak-text-muted); white-space: nowrap;" id="qProgressText">Câu 1/6</span>
+            <div style="flex-grow: 1; height: 12px; border-radius: 6px; background: var(--ssak-primary-light); display: flex;">
+                <div id="qProgressBar" style="width: 16.6%; border-radius: 6px; background: var(--ssak-primary); transition: width 0.3s ease;"></div>
+            </div>
+        </div>
+
+        <!-- Timer -->
+        <span class="ssak-stat-pill badge-sky" style="font-size: 14px;">
+            ⏱ <span id="examTimer">14:45</span>
+        </span>
+    </header>
+
+    <!-- Main Workspace -->
+    <div style="flex-grow: 1; padding: 24px 36px; display: flex; gap: 24px;">
+        
+        <!-- Left: Question Container -->
+        <section style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+            <div class="ssak-card" style="padding: 28px 32px; display: flex; flex-direction: column; gap: 18px;">
+                
+                <!-- Question Meta & Flag -->
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span class="ssak-badge badge-mint" id="qBadgeNum">Câu 1</span>
+                        <span class="ssak-badge" style="background: var(--ssak-bg-muted); color: var(--ssak-text-muted);">Đọc hiểu · Sắp xếp</span>
+                    </div>
+                    <span id="flagIndicator" class="ssak-badge badge-honey" style="display: none;">
+                        🚩 Bạn đã đánh dấu câu này chưa chắc
+                    </span>
+                </div>
+
+                <!-- Prompt Guide -->
+                <span style="font-size: 15px; color: var(--ssak-text-muted);" id="qPrompt">
+                    [13~15] 다음을 순서대로 맞게 배열한 것을 고르십시오. (Chọn thứ tự sắp xếp đúng cho đoạn văn sau)
+                </span>
+
+                <!-- Audio Player (Visible if audio question) -->
+                <div id="audioPlayerBlock" class="audio-player-bar" style="display: none;">
+                    <button type="button" class="audio-play-btn" onclick="toggleAudioDemo()">
+                        <i class="bi bi-play-fill" id="audioIcon"></i>
+                    </button>
+                    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
+                        <div style="height: 6px; border-radius: 3px; background: #FFFFFF; display: flex;">
+                            <div id="audioProgress" style="width: 35%; border-radius: 3px; background: var(--ssak-sky-text);"></div>
+                        </div>
+                        <span style="font-size: 12px; font-weight: 800; color: var(--ssak-sky-text);">Nghe 1 lần duy nhất (0:18 / 0:52)</span>
+                    </div>
+                </div>
+
+                <!-- Passage Box -->
+                <div id="passageBox" style="padding: 18px 24px; border-radius: 18px; background: var(--ssak-bg); font-family: var(--font-korean); font-size: 19px; line-height: 1.8;">
+                    (가) 그러나 자전거 도로가 끊겨 있는 곳이 많아 이용하기에 위험하다.<br>
+                    (나) 요즘 환경을 보호하기 위해 자전거를 타는 사람들이 늘고 있다.<br>
+                    (다) 안전하게 탈 수 있도록 자전거 도로를 잘 연결해야 한다.<br>
+                    (라) 그래서 정부에서도 자전거 도로를 넓히는 사업을 추진 중이다.
+                </div>
+
+                <!-- Multiple Choice Options -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;" id="optionsContainer">
+                    <button type="button" class="option-btn" onclick="selectOption(0)">
+                        <span class="option-marker">1</span>
+                        <span>(나) — (라) — (가) — (다)</span>
+                    </button>
+                    <button type="button" class="option-btn" onclick="selectOption(1)">
+                        <span class="option-marker">2</span>
+                        <span>(나) — (가) — (라) — (다)</span>
+                    </button>
+                    <button type="button" class="option-btn" onclick="selectOption(2)">
+                        <span class="option-marker">3</span>
+                        <span>(라) — (나) — (다) — (가)</span>
+                    </button>
+                    <button type="button" class="option-btn" onclick="selectOption(3)">
+                        <span class="option-marker">4</span>
+                        <span>(라) — (가) — (나) — (다)</span>
+                    </button>
+                </div>
+
+                <!-- Instant Feedback Card (Shown after checking in practice mode) -->
+                <div id="feedbackCard" style="display: none; padding: 20px 24px; border-radius: 22px; background: var(--ssak-primary-light); gap: 16px; align-items: flex-start;">
+                    <div th:replace="~{fragments/ssak :: mascot('cheer', 'sprout', 60, 'Ssak reo mừng')}"></div>
+                    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px;">
+                        <span style="font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: var(--ssak-primary-dark);">
+                            Chính xác! Đáp án đúng là số 1.
+                        </span>
+                        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: var(--ssak-text-main);">
+                            <b>Giải thích:</b> (나) đưa ra bối cảnh mở đầu (ngày nay người đi xe đạp tăng lên) → (라) kết quả tự nhiên từ bối cảnh (vì thế chính phủ mở rộng đường xe đạp) → (가) liên từ tương phản "그러나" nêu lên bất cập còn tồn tại → (다) đề xuất giải pháp kết luận.
+                        </p>
+                        <div style="display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap;">
+                            <a th:href="@{/theory/grammar(id='1')}" class="ssak-badge badge-sky" style="text-decoration: none;">Liên từ nối: 그러나 / 그래서</a>
+                            <button type="button" class="btn-ssak-light" style="height: 32px; padding: 0 12px; font-size: 12px;" onclick="toggleTranslation()">Xem bản dịch tiếng Việt</button>
+                        </div>
+                        <div id="translationBox" style="display: none; padding: 12px 16px; border-radius: 12px; background: #FFFFFF; font-size: 13px; color: var(--ssak-text-muted); line-height: 1.6;">
+                            (가) Tuy nhiên nhiều nơi đường xe đạp bị ngắt quãng nên rất nguy hiểm khi sử dụng.<br>
+                            (나) Dạo này để bảo vệ môi trường, số người đạp xe đang tăng lên.<br>
+                            (다) Cần phải kết nối thông suốt các tuyến đường để có thể đạp xe an toàn.<br>
+                            (라) Vì vậy chính phủ cũng đang xúc tiến dự án mở rộng các tuyến đường xe đạp.
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Action Controls Below Question -->
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" class="btn-ssak-outline" style="height: 48px; padding: 0 20px;" onclick="prevQuestion()">
+                        ← Câu trước
+                    </button>
+                    <button type="button" id="flagBtn" class="btn-ssak-outline" style="height: 48px; padding: 0 20px;" onclick="toggleFlag()">
+                        🚩 Đánh dấu chưa chắc
+                    </button>
+                    <button type="button" class="btn-ssak-link" onclick="openReportModal()" style="margin-left: 6px; font-size: 14px;">
+                        Báo lỗi câu này
+                    </button>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" id="checkAnswerBtn" class="btn-ssak-outline" style="height: 52px; padding: 0 24px;" onclick="checkAnswer()">
+                        Kiểm tra đáp án
+                    </button>
+                    <button type="button" id="nextBtn" class="btn-ssak-primary" style="height: 52px; padding: 0 28px;" onclick="nextQuestion()">
+                        Câu tiếp theo →
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right: Question Palette & Navigation -->
+        <aside style="width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px;">
+            <div class="ssak-card" style="padding: 22px; display: flex; flex-direction: column; gap: 16px;">
+                <span style="font-family: var(--font-heading); font-size: 20px; font-weight: 800;">Phiếu câu hỏi</span>
+                
+                <!-- 6 Questions Grid -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                    <button type="button" class="palette-btn active" id="pal-0" onclick="goToQuestion(0)">1</button>
+                    <button type="button" class="palette-btn" id="pal-1" onclick="goToQuestion(1)">2</button>
+                    <button type="button" class="palette-btn" id="pal-2" onclick="goToQuestion(2)">3</button>
+                    <button type="button" class="palette-btn" id="pal-3" onclick="goToQuestion(3)">4</button>
+                    <button type="button" class="palette-btn" id="pal-4" onclick="goToQuestion(4)">5</button>
+                    <button type="button" class="palette-btn" id="pal-5" onclick="goToQuestion(5)">6</button>
+                </div>
+
+                <!-- Palette Legend -->
+                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px; font-weight: 700; color: var(--ssak-text-muted); padding-top: 8px; border-top: 1px solid var(--ssak-border);">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="width: 14px; height: 14px; border-radius: 4px; background: var(--ssak-primary);"></span>
+                        <span>Đã trả lời</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="width: 14px; height: 14px; border-radius: 4px; border: 3px solid var(--ssak-honey); background: var(--ssak-honey-light);"></span>
+                        <span>Chưa chắc (đánh dấu)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="width: 14px; height: 14px; border-radius: 4px; border: 2px solid var(--ssak-border);"></span>
+                        <span>Chưa làm</span>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="button" class="btn-ssak-dark" style="width: 100%; height: 50px; font-size: 16px;" onclick="openSubmitConfirm()">
+                    Nộp bài
+                </button>
+            </div>
+
+            <!-- Helpful Tip Card -->
+            <div style="padding: 18px 20px; border-radius: 22px; background: var(--ssak-sky); display: flex; flex-direction: column; gap: 6px;">
+                <span style="font-size: 13px; font-weight: 800; color: var(--ssak-sky-text);">💡 Mẹo làm dạng Sắp xếp</span>
+                <span style="font-size: 13px; color: var(--ssak-text-main); line-height: 1.5;">
+                    Đoạn đầu tiên (가 hoặc 나) thường không bắt đầu bằng các liên từ như '그러나', '그래서', '그러므로'. Hãy tìm câu giới thiệu chủ đề chung trước.
+                </span>
+            </div>
+        </aside>
+    </div>
+</div>
+
+<!-- Submit Confirmation Modal -->
+<div id="submitModal" class="ssak-modal-overlay">
+    <div class="ssak-modal">
+        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 24px; font-weight: 800;">Bạn có chắc muốn nộp bài?</h3>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            <div style="padding: 12px; border-radius: 14px; background: var(--ssak-primary-light); text-align: center;">
+                <div style="font-family: var(--font-heading); font-size: 26px; font-weight: 800; color: var(--ssak-primary-dark);" id="modalAnswered">1</div>
+                <div style="font-size: 12px; font-weight: 800; color: var(--ssak-primary-dark);">Đã làm</div>
+            </div>
+            <div style="padding: 12px; border-radius: 14px; background: var(--ssak-bg-muted); text-align: center;">
+                <div style="font-family: var(--font-heading); font-size: 26px; font-weight: 800; color: var(--ssak-text-muted);" id="modalBlank">5</div>
+                <div style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted);">Còn trống</div>
+            </div>
+            <div style="padding: 12px; border-radius: 14px; background: var(--ssak-honey-light); text-align: center;">
+                <div style="font-family: var(--font-heading); font-size: 26px; font-weight: 800; color: var(--ssak-honey-text);" id="modalFlagged">0</div>
+                <div style="font-size: 12px; font-weight: 800; color: var(--ssak-honey-text);">Chưa chắc</div>
+            </div>
+        </div>
+        <p style="margin: 0; font-size: 14px; color: var(--ssak-text-muted);">
+            Sau khi nộp, hệ thống sẽ chấm điểm chi tiết và Bé Ssak sẽ cập nhật tiến độ cho bạn.
+        </p>
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px;">
+            <button type="button" class="btn-ssak-outline" style="height: 46px; padding: 0 20px;" onclick="closeSubmitConfirm()">Làm tiếp</button>
+            <a th:href="@{/practice/result}" class="btn-ssak-primary" style="height: 46px; padding: 0 24px; text-decoration: none;">Xác nhận nộp</a>
+        </div>
+    </div>
+</div>
+
+<!-- Report Question Modal -->
+<div id="reportModal" class="ssak-modal-overlay">
+    <div class="ssak-modal">
+        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 22px; font-weight: 800;">Báo lỗi câu hỏi</h3>
+        <p style="margin: 0; font-size: 13px; color: var(--ssak-text-muted);">
+            Giúp ban học thuật kiểm tra lại nếu có sai sót về nội dung đề hoặc đáp án.
+        </p>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="ssak-badge badge-mint" style="cursor: pointer; border: 0;">Sai đáp án</button>
+            <button type="button" class="ssak-badge" style="cursor: pointer; border: 1px solid var(--ssak-border); background: #FFFFFF;">Lỗi dịch nghĩa</button>
+            <button type="button" class="ssak-badge" style="cursor: pointer; border: 1px solid var(--ssak-border); background: #FFFFFF;">Lỗi chính tả tiếng Hàn</button>
+            <button type="button" class="ssak-badge" style="cursor: pointer; border: 1px solid var(--ssak-border); background: #FFFFFF;">Khác</button>
+        </div>
+        <textarea class="ssak-input" style="height: 90px; padding: 12px; resize: none;" placeholder="Mô tả cụ thể hơn (không bắt buộc)..."></textarea>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" class="btn-ssak-outline" style="height: 42px; padding: 0 16px;" onclick="closeReportModal()">Huỷ</button>
+            <button type="button" class="btn-ssak-primary" style="height: 42px; padding: 0 20px;" onclick="submitReport()">Gửi báo cáo</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentIdx = 0;
+    const totalQ = 6;
+    let answers = {};
+    let flags = {};
+
+    function selectOption(optIdx) {
+        answers[currentIdx] = optIdx;
+        const btns = document.querySelectorAll('#optionsContainer .option-btn');
+        btns.forEach((b, i) => {
+            if (i === optIdx) {
+                b.classList.add('selected');
+            } else {
+                b.classList.remove('selected');
+            }
+        });
+        updatePalette();
+        playSound('click');
+    }
+
+    function checkAnswer() {
+        const selected = answers[currentIdx];
+        if (selected === undefined) {
+            showSsakToast('Vui lòng chọn 1 phương án trước khi kiểm tra!');
+            return;
+        }
+        const fb = document.getElementById('feedbackCard');
+        fb.style.display = 'flex';
+        playSound('correct');
+    }
+
+    function toggleFlag() {
+        flags[currentIdx] = !flags[currentIdx];
+        const flagIndicator = document.getElementById('flagIndicator');
+        const flagBtn = document.getElementById('flagBtn');
+        if (flags[currentIdx]) {
+            flagIndicator.style.display = 'inline-flex';
+            flagBtn.style.borderColor = 'var(--ssak-honey)';
+            flagBtn.style.color = 'var(--ssak-honey-text)';
+            showSsakToast('Đã đánh dấu câu chưa chắc!');
+        } else {
+            flagIndicator.style.display = 'none';
+            flagBtn.style.borderColor = 'var(--ssak-text-main)';
+            flagBtn.style.color = 'var(--ssak-text-main)';
+        }
+        updatePalette();
+    }
+
+    function updatePalette() {
+        for (let i = 0; i < totalQ; i++) {
+            const btn = document.getElementById('pal-' + i);
+            if (!btn) continue;
+            btn.className = 'palette-btn';
+            if (i === currentIdx) {
+                btn.classList.add('active');
+            }
+            if (answers[i] !== undefined) {
+                btn.classList.add('answered');
+            }
+            if (flags[i]) {
+                btn.classList.add('flagged');
+            }
+        }
+        const answeredCount = Object.keys(answers).length;
+        document.getElementById('qProgressText').textContent = 'Câu ' + (currentIdx + 1) + '/' + totalQ;
+        document.getElementById('qProgressBar').style.width = ((currentIdx + 1) / totalQ * 100) + '%';
+        document.getElementById('qBadgeNum').textContent = 'Câu ' + (currentIdx + 1);
+    }
+
+    function goToQuestion(idx) {
+        currentIdx = idx;
+        document.getElementById('feedbackCard').style.display = 'none';
+        document.getElementById('translationBox').style.display = 'none';
+        
+        // Restore selection
+        const btns = document.querySelectorAll('#optionsContainer .option-btn');
+        btns.forEach((b, i) => {
+            if (answers[currentIdx] === i) {
+                b.classList.add('selected');
+            } else {
+                b.classList.remove('selected');
+            }
+        });
+
+        // Restore flag
+        document.getElementById('flagIndicator').style.display = flags[currentIdx] ? 'inline-flex' : 'none';
+
+        updatePalette();
+    }
+
+    function nextQuestion() {
+        if (currentIdx < totalQ - 1) {
+            goToQuestion(currentIdx + 1);
+        } else {
+            openSubmitConfirm();
+        }
+    }
+
+    function prevQuestion() {
+        if (currentIdx > 0) {
+            goToQuestion(currentIdx - 1);
+        }
+    }
+
+    function toggleTranslation() {
+        const box = document.getElementById('translationBox');
+        box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function openSubmitConfirm() {
+        const answered = Object.keys(answers).length;
+        const flagged = Object.values(flags).filter(Boolean).length;
+        document.getElementById('modalAnswered').textContent = answered;
+        document.getElementById('modalBlank').textContent = (totalQ - answered);
+        document.getElementById('modalFlagged').textContent = flagged;
+        document.getElementById('submitModal').classList.add('show');
+    }
+
+    function closeSubmitConfirm() {
+        document.getElementById('submitModal').classList.remove('show');
+    }
+
+    function openReportModal() {
+        document.getElementById('reportModal').classList.add('show');
+    }
+
+    function closeReportModal() {
+        document.getElementById('reportModal').classList.remove('show');
+    }
+
+    function submitReport() {
+        closeReportModal();
+        showSsakToast('Cảm ơn bạn! Báo cáo đã gửi tới ban học thuật.');
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body style="background: #F8F6EF; color: #24363D; font-family: 'Nunito','Be Vietnam Pro','Noto Sans KR',sans-serif; margin: 0; padding: 0;">
+
+<div style="width: 100%; min-width: 1280px; max-width: 1440px; min-height: 100vh; margin: 0 auto; display: flex; flex-direction: column;">
+    
+    <!-- Topbar Navigation -->
+    <div th:replace="~{fragments/navbar :: navbar('writing')}"></div>
+
+    <main style="flex-grow: 1; padding: 24px 44px 48px; display: flex; flex-direction: column; gap: 16px;">
+        
+        <!-- Header & Action Links -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+            <div>
+                <a th:href="@{/practice}" style="display: inline-flex; align-items: center; gap: 4px; color: #5C6E72; font-size: 14px; font-weight: 700; text-decoration: none; margin-bottom: 6px;">
+                    ‹ Luyện tập · Viết từng câu (51–54)
+                </a>
+                <h1 style="margin: 0; font-family: var(--font-heading); font-size: 32px; font-weight: 800;">
+                    Luyện Viết TOPIK II · AI + Giáo viên Chấm ✍️
+                </h1>
+                <span style="font-size: 14px; color: #5C6E72;">
+                    Luyện viết theo 4 dạng đề chính thức của Viện Giáo dục Quốc tế Hàn Quốc (NIIED). Chấm AI tức thì hoặc gửi Giáo viên sửa chi tiết.
+                </span>
+            </div>
+
+            <!-- Link to Graded Submissions -->
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <a th:href="@{/writing/feedback}" 
+                   style="height: 44px; padding: 0 20px; border-radius: 14px; border: 2px solid #2E7D67; background: #FFFFFF; color: #1F6B56; font-weight: 800; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+                    <span>📬 Bài chấm của Giáo viên</span>
+                    <span th:if="${mySubmissionsCount > 0}" style="padding: 2px 8px; border-radius: 10px; background: #2E7D67; color: #FFFFFF; font-size: 12px;" th:text="${mySubmissionsCount}">
+                        1
+                    </span>
+                </a>
+                <span style="height: 44px; padding: 0 16px; border-radius: 22px; background: #E3F2EA; color: #1F6B56; font-weight: 800; font-size: 13px; display: flex; align-items: center;">
+                    ⚡ 20/20 lượt AI chấm hôm nay
+                </span>
+            </div>
+        </div>
+
+        <!-- 4 Question Tabs (51, 52, 53, 54) -->
+        <div style="display: flex; gap: 12px;">
+            <button type="button" onclick="selectQuestion(51)" id="tabQ51" 
+                    th:style="${currentQuestion == 51 ? 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #24363D; background: #24363D; color: #FFFFFF;' : 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #E6E1D3; background: #FFFFFF; color: #24363D;'}">
+                <span style="font-weight: 800; font-size: 14px;">Câu 51</span>
+                <span style="font-size: 11px; opacity: 0.85;">Văn bản thực dụng (10đ)</span>
+            </button>
+
+            <button type="button" onclick="selectQuestion(52)" id="tabQ52" 
+                    th:style="${currentQuestion == 52 ? 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #24363D; background: #24363D; color: #FFFFFF;' : 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #E6E1D3; background: #FFFFFF; color: #24363D;'}">
+                <span style="font-weight: 800; font-size: 14px;">Câu 52</span>
+                <span style="font-size: 11px; opacity: 0.85;">Đoạn giải thích (10đ)</span>
+            </button>
+
+            <button type="button" onclick="selectQuestion(53)" id="tabQ53" 
+                    th:style="${currentQuestion == 53 ? 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #24363D; background: #24363D; color: #FFFFFF;' : 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #E6E1D3; background: #FFFFFF; color: #24363D;'}">
+                <span style="font-weight: 800; font-size: 14px;">Câu 53</span>
+                <span style="font-size: 11px; opacity: 0.85;">Mô tả biểu đồ (30đ)</span>
+            </button>
+
+            <button type="button" onclick="selectQuestion(54)" id="tabQ54" 
+                    th:style="${currentQuestion == 54 ? 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #24363D; background: #24363D; color: #FFFFFF;' : 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #E6E1D3; background: #FFFFFF; color: #24363D;'}">
+                <span style="font-weight: 800; font-size: 14px;">Câu 54</span>
+                <span style="font-size: 11px; opacity: 0.85;">Nghị luận 700 chữ (50đ)</span>
+            </button>
+        </div>
+
+        <!-- MAIN WRITING WORKSPACE GRID -->
+        <div style="display: flex; gap: 20px; align-items: flex-start;">
+            
+            <!-- LEFT SECTION: QUESTION PROMPT & EDITOR -->
+            <section style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+                
+                <!-- PROMPT CARD -->
+                <div style="padding: 24px; border-radius: 24px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span id="promptHeader" style="font-size: 12px; font-weight: 800; color: #1F6B56; letter-spacing: .5px; text-transform: uppercase;">
+                            CÂU 53 · MÔ TẢ BIỂU ĐỒ
+                        </span>
+                        <span id="promptPoints" style="font-size: 12px; font-weight: 800; color: #5C6E72;">
+                            30 điểm
+                        </span>
+                    </div>
+
+                    <span id="promptInstr" style="font-size: 14px; color: #4A5B60;">
+                        Dựa vào số liệu khảo sát, viết đoạn văn 200–300 ký tự. Không viết tiêu đề.
+                    </span>
+
+                    <div id="promptText" lang="ko" style="padding: 16px 18px; border-radius: 16px; background: #F8F6EF; font-family: 'Noto Sans KR',sans-serif; font-size: 16px; line-height: 1.85;">
+                        다음은 '20대의 여가 활동'에 대한 조사 결과이다. 이 내용을 200~300자의 글로 쓰시오.
+                    </div>
+
+                    <!-- SVG CHART CONTAINER (FOR QUESTION 53) -->
+                    <div id="chartContainer" style="padding: 14px 18px; border-radius: 16px; border: 2px solid #E6E1D3; background: #FAF9F5; display: block;">
+                        <svg width="100%" height="190" viewBox="0 0 520 190" role="img" aria-label="Biểu đồ hoạt động lúc rảnh">
+                            <text x="0" y="18" font-size="14" font-weight="700" fill="#24363D">20대 여가 활동 (%) · 2016 vs 2024</text>
+                            
+                            <!-- Groups -->
+                            <g font-size="12" fill="#4A5B60">
+                                <!-- 운동 -->
+                                <text x="50" y="180" text-anchor="middle" font-weight="700">운동</text>
+                                <rect x="22" y="99.6" width="26" height="66" rx="4" fill="#A9D9C0"/>
+                                <rect x="52" y="58.0" width="26" height="108" rx="4" fill="#2E7D67"/>
+                                <text x="35" y="94" text-anchor="middle">22%</text>
+                                <text x="65" y="52" text-anchor="middle" font-weight="800" fill="#2E7D67">35%</text>
+
+                                <!-- 여행 -->
+                                <text x="175" y="180" text-anchor="middle" font-weight="700">여행</text>
+                                <rect x="147" y="74.0" width="26" height="92" rx="4" fill="#A9D9C0"/>
+                                <rect x="177" y="86.8" width="26" height="79" rx="4" fill="#2E7D67"/>
+                                <text x="160" y="68" text-anchor="middle">30%</text>
+                                <text x="190" y="81" text-anchor="middle" font-weight="800" fill="#2E7D67">26%</text>
+
+                                <!-- 게임 -->
+                                <text x="300" y="180" text-anchor="middle" font-weight="700">게임</text>
+                                <rect x="272" y="112.4" width="26" height="54" rx="4" fill="#A9D9C0"/>
+                                <rect x="302" y="93.2" width="26" height="73" rx="4" fill="#2E7D67"/>
+                                <text x="285" y="106" text-anchor="middle">18%</text>
+                                <text x="315" y="88" text-anchor="middle" font-weight="800" fill="#2E7D67">24%</text>
+
+                                <!-- 독서 -->
+                                <text x="425" y="180" text-anchor="middle" font-weight="700">독서</text>
+                                <rect x="397" y="106.0" width="26" height="60" rx="4" fill="#A9D9C0"/>
+                                <rect x="427" y="141.2" width="26" height="25" rx="4" fill="#2E7D67"/>
+                                <text x="410" y="100" text-anchor="middle">20%</text>
+                                <text x="440" y="135" text-anchor="middle" font-weight="800" fill="#2E7D67">9%</text>
+                            </g>
+
+                            <!-- Legend -->
+                            <rect x="390" y="10" width="12" height="12" fill="#A9D9C0" rx="2"/>
+                            <text x="408" y="21" font-size="12">2016</text>
+                            <rect x="450" y="10" width="12" height="12" fill="#2E7D67" rx="2"/>
+                            <text x="468" y="21" font-size="12">2024</text>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- STUDENT ANSWER EDITOR CARD -->
+                <div style="padding: 24px; border-radius: 24px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 14px;">
+                    
+                    <!-- Blank Form (For Questions 51 & 52) -->
+                    <div id="blankInputsArea" style="display: none; flex-direction: column; gap: 12px;">
+                        <label style="display: flex; gap: 12px; align-items: center;">
+                            <span style="font-family: 'Noto Sans KR',sans-serif; font-size: 18px; font-weight: 800; color: #1F6B56; width: 28px;">㉠</span>
+                            <input type="text" id="blankAnsA" class="ssak-input" placeholder="Điền câu phù hợp cho chỗ trống ㉠..." oninput="updateBlankAnswer()" style="height: 48px; font-size: 16px; font-family: 'Noto Sans KR',sans-serif;">
+                        </label>
+                        <label style="display: flex; gap: 12px; align-items: center;">
+                            <span style="font-family: 'Noto Sans KR',sans-serif; font-size: 18px; font-weight: 800; color: #1F6B56; width: 28px;">㉡</span>
+                            <input type="text" id="blankAnsB" class="ssak-input" placeholder="Điền câu phù hợp cho chỗ trống ㉡..." oninput="updateBlankAnswer()" style="height: 48px; font-size: 16px; font-family: 'Noto Sans KR',sans-serif;">
+                        </label>
+                    </div>
+
+                    <!-- Long Text Area (For Questions 53 & 54) -->
+                    <div id="longTextArea" style="display: flex; flex-direction: column; gap: 8px;">
+                        <textarea id="essayInput" class="ssak-input" oninput="updateCharCount()" 
+                                  placeholder="Nhập bài viết của bạn tại đây bằng tiếng Hàn..." 
+                                  style="height: 220px; font-family: 'Noto Sans KR',sans-serif; font-size: 16px; line-height: 1.85; resize: vertical; padding: 14px 16px;">20대가 여가 시간에 하는 활동을 조사한 결과, 2016년에는 여행이 30%로 가장 높았으나 2024년에는 운동이 35%로 가장 많았다. 게임은 18%에서 24%로 증가한 반면, 독서는 20%에서 9%로 크게 감소하였다. 이러한 결과는 20대의 건강에 대한 관심이 증가했기 때문이다.</textarea>
+                        
+                        <!-- Word count status -->
+                        <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 800;">
+                            <span id="charCountLabel" style="color: #1F6B56;">235 / 200–300 ký tự</span>
+                            <span id="charCountNote" style="color: #1F6B56;">Độ dài vừa đủ</span>
+                        </div>
+                    </div>
+
+                    <!-- Actions Bottom Row -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid #EEE9DD;">
+                        <span style="font-size: 12px; color: #5C6E72;">Đã lưu tự động lúc vừa xong</span>
+                        
+                        <div style="display: flex; gap: 10px;">
+                            <!-- Send to Mentor Button -->
+                            <button type="button" onclick="submitToTeacherModal()" 
+                                    style="height: 46px; padding: 0 20px; border-radius: 14px; background: #FFFFFF; color: #1F6B56; font-weight: 800; font-size: 14px; border: 2px solid #2E7D67; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                <span>👩‍🏫 Gửi Giáo viên chấm (48h)</span>
+                            </button>
+
+                            <!-- AI instant grading button -->
+                            <button type="button" onclick="runInstantAiGrading()" 
+                                    style="height: 46px; padding: 0 24px; border-radius: 14px; background: #2E7D67; color: #FFFFFF; font-weight: 800; font-size: 15px; border: 0; cursor: pointer; box-shadow: 0 4px 10px rgba(46,125,103,0.3); display: inline-flex; align-items: center; gap: 6px;">
+                                <span>⚡ Nộp để AI chấm (+5 Xu)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- RIGHT SECTION: AI RESULT SIDEBAR & TIPS -->
+            <aside style="width: 400px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px;">
+                
+                <!-- AI Result Card (Visible after grading) -->
+                <div id="aiResultCard" style="padding: 24px; border-radius: 24px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <span style="font-size: 13px; font-weight: 800; color: #1F6B56; text-transform: uppercase;">
+                                KẾT QUẢ AI CHẤM
+                            </span>
+                            <div style="display: flex; align-items: baseline; gap: 6px; margin-top: 4px;">
+                                <span id="aiScoreNumber" style="font-family: var(--font-heading); font-size: 42px; font-weight: 800; color: #1F6B56;">24</span>
+                                <span id="aiMaxNumber" style="font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #5C6E72;">/ 30</span>
+                            </div>
+                        </div>
+                        <div th:replace="~{fragments/ssak :: mascot('cheer', 'young', 55, 'Ssak mừng')}"></div>
+                    </div>
+
+                    <!-- Rubric Breakdown -->
+                    <div id="aiRubricArea" style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; flex-direction: column; gap: 3px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800;">
+                                <span>Nội dung & Nhiệm vụ</span>
+                                <span style="color: #1F6B56;">8 / 10</span>
+                            </div>
+                            <div style="height: 6px; border-radius: 3px; background: #F1EEE6; overflow: hidden;">
+                                <div style="height: 100%; width: 80%; background: #2E7D67; border-radius: 3px;"></div>
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 3px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800;">
+                                <span>Cấu trúc & Liên kết</span>
+                                <span style="color: #1F6B56;">8 / 10</span>
+                            </div>
+                            <div style="height: 6px; border-radius: 3px; background: #F1EEE6; overflow: hidden;">
+                                <div style="height: 100%; width: 80%; background: #2E7D67; border-radius: 3px;"></div>
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 3px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800;">
+                                <span>Từ vựng & Ngữ pháp</span>
+                                <span style="color: #1F6B56;">8 / 10</span>
+                            </div>
+                            <div style="height: 6px; border-radius: 3px; background: #F1EEE6; overflow: hidden;">
+                                <div style="height: 100%; width: 80%; background: #2E7D67; border-radius: 3px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Comment -->
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <span style="font-size: 12px; font-weight: 800; color: #5C6E72;">Nhận xét của AI:</span>
+                        <div id="aiCommentText" style="padding: 10px 12px; border-radius: 12px; background: #F8F6EF; font-size: 13px; line-height: 1.6; color: #24363D;">
+                            Nêu đúng số liệu và so sánh được hai mốc thời gian. Cần thêm câu kết nêu nguyên nhân hoặc xu hướng để đạt điểm trọn vẹn.
+                        </div>
+                    </div>
+
+                    <!-- AI Model Answer -->
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <span style="font-size: 12px; font-weight: 800; color: #1F6B56;">Đáp án chuẩn tham khảo:</span>
+                        <div id="aiModelAnswerText" lang="ko" style="padding: 10px 12px; border-radius: 12px; background: #E3F2EA; font-family: 'Noto Sans KR',sans-serif; font-size: 13px; line-height: 1.7; color: #1F6B56;">
+                            20대의 여가 활동을 조사한 결과, 2016년에는 여행이 30%로 가장 높았으나 2024년에는 운동이 35%로 1위를 차지했다. 반면 독서는 20%에서 9%로 크게 줄었다.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TIPS CARD -->
+                <div style="padding: 18px 20px; border-radius: 20px; background: #E4EEF5; display: flex; flex-direction: column; gap: 8px;">
+                    <span style="font-size: 14px; font-weight: 800; color: #2F5F7D;" id="tipHeader">💡 Mẹo viết câu 53:</span>
+                    <p id="tipContent" style="margin: 0; font-size: 13px; color: #24363D; line-height: 1.6;">
+                        Mở bài nêu chủ đề khảo sát, thân bài so sánh số liệu tăng/giảm, kết bài nêu nguyên nhân hoặc xu hướng. Tuyệt đối dùng đuôi câu <b>-ㄴ/는다</b>.
+                    </p>
+                </div>
+
+            </aside>
+
+        </div>
+
+    </main>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+
+<!-- Modal confirm Submit to Teacher / Mentor -->
+<div id="submitTeacherModal" class="ssak-modal-overlay">
+    <div class="ssak-modal" style="width: 520px;">
+        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #1F6B56;">
+            Gửi bài viết cho Giáo viên chấm ✍️
+        </h3>
+        <p style="margin: 0; font-size: 14px; color: #5C6E72; line-height: 1.6;">
+            Bài làm của bạn sẽ được chuyển đến hàng chờ của đội ngũ Giáo viên TOPIK. Giáo viên sẽ trực tiếp sửa lỗi câu từ, cho điểm tiêu chuẩn và nhận xét chi tiết trong vòng <b>48 giờ</b>.
+        </p>
+
+        <!-- Hidden Form to submit to POST /writing/submit-mentor -->
+        <form th:action="@{/writing/submit-mentor}" method="post" id="formSendTeacher">
+            <input type="hidden" name="questionNo" id="formQNo" value="53">
+            <input type="hidden" name="prompt" id="formPrompt" value="">
+            <input type="hidden" name="answer" id="formAnswer" value="">
+            
+            <div style="padding: 12px 14px; border-radius: 12px; background: #F8F6EF; font-size: 13px; color: #24363D;">
+                <b>Câu nộp:</b> Câu <span id="modalQNum">53</span><br>
+                <b>Số chữ bài viết:</b> <span id="modalWordCount">235</span> chữ
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px;">
+                <button type="button" class="btn-ssak-light" onclick="closeTeacherModal()">Hủy</button>
+                <button type="submit" class="btn-ssak-primary" style="height: 44px; padding: 0 20px;">
+                    Xác nhận gửi Giáo viên
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const QUESTIONS_DATA = {
+        51: {
+            title: 'CÂU 51 · VĂN BẢN THỰC DỤNG',
+            points: '10 điểm',
+            max: 10,
+            aiScore: 8,
+            instr: 'Điền vào ㉠ và ㉡, mỗi chỗ một câu phù hợp.',
+            prompt: '[안내] 동아리 모임 안내 · 다음 주 금요일에 신입 회원 환영회가 있습니다. 참석하실 분은 목요일까지 (㉠). 신청한 분만 (㉡). 많은 참여 바랍니다.',
+            isChart: false,
+            isBlank: true,
+            tip: 'Chú ý đuôi câu trang trọng -(으)십시오 / -습니다 đúng kiểu văn bản thông báo.',
+            model: '㉠ 저에게 연락해 주십시오 · ㉡ 참석하실 수 있습니다',
+            comment: 'Hai câu đúng ý của văn bản thông báo. Chỗ ㉠ nên dùng đuôi trang trọng -(으)십시오 thay cho -아/어 주세요.'
+        },
+        52: {
+            title: 'CÂU 52 · ĐOẠN GIẢI THÍCH',
+            points: '10 điểm',
+            max: 10,
+            aiScore: 7,
+            instr: 'Điền vào ㉠ và ㉡, mỗi chỗ một câu phù hợp.',
+            prompt: '사람들은 보통 스트레스를 받으면 단 음식을 찾는다. 단 음식을 먹으면 (㉠). 그러나 단 음식을 너무 많이 먹으면 오히려 건강에 (㉡).',
+            isChart: false,
+            isBlank: true,
+            tip: 'Câu sau 그러나 thường đối lập với câu trước; giữ văn phong -다 của đoạn văn giải thích.',
+            model: '㉠ 기분이 좋아지기 때문이다 · ㉡ 좋지 않을 수 있다',
+            comment: 'Chỗ ㉠ đúng ý nhưng thiếu 때문이다 để nêu lý do; chỗ ㉡ cần giữ văn phong -다 của đoạn văn.'
+        },
+        53: {
+            title: 'CÂU 53 · MÔ TẢ BIỂU ĐỒ',
+            points: '30 điểm',
+            max: 30,
+            aiScore: 24,
+            instr: 'Dựa vào biểu đồ, viết đoạn văn 200–300 ký tự. Không viết tiêu đề.',
+            prompt: '다음은 \'20대의 여가 활동\'에 대한 조사 결과이다. 이 내용을 200~300자의 글로 쓰시오.',
+            isChart: true,
+            isBlank: false,
+            minWord: 200,
+            maxWord: 300,
+            tip: 'Mở bài nêu chủ đề khảo sát, thân bài so sánh số liệu tăng/giảm, kết bài nêu nguyên nhân hoặc xu hướng. Tuyệt đối dùng đuôi câu -ㄴ/는다.',
+            model: '20대의 여가 활동을 조사한 결과, 2016년에는 여행이 30%로 가장 높았으나 2024년에는 운동이 35%로 1위를 차지했다. 반면 독서는 20%에서 9%로 크게 줄었다. 이는 건강에 대한 관심이 높아졌기 때문인 것으로 보인다.',
+            comment: 'Nêu đúng số liệu và so sánh được hai năm. Cần thêm câu kết nêu nguyên nhân hoặc xu hướng và đa dạng cách diễn đạt khi so sánh.'
+        },
+        54: {
+            title: 'CÂU 54 · NGHỊ LUẬN XÃ HỘI',
+            points: '50 điểm',
+            max: 50,
+            aiScore: 36,
+            instr: 'Viết bài 600–700 ký tự theo các ý gợi ý. Không chép lại đề.',
+            prompt: '최근 온라인 수업이 늘고 있다. 온라인 수업의 장점과 단점은 무엇인가? 효과적인 온라인 수업을 위해 필요한 것은 무엇인가? 이에 대한 자신의 생각을 쓰시오.',
+            isChart: false,
+            isBlank: false,
+            minWord: 600,
+            maxWord: 700,
+            tip: 'Chia 3 đoạn rõ ràng: mở bài nêu bối cảnh, thân bài phân tích 2 mặt vấn đề, kết bài đề xuất giải pháp. Dùng văn phong -다, tránh dùng -아/어요.',
+            model: '현대 사회에서 정보 통신 기술의 발달로 온라인 수업이 급증하고 있다. 장점으로는 시공간 제약 없는 학습과 반복 학습이 가능하다는 점이다. 그러나 집중력 저하와 상호작용 부족이 단점이다. 따라서 자기주도 학습 역량을 강화하고 능동적 소통 시스템을 구축해야 한다.',
+            comment: 'Bố cục 3 đoạn hoàn chỉnh, nêu đủ các luận điểm theo yêu cầu đề bài. Đuôi câu -ㄴ/는다 chuẩn mực.'
+        }
+    };
+
+    let currentQ = 53;
+
+    function selectQuestion(qNo) {
+        currentQ = qNo;
+        const q = QUESTIONS_DATA[qNo];
+        if (!q) return;
+
+        // Update Tab styles
+        [51, 52, 53, 54].forEach(n => {
+            const btn = document.getElementById('tabQ' + n);
+            if (n === qNo) {
+                btn.style.background = '#24363D';
+                btn.style.color = '#FFFFFF';
+                btn.style.borderColor = '#24363D';
+            } else {
+                btn.style.background = '#FFFFFF';
+                btn.style.color = '#24363D';
+                btn.style.borderColor = '#E6E1D3';
+            }
+        });
+
+        // Prompt Info
+        document.getElementById('promptHeader').textContent = q.title;
+        document.getElementById('promptPoints').textContent = q.points;
+        document.getElementById('promptInstr').textContent = q.instr;
+        document.getElementById('promptText').textContent = q.prompt;
+
+        // Chart toggle
+        document.getElementById('chartContainer').style.display = q.isChart ? 'block' : 'none';
+
+        // Editor layout toggle
+        if (q.isBlank) {
+            document.getElementById('blankInputsArea').style.display = 'flex';
+            document.getElementById('longTextArea').style.display = 'none';
+        } else {
+            document.getElementById('blankInputsArea').style.display = 'none';
+            document.getElementById('longTextArea').style.display = 'flex';
+            updateCharCount();
+        }
+
+        // Tips & AI
+        document.getElementById('tipHeader').textContent = '💡 Mẹo viết câu ' + qNo + ':';
+        document.getElementById('tipContent').textContent = q.tip;
+        document.getElementById('aiScoreNumber').textContent = q.aiScore;
+        document.getElementById('aiMaxNumber').textContent = '/ ' + q.max;
+        document.getElementById('aiCommentText').textContent = q.comment;
+        document.getElementById('aiModelAnswerText').textContent = q.model;
+    }
+
+    function updateCharCount() {
+        const text = document.getElementById('essayInput').value || '';
+        const cnt = text.trim().length;
+        const q = QUESTIONS_DATA[currentQ];
+        if (q && q.minWord) {
+            document.getElementById('charCountLabel').textContent = cnt + ' / ' + q.minWord + '–' + q.maxWord + ' ký tự';
+            const note = document.getElementById('charCountNote');
+            if (cnt < q.minWord) {
+                note.textContent = 'Nên viết thêm khoảng ' + (q.minWord - cnt) + ' ký tự';
+                note.style.color = '#7A5A12';
+            } else if (cnt > q.maxWord) {
+                note.textContent = 'Dài hơn yêu cầu ' + (cnt - q.maxWord) + ' ký tự';
+                note.style.color = '#7A5A12';
+            } else {
+                note.textContent = 'Độ dài vừa đủ';
+                note.style.color = '#1F6B56';
+            }
+        }
+    }
+
+    function updateBlankAnswer() {
+        // Keeps blank answers updated
+    }
+
+    function runInstantAiGrading() {
+        showSsakToast('AI đã hoàn tất đọc và chấm điểm bài viết của bạn! (+5 Xu)');
+        const card = document.getElementById('aiResultCard');
+        if (card) {
+            card.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
+    function submitToTeacherModal() {
+        let answerText = '';
+        const q = QUESTIONS_DATA[currentQ];
+        if (q.isBlank) {
+            const a = document.getElementById('blankAnsA').value.trim();
+            const b = document.getElementById('blankAnsB').value.trim();
+            if (!a && !b) {
+                alert('Vui lòng điền câu trả lời cho chỗ trống trước khi nộp.');
+                return;
+            }
+            answerText = '㉠ ' + a + '\n㉡ ' + b;
+        } else {
+            answerText = document.getElementById('essayInput').value.trim();
+            if (answerText.length < 10) {
+                alert('Vui lòng viết bài đầy đủ trước khi gửi Giáo viên chấm.');
+                return;
+            }
+        }
+
+        document.getElementById('formQNo').value = currentQ;
+        document.getElementById('formPrompt').value = q.prompt;
+        document.getElementById('formAnswer').value = answerText;
+        document.getElementById('modalQNum').textContent = currentQ;
+        document.getElementById('modalWordCount').textContent = answerText.length;
+
+        const m = document.getElementById('submitTeacherModal');
+        if (m) m.classList.add('show');
+    }
+
+    function closeTeacherModal() {
+        const m = document.getElementById('submitTeacherModal');
+        if (m) m.classList.remove('show');
+    }
+
+    // Set initial
+    document.addEventListener('DOMContentLoaded', function() {
+        const initQ = /*[[${currentQuestion}]]*/ 53;
+        selectQuestion(initQ);
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,770 @@
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Noto+Sans+KR:wght@400;500;700;900&family=Nunito:wght@400;600;700;800;900&display=swap');
+@import url('variables.css');
+
+/* =====================================================================
+   GLOBAL & RESET
+   ===================================================================== */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--ssak-bg);
+  color: var(--ssak-text-main);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  color: var(--ssak-text-main);
+}
+
+.korean-text {
+  font-family: var(--font-korean);
+}
+
+a {
+  color: var(--ssak-primary);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+a:hover {
+  color: var(--ssak-primary-hover);
+}
+
+/* =====================================================================
+   BUTTONS (Bé Ssak Style)
+   ===================================================================== */
+.btn-ssak-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 52px;
+  padding: 0 28px;
+  border-radius: var(--radius-md);
+  background-color: var(--ssak-primary);
+  color: #FFFFFF !important;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 16px;
+  border: 0;
+  cursor: pointer;
+  box-shadow: var(--btn-press-shadow);
+  transition: transform 0.1s ease, background-color 0.15s ease, box-shadow 0.1s ease;
+}
+
+.btn-ssak-primary:hover {
+  background-color: var(--ssak-primary-hover);
+  color: #FFFFFF !important;
+}
+
+.btn-ssak-primary:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--ssak-primary-border);
+}
+
+.btn-ssak-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 50px;
+  padding: 0 24px;
+  border-radius: var(--radius-md);
+  background-color: #FFFFFF;
+  color: var(--ssak-text-main) !important;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 16px;
+  border: 2px solid var(--ssak-text-main);
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.btn-ssak-outline:hover {
+  background-color: var(--ssak-bg-muted);
+}
+
+.btn-ssak-dark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 52px;
+  padding: 0 26px;
+  border-radius: var(--radius-md);
+  background-color: var(--ssak-text-main);
+  color: #FFFFFF !important;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 16px;
+  border: 0;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.btn-ssak-dark:hover {
+  opacity: 0.9;
+}
+
+.btn-ssak-light {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius-md);
+  background-color: var(--ssak-bg-muted);
+  color: var(--ssak-text-main) !important;
+  border: 2px solid var(--ssak-border);
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-ssak-light:hover {
+  background-color: #EAE6DB;
+}
+
+.btn-ssak-link {
+  background: transparent;
+  border: 0;
+  color: var(--ssak-primary-dark);
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-ssak-sm {
+  height: 38px;
+  padding: 0 16px;
+  font-size: 14px;
+  border-radius: var(--radius-sm);
+}
+
+/* =====================================================================
+   CARDS & CONTAINERS
+   ===================================================================== */
+.ssak-card {
+  background-color: var(--ssak-bg-card);
+  border: 2px solid var(--ssak-border);
+  border-radius: var(--radius-xl);
+  padding: 28px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.ssak-card-hover:hover {
+  border-color: var(--ssak-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.ssak-card-soft {
+  background-color: var(--ssak-bg-muted);
+  border: 2px solid var(--ssak-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+/* =====================================================================
+   BADGES & CHIPS (Pills)
+   ===================================================================== */
+.ssak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.badge-mint {
+  background-color: var(--ssak-primary-light);
+  color: var(--ssak-primary-dark);
+}
+
+.badge-sky {
+  background-color: var(--ssak-sky);
+  color: var(--ssak-sky-text);
+}
+
+.badge-honey {
+  background-color: var(--ssak-honey-light);
+  color: var(--ssak-honey-text);
+}
+
+.badge-honey-outline {
+  background-color: var(--ssak-honey-light);
+  color: var(--ssak-honey-text);
+  border: 2px dashed var(--ssak-honey);
+}
+
+.badge-peach {
+  background-color: var(--ssak-peach);
+  color: var(--ssak-terracotta);
+}
+
+.badge-dark {
+  background-color: var(--ssak-text-main);
+  color: #FFFFFF;
+}
+
+.badge-primary {
+  background-color: var(--ssak-primary);
+  color: #FFFFFF;
+}
+
+/* =====================================================================
+   NAVBAR & TOPBAR (TopBarV2)
+   ===================================================================== */
+.ssak-topbar {
+  width: 100%;
+  height: 60px;
+  background-color: #FFFFFF;
+  border-bottom: 1.5px solid var(--ssak-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(14px, 2vw, 30px);
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+.ssak-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--ssak-text-main);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ssak-logo-text {
+  font-family: var(--font-heading);
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: -0.2px;
+  color: var(--ssak-text-main);
+  white-space: nowrap;
+}
+
+.ssak-nav-menu {
+  display: flex;
+  gap: 4px;
+  flex-grow: 1;
+  align-items: center;
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.ssak-nav-menu::-webkit-scrollbar {
+  display: none;
+}
+
+.ssak-nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ssak-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.ssak-nav-item i {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.ssak-nav-item:hover {
+  background-color: #F4FAF7;
+  color: var(--ssak-primary);
+}
+
+.ssak-nav-item.active {
+  background-color: var(--ssak-primary-light);
+  color: var(--ssak-primary-dark);
+  font-weight: 800;
+}
+
+.ssak-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.ssak-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  font-weight: 800;
+  font-size: 12.5px;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ssak-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  border: 0;
+  background-color: var(--ssak-bg-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+
+.ssak-icon-btn:hover {
+  background-color: #E6E1D3;
+}
+
+.ssak-bell-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 3px;
+  border-radius: 9px;
+  background-color: var(--ssak-primary);
+  color: #FFFFFF;
+  font-size: 10.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* User Profile Badge (Clickable link directly to /ho-so) */
+.ssak-avatar-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 4px 0 12px;
+  border-radius: var(--radius-pill);
+  background-color: var(--ssak-primary-light);
+  color: var(--ssak-primary-dark);
+  font-weight: 800;
+  font-size: 13px;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border: 1.5px solid transparent;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.ssak-avatar-badge:hover {
+  background-color: #D6EFE3;
+  border-color: #96D3B6;
+  color: #154A3A;
+}
+
+.ssak-user-name {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  font-weight: 800;
+  color: inherit;
+}
+
+.ssak-avatar-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  background-color: var(--ssak-primary);
+  color: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.ssak-user-caret-btn {
+  width: 20px;
+  height: 34px;
+  border: 0;
+  background: transparent;
+  color: var(--ssak-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.ssak-user-caret-btn:hover {
+  color: var(--ssak-text-main);
+  background-color: var(--ssak-bg);
+}
+
+.ssak-user-drop-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--ssak-text-main);
+  font-size: 13px;
+  font-weight: 700;
+  transition: background-color 0.15s ease;
+}
+
+.ssak-user-drop-item:hover {
+  background-color: var(--ssak-bg);
+  color: var(--ssak-primary);
+}
+
+/* =====================================================================
+   DROPDOWN & NOTIFICATIONS
+   ===================================================================== */
+.ssak-dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: 46px;
+  width: 320px;
+  z-index: 1050;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  background-color: #FFFFFF;
+  border: 1.5px solid var(--ssak-border);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  display: none;
+}
+
+.ssak-dropdown-menu.show {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ssak-notification-item {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--ssak-text-main);
+  background-color: #FFFFFF;
+  transition: background-color 0.15s ease;
+}
+
+.ssak-notification-item.unread {
+  background-color: #F3FAF6;
+}
+
+.ssak-notification-item:hover {
+  background-color: var(--ssak-primary-light);
+}
+
+/* =====================================================================
+   PRACTICE & TEST TAKING (LamBaiV2)
+   ===================================================================== */
+.option-btn {
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 20px;
+  border-radius: var(--radius-lg);
+  background-color: #FFFFFF;
+  border: 2px solid var(--ssak-border);
+  color: var(--ssak-text-main);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-align: left;
+  font-family: var(--font-korean);
+  font-size: 19px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.option-btn:hover {
+  border-color: var(--ssak-primary);
+  background-color: #F3FAF6;
+}
+
+.option-btn.selected {
+  border-color: var(--ssak-primary);
+  background-color: var(--ssak-primary-light);
+  box-shadow: 0 0 0 1px var(--ssak-primary);
+}
+
+.option-btn.correct {
+  border-color: var(--ssak-primary);
+  background-color: #E3F2EA;
+}
+
+.option-btn.wrong {
+  border-color: var(--ssak-terracotta);
+  background-color: var(--ssak-peach);
+}
+
+.option-marker {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 18px;
+  background-color: var(--ssak-bg-muted);
+  color: var(--ssak-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 800;
+  transition: all 0.15s ease;
+}
+
+.option-btn.selected .option-marker {
+  background-color: var(--ssak-primary);
+  color: #FFFFFF;
+}
+
+.option-btn.correct .option-marker {
+  background-color: var(--ssak-primary);
+  color: #FFFFFF;
+}
+
+.option-btn.wrong .option-marker {
+  background-color: var(--ssak-terracotta);
+  color: #FFFFFF;
+}
+
+/* Question Palette in Practice */
+.palette-btn {
+  height: 48px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--ssak-border);
+  background-color: #FFFFFF;
+  color: var(--ssak-text-main);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.palette-btn:hover {
+  border-color: var(--ssak-primary);
+}
+
+.palette-btn.active {
+  box-shadow: 0 0 0 3px #1F6B56;
+}
+
+.palette-btn.answered {
+  background-color: var(--ssak-primary);
+  color: #FFFFFF;
+  border-color: var(--ssak-primary);
+}
+
+.palette-btn.flagged {
+  border: 3px solid var(--ssak-honey);
+  background-color: var(--ssak-honey-light);
+  color: var(--ssak-honey-text);
+}
+
+/* Audio Player Bar */
+.audio-player-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  border-radius: var(--radius-lg);
+  background-color: var(--ssak-sky);
+}
+
+.audio-play-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 26px;
+  border: 0;
+  background-color: var(--ssak-sky-text);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.audio-play-btn:hover {
+  transform: scale(1.05);
+}
+
+/* =====================================================================
+   FLASHCARDS (TuVungV2)
+   ===================================================================== */
+.flashcard-wrapper {
+  perspective: 1000px;
+  width: 100%;
+  max-width: 540px;
+  height: 340px;
+  margin: 0 auto;
+}
+
+.flashcard-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+  transform-style: preserve-3d;
+  cursor: pointer;
+}
+
+.flashcard-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.flashcard-front, .flashcard-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: var(--radius-xl);
+  border: 2px solid var(--ssak-border);
+  background-color: #FFFFFF;
+  padding: 36px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: var(--shadow-md);
+}
+
+.flashcard-back {
+  transform: rotateY(180deg);
+  background-color: #FAFAF7;
+}
+
+/* =====================================================================
+   MODALS
+   ===================================================================== */
+.ssak-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(36, 54, 61, 0.45);
+  backdrop-filter: blur(2px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.ssak-modal-overlay.show {
+  display: flex;
+}
+
+.ssak-modal {
+  width: 100%;
+  max-width: 520px;
+  background-color: #FFFFFF;
+  border-radius: var(--radius-xl);
+  padding: 32px;
+  border: 2px solid var(--ssak-border);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: modalPop 0.2s ease-out;
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* =====================================================================
+   FORM CONTROLS
+   ===================================================================== */
+.ssak-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--ssak-border);
+  font-family: inherit;
+  font-size: 16px;
+  background-color: #FFFFFF;
+  color: var(--ssak-text-main);
+  transition: border-color 0.15s ease;
+}
+
+.ssak-input:focus {
+  outline: none;
+  border-color: var(--ssak-primary);
+  box-shadow: 0 0 0 3px var(--ssak-primary-light);
+}
+
+.ssak-input.error {
+  border-color: var(--ssak-terracotta);
+}
+
+.ssak-input-error-msg {
+  font-size: 13px;
+  color: var(--ssak-terracotta);
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+/* =====================================================================
+   FOOTER
+   ===================================================================== */
+.ssak-footer {
+  background-color: #FFFFFF;
+  border-top: 2px solid var(--ssak-border);
+  padding: 48px 80px 32px;
+  margin-top: 64px;
+}

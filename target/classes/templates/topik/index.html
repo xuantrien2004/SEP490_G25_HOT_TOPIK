@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Về TOPIK · Cẩm nang kỳ thi tiếng Hàn toàn diện')}"></head>
+<body style="background: var(--ssak-bg); color: var(--ssak-text-main); font-family: var(--font-body);">
+
+<!-- Navbar -->
+<div th:replace="~{fragments/navbar :: navbar('topik')}"></div>
+
+<main class="container my-4" style="max-width: 1200px;">
+    <!-- Banner: "Hiểu kỳ thi trước khi luyện" có Bé Ssak theo mục 15.5 -->
+    <div class="p-4 p-md-5 rounded-5 mb-4 position-relative overflow-hidden shadow-sm border" 
+         style="background: linear-gradient(135deg, #E3F2EA 0%, #E4EEF5 100%); border-color: var(--ssak-primary-border) !important;">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <span class="ssak-badge badge-mint px-3 py-1 mb-2">CẨM NANG CHÍNH THỨC</span>
+                <h1 style="font-family: var(--font-heading); font-size: clamp(28px, 4vw, 42px); font-weight: 800; color: var(--ssak-text-main);">
+                    Hiểu kỳ thi trước khi luyện
+                </h1>
+                <p class="lead text-muted mt-2 mb-0" style="font-size: 17px; line-height: 1.6;">
+                    Nắm rõ cấu trúc đề, tiêu chuẩn quy đổi điểm của Viện Giáo dục Quốc tế Quốc gia Hàn Quốc (NIIED) và những chiến thuật làm bài thực chiến từ các thủ khoa TOPIK 6.
+                </p>
+            </div>
+            <div class="col-md-4 text-center mt-3 mt-md-0">
+                <div th:replace="~{fragments/ssak :: mascot('think', 'young', 180, 'Bé Ssak nghiên cứu')}"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3 Ô chọn ngang hàng cùng kích thước: Bài thi TOPIK · Các cấp độ · Tips & kinh nghiệm -->
+    <div class="row g-3 mb-4" id="topikTabs">
+        <div class="col-md-4">
+            <button class="w-100 p-3 rounded-4 border-2 text-center bg-white shadow-sm transition-all topik-tab-btn active-tab" 
+                    id="tabBtnExam" onclick="switchTopikTab('exam')"
+                    style="border: 2px solid var(--ssak-primary); background: var(--ssak-primary-light) !important;">
+                <i class="bi bi-journal-text fs-4 d-block mb-1 text-success" style="color: var(--ssak-primary) !important;"></i>
+                <span class="fw-bold fs-5">1. Bài thi TOPIK</span>
+                <small class="d-block text-muted">Cấu trúc, hình thức, đăng ký & lưu ý</small>
+            </button>
+        </div>
+        <div class="col-md-4">
+            <button class="w-100 p-3 rounded-4 border-2 text-center bg-white shadow-sm transition-all topik-tab-btn" 
+                    id="tabBtnLevels" onclick="switchTopikTab('levels')"
+                    style="border: 2px solid var(--ssak-border);">
+                <i class="bi bi-bar-chart-steps fs-4 d-block mb-1 text-primary"></i>
+                <span class="fw-bold fs-5">2. Các cấp độ (1–6)</span>
+                <small class="d-block text-muted">Thang điểm & chuẩn năng lực từng cấp</small>
+            </button>
+        </div>
+        <div class="col-md-4">
+            <button class="w-100 p-3 rounded-4 border-2 text-center bg-white shadow-sm transition-all topik-tab-btn" 
+                    id="tabBtnTips" onclick="switchTopikTab('tips')"
+                    style="border: 2px solid var(--ssak-border);">
+                <i class="bi bi-lightbulb fs-4 d-block mb-1 text-warning"></i>
+                <span class="fw-bold fs-5">3. Tips & Kinh nghiệm</span>
+                <small class="d-block text-muted">Chiến lược trước, trong và khi làm bài</small>
+            </button>
+        </div>
+    </div>
+
+    <!-- NỘI DUNG 1: BÀI THI TOPIK (4 mục đánh số + Cột phải mục lục) -->
+    <div id="contentExam" class="tab-content-pane">
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="p-4 p-md-5 rounded-4 bg-white border shadow-sm d-flex flex-column gap-5">
+                    
+                    <!-- Mục 1: TOPIK là gì -->
+                    <section id="muc1">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <span class="badge rounded-circle bg-success p-2 px-3 fs-5" style="background: var(--ssak-primary) !important;">1</span>
+                            <h2 style="font-family: var(--font-heading); font-size: 26px; font-weight: 800; margin: 0;">TOPIK là gì?</h2>
+                        </div>
+                        <p style="line-height: 1.7; font-size: 16px;">
+                            <strong>TOPIK (Test of Proficiency in Korean - 한국어능력시험)</strong> là kỳ thi đánh giá năng lực tiếng Hàn do Viện Giáo dục Quốc tế Quốc gia Hàn Quốc (NIIED) trực thuộc Bộ Giáo dục Hàn Quốc tổ chức hàng năm trên toàn cầu.
+                        </p>
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-6">
+                                <div class="p-3 rounded-3" style="background: var(--ssak-bg); border-left: 4px solid var(--ssak-primary);">
+                                    <h5 class="fw-bold text-success mb-1" style="color: var(--ssak-primary) !important;">TOPIK I (Sơ cấp · Cấp 1–2)</h5>
+                                    <ul class="mb-0 ps-3 small text-muted">
+                                        <li>Kỹ năng: <strong>Nghe (30 câu)</strong> + <strong>Đọc (40 câu)</strong></li>
+                                        <li>Thời gian: <strong>100 phút liên tục</strong></li>
+                                        <li>Thang điểm tối đa: <strong>200 điểm</strong></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 rounded-3" style="background: var(--ssak-bg); border-left: 4px solid #2F5F7D;">
+                                    <h5 class="fw-bold mb-1" style="color: #2F5F7D;">TOPIK II (Trung–Cao cấp · Cấp 3–6)</h5>
+                                    <ul class="mb-0 ps-3 small text-muted">
+                                        <li>Kỹ năng: <strong>Nghe (50 câu)</strong> + <strong>Viết (4 câu)</strong> + <strong>Đọc (50 câu)</strong></li>
+                                        <li>Thời gian: <strong>180 phút</strong> (2 tiết, nghỉ 30 phút giữa giờ)</li>
+                                        <li>Thang điểm tối đa: <strong>300 điểm</strong></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="alert alert-light border mt-3 small text-muted">
+                            <i class="bi bi-info-circle me-1"></i> Chứng chỉ TOPIK có giá trị hiệu lực trong vòng <strong>2 năm</strong> kể từ ngày công bố điểm. Hiện tại đã có thêm hình thức thi trên máy tính (TOPIK IBT).
+                        </div>
+                    </section>
+
+                    <!-- Mục 2: Ý nghĩa của kỳ thi -->
+                    <section id="muc2" class="border-top pt-4">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <span class="badge rounded-circle bg-success p-2 px-3 fs-5" style="background: var(--ssak-primary) !important;">2</span>
+                            <h2 style="font-family: var(--font-heading); font-size: 26px; font-weight: 800; margin: 0;">Ý nghĩa & Giá trị sử dụng</h2>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <div class="p-3 border rounded-3 h-100">
+                                    <div class="fw-bold mb-1"><i class="bi bi-mortarboard text-success me-2"></i>Du học Hàn Quốc</div>
+                                    <small class="text-muted">TOPIK 2–3 cho hệ học tiếng, TOPIK 3–4 cho đại học, TOPIK 4–5 cho cao học & xin học bổng chính phủ GKS.</small>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="p-3 border rounded-3 h-100">
+                                    <div class="fw-bold mb-1"><i class="bi bi-briefcase text-primary me-2"></i>Việc làm & Thăng tiến</div>
+                                    <small class="text-muted">Ưu tiên tuyển dụng tại các tập đoàn Hàn Quốc (Samsung, LG, Hyundai, Lotte, CJ) với mức phụ cấp ngoại ngữ hấp dẫn.</small>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="p-3 border rounded-3 h-100">
+                                    <div class="fw-bold mb-1"><i class="bi bi-pass text-warning me-2"></i>Visa & Cư trú</div>
+                                    <small class="text-muted">Tính điểm chuyển đổi visa chuyên gia E-7, visa cư trú F-2-7 hoặc visa định cư vĩnh viễn F-5.</small>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="p-3 border rounded-3 h-100">
+                                    <div class="fw-bold mb-1"><i class="bi bi-patch-check text-info me-2"></i>Đo lường năng lực chuẩn</div>
+                                    <small class="text-muted">Tiêu chuẩn quốc tế khách quan nhất để chứng minh khả năng sử dụng tiếng Hàn thực tế.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Mục 3: Cách đăng ký -->
+                    <section id="muc3" class="border-top pt-4">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <span class="badge rounded-circle bg-success p-2 px-3 fs-5" style="background: var(--ssak-primary) !important;">3</span>
+                            <h2 style="font-family: var(--font-heading); font-size: 26px; font-weight: 800; margin: 0;">Quy trình 4 bước đăng ký dự thi</h2>
+                        </div>
+                        <div class="d-flex flex-column gap-3">
+                            <div class="d-flex gap-3 align-items-start">
+                                <span class="badge bg-light text-dark border p-2">Bước 1</span>
+                                <div>
+                                    <strong>Xem lịch thi & Thông báo:</strong> Theo dõi cổng đăng ký chính thức (topik.iigvietnam.com hoặc tại Hàn topik.go.kr) trước kỳ thi 2–3 tháng.
+                                </div>
+                            </div>
+                            <div class="d-flex gap-3 align-items-start">
+                                <span class="badge bg-light text-dark border p-2">Bước 2</span>
+                                <div>
+                                    <strong>Chuẩn bị hồ sơ:</strong> File ảnh thẻ 3x4 chuẩn quốc tế nền trắng, ảnh chụp CCCD/Hộ chiếu rõ nét, sẵn thẻ ngân hàng thanh toán online.
+                                </div>
+                            </div>
+                            <div class="d-flex gap-3 align-items-start">
+                                <span class="badge bg-light text-dark border p-2">Bước 3</span>
+                                <div>
+                                    <strong>Đăng ký & Nộp lệ phí:</strong> Đăng nhập đúng giờ mở cổng, điền thông tin và chuyển khoản/quét QR thanh toán lệ phí thi trong thời gian quy định.
+                                </div>
+                            </div>
+                            <div class="d-flex gap-3 align-items-start">
+                                <span class="badge bg-light text-dark border p-2">Bước 4</span>
+                                <div>
+                                    <strong>In phiếu dự thi (수험표):</strong> Trước ngày thi 1–2 tuần, in phiếu báo danh để mang theo vào phòng thi cùng giấy tờ tùy thân gốc.
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Mục 4: Lưu ý khi đi thi -->
+                    <section id="muc4" class="border-top pt-4">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <span class="badge rounded-circle bg-success p-2 px-3 fs-5" style="background: var(--ssak-primary) !important;">4</span>
+                            <h2 style="font-family: var(--font-heading); font-size: 26px; font-weight: 800; margin: 0;">Lưu ý quan trọng ngày thi</h2>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <div class="p-3 rounded-3" style="background: var(--ssak-peach); color: var(--ssak-terracotta);">
+                                    <h6 class="fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i>BẮT BUỘC MANG THEO</h6>
+                                    <ul class="mb-0 ps-3 small">
+                                        <li>CCCD / Hộ chiếu bản gốc còn hạn</li>
+                                        <li>Phiếu báo danh (수험표) in giấy</li>
+                                        <li>Bút xóa kéo (bút viết do hội đồng phát)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="p-3 rounded-3" style="background: #F1EEE6;">
+                                    <h6 class="fw-bold text-dark"><i class="bi bi-clock-history me-1"></i>QUY CHẾ PHÒNG THI</h6>
+                                    <ul class="mb-0 ps-3 small text-muted">
+                                        <li>Có mặt trước giờ thi ít nhất 40 phút</li>
+                                        <li>Tắt nguồn & nộp toàn bộ thiết bị điện tử</li>
+                                        <li>Dùng đầu to tô trắc nghiệm, đầu nhỏ viết luận</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Cột phải: Mục lục cuộn & Lối sang kiểm tra trình độ / Đề thi -->
+            <div class="col-lg-4">
+                <div class="p-4 rounded-4 bg-white border shadow-sm sticky-top" style="top: 90px;">
+                    <h5 class="fw-bold mb-3" style="font-family: var(--font-heading); font-size: 18px;">Mục lục bài viết</h5>
+                    <nav class="d-flex flex-column gap-2 mb-4 small">
+                        <a href="#muc1" class="text-decoration-none text-muted py-1 border-bottom">1. TOPIK là gì?</a>
+                        <a href="#muc2" class="text-decoration-none text-muted py-1 border-bottom">2. Ý nghĩa & Giá trị sử dụng</a>
+                        <a href="#muc3" class="text-decoration-none text-muted py-1 border-bottom">3. Quy trình đăng ký dự thi</a>
+                        <a href="#muc4" class="text-decoration-none text-muted py-1">4. Lưu ý quan trọng ngày thi</a>
+                    </nav>
+
+                    <div class="p-3 rounded-4 mb-3 text-center" style="background: var(--ssak-primary-light);">
+                        <div th:replace="~{fragments/ssak :: mascot('cheer', 'sprout', 90, 'Bé Ssak')}"></div>
+                        <div class="fw-bold mt-2" style="color: var(--ssak-primary-dark); font-size: 14px;">Chưa rõ mình đang ở cấp mấy?</div>
+                        <a th:href="@{/placement}" class="btn-ssak-primary btn-sm rounded-pill mt-2 px-3 text-decoration-none d-inline-block">
+                            Kiểm tra trình độ 15p
+                        </a>
+                    </div>
+
+                    <a th:href="@{/de-thi}" class="btn-ssak-outline w-100 text-center rounded-pill py-2 text-decoration-none small fw-bold">
+                        <i class="bi bi-file-earmark-check me-1"></i>Xem ngân hàng đề thi thử
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NỘI DUNG 2: CÁC CẤP ĐỘ (Thang điểm & 6 thẻ mô tả năng lực) -->
+    <div id="contentLevels" class="tab-content-pane d-none">
+        <div class="p-4 p-md-5 rounded-4 bg-white border shadow-sm mb-4">
+            <h2 style="font-family: var(--font-heading); font-size: 28px; font-weight: 800;" class="mb-2">Thang điểm chuẩn 6 cấp độ TOPIK</h2>
+            <p class="text-muted mb-4">Chứng chỉ TOPIK được xét dựa trên <strong>tổng điểm đạt được</strong>, không có điểm liệt từng phần thi.</p>
+
+            <div class="row g-4 mb-5">
+                <!-- TOPIK I Band -->
+                <div class="col-md-6">
+                    <div class="p-4 rounded-4 h-100 border" style="background: #E3F2EA;">
+                        <span class="badge bg-success mb-2" style="background: var(--ssak-primary) !important;">TOPIK I · Thang điểm /200</span>
+                        <div class="d-flex justify-content-between align-items-center p-3 rounded-3 bg-white mb-3 shadow-sm">
+                            <div>
+                                <h4 class="fw-bold mb-0 text-success" style="color: var(--ssak-primary) !important;">TOPIK Cấp 1</h4>
+                                <small class="text-muted">Giao tiếp cơ bản hàng ngày</small>
+                            </div>
+                            <span class="fs-4 fw-bold">≥ 80 điểm</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center p-3 rounded-3 bg-white shadow-sm">
+                            <div>
+                                <h4 class="fw-bold mb-0 text-success" style="color: var(--ssak-primary) !important;">TOPIK Cấp 2</h4>
+                                <small class="text-muted">Sinh hoạt, mua sắm, bưu điện, ngân hàng</small>
+                            </div>
+                            <span class="fs-4 fw-bold">≥ 140 điểm</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TOPIK II Band -->
+                <div class="col-md-6">
+                    <div class="p-4 rounded-4 h-100 border" style="background: #E4EEF5;">
+                        <span class="badge bg-primary mb-2" style="background: #2F5F7D !important;">TOPIK II · Thang điểm /300</span>
+                        <div class="d-flex flex-column gap-2">
+                            <div class="d-flex justify-content-between align-items-center p-2 px-3 rounded-3 bg-white shadow-sm">
+                                <div><strong style="color: #2F5F7D;">TOPIK Cấp 3</strong> <small class="text-muted ms-2">Không gặp trở ngại sinh hoạt</small></div>
+                                <span class="fw-bold">≥ 120 điểm</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center p-2 px-3 rounded-3 bg-white shadow-sm">
+                                <div><strong style="color: #2F5F7D;">TOPIK Cấp 4</strong> <small class="text-muted ms-2">Đọc báo, hiểu tin tức thời sự</small></div>
+                                <span class="fw-bold">≥ 150 điểm</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center p-2 px-3 rounded-3 bg-white shadow-sm">
+                                <div><strong style="color: #2F5F7D;">TOPIK Cấp 5</strong> <small class="text-muted ms-2">Nghiên cứu chuyên môn, làm việc</small></div>
+                                <span class="fw-bold">≥ 190 điểm</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center p-2 px-3 rounded-3 bg-white shadow-sm">
+                                <div><strong style="color: #2F5F7D;">TOPIK Cấp 6</strong> <small class="text-muted ms-2">Gần như người bản xứ lưu loát</small></div>
+                                <span class="fw-bold">≥ 230 điểm</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6 Thẻ chi tiết chuẩn năng lực -->
+            <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800;" class="mb-3">Chuẩn năng lực chi tiết từng cấp</h3>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="p-3 rounded-3 border h-100 bg-white shadow-sm">
+                        <div class="fw-bold text-success mb-2" style="color: var(--ssak-primary) !important;">🌱 Cấp 1 (80–139 điểm)</div>
+                        <p class="small text-muted mb-0">Thực hiện các cuộc hội thoại cơ bản liên quan đến bản thân, gia đình, sở thích. Vốn từ vựng khoảng 800 từ và ngữ pháp sơ cấp căn bản.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded-3 border h-100 bg-white shadow-sm">
+                        <div class="fw-bold text-success mb-2" style="color: var(--ssak-primary) !important;">🌿 Cấp 2 (140–200 điểm)</div>
+                        <p class="small text-muted mb-0">Sử dụng tiếng Hàn tại các nơi công cộng (ngân hàng, ga tàu, bệnh viện). Phân biệt được văn phong trang trọng (격식체) và thân mật (비격식체).</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded-3 border h-100 bg-white shadow-sm">
+                        <div class="fw-bold text-primary mb-2" style="color: #2F5F7D !important;">🪴 Cấp 3 (120–149 điểm)</div>
+                        <p class="small text-muted mb-0">Bắt đầu học các thành ngữ, quán dụng ngữ và từ Hán Hàn. Có thể diễn đạt ý kiến cá nhân và giải thích lý do mạch lạc trong công việc đơn giản.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded-3 border h-100 bg-white shadow-sm">
+                        <div class="fw-bold text-primary mb-2" style="color: #2F5F7D !important;">🌸 Cấp 4 (150–189 điểm)</div>
+                        <p class="small text-muted mb-0">Đọc hiểu các bài báo xã hội, nắm bắt thông điệp văn bản trừu tượng. Viết bài giải thích biểu đồ (câu 53) và bài văn nghị luận ngắn.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded-3 border h-100 bg-white shadow-sm">
+                        <div class="fw-bold text-warning mb-2" style="color: #7A5A12 !important;">⭐ Cấp 5 (190–229 điểm)</div>
+                        <p class="small text-muted mb-0">Sử dụng thành thạo tiếng Hàn trong nghiên cứu học thuật, kinh tế, chính trị. Viết bài luận 600–700 chữ (câu 54) chặt chẽ và logic.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded-3 border h-100 bg-white shadow-sm">
+                        <div class="fw-bold text-danger mb-2">👑 Cấp 6 (230–300 điểm)</div>
+                        <p class="small text-muted mb-0">Cấp độ cao nhất. Khả năng ngôn ngữ trôi chảy và chính xác, hiểu sâu sắc các ẩn dụ văn hóa và sắc thái biểu cảm tinh tế trong tiếng Hàn.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NỘI DUNG 3: TIPS & KINH NGHIỆM (3 cột theo giai đoạn) -->
+    <div id="contentTips" class="tab-content-pane d-none">
+        <div class="p-4 p-md-5 rounded-4 bg-white border shadow-sm mb-4">
+            <h2 style="font-family: var(--font-heading); font-size: 28px; font-weight: 800;" class="mb-2">Chiến thuật phòng thi thực chiến</h2>
+            <p class="text-muted mb-4">Những kinh nghiệm đắt giá được đúc kết từ quá trình ôn luyện và thi thực tế.</p>
+
+            <div class="row g-4">
+                <!-- Cột 1: Trước khi ôn -->
+                <div class="col-md-4">
+                    <div class="p-4 rounded-4 border h-100" style="background: #F8F6EF;">
+                        <h4 class="fw-bold mb-3 text-success" style="color: var(--ssak-primary) !important;">
+                            <i class="bi bi-calendar2-check me-2"></i>1. Trước khi ôn thi
+                        </h4>
+                        <ul class="d-flex flex-column gap-3 ps-3 text-muted" style="font-size: 15px; line-height: 1.6;">
+                            <li><strong>Xác định rõ cấp độ mục tiêu:</strong> Chọn thi TOPIK I (nếu mới học) hoặc TOPIK II (nếu đã xong trung cấp). Tránh thi vượt cấp gây nản lòng.</li>
+                            <li><strong>Nắm chắc cấu trúc đề:</strong> Hiểu rõ vị trí các câu hỏi dễ lấy điểm và câu hỏi phân loại thí sinh.</li>
+                            <li><strong>Thiết lập lộ trình theo ngày:</strong> Dành tối thiểu 20–30 phút mỗi ngày duy trì phản xạ thay vì dồn học cả ngày cuối tuần.</li>
+                            <li><strong>Học gốc từ Hán Việt:</strong> Giúp nhân 3 tốc độ nhớ từ vựng tiếng Hàn mà không cần học vẹt.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Cột 2: Trong quá trình ôn -->
+                <div class="col-md-4">
+                    <div class="p-4 rounded-4 border h-100" style="background: #F8F6EF;">
+                        <h4 class="fw-bold mb-3 text-primary" style="color: #2F5F7D !important;">
+                            <i class="bi bi-book-half me-2"></i>2. Trong quá trình ôn
+                        </h4>
+                        <ul class="d-flex flex-column gap-3 ps-3 text-muted" style="font-size: 15px; line-height: 1.6;">
+                            <li><strong>Luyện từng dạng câu:</strong> Đừng vội làm full đề. Hãy làm chủ từng dạng (vd: Đọc 1–4, Nghe 1–3) rồi mới ghép thành bài thi hoàn chỉnh.</li>
+                            <li><strong>Ôn lặp ngắt quãng:</strong> Ôn lại câu sai sau 2 ngày, 7 ngày và 14 ngày để biến kiến thức ngắn hạn thành dài hạn.</li>
+                            <li><strong>Luyện viết biểu đồ (Câu 53):</strong> Câu 53 là mỏ vàng điểm Viết TOPIK II vì có mẫu câu cố định, dễ đạt 25/30 điểm nếu thuộc khung.</li>
+                            <li><strong>Nghe thụ động và chép chính tả:</strong> Bật audio lúc đi lại để quen với tốc độ nói tự nhiên của người Hàn.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Cột 3: Khi làm bài thi -->
+                <div class="col-md-4">
+                    <div class="p-4 rounded-4 border h-100" style="background: #F8F6EF;">
+                        <h4 class="fw-bold mb-3 text-warning" style="color: #7A5A12 !important;">
+                            <i class="bi bi-stopwatch me-2"></i>3. Khi làm bài thi
+                        </h4>
+                        <ul class="d-flex flex-column gap-3 ps-3 text-muted" style="font-size: 15px; line-height: 1.6;">
+                            <li><strong>Đọc trước đáp án khi thi Nghe:</strong> Tận dụng khoảng nghỉ 10–15 giây giữa các câu để đọc lướt từ khóa 4 đáp án câu tiếp theo.</li>
+                            <li><strong>Không dừng lại ở câu khó:</strong> Nếu sau 1 phút chưa tìm ra đáp án câu Đọc, hãy đánh dấu tạm và làm tiếp câu sau ngay.</li>
+                            <li><strong>Tô đáp án trực tiếp vào phiếu:</strong> Tuyệt đối không chờ làm hết mới tô vào phiếu trả lời vì rất dễ bị thu bài bất ngờ.</li>
+                            <li><strong>Tuân thủ quy tắc ô vuông 원고지:</strong> Viết đúng quy tắc số, dấu câu và xuống dòng ở câu Viết 53 và 54 để không bị trừ điểm hình thức.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-5">
+                <a th:href="@{/lo-trinh}" class="btn-ssak-primary px-5 py-3 rounded-pill fw-bold text-decoration-none">
+                    Xem Lộ trình ôn thi của bạn
+                </a>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    function switchTopikTab(tab) {
+        document.querySelectorAll('.topik-tab-btn').forEach(b => {
+            b.style.borderColor = 'var(--ssak-border)';
+            b.style.background = '#FFFFFF';
+        });
+        document.querySelectorAll('.tab-content-pane').forEach(c => c.classList.add('d-none'));
+
+        if(tab === 'exam') {
+            document.getElementById('tabBtnExam').style.borderColor = 'var(--ssak-primary)';
+            document.getElementById('tabBtnExam').style.background = 'var(--ssak-primary-light)';
+            document.getElementById('contentExam').classList.remove('d-none');
+        } else if(tab === 'levels') {
+            document.getElementById('tabBtnLevels').style.borderColor = '#2F5F7D';
+            document.getElementById('tabBtnLevels').style.background = '#E4EEF5';
+            document.getElementById('contentLevels').classList.remove('d-none');
+        } else if(tab === 'tips') {
+            document.getElementById('tabBtnTips').style.borderColor = '#F4C45A';
+            document.getElementById('tabBtnTips').style.background = '#FBF0D3';
+            document.getElementById('contentTips').classList.remove('d-none');
+        }
+    }
+</script>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

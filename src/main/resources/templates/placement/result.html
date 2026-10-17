@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Báo cáo kết quả kiểm tra trình độ · HOT TOPIK')}"></head>
+<body style="background: var(--ssak-bg); color: var(--ssak-text-main); font-family: var(--font-body); min-height: 100vh;">
+
+<header class="py-3 px-4 bg-white border-bottom shadow-sm">
+    <div class="d-flex justify-content-between align-items-center" style="max-width: 1140px; margin: 0 auto; width: 100%;">
+        <a th:href="@{/}" class="d-flex align-items-center gap-2 text-decoration-none">
+            <div th:replace="~{fragments/ssak :: mascot('happy', 'sprout', 36, 'Bé Ssak')}"></div>
+            <span style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: var(--ssak-primary);">HOT TOPIK</span>
+        </a>
+        <span class="badge rounded-pill bg-light text-muted border px-3 py-2">Kết quả đánh giá năng lực đầu vào</span>
+    </div>
+</header>
+
+<main class="container my-5" style="max-width: 980px;">
+    <!-- Thẻ kết quả cấp độ và điểm quy đổi theo mục 4.4 -->
+    <div class="p-4 p-md-5 rounded-5 bg-white border shadow-sm mb-4" style="border-color: var(--ssak-primary-border) !important;">
+        <div class="row align-items-center g-4">
+            <div class="col-md-8">
+                <span class="ssak-badge badge-mint px-3 py-1 mb-2">ĐỀ XUẤT CHÍNH THỨC</span>
+                <h1 style="font-family: var(--font-heading); font-size: clamp(30px, 4vw, 44px); font-weight: 800; color: var(--ssak-text-main);" class="mb-2">
+                    Bạn đang ở <span style="color: var(--ssak-primary);">TOPIK Cấp 3</span>
+                </h1>
+                <p class="text-muted lead mb-4" style="font-size: 17px;">
+                    Điểm quy đổi tương đương: <strong class="text-dark">138 / 300 điểm</strong> (Thang điểm TOPIK II).<br>
+                    Bạn chỉ còn cách ngưỡng <strong>TOPIK Cấp 4 đúng 12 điểm</strong> nữa!
+                </p>
+
+                <!-- Điểm từng phần Nghe & Đọc -->
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="p-3 rounded-3" style="background: var(--ssak-bg); border-left: 4px solid var(--ssak-primary);">
+                            <small class="text-muted d-block fw-bold">Kỹ năng Nghe</small>
+                            <span class="fs-4 fw-bold text-success" style="color: var(--ssak-primary) !important;">72 / 100</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded-3" style="background: var(--ssak-bg); border-left: 4px solid #2F5F7D;">
+                            <small class="text-muted d-block fw-bold">Kỹ năng Đọc</small>
+                            <span class="fs-4 fw-bold" style="color: #2F5F7D;">66 / 100</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bé Ssak reo mừng -->
+            <div class="col-md-4 text-center">
+                <div th:replace="~{fragments/ssak :: mascot('cheer', 'young', 220, 'Bé Ssak chúc mừng')}"></div>
+                <div class="badge rounded-pill bg-warning text-dark mt-2 fw-bold px-3 py-2" style="background: var(--ssak-honey) !important;">
+                    🌱 Khởi đầu rất thuận lợi!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thang 7 mức chính thức theo mục 4.3 với vị trí của người học -->
+    <div class="p-4 rounded-4 bg-white border shadow-sm mb-4">
+        <h5 class="fw-bold mb-3" style="font-family: var(--font-heading); font-size: 18px;">
+            Vị trí của bạn trên Thang 7 mức TOPIK
+        </h5>
+        
+        <div class="d-flex justify-content-between align-items-center position-relative my-4 px-2">
+            <!-- Đường nối thang điểm -->
+            <div style="position: absolute; top: 18px; left: 20px; right: 20px; height: 6px; background: #E6E1D3; z-index: 1;"></div>
+            <div style="position: absolute; top: 18px; left: 20px; width: 50%; height: 6px; background: var(--ssak-primary); z-index: 2;"></div>
+
+            <!-- 7 Mức -->
+            <div class="text-center position-relative" style="z-index: 3;">
+                <span class="badge rounded-circle p-2 bg-secondary" style="width: 36px; height: 36px; line-height: 20px;">0</span>
+                <small class="d-block mt-2 text-muted fw-bold" style="font-size: 11px;">Mới đầu</small>
+            </div>
+            <div class="text-center position-relative" style="z-index: 3;">
+                <span class="badge rounded-circle p-2 bg-success" style="width: 36px; height: 36px; line-height: 20px; background: var(--ssak-primary) !important;">1</span>
+                <small class="d-block mt-2 text-muted fw-bold" style="font-size: 11px;">Cấp 1</small>
+            </div>
+            <div class="text-center position-relative" style="z-index: 3;">
+                <span class="badge rounded-circle p-2 bg-success" style="width: 36px; height: 36px; line-height: 20px; background: var(--ssak-primary) !important;">2</span>
+                <small class="d-block mt-2 text-muted fw-bold" style="font-size: 11px;">Cấp 2</small>
+            </div>
+            <!-- Vị trí hiện tại của người học (Cấp 3) -->
+            <div class="text-center position-relative" style="z-index: 4;">
+                <span class="badge rounded-circle p-2 shadow-lg" style="width: 42px; height: 42px; line-height: 26px; background: #F4C45A; border: 3px solid #7A5A12; color: #7A5A12; font-weight: 900; font-size: 16px;">3</span>
+                <span class="badge rounded-pill bg-dark text-white position-absolute top-100 start-50 translate-middle-x mt-2 px-2 py-1" style="font-size: 11px; white-space: nowrap;">
+                    📍 Bạn ở đây
+                </span>
+            </div>
+            <div class="text-center position-relative" style="z-index: 3;">
+                <span class="badge rounded-circle p-2 bg-light text-muted border" style="width: 36px; height: 36px; line-height: 20px;">4</span>
+                <small class="d-block mt-2 text-muted fw-bold" style="font-size: 11px;">Cấp 4</small>
+            </div>
+            <div class="text-center position-relative" style="z-index: 3;">
+                <span class="badge rounded-circle p-2 bg-light text-muted border" style="width: 36px; height: 36px; line-height: 20px;">5</span>
+                <small class="d-block mt-2 text-muted fw-bold" style="font-size: 11px;">Cấp 5</small>
+            </div>
+            <div class="text-center position-relative" style="z-index: 3;">
+                <span class="badge rounded-circle p-2 bg-light text-muted border" style="width: 36px; height: 36px; line-height: 20px;">6</span>
+                <small class="d-block mt-2 text-muted fw-bold" style="font-size: 11px;">Cấp 6</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3 Dạng câu yếu nhất cần xếp lên đầu lộ trình theo mục 4.4 -->
+    <div class="p-4 rounded-4 bg-white border shadow-sm mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0" style="font-family: var(--font-heading); font-size: 18px; color: var(--ssak-terracotta);">
+                <i class="bi bi-bullseye me-2"></i>3 Dạng câu yếu nhất được phát hiện
+            </h5>
+            <span class="badge bg-light text-muted border">Tự động ưu tiên vào đầu lộ trình</span>
+        </div>
+
+        <div class="d-flex flex-column gap-3">
+            <div class="p-3 rounded-3 border d-flex justify-content-between align-items-center" style="background: var(--ssak-bg);">
+                <div>
+                    <span class="badge bg-secondary me-2">Đọc 13–15</span>
+                    <strong style="font-size: 15px;">Sắp xếp thứ tự các câu văn logic</strong>
+                    <div class="small text-muted mt-1">Dạng câu dài dễ nhầm trật tự liên từ và đại từ thay thế</div>
+                </div>
+                <div class="text-end">
+                    <span class="badge rounded-pill bg-danger px-3 py-1">Đúng 33%</span>
+                    <small class="d-block text-muted mt-1">Cần luyện trước</small>
+                </div>
+            </div>
+
+            <div class="p-3 rounded-3 border d-flex justify-content-between align-items-center" style="background: var(--ssak-bg);">
+                <div>
+                    <span class="badge bg-secondary me-2">Nghe 13–16</span>
+                    <strong style="font-size: 15px;">Nắm bắt nội dung trọng tâm cuộc thảo luận</strong>
+                    <div class="small text-muted mt-1">Hội thoại nhiều lượt nói với ngữ điệu ngắt nghỉ tự nhiên</div>
+                </div>
+                <div class="text-end">
+                    <span class="badge rounded-pill bg-warning text-dark px-3 py-1">Đúng 40%</span>
+                    <small class="d-block text-muted mt-1">Cần củng cố</small>
+                </div>
+            </div>
+
+            <div class="p-3 rounded-3 border d-flex justify-content-between align-items-center" style="background: var(--ssak-bg);">
+                <div>
+                    <span class="badge bg-secondary me-2">Đọc 19–24</span>
+                    <strong style="font-size: 15px;">Điền liên từ & Đọc hiểu đoạn văn kép</strong>
+                    <div class="small text-muted mt-1">Vốn liên từ tương phản và nguyên nhân kết quả cần trau dồi</div>
+                </div>
+                <div class="text-end">
+                    <span class="badge rounded-pill bg-warning text-dark px-3 py-1">Đúng 50%</span>
+                    <small class="d-block text-muted mt-1">Cần củng cố</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-light border mt-3 mb-0 small text-muted">
+            <i class="bi bi-info-circle me-1"></i> Để đảm bảo tính công bằng và bảo mật ngân hàng đề kiểm tra thích ứng, hệ thống <strong>không hiển thị đáp án chi tiết</strong> của bài test này.
+        </div>
+    </div>
+
+    <!-- 3 Nút hành động theo mục 4.4: Đồng ý và tạo lộ trình · Chọn cấp khác · Để sau -->
+    <div class="d-flex flex-wrap justify-content-center align-items-center gap-3 py-2">
+        <a th:href="@{/lo-trinh/tao(startLevel='TOPIK_3')}" class="btn-ssak-primary px-4 py-3 rounded-pill fw-bold text-decoration-none shadow" style="font-size: 17px;">
+            <i class="bi bi-check-lg me-2"></i>Đồng ý và Tạo lộ trình học
+        </a>
+        <button type="button" class="btn btn-outline-secondary px-4 py-3 rounded-pill fw-bold" data-bs-toggle="modal" data-bs-target="#changeLevelModal">
+            <i class="bi bi-arrow-repeat me-2"></i>Chọn cấp độ khác
+        </button>
+        <a th:href="@{/hom-nay}" class="btn btn-link text-muted text-decoration-none fw-bold">
+            Để sau
+        </a>
+    </div>
+</main>
+
+<!-- Modal tự chọn cấp khác (ghi nhận nguồn SELF theo mục 4.3) -->
+<div class="modal fade" id="changeLevelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-5 border-0 shadow-lg p-4">
+            <h4 style="font-family: var(--font-heading); font-weight: 800;" class="mb-3">Tự chọn cấp độ xuất phát</h4>
+            <p class="text-muted small">Nếu bạn muốn bắt đầu ở cấp độ khác với kết quả kiểm tra, hệ thống sẽ ghi nhận đây là kết quả tự khai (SELF).</p>
+            <form th:action="@{/lo-trinh/tao}" method="GET">
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">Chọn cấp độ bạn muốn bắt đầu:</label>
+                    <select class="form-select rounded-3 py-2" name="startLevel">
+                        <option value="BEGINNER">Mới bắt đầu (Sơ cấp)</option>
+                        <option value="TOPIK_1">TOPIK Cấp 1</option>
+                        <option value="TOPIK_2">TOPIK Cấp 2</option>
+                        <option value="TOPIK_3" selected>TOPIK Cấp 3 (Theo bài test)</option>
+                        <option value="TOPIK_4">TOPIK Cấp 4</option>
+                        <option value="TOPIK_5">TOPIK Cấp 5</option>
+                        <option value="TOPIK_6">TOPIK Cấp 6</option>
+                    </select>
+                </div>
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-ssak-primary rounded-pill px-4 fw-bold">Xác nhận cấp độ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>
