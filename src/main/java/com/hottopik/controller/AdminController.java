@@ -78,7 +78,19 @@ public class AdminController {
         }
 
         boolean approve = "approve".equalsIgnoreCase(decision);
-        boolean success = approvalService.decideRequest(requestId, approve, note);
+        if (!approve && (note == null || note.trim().length() < 5)) {
+            resp.put("success", false);
+            resp.put("message", "Từ chối cần nhập lý do ít nhất 5 ký tự.");
+            return ResponseEntity.badRequest().body(resp);
+        }
+        boolean success;
+        try {
+            success = approvalService.decideRequest(requestId, approve, note, currentUser.getFullName());
+        } catch (IllegalStateException | com.hottopik.service.exam.ExamDomainException e) {
+            resp.put("success", false);
+            resp.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(resp);
+        }
 
         if (success) {
             adminSystemService.logAction(

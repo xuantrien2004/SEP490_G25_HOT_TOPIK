@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<th:block th:replace="~{fragments/content-shell :: styles}"></th:block>
+<div class="cm-shell">
+    <aside th:replace="~{fragments/content-shell :: sidebar('sources')}"></aside>
+    <div class="cm-main">
+        <header th:replace="~{fragments/content-shell :: header('Tạo bộ đề', 'Khai báo tên và track. Sau khi tạo, chọn dạng câu rồi điền câu. Đưa vào ngân hàng sẽ mở đề trong thư viện.')}"></header>
+        <main class="cm-body">
+            <th:block th:replace="~{fragments/content-shell :: flash}"></th:block>
+
+            <div th:unless="${canEdit}" class="cm-flash info"><span>i</span><span>Bạn đang ở chế độ chỉ xem. Chỉ Content Manager được tạo nguồn đề.</span></div>
+
+            <form class="cm-card" th:action="@{/content/sources}" method="post" style="max-width: 860px;">
+                <div class="cm-form">
+                    <div class="full">
+                        <label for="name">Tên nguồn đề *</label>
+                        <input id="name" name="name" class="form-control ssak-input" required maxlength="200"
+                               placeholder="TOPIK II kỳ 83 (2022)" th:value="${form != null ? form['name'] : ''}">
+                    </div>
+                    <div>
+                        <label for="track">Track *</label>
+                        <select id="track" name="track" class="form-select ssak-input" required>
+                            <option value="TOPIK_I" data-full="70">TOPIK I (Nghe 1–30, Đọc 31–70)</option>
+                            <option value="TOPIK_II" data-full="104" selected>TOPIK II (Nghe 1–50, Viết 51–54, Đọc 1–50)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="expectedCount">Ghi chú số câu</label>
+                        <input id="expectedCount" name="expectedCount" type="number" min="1" max="200" class="form-control ssak-input" value="104">
+                        <div class="hint">Số này không khóa số câu khi nhập. Trên tờ đề, chọn dạng câu rồi bấm ô số. Khi đưa vào ngân hàng, đề xuất hiện trong thư viện để gửi duyệt.</div>
+                    </div>
+                    <div>
+                        <label for="round">Kỳ thi</label>
+                        <input id="round" name="round" type="number" min="1" max="999" class="form-control ssak-input" placeholder="83">
+                    </div>
+                    <div>
+                        <label for="year">Năm</label>
+                        <input id="year" name="year" type="number" min="1997" max="2100" class="form-control ssak-input" placeholder="2022">
+                    </div>
+                    <div class="full">
+                        <label for="copyrightNote">Ghi chú bản quyền *</label>
+                        <textarea id="copyrightNote" name="copyrightNote" class="form-control ssak-input" rows="2" required maxlength="1000"
+                                  placeholder="Đề công khai của NIIED, dùng cho mục đích luyện tập phi thương mại."
+                                  th:text="${form != null ? form['copyrightNote'] : ''}"></textarea>
+                    </div>
+                    <div class="full">
+                        <label for="note">Ghi chú nội bộ</label>
+                        <textarea id="note" name="note" class="form-control ssak-input" rows="2" maxlength="1000"></textarea>
+                    </div>
+                    <div class="full">
+                        <label class="cm-check" style="font-weight: 600; color: inherit;">
+                            <input type="checkbox" name="assessment" value="true">
+                            <span>Đây là <b>bài đánh giá đầu vào</b>. Câu sẽ có mục đích ASSESSMENT: không vào Full Mock, Mini Test hay luyện tập, chỉ dùng để xếp lộ trình.</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="cm-toolbar" style="margin-top: 18px;">
+                    <button type="submit" class="btn btn-ssak-primary" th:disabled="${!canEdit}">Tạo bộ đề và bắt đầu nhập</button>
+                    <a th:href="@{/content/sources}" class="btn btn-ssak-light">Huỷ</a>
+                </div>
+            </form>
+        </main>
+    </div>
+</div>
+<script>
+    (function () {
+        const track = document.getElementById('track');
+        const count = document.getElementById('expectedCount');
+        let touched = false;
+        count.addEventListener('input', () => touched = true);
+        track.addEventListener('change', () => {
+            if (!touched) count.value = track.selectedOptions[0].dataset.full;
+        });
+    })();
+</script>
+</body>
+</html>

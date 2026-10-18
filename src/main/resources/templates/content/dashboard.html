@@ -75,17 +75,23 @@
             </div>
 
             <!-- Tab 2: Quản lý Đề (Gộp Đề thi & Phiên bản + Import) -->
-            <a href="javascript:void(0)" onclick="switchContentTab('exams')" id="side-nav-exams" class="sidebar-item">
-                <span style="font-size: 17px;">📋</span>
-                <span style="flex-grow: 1;">Quản lý Đề</span>
-                <span class="ssak-badge badge-honey" style="font-size: 11px; padding: 2px 7px;" th:text="${totalExamCount}">4</span>
+            <a th:href="@{/content/exams}" class="sidebar-item">
+                <span style="font-size: 17px;">📚</span>
+                <span style="flex-grow: 1;">Thư viện đề</span>
+                <span class="ssak-badge badge-honey" style="font-size: 11px; padding: 2px 7px;" th:text="${totalExamCount}">0</span>
             </a>
-
-            <!-- Tab 3: Ngân hàng câu hỏi -->
-            <a href="javascript:void(0)" onclick="switchContentTab('questions')" id="side-nav-questions" class="sidebar-item">
+            <a th:href="@{/content/sources}" class="sidebar-item">
+                <span style="font-size: 17px;">📥</span>
+                <span style="flex-grow: 1;">Nhập đề mới</span>
+            </a>
+            <a th:href="@{/content/questions}" class="sidebar-item">
                 <span style="font-size: 17px;">📝</span>
                 <span style="flex-grow: 1;">Ngân hàng câu hỏi</span>
-                <span class="ssak-badge badge-sky" style="font-size: 11px; padding: 2px 7px;" th:text="${totalQuestionCount}">8</span>
+                <span class="ssak-badge badge-sky" style="font-size: 11px; padding: 2px 7px;" th:text="${totalQuestionCount}">0</span>
+            </a>
+            <a th:href="@{/content/question-types}" class="sidebar-item">
+                <span style="font-size: 17px;">🧩</span>
+                <span style="flex-grow: 1;">42 dạng câu</span>
             </a>
 
             <!-- Tab 4: Xử lý Báo lỗi -->
@@ -147,7 +153,7 @@
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
                     
                     <!-- KPI 1: Tổng số câu hỏi (Click -> chuyển sang Ngân hàng câu hỏi) -->
-                    <div class="ssak-card kpi-clickable-card" onclick="switchContentTab('questions')"
+                    <div class="ssak-card kpi-clickable-card" onclick="location.href='/content/questions'"
                          style="padding: 24px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); cursor: pointer; transition: all 0.2s;"
                          onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='#2E7D67';"
                          onmouseout="this.style.transform='none'; this.style.borderColor='var(--ssak-border)';">
@@ -179,7 +185,7 @@
                     </div>
 
                     <!-- KPI 3: Tổng đề thi (Click -> chuyển sang Quản lý đề) -->
-                    <div class="ssak-card kpi-clickable-card" onclick="switchContentTab('exams')"
+                    <div class="ssak-card kpi-clickable-card" onclick="location.href='/content/exams'"
                          style="padding: 24px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); cursor: pointer; transition: all 0.2s;"
                          onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='#2F5F7D';"
                          onmouseout="this.style.transform='none'; this.style.borderColor='var(--ssak-border)';">
@@ -226,16 +232,16 @@
                             <h4 style="margin: 0; font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #24363D;">Lối tắt tác vụ nhanh</h4>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 8px;">
-                            <button type="button" class="btn-ssak-light" style="text-align: left; padding: 12px 16px; font-weight: 700; font-size: 13px; display: flex; justify-content: space-between;" onclick="switchContentTab('exams'); openExamImportTab();">
-                                <span>📥 Import Đề thi TOPIK mới bằng Excel</span>
+                            <button type="button" class="btn-ssak-light" style="text-align: left; padding: 12px 16px; font-weight: 700; font-size: 13px; display: flex; justify-content: space-between;" onclick="location.href='/content/sources'">
+                                <span>📥 Nhập đề TOPIK mới từ Excel</span>
                                 <span>→</span>
                             </button>
                             <button type="button" class="btn-ssak-light" style="text-align: left; padding: 12px 16px; font-weight: 700; font-size: 13px; display: flex; justify-content: space-between;" onclick="switchContentTab('reports')">
                                 <span>⚠️ Xem và giải quyết các báo lỗi câu hỏi</span>
                                 <span>→</span>
                             </button>
-                            <button type="button" class="btn-ssak-light" style="text-align: left; padding: 12px 16px; font-weight: 700; font-size: 13px; display: flex; justify-content: space-between;" onclick="switchContentTab('questions')">
-                                <span>📝 Rà soát Ngân hàng câu hỏi trích từ đề</span>
+                            <button type="button" class="btn-ssak-light" style="text-align: left; padding: 12px 16px; font-weight: 700; font-size: 13px; display: flex; justify-content: space-between;" onclick="location.href='/content/questions'">
+                                <span>📝 Rà soát Ngân hàng câu hỏi</span>
                                 <span>→</span>
                             </button>
                         </div>
@@ -252,359 +258,6 @@
                                 <span style="color: var(--ssak-text-muted);" th:text="${log.timestamp}">2026-10-15</span>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-            </section>
-
-            <!-- ============================================================== -->
-            <!-- PANE 2: QUẢN LÝ ĐỀ (GỘP ĐỀ THI & PHIÊN BẢN + IMPORT EXCEL) -->
-            <!-- ============================================================== -->
-            <section id="pane-exams" style="display: none; flex-direction: column; gap: 20px;">
-                
-                <!-- Sub Header Controls with 2 Internal Tabs -->
-                <div style="background: #FFFFFF; padding: 16px 24px; border-radius: 18px; border: 2px solid var(--ssak-border); display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display: flex; gap: 8px;">
-                        <button type="button" id="btnTabExamList" class="btn-ssak-primary" style="height: 38px; padding: 0 18px; font-weight: 800; font-size: 13px;" onclick="switchExamSubTab('list')">
-                            📋 Danh sách Đề thi (TOPIK I & II)
-                        </button>
-                        <button type="button" id="btnTabExamImport" class="btn-ssak-light" style="height: 38px; padding: 0 18px; font-weight: 800; font-size: 13px;" onclick="switchExamSubTab('import')">
-                            📥 Nhập đề từ Excel (Bản nháp)
-                        </button>
-                    </div>
-
-                    <button type="button" class="btn-ssak-outline" style="height: 38px; padding: 0 16px; font-size: 13px; font-weight: 800;" onclick="downloadSampleExamExcel()">
-                        📥 Tải file mẫu Excel đề thi
-                    </button>
-                </div>
-
-                <!-- SUB-TAB A: EXAM LIST -->
-                <div id="subtab-exam-list" style="display: flex; flex-direction: column; gap: 16px;">
-                    
-                    <!-- Instant Filter Bar (LỌC TỨC THÌ) -->
-                    <div style="background: #FFFFFF; padding: 16px 20px; border-radius: 16px; border: 2px solid var(--ssak-border); display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
-                        <div style="flex-grow: 1; min-width: 240px;">
-                            <input type="text" id="liveExamSearch" class="form-control ssak-input" placeholder="🔍 Nhập tìm kiếm tên đề thi (TOPIK I, TOPIK II, đề số 1...)" oninput="performExamInstantFilter()" />
-                        </div>
-
-                        <div style="width: 160px;">
-                            <select id="liveExamLevelSelect" class="form-select ssak-input" onchange="performExamInstantFilter()">
-                                <option value="ALL">Mọi cấp TOPIK</option>
-                                <option value="TOPIK_I">TOPIK I (Đọc & Nghe)</option>
-                                <option value="TOPIK_II">TOPIK II (+ Viết)</option>
-                            </select>
-                        </div>
-
-                        <div style="width: 170px;">
-                            <select id="liveExamStatusSelect" class="form-select ssak-input" onchange="performExamInstantFilter()">
-                                <option value="ALL">Mọi trạng thái</option>
-                                <option value="PUBLISHED">🟢 Đã phát hành</option>
-                                <option value="DRAFT">🟡 Bản nháp (Đang sửa)</option>
-                                <option value="PENDING_APPROVAL">⏳ Đang chờ duyệt</option>
-                            </select>
-                        </div>
-
-                        <div style="font-size: 13px; font-weight: 700; color: #2F5F7D;">
-                            Tìm thấy: <span id="examFilterCount" th:text="${#lists.size(mockExams)}">4</span> đề
-                        </div>
-                    </div>
-
-                    <!-- Exam Table -->
-                    <div class="ssak-card" style="background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); overflow: hidden;">
-                        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                            <thead>
-                                <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase; background: #FAFAF9;">
-                                    <th style="padding: 14px 16px;">Mã đề</th>
-                                    <th style="padding: 14px 16px;">Tên đề thi</th>
-                                    <th style="padding: 14px 12px;">Cấp TOPIK</th>
-                                    <th style="padding: 14px 12px;">Kỹ năng & Dạng câu</th>
-                                    <th style="padding: 14px 10px;">Số câu</th>
-                                    <th style="padding: 14px 12px;">Trạng thái</th>
-                                    <th style="padding: 14px 16px; text-align: right;">Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody id="examTableBody">
-                                <tr th:each="ex : ${mockExams}" class="exam-data-row"
-                                    th:data-title="${ex.title}"
-                                    th:data-level="${ex.level}"
-                                    th:data-status="${ex.status}"
-                                    style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;"
-                                    onmouseover="this.style.background='#F8FAFC'"
-                                    onmouseout="this.style.background='transparent'">
-                                    
-                                    <td style="padding: 14px 16px; font-weight: 800; color: #24363D;" th:text="${ex.code}">TEST-MOCK-01</td>
-                                    
-                                    <td style="padding: 14px 16px;">
-                                        <div style="font-weight: 800; color: #1F6B56; cursor: pointer;" th:data-id="${ex.id}" th:data-title="${ex.title}" onclick="openExamQuestionsModal(this.getAttribute('data-id'), this.getAttribute('data-title'))">
-                                            <span th:text="${ex.title}">Đề thi thử TOPIK I số 1</span> 👁️
-                                        </div>
-                                        <div style="font-size: 11px; color: var(--ssak-text-muted); margin-top: 2px;">Bấm để xem danh sách câu hỏi trong đề</div>
-                                    </td>
-
-                                    <td style="padding: 14px 12px;">
-                                        <span class="ssak-badge badge-mint" th:if="${ex.level == 'TOPIK_I'}">TOPIK I</span>
-                                        <span class="ssak-badge badge-sky" th:if="${ex.level == 'TOPIK_II'}">TOPIK II</span>
-                                    </td>
-
-                                    <td style="padding: 14px 12px;">
-                                        <span th:if="${ex.level == 'TOPIK_I'}" style="font-size: 12px; color: var(--ssak-text-muted);">Đọc (1-4, 5-6...) & Nghe (1-4...)</span>
-                                        <span th:if="${ex.level == 'TOPIK_II'}" style="font-size: 12px; color: var(--ssak-text-muted);">Đọc, Nghe & Viết (Câu 51-54)</span>
-                                    </td>
-
-                                    <td style="padding: 14px 10px; font-weight: 700;" th:text="${ex.questionCount + ' câu'}">70 câu</td>
-
-                                    <td style="padding: 14px 12px;">
-                                        <span th:if="${ex.status == 'PUBLISHED'}" class="ssak-badge badge-mint" style="font-size: 11px;">🟢 Đã phát hành</span>
-                                        <span th:if="${ex.status == 'DRAFT'}" class="ssak-badge badge-honey" style="font-size: 11px;">🟡 Bản nháp (Đang sửa)</span>
-                                        <span th:if="${ex.status == 'PENDING_APPROVAL'}" class="ssak-badge badge-sky" style="font-size: 11px;">⏳ Đang chờ duyệt</span>
-                                    </td>
-
-                                    <td style="padding: 14px 16px; text-align: right;">
-                                        <div style="display: inline-flex; gap: 6px;">
-                                            <button type="button" class="btn-ssak-light" style="height: 32px; padding: 0 10px; font-size: 12px;"
-                                                    th:data-id="${ex.id}" th:data-title="${ex.title}" onclick="openExamQuestionsModal(this.getAttribute('data-id'), this.getAttribute('data-title'))">
-                                                Xem câu hỏi
-                                            </button>
-                                            <button type="button" class="btn-ssak-outline" style="height: 32px; padding: 0 10px; font-size: 12px;"
-                                                    th:data-id="${ex.id}" onclick="toggleExamStatus(this.getAttribute('data-id'))"
-                                                    th:text="${ex.status == 'PUBLISHED' ? 'Hạ nháp để sửa' : 'Phát hành (Public)'}">
-                                                Hạ nháp
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-
-                        <!-- Empty State -->
-                        <div id="examEmptyState" style="padding: 40px; text-align: center; display: none;">
-                            <span style="font-size: 36px;">📋</span>
-                            <h4 style="margin: 10px 0 4px 0; font-family: var(--font-heading); font-size: 16px; font-weight: 800; color: #24363D;">
-                                Không tìm thấy đề thi phù hợp
-                            </h4>
-                            <span style="font-size: 13px; color: var(--ssak-text-muted);">
-                                Hãy thử thay đổi từ khóa hoặc bộ lọc cấp độ / trạng thái.
-                            </span>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- SUB-TAB B: IMPORT EXAM (BẢN NHÁP + BÁO CÁO CHI TIẾT TRÙNG LẶP / ĐÃ TỒN TẠI) -->
-                <div id="subtab-exam-import" style="display: none; flex-direction: column; gap: 20px;">
-                    
-                    <div class="ssak-card" style="padding: 28px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 18px;">
-                        <div>
-                            <h4 style="margin: 0; font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: #1F6B56;">
-                                📥 Nhập Đề thi từ Excel (Quy trình chuẩn hóa Bản nháp)
-                            </h4>
-                            <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
-                                Đề thi khi nhập lên sẽ được đưa vào trạng thái <strong>BẢN NHÁP (DRAFT)</strong>. Quản lý kiểm tra các câu hỏi, âm thanh và đáp án, chỉnh sửa hoàn thiện rồi mới phát hành.
-                            </p>
-                        </div>
-
-                        <!-- Config fields before import -->
-                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px;">
-                            <div>
-                                <label class="form-label" style="font-size: 13px; font-weight: 700;">Tên bộ đề mới <span style="color:red">*</span></label>
-                                <input type="text" id="importExamTitle" class="form-control ssak-input" placeholder="Ví dụ: Đề thi thử TOPIK I số 2 - Đợt thi tháng 11" />
-                            </div>
-                            <div>
-                                <label class="form-label" style="font-size: 13px; font-weight: 700;">Phân loại TOPIK</label>
-                                <select id="importExamLevel" class="form-select ssak-input">
-                                    <option value="TOPIK_I">TOPIK I (Đọc & Nghe)</option>
-                                    <option value="TOPIK_II">TOPIK II (Đọc, Nghe & Viết)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Drag and Drop Zone -->
-                        <div id="examUploadDropzone" style="border: 2px dashed #2E7D67; border-radius: 20px; padding: 36px; text-align: center; background: #F8FAFC; display: flex; flex-direction: column; align-items: center; gap: 12px;">
-                            <span style="font-size: 42px;">📑</span>
-                            <div>
-                                <div style="font-weight: 800; font-size: 16px; color: #24363D;">Kéo thả file Excel đề thi vào đây hoặc bấm để tải lên</div>
-                                <div style="font-size: 12px; color: var(--ssak-text-muted); margin-top: 2px;">
-                                    Các cột: Câu số, Kỹ năng, Dạng câu, Đề bài, Hình ảnh, Audio, Đáp án A/B/C/D, Đáp án đúng, Giải thích
-                                </div>
-                            </div>
-                            <input type="file" id="examExcelInput" accept=".xlsx, .xls" style="display: none;" onchange="handleExamExcelUpload(this)" />
-                            <div style="display: flex; gap: 12px; margin-top: 6px;">
-                                <button type="button" class="btn-ssak-outline" style="height: 40px; padding: 0 20px; font-size: 13px; font-weight: 700;" onclick="document.getElementById('examExcelInput').click()">
-                                    Chọn file Excel từ máy
-                                </button>
-                                <button type="button" class="btn-ssak-light" style="height: 40px; padding: 0 16px; font-size: 13px;" onclick="downloadSampleExamExcel()">
-                                    Tải file mẫu .xlsx
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Parse Analysis Results (Appears after file chosen) -->
-                        <div id="examParseResultsBox" style="display: none; flex-direction: column; gap: 16px;">
-                            
-                            <!-- 4 KPI Metrics -->
-                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
-                                <div style="padding: 12px; background: #F8FAFC; border-radius: 12px; border: 1px solid var(--ssak-border); text-align: center;">
-                                    <div style="font-size: 11px; color: var(--ssak-text-muted); font-weight: 700;">TỔNG SỐ CÂU HỎI</div>
-                                    <div id="kpiExamTotalParsed" style="font-size: 22px; font-weight: 800; color: #24363D;">0</div>
-                                </div>
-                                <div style="padding: 12px; background: #E6F7F0; border-radius: 12px; border: 1px solid #B5E8D5; text-align: center;">
-                                    <div style="font-size: 11px; color: #1F6B56; font-weight: 700;">✅ HỢP LỆ (IMPORT ĐƯỢC)</div>
-                                    <div id="kpiExamValid" style="font-size: 22px; font-weight: 800; color: #1F6B56;">0</div>
-                                </div>
-                                <div style="padding: 12px; background: #FFF9E6; border-radius: 12px; border: 1px solid #FFE58F; text-align: center;">
-                                    <div style="font-size: 11px; color: #D48806; font-weight: 700;">⚠️ TRÙNG LẶP TRONG FILE</div>
-                                    <div id="kpiExamDup" style="font-size: 22px; font-weight: 800; color: #D48806;">0</div>
-                                </div>
-                                <div style="padding: 12px; background: #FFF1F0; border-radius: 12px; border: 1px solid #FFA39E; text-align: center;">
-                                    <div style="font-size: 11px; color: #CF1322; font-weight: 700;">❌ ĐÃ TỒN TẠI TRONG ĐỀ</div>
-                                    <div id="kpiExamExisted" style="font-size: 22px; font-weight: 800; color: #CF1322;">0</div>
-                                </div>
-                            </div>
-
-                            <!-- Preview Table -->
-                            <div style="max-height: 280px; overflow-y: auto; border: 1px solid var(--ssak-border); border-radius: 12px;">
-                                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                                    <thead>
-                                        <tr style="background: #FAFAF9; border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 11px; text-transform: uppercase;">
-                                            <th style="padding: 8px 10px;">Câu</th>
-                                            <th style="padding: 8px 10px;">Kỹ năng</th>
-                                            <th style="padding: 8px 10px;">Dạng bài</th>
-                                            <th style="padding: 8px 10px;">Nội dung đề bài</th>
-                                            <th style="padding: 8px 10px;">Đáp án đúng</th>
-                                            <th style="padding: 8px 10px;">Giải thích</th>
-                                            <th style="padding: 8px 10px;">Trạng thái kiểm tra</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="examPreviewTbody"></tbody>
-                                </table>
-                            </div>
-
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px;">
-                                <button type="button" class="btn-ssak-outline" onclick="resetExamImport()">Hủy & Chọn file khác</button>
-                                <button type="button" id="btnConfirmExamBulkCreate" class="btn-ssak-primary" style="height: 42px; padding: 0 24px; font-weight: 800;" onclick="executeBulkExamImport()">
-                                    🚀 Xác nhận Lưu Đề thi dạng Bản nháp
-                                </button>
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </section>
-
-            <!-- ============================================================== -->
-            <!-- PANE 3: NGÂN HÀNG CÂU HỎI (TRÍCH XUẤT TỪ ĐỀ & TÁI SỬ DỤNG) -->
-            <!-- ============================================================== -->
-            <section id="pane-questions" style="display: none; flex-direction: column; gap: 20px;">
-                
-                <!-- Recommendation Box: Ý kiến giao diện & chức năng theo yêu cầu người dùng -->
-                <div style="background: #F0F7FF; border: 1.5px solid #BAE0FF; border-radius: 18px; padding: 20px 24px; display: flex; flex-direction: column; gap: 10px;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 22px;">💡</span>
-                        <h4 style="margin: 0; font-family: var(--font-heading); font-size: 16px; font-weight: 800; color: #0050B3;">
-                            Đề xuất kiến trúc & Tính năng Ngân hàng Câu hỏi
-                        </h4>
-                    </div>
-                    <div style="font-size: 13px; color: #24363D; line-height: 1.6;">
-                        • <strong>Cơ chế hoạt động:</strong> Câu hỏi được bóc tách và tự động đồng bộ từ các bộ Đề thi đã nhập lên, giúp Content Manager quản lý tập trung theo từng kỹ năng (Đọc, Nghe, Viết) và dạng câu chuẩn TOPIK.<br/>
-                        • <strong>Chức năng đóng gói:</strong> Có thể chọn nhiều câu hỏi từ Ngân hàng để <em>"Đóng gói thành Bộ đề thi mới"</em> hoặc tái sử dụng cho các bài luyện tập theo dạng.<br/>
-                        • <strong>Rà soát chi tiết:</strong> Cho phép kiểm tra trực tiếp file audio đoạn hội thoại, hình ảnh biểu đồ, 4 đáp án và lời giải thích chuyên môn.
-                    </div>
-                </div>
-
-                <!-- Instant Filter Toolbar -->
-                <div style="background: #FFFFFF; padding: 16px 20px; border-radius: 16px; border: 2px solid var(--ssak-border); display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
-                    <div style="flex-grow: 1; min-width: 250px;">
-                        <input type="text" id="liveQuestionSearch" class="form-control ssak-input" placeholder="🔍 Tìm kiếm câu hỏi theo mã câu, nội dung đề bài..." oninput="performQuestionInstantFilter()" />
-                    </div>
-
-                    <div style="width: 160px;">
-                        <select id="liveQuestionSkillSelect" class="form-select ssak-input" onchange="performQuestionInstantFilter()">
-                            <option value="ALL">Mọi kỹ năng</option>
-                            <option value="READING">Đọc hiểu</option>
-                            <option value="LISTENING">Nghe hiểu</option>
-                            <option value="WRITING">Viết luận</option>
-                        </select>
-                    </div>
-
-                    <div style="width: 150px;">
-                        <select id="liveQuestionLevelSelect" class="form-select ssak-input" onchange="performQuestionInstantFilter()">
-                            <option value="ALL">Mọi cấp độ</option>
-                            <option value="TOPIK_I">TOPIK I</option>
-                            <option value="TOPIK_II">TOPIK II</option>
-                        </select>
-                    </div>
-
-                    <div style="font-size: 13px; font-weight: 700; color: #1F6B56;">
-                        Hiển thị: <span id="questionFilterCount" th:text="${#lists.size(questions)}">8</span> câu
-                    </div>
-                </div>
-
-                <!-- Questions Table -->
-                <div class="ssak-card" style="background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); overflow: hidden;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                        <thead>
-                            <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase; background: #FAFAF9;">
-                                <th style="padding: 14px 16px;">Mã câu</th>
-                                <th style="padding: 14px 12px;">Kỹ năng</th>
-                                <th style="padding: 14px 10px;">Cấp độ</th>
-                                <th style="padding: 14px 14px;">Dạng bài</th>
-                                <th style="padding: 14px 16px;">Tóm tắt nội dung đề</th>
-                                <th style="padding: 14px 12px;">Âm thanh / Hình</th>
-                                <th style="padding: 14px 16px; text-align: right;">Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody id="questionTableBody">
-                            <tr th:each="q : ${questions}" class="question-data-row"
-                                th:data-code="${q.code}"
-                                th:data-skill="${q.skill}"
-                                th:data-level="${q.level}"
-                                th:data-summary="${q.contentSummary}"
-                                style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;"
-                                onmouseover="this.style.background='#F8FAFC'"
-                                onmouseout="this.style.background='transparent'">
-                                
-                                <td style="padding: 14px 16px; font-weight: 800; color: #24363D;" th:text="${q.code}">Q-READ-01</td>
-                                
-                                <td style="padding: 14px 12px;">
-                                    <span class="ssak-badge badge-mint" th:if="${q.skill == 'READING'}">Đọc hiểu</span>
-                                    <span class="ssak-badge badge-sky" th:if="${q.skill == 'LISTENING'}">Nghe hiểu</span>
-                                    <span class="ssak-badge badge-honey" th:if="${q.skill == 'WRITING'}">Viết luận</span>
-                                </td>
-
-                                <td style="padding: 14px 10px; font-weight: 700;" th:text="${q.level}">TOPIK_I</td>
-
-                                <td style="padding: 14px 14px; font-weight: 600;" th:text="${q.questionType}">Điền từ</td>
-
-                                <td style="padding: 14px 16px; max-width: 320px;" th:text="${q.contentSummary}">이 사람은 무엇을 하고 있습니까?</td>
-
-                                <td style="padding: 14px 12px;">
-                                    <span th:if="${q.hasAudio}" style="color: #1F6B56; font-weight: 700;">🔊 Có audio</span>
-                                    <span th:if="${!q.hasAudio}" style="color: var(--ssak-text-muted);">Văn bản</span>
-                                </td>
-
-                                <td style="padding: 14px 16px; text-align: right;">
-                                    <button type="button" class="btn-ssak-light" style="height: 32px; padding: 0 12px; font-size: 12px;"
-                                            th:data-code="${q.code}" th:data-summary="${q.contentSummary}" th:data-skill="${q.skill}" th:data-type="${q.questionType}"
-                                            onclick="openQuestionDetailModal(this)">
-                                        Xem chi tiết
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <!-- Empty State -->
-                    <div id="questionEmptyState" style="padding: 40px; text-align: center; display: none;">
-                        <span style="font-size: 36px;">📝</span>
-                        <h4 style="margin: 10px 0 4px 0; font-family: var(--font-heading); font-size: 16px; font-weight: 800; color: #24363D;">
-                            Không tìm thấy câu hỏi phù hợp
-                        </h4>
-                        <span style="font-size: 13px; color: var(--ssak-text-muted);">
-                            Vui lòng điều chỉnh từ khóa tìm kiếm hoặc bộ lọc kỹ năng / cấp độ.
-                        </span>
                     </div>
                 </div>
 
@@ -757,82 +410,6 @@
             </section>
 
         </main>
-    </div>
-</div>
-
-<!-- ============================================================== -->
-<!-- MODAL: XEM TẤT CẢ CÂU HỎI TRONG 1 ĐỀ THI (CÓ ĐÁP ÁN ĐÚNG & GIẢI THÍCH) -->
-<!-- ============================================================== -->
-<div class="modal fade" id="modalExamQuestions" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl">
-        <div class="modal-content" style="border-radius: 20px; border: 2px solid var(--ssak-border); padding: 8px;">
-            <div class="modal-header" style="border-bottom: 2px solid var(--ssak-border); padding: 16px 20px;">
-                <div>
-                    <h5 class="modal-title" id="modalExamTitleDisplay" style="font-family: var(--font-heading); font-weight: 800; color: #1F6B56; margin: 0;">
-                        Danh sách câu hỏi trong Đề thi
-                    </h5>
-                    <span style="font-size: 12px; color: var(--ssak-text-muted);">
-                        Xem trước câu hỏi, 4 đáp án A/B/C/D, đáp án đúng (tô xanh) và lời giải thích chuyên môn
-                    </span>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" style="padding: 24px; max-height: 70vh; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;">
-                
-                <!-- Sample Question 1: Reading -->
-                <div style="background: #F8FAFC; border: 1.5px solid var(--ssak-border); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span class="ssak-badge badge-mint" style="font-weight: 800;">Câu 1 · Đọc hiểu (Dạng câu 1-4: Điền từ vào chỗ trống)</span>
-                        <span style="font-size: 12px; color: var(--ssak-text-muted);">Mã câu: Q-READ-01</span>
-                    </div>
-                    <div style="font-family: var(--font-korean); font-size: 16px; font-weight: 700; color: #24363D;">
-                        [1～2] 다음을 읽고 맞지 않는 것을 고르십시오.<br/>
-                        민수 씨는 지금 시장에 갑니다. 사과와 바나나를 ( &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ).
-                    </div>
-                    
-                    <!-- 4 Choices -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <div style="padding: 10px 14px; background: #FFFFFF; border: 1px solid var(--ssak-border); border-radius: 10px; font-size: 13px;">① 삽니다</div>
-                        <div style="padding: 10px 14px; background: #E6F7F0; border: 2px solid #2E7D67; border-radius: 10px; font-size: 13px; font-weight: 800; color: #1F6B56;">② 사러 갑니다 ✅ (Đáp án đúng)</div>
-                        <div style="padding: 10px 14px; background: #FFFFFF; border: 1px solid var(--ssak-border); border-radius: 10px; font-size: 13px;">③ 살 것 같습니다</div>
-                        <div style="padding: 10px 14px; background: #FFFFFF; border: 1px solid var(--ssak-border); border-radius: 10px; font-size: 13px;">④ 사고 있습니다</div>
-                    </div>
-
-                    <!-- Explanation -->
-                    <div style="padding: 12px 14px; background: #FFFBE6; border: 1px solid #FFE58F; border-radius: 10px; font-size: 13px; color: #7A5A12;">
-                        💡 <strong>Giải thích chuyên môn:</strong> Cấu trúc -(으)러 가다/오다 diễn đạt mục đích di chuyển đến một địa điểm nào đó ("Đi chợ ĐỂ mua táo và chuối"). Do đó đáp án ② 사러 갑니다 là phương án chính xác nhất về ngữ pháp và văn cảnh.
-                    </div>
-                </div>
-
-                <!-- Sample Question 2: Listening -->
-                <div style="background: #F8FAFC; border: 1.5px solid var(--ssak-border); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span class="ssak-badge badge-sky" style="font-weight: 800;">Câu 2 · Nghe hiểu (Dạng câu 1-4: Chọn câu đối đáp tiếp theo)</span>
-                        <span style="font-size: 12px; color: #1F6B56; font-weight: 700;">🔊 File audio: audio_q02_track01.mp3 (0:14s)</span>
-                    </div>
-                    <div style="font-family: var(--font-korean); font-size: 15px; font-weight: 700; color: #24363D;">
-                        [Đoạn hội thoại audio]:<br/>
-                        여: 내일 몇 시에 만날까요?<br/>
-                        남: ( &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; )
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <div style="padding: 10px 14px; background: #E6F7F0; border: 2px solid #2E7D67; border-radius: 10px; font-size: 13px; font-weight: 800; color: #1F6B56;">① 2시에 만나요. ✅ (Đáp án đúng)</div>
-                        <div style="padding: 10px 14px; background: #FFFFFF; border: 1px solid var(--ssak-border); border-radius: 10px; font-size: 13px;">② 영화관에서 만나요.</div>
-                        <div style="padding: 10px 14px; background: #FFFFFF; border: 1px solid var(--ssak-border); border-radius: 10px; font-size: 13px;">③ 친구를 만나요.</div>
-                        <div style="padding: 10px 14px; background: #FFFFFF; border: 1px solid var(--ssak-border); border-radius: 10px; font-size: 13px;">④ 어제 만났어요.</div>
-                    </div>
-
-                    <div style="padding: 12px 14px; background: #FFFBE6; border: 1px solid #FFE58F; border-radius: 10px; font-size: 13px; color: #7A5A12;">
-                        💡 <strong>Giải thích chuyên môn:</strong> Người nữ hỏi về thời gian (몇 시에 - mấy giờ), câu trả lời phù hợp nhất là mốc thời gian cụ thể (2시에 만나요 - gặp lúc 2 giờ).
-                    </div>
-                </div>
-
-            </div>
-            <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px;">
-                <button type="button" class="btn-ssak-primary" data-bs-dismiss="modal" style="height: 38px; padding: 0 20px;">Đóng</button>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -1014,8 +591,6 @@
 
 <!-- Bootstrap 5 Bundle JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<!-- SheetJS for Excel Parse/Download -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script>
     const tabMeta = {
@@ -1023,16 +598,6 @@
             icon: '🏠',
             title: 'Tổng quan Quản lý Chuyên môn (Content Overview)',
             subtitle: 'Theo dõi tổng quan dữ liệu đề thi, ngân hàng câu hỏi, và các báo cáo cần xử lý tức thì.'
-        },
-        exams: {
-            icon: '📋',
-            title: 'Quản lý Đề (Exam Management · TOPIK I & II)',
-            subtitle: 'Danh mục đề thi chia theo kỹ năng Đọc, Nghe, Viết và các dạng câu hỏi, hỗ trợ nhập Excel dạng bản nháp.'
-        },
-        questions: {
-            icon: '📝',
-            title: 'Ngân hàng câu hỏi (Question Bank)',
-            subtitle: 'Kho câu hỏi chuẩn hóa trích từ các đề thi, sẵn sàng đóng gói và tái sử dụng.'
         },
         reports: {
             icon: '⚠️',
@@ -1046,13 +611,12 @@
         }
     };
 
-    let validatedExamRows = [];
 
     // ==========================================
     // 1. TAB SWITCHING
     // ==========================================
     function switchContentTab(tabName) {
-        const tabs = ['overview', 'exams', 'questions', 'reports', 'audit'];
+        const tabs = ['overview', 'reports', 'audit'];
         tabs.forEach(t => {
             const pane = document.getElementById('pane-' + t);
             const sideNav = document.getElementById('side-nav-' + t);
@@ -1087,92 +651,9 @@
         }
     }
 
-    function switchExamSubTab(sub) {
-        if (sub === 'list') {
-            document.getElementById('subtab-exam-list').style.display = 'flex';
-            document.getElementById('subtab-exam-import').style.display = 'none';
-            document.getElementById('btnTabExamList').className = 'btn-ssak-primary';
-            document.getElementById('btnTabExamImport').className = 'btn-ssak-light';
-        } else {
-            document.getElementById('subtab-exam-list').style.display = 'none';
-            document.getElementById('subtab-exam-import').style.display = 'flex';
-            document.getElementById('btnTabExamList').className = 'btn-ssak-light';
-            document.getElementById('btnTabExamImport').className = 'btn-ssak-primary';
-        }
-    }
-
-    function openExamImportTab() {
-        switchExamSubTab('import');
-    }
-
     // ==========================================
     // 2. INSTANT FILTERS (LỌC TỨC THÌ KHÔNG CẦN BẤM NÚT)
     // ==========================================
-    function performExamInstantFilter() {
-        const query = (document.getElementById('liveExamSearch')?.value || '').trim().toLowerCase();
-        const level = document.getElementById('liveExamLevelSelect')?.value || 'ALL';
-        const status = document.getElementById('liveExamStatusSelect')?.value || 'ALL';
-
-        const rows = document.querySelectorAll('.exam-data-row');
-        let count = 0;
-
-        rows.forEach(r => {
-            const title = (r.getAttribute('data-title') || '').toLowerCase();
-            const rLevel = r.getAttribute('data-level') || '';
-            const rStatus = r.getAttribute('data-status') || '';
-
-            let matchText = (query.length === 0 || title.includes(query));
-            let matchLevel = (level === 'ALL' || rLevel === level);
-            let matchStatus = (status === 'ALL' || rStatus === status);
-
-            if (matchText && matchLevel && matchStatus) {
-                r.style.display = '';
-                count++;
-            } else {
-                r.style.display = 'none';
-            }
-        });
-
-        const countEl = document.getElementById('examFilterCount');
-        if (countEl) countEl.innerText = count;
-
-        const emptyEl = document.getElementById('examEmptyState');
-        if (emptyEl) emptyEl.style.display = (count === 0) ? 'block' : 'none';
-    }
-
-    function performQuestionInstantFilter() {
-        const query = (document.getElementById('liveQuestionSearch')?.value || '').trim().toLowerCase();
-        const skill = document.getElementById('liveQuestionSkillSelect')?.value || 'ALL';
-        const level = document.getElementById('liveQuestionLevelSelect')?.value || 'ALL';
-
-        const rows = document.querySelectorAll('.question-data-row');
-        let count = 0;
-
-        rows.forEach(r => {
-            const code = (r.getAttribute('data-code') || '').toLowerCase();
-            const summary = (r.getAttribute('data-summary') || '').toLowerCase();
-            const rSkill = r.getAttribute('data-skill') || '';
-            const rLevel = r.getAttribute('data-level') || '';
-
-            let matchText = (query.length === 0 || code.includes(query) || summary.includes(query));
-            let matchSkill = (skill === 'ALL' || rSkill === skill);
-            let matchLevel = (level === 'ALL' || rLevel === level);
-
-            if (matchText && matchSkill && matchLevel) {
-                r.style.display = '';
-                count++;
-            } else {
-                r.style.display = 'none';
-            }
-        });
-
-        const countEl = document.getElementById('questionFilterCount');
-        if (countEl) countEl.innerText = count;
-
-        const emptyEl = document.getElementById('questionEmptyState');
-        if (emptyEl) emptyEl.style.display = (count === 0) ? 'block' : 'none';
-    }
-
     function performReportInstantFilter() {
         const query = (document.getElementById('liveReportSearch')?.value || '').trim().toLowerCase();
         const status = document.getElementById('liveReportStatusSelect')?.value || 'ALL';
@@ -1212,30 +693,6 @@
             const det = (r.getAttribute('data-details') || '').toLowerCase();
             r.style.display = (query.length === 0 || act.includes(query) || det.includes(query)) ? '' : 'none';
         });
-    }
-
-    // ==========================================
-    // 3. EXAM ACTIONS & TOGGLE STATUS
-    // ==========================================
-    function toggleExamStatus(id) {
-        const formData = new FormData();
-        formData.append('testId', id);
-
-        fetch('/content/exam/toggle-status', {
-            method: 'POST',
-            body: formData
-        })
-        .then(r => r.json())
-        .then(data => {
-            showSsakToast(data.message || 'Đã cập nhật trạng thái đề thi!');
-            setTimeout(() => window.location.reload(), 600);
-        });
-    }
-
-    function openExamQuestionsModal(id, title) {
-        document.getElementById('modalExamTitleDisplay').innerText = title || "Danh sách câu hỏi trong Đề thi";
-        const modal = new bootstrap.Modal(document.getElementById('modalExamQuestions'));
-        modal.show();
     }
 
     // ==========================================
@@ -1309,161 +766,6 @@
             const modal = bootstrap.Modal.getInstance(document.getElementById('modalRejectReport'));
             if (modal) modal.hide();
             setTimeout(() => window.location.reload(), 600);
-        });
-    }
-
-    // ==========================================
-    // 5. EXAM EXCEL IMPORT & DOWNLOAD SAMPLE
-    // ==========================================
-    function downloadSampleExamExcel() {
-        const sample = [
-            ["Câu số", "Kỹ năng", "Dạng câu", "Đề bài", "Hình ảnh URL", "Audio URL / Đoạn văn", "Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D", "Đáp án đúng", "Giải thích chi tiết"],
-            [1, "READING", "Câu 1-4 Điền từ", "민수 씨는 지금 시장에 갑니다. 사과를 (     ).", "", "", "삽니다", "사러 갑니다", "살 것 같습니다", "사고 있습니다", "B", "Cấu trúc -(으)러 가다 diễn tả mục đích."],
-            [2, "READING", "Câu 5-6 Biển báo", "도서관 안에서는 조용히 해주십시오.", "https://example.com/sign.png", "", "도서관", "병원", "공항", "식당", "A", "Biển báo yêu cầu giữ trật tự trong thư viện."],
-            [3, "LISTENING", "Câu 1-4 Đối đáp", "여: 내일 몇 시에 만날까요? 남: ...", "", "https://example.com/audio/q03.mp3", "2시에 만나요.", "영화관에서 만나요.", "친구를 만나요.", "어제 만났어요.", "A", "Hỏi mấy giờ trả lời mốc giờ cụ thể."]
-        ];
-
-        const ws = XLSX.utils.aoa_to_sheet(sample);
-        ws['!cols'] = [{ wch: 8 }, { wch: 12 }, { wch: 20 }, { wch: 36 }, { wch: 18 }, { wch: 22 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 38 }];
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "MauDeThiTOPIK");
-        XLSX.writeFile(wb, "HotTopik_Mau_Nhap_De_Thi.xlsx");
-        showSsakToast("Đã tải xuống file mẫu HotTopik_Mau_Nhap_De_Thi.xlsx!");
-    }
-
-    function handleExamExcelUpload(input) {
-        const file = input.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-            parseExamExcel(json, file.name);
-        };
-        reader.readAsArrayBuffer(file);
-    }
-
-    function parseExamExcel(rows, fileName) {
-        if (!rows || rows.length <= 1) {
-            alert('File rỗng hoặc không đúng định dạng!');
-            return;
-        }
-
-        const existingQuestionsInDB = ["Q-READ-01", "Q-READ-02"];
-        const seenInFile = new Set();
-        let parsedList = [];
-        let valid = 0;
-        let dup = 0;
-        let existed = 0;
-
-        for (let i = 1; i < rows.length; i++) {
-            const r = rows[i];
-            if (!r || r.length === 0) continue;
-
-            const qNum = r[0] || (i);
-            const skill = (r[1] || 'READING').toString().trim();
-            const type = (r[2] || 'Dạng tổng hợp').toString().trim();
-            const questionText = (r[3] || '').toString().trim();
-            const correctOpt = (r[10] || 'A').toString().trim();
-            const explanation = (r[11] || '').toString().trim();
-
-            let statusType = "VALID";
-            let statusText = "✅ Hợp lệ";
-
-            if (!questionText) {
-                statusType = "ERROR";
-                statusText = "❌ Trống đề bài";
-            } else if (seenInFile.has(questionText)) {
-                statusType = "DUPLICATE_FILE";
-                statusText = "⚠️ Trùng lặp trong file";
-                dup++;
-            } else if (existingQuestionsInDB.includes("Q-READ-0" + qNum)) {
-                statusType = "EXISTED_SYSTEM";
-                statusText = "❌ Đã có trong hệ thống";
-                existed++;
-            } else {
-                seenInFile.add(questionText);
-                valid++;
-            }
-
-            parsedList.push({
-                qNum: qNum,
-                skill: skill,
-                type: type,
-                questionText: questionText,
-                correctOpt: correctOpt,
-                explanation: explanation,
-                statusType: statusType,
-                statusText: statusText
-            });
-        }
-
-        validatedExamRows = parsedList.filter(p => p.statusType === 'VALID');
-
-        document.getElementById('examUploadDropzone').style.display = 'none';
-        document.getElementById('examParseResultsBox').style.display = 'flex';
-        document.getElementById('kpiExamTotalParsed').innerText = parsedList.length;
-        document.getElementById('kpiExamValid').innerText = valid;
-        document.getElementById('kpiExamDup').innerText = dup;
-        document.getElementById('kpiExamExisted').innerText = existed;
-
-        const tbody = document.getElementById('examPreviewTbody');
-        tbody.innerHTML = '';
-
-        parsedList.forEach(item => {
-            const tr = document.createElement('tr');
-            tr.style.borderBottom = '1px solid var(--ssak-border)';
-            if (item.statusType === 'DUPLICATE_FILE') tr.style.background = '#FFFBE6';
-            else if (item.statusType === 'EXISTED_SYSTEM') tr.style.background = '#FFF1F0';
-
-            tr.innerHTML = `
-                <td style="padding: 8px 10px; font-weight: 700;">#${item.qNum}</td>
-                <td style="padding: 8px 10px;"><span class="ssak-badge badge-mint">${item.skill}</span></td>
-                <td style="padding: 8px 10px; font-size: 12px;">${item.type}</td>
-                <td style="padding: 8px 10px; font-weight: 600; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.questionText}</td>
-                <td style="padding: 8px 10px; font-weight: 800; color: #1F6B56;">${item.correctOpt}</td>
-                <td style="padding: 8px 10px; font-size: 12px; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.explanation}</td>
-                <td style="padding: 8px 10px; font-weight: 700;">
-                    ${item.statusType === 'VALID' ? '<span class="ssak-badge badge-mint">' + item.statusText + '</span>' :
-                      (item.statusType === 'DUPLICATE_FILE' ? '<span class="ssak-badge badge-honey">' + item.statusText + '</span>' :
-                      '<span class="ssak-badge badge-terracotta">' + item.statusText + '</span>')}
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
-
-        if (valid > 0) {
-            const btn = document.getElementById('btnConfirmExamBulkCreate');
-            btn.innerText = "🚀 Xác nhận Lưu Đề (" + valid + " câu hợp lệ) dạng Bản nháp";
-        }
-    }
-
-    function resetExamImport() {
-        document.getElementById('examUploadDropzone').style.display = 'flex';
-        document.getElementById('examParseResultsBox').style.display = 'none';
-        document.getElementById('examExcelInput').value = '';
-    }
-
-    function executeBulkExamImport() {
-        const title = document.getElementById('importExamTitle').value.trim() || 'Đề thi mới từ Excel';
-        const formData = new FormData();
-        formData.append('examName', title);
-        formData.append('questionCount', validatedExamRows.length);
-
-        fetch('/content/exam/import', {
-            method: 'POST',
-            body: formData
-        })
-        .then(r => r.json())
-        .then(data => {
-            showSsakToast("Đã nhập đề thi thành công ở trạng thái Bản nháp!");
-            setTimeout(() => {
-                switchExamSubTab('list');
-                window.location.reload();
-            }, 800);
         });
     }
 

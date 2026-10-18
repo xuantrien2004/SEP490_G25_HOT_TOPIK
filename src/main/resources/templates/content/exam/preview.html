@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<th:block th:replace="~{fragments/content-shell :: styles}"></th:block>
+<div class="cm-shell">
+    <aside th:replace="~{fragments/content-shell :: sidebar('sources')}"></aside>
+    <div class="cm-main">
+        <header class="cm-header">
+            <div>
+                <div class="cm-muted"><a th:href="@{/content/sources/{id}(id=${source.id})}">Quay lại nhập đề</a></div>
+                <h1 th:text="${source.name}">TOPIK II kỳ 83</h1>
+                <div class="sub">Học viên thấy hướng dẫn dạng, một file nghe cho cả bài, rồi bốn đáp án. Phụ đề chỉ mở khi xem giải thích.</div>
+            </div>
+        </header>
+        <main class="cm-body">
+            <div th:if="${#lists.isEmpty(bais)}" class="cm-card">
+                <h2>Chưa có câu nào để xem</h2>
+                <p class="cm-muted">Chọn dạng câu và nhập ít nhất một câu, rồi mở lại trang này.</p>
+                <a class="btn btn-ssak-primary btn-sm" th:href="@{/content/sources/{id}(id=${source.id})}">Về tờ đề</a>
+            </div>
+
+            <p class="cm-muted" th:unless="${#lists.isEmpty(bais)}"
+               th:text="${listeningCount + ' bài Nghe · ' + readingCount + ' bài Đọc. Bài hai câu trở lên dùng chung một file nghe hoặc một đoạn văn.'}">0 bài</p>
+
+            <article class="cm-card learn-bai" th:each="bai : ${bais}">
+                <div class="learn-guide" th:if="${bai.showGuide}">
+                    <div class="ko" th:text="${bai.instructionKo}">※ [1~4] 다음을 듣고…</div>
+                    <div class="cm-muted" style="margin-top: 4px;" th:text="${bai.typeName + ' · ' + bai.pointsLine}">Chọn tranh · Phần Nghe · 50 câu · 100 điểm</div>
+                </div>
+
+                <div th:if="${bai.audio != ''}">
+                    <audio class="learn-audio" controls preload="none"
+                           th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${bai.audio})}"></audio>
+                    <div class="cm-muted">Nghe lại được nhiều lần. Bấm thanh tiếng để tua.</div>
+                </div>
+                <img th:if="${bai.image != ''}" alt="Hình của bài" style="max-width: 100%; border-radius: 14px;"
+                     th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${bai.image})}">
+                <div class="learn-passage" th:if="${bai.passage != ''}" th:text="${bai.passage}">Đoạn văn</div>
+
+                <div class="learn-ask" th:each="ask : ${bai.asks}">
+                    <div class="cm-toolbar">
+                        <span class="pill pill-sky" th:text="${bai.skill.label + ' ' + ask.no}">Nghe 21</span>
+                        <span class="pill pill-gray" th:text="${bai.typeCode}">II-N6</span>
+                    </div>
+                    <p class="ko" style="margin: 8px 0 0; font-size: 16px;" th:text="${ask.prompt != '' ? ask.prompt : 'Chưa nhập câu hỏi'}">질문</p>
+                    <div th:unless="${bai.writing}">
+                        <div class="learn-opt"><span>①</span><span class="ko" th:text="${ask.opt1}">가</span></div>
+                        <div class="learn-opt"><span>②</span><span class="ko" th:text="${ask.opt2}">나</span></div>
+                        <div class="learn-opt"><span>③</span><span class="ko" th:text="${ask.opt3}">다</span></div>
+                        <div class="learn-opt"><span>④</span><span class="ko" th:text="${ask.opt4}">라</span></div>
+                    </div>
+                </div>
+
+                <details class="learn-reveal">
+                    <summary>Xem giải thích</summary>
+                    <div style="margin-top: 10px;">
+                        <div class="cm-muted">Phụ đề</div>
+                        <div class="learn-script" th:if="${bai.skill.name() == 'LISTENING'}" th:text="${bai.script != '' ? bai.script : 'Chưa có phụ đề cho bài này.'}">Lời thoại</div>
+                        <p class="cm-muted" th:if="${bai.skill.name() == 'READING'}">Phần Đọc không có phụ đề. Đoạn văn nằm ở trên.</p>
+                    </div>
+                    <div th:each="ask : ${bai.asks}" style="margin-top: 12px;">
+                        <div class="cm-muted" th:text="${'Giải thích câu ' + ask.no}">Giải thích câu 21</div>
+                        <p style="margin: 4px 0 0;" th:text="${ask.explanation != '' ? ask.explanation : 'Chưa có giải thích. Điền sau cũng được.'}">Giải thích</p>
+                        <p class="cm-muted" th:if="${ask.answer != ''}" th:text="${'Đáp án đúng: ' + ask.answer}">Đáp án đúng: 1</p>
+                    </div>
+                </details>
+            </article>
+        </main>
+    </div>
+</div>
+</body>
+</html>

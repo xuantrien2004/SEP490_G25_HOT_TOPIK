@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<th:block th:fragment="styles">
+    <link rel="stylesheet" th:href="@{/css/content-admin.css}">
+</th:block>
+
+<aside th:fragment="sidebar(active)" class="cm-side" aria-label="Menu quản trị nội dung">
+    <div class="cm-brand">
+        <a th:href="@{/content}">
+            <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 21V11" stroke="#6CC49F" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M12 12C12 7 8 4 3.5 4.5C3.5 9 7 12.5 12 12Z" fill="#6CC49F"/>
+                <path d="M12 10C12 6 15.5 3 20.5 3.5C20.5 8 17 11 12 10Z" fill="#A9D9C0"/>
+            </svg>
+            <span class="name">HOT TOPIK</span>
+        </a>
+        <span class="cm-role" th:text="${currentUser != null and currentUser.role == 'ROLE_ADMIN'} ? 'Admin · chỉ xem' : 'Content Manager'">Content Manager</span>
+    </div>
+    <nav class="cm-nav">
+        <div class="group">Bảng điều khiển</div>
+        <a th:href="@{/content}" th:classappend="${active == 'overview'} ? 'active'">🏠 Tổng quan</a>
+
+        <div class="group">Đề và câu hỏi</div>
+        <a th:href="@{/content/exams}" th:classappend="${active == 'exams'} ? 'active'">📚 Thư viện đề</a>
+        <a th:href="@{/content/sources}" th:classappend="${active == 'sources'} ? 'active'">📥 Nhập đề mới</a>
+        <a th:href="@{/content/questions}" th:classappend="${active == 'questions'} ? 'active'">📝 Ngân hàng câu hỏi</a>
+        <a th:href="@{/content/templates}" th:classappend="${active == 'templates'} ? 'active'">🧩 Dạng câu</a>
+        <a th:href="@{/content/question-types}" th:classappend="${active == 'types'} ? 'active'">🗂 Vị trí trong đề chuẩn</a>
+
+        <div class="group">Học liệu</div>
+        <a th:href="@{/content/vocabulary}">📖 Từ vựng</a>
+        <a th:href="@{/content/grammar}">✍️ Ngữ pháp</a>
+        <a th:href="@{/content/hanja}">🈶 Hán Việt</a>
+
+        <div class="group">Chất lượng</div>
+        <a th:href="@{/content(tab='reports')}">⚠️ Báo lỗi nội dung</a>
+        <a th:href="@{/content(tab='audit')}">📜 Nhật ký thao tác</a>
+    </nav>
+    <div class="cm-side-foot">
+        <div style="color:#A9D9C0; margin-bottom: 6px;" th:text="${currentUser != null ? currentUser.fullName : ''}">Lê Thu Hà</div>
+        <a th:href="@{/logout}">Đăng xuất</a>
+    </div>
+</aside>
+
+<header th:fragment="header(title, subtitle)" class="cm-header">
+    <div>
+        <h1 th:text="${title}">Tiêu đề</h1>
+        <div class="sub" th:text="${subtitle}">Mô tả</div>
+    </div>
+    <span th:if="${canEdit}" class="perm perm-full">Toàn quyền</span>
+    <span th:unless="${canEdit}" class="perm perm-view">Chỉ xem</span>
+</header>
+
+<th:block th:fragment="flash">
+    <div th:if="${flashOk}" class="cm-flash ok" role="status"><span>✓</span><span th:text="${flashOk}"></span></div>
+    <div th:if="${flashError}" class="cm-flash err" role="alert"><span>!</span><span th:text="${flashError}"></span></div>
+    <div th:if="${flashInfo}" class="cm-flash info" role="status"><span>i</span><span th:text="${flashInfo}"></span></div>
+</th:block>
+
+</body>
+</html>

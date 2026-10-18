@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<th:block th:replace="~{fragments/content-shell :: styles}"></th:block>
+<div class="cm-shell">
+    <aside th:replace="~{fragments/content-shell :: sidebar('templates')}"></aside>
+    <div class="cm-main">
+        <header th:replace="~{fragments/content-shell :: header('Dạng câu', 'Dạng câu mô tả cách hiện, tài nguyên và cách chấm. Dạng câu không chứa nội dung một câu trong một đề.')}"></header>
+        <main class="cm-body">
+            <th:block th:replace="~{fragments/content-shell :: flash}"></th:block>
+
+            <div class="cm-grid-2">
+                <div class="cm-card">
+                    <h3>Bốn đối tượng</h3>
+                    <p class="cm-muted">Dạng câu là cách làm một câu. Nhóm câu giữ file nghe, đoạn văn, ảnh dùng chung. Câu hỏi là nội dung thật trong ngân hàng. Ô trong đề gắn câu đó vào một đề.</p>
+                </div>
+                <div class="cm-card">
+                    <h3>Mã TPL là mã nội bộ</h3>
+                    <p class="cm-muted">Mã TPL là mã dạng dùng khi nhập đề và khi lọc ngân hàng. Một đoạn nghe nhiều câu vẫn tính từng câu trong ngân hàng.</p>
+                </div>
+            </div>
+
+            <div class="cm-tabs">
+                <a th:href="@{/content/templates}" th:classappend="${trackFilter == null and skillFilter == null} ? 'active'">Tất cả</a>
+                <a th:href="@{/content/templates(track='TOPIK_I', skill='LISTENING')}" th:classappend="${trackFilter != null and trackFilter.name() == 'TOPIK_I' and skillFilter != null and skillFilter.name() == 'LISTENING'} ? 'active'">TOPIK I · Nghe</a>
+                <a th:href="@{/content/templates(track='TOPIK_I', skill='READING')}" th:classappend="${trackFilter != null and trackFilter.name() == 'TOPIK_I' and skillFilter != null and skillFilter.name() == 'READING'} ? 'active'">TOPIK I · Đọc</a>
+                <a th:href="@{/content/templates(track='TOPIK_II', skill='LISTENING')}" th:classappend="${trackFilter != null and trackFilter.name() == 'TOPIK_II' and skillFilter != null and skillFilter.name() == 'LISTENING'} ? 'active'">TOPIK II · Nghe</a>
+                <a th:href="@{/content/templates(track='TOPIK_II', skill='READING')}" th:classappend="${trackFilter != null and trackFilter.name() == 'TOPIK_II' and skillFilter != null and skillFilter.name() == 'READING'} ? 'active'">TOPIK II · Đọc</a>
+                <a th:href="@{/content/templates(track='TOPIK_II', skill='WRITING')}" th:classappend="${trackFilter != null and trackFilter.name() == 'TOPIK_II' and skillFilter != null and skillFilter.name() == 'WRITING'} ? 'active'">TOPIK II · Viết</a>
+            </div>
+
+            <div class="cm-table-wrap">
+                <table class="cm-table">
+                    <thead>
+                    <tr>
+                        <th>Mã dạng</th>
+                        <th>Tên</th>
+                        <th>Cách hiện</th>
+                        <th>Câu trong bài</th>
+                        <th>Chấm</th>
+                        <th>Trạng thái</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="t : ${rows}">
+                        <td><a class="code" th:href="@{/content/templates/{code}(code=${t.code})}" th:text="${t.code}">TPL1-LIS-01</a></td>
+                        <td>
+                            <div th:text="${t.name}">Nghe câu hỏi</div>
+                            <div class="cm-muted" th:text="${t.track.label + ' · ' + t.skill.label}">TOPIK I</div>
+                        </td>
+                        <td th:text="${t.displayMode.label}">Chọn một đáp án</td>
+                        <td th:text="${t.childLabel}">1 câu/bài</td>
+                        <td th:text="${t.grading.label}">Chấm tự động</td>
+                        <td>
+                            <span class="pill" th:classappend="${t.status.name() == 'ACTIVE'} ? 'pill-mint' : 'pill-gray'" th:text="${t.status.label}">Đang dùng</span>
+                            <span th:if="${t.customized}" class="pill pill-honey">Đã sửa</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>
