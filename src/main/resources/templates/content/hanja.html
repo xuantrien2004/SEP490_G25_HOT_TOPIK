@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Kho từ Hán Việt · Quản lý Lý thuyết')}"></head>
+<body style="background: #F8F6EF; color: #24363D; font-family: var(--font-body); margin: 0; padding: 0;">
+
+<div style="display: flex; min-height: 100vh;">
+
+    <!-- SIDEBAR QUẢN LÝ (CONTENT PORTAL) -->
+    <aside style="width: 260px; background: #1A3026; color: #FFFFFF; flex-shrink: 0; display: flex; flex-direction: column;">
+        <!-- Logo -->
+        <div style="padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 10px;">
+            <svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 21V11" stroke="#6CC49F" stroke-width="2.4" stroke-linecap="round"/>
+                <path d="M12 12C12 7 8 4 3.5 4.5C3.5 9 7 12.5 12 12Z" fill="#6CC49F"/>
+                <path d="M12 10C12 6 15.5 3 20.5 3.5C20.5 8 17 11 12 10Z" fill="#2E7D67"/>
+            </svg>
+            <div>
+                <span style="font-family: var(--font-heading); font-size: 19px; font-weight: 800; display: block; line-height: 1.1;">HOT TOPIK</span>
+                <span style="font-size: 11px; color: #96D3B6; font-weight: 700;">Content Management</span>
+            </div>
+        </div>
+
+        <!-- User Info -->
+        <div style="padding: 18px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 12px;">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background: #2E7D67; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px;">
+                H
+            </div>
+            <div style="overflow: hidden;">
+                <span style="display: block; font-weight: 800; font-size: 14px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;" th:text="${userName}">Lê Thu Hà</span>
+                <span style="display: block; font-size: 11.5px; color: #A9D9C0;" th:text="${roleTitle}">Content Manager</span>
+            </div>
+        </div>
+
+        <!-- Nav Items -->
+        <nav style="padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; flex-grow: 1;">
+            <a th:href="@{/content}" class="admin-nav-item">
+                <span style="font-size: 16px;">🏠</span>
+                <span>Tổng quan</span>
+            </a>
+
+            <!-- Submenu: Quản lý Lý thuyết -->
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+                <div class="admin-nav-item" style="color: #6CC49F; font-weight: 800; cursor: default;">
+                    <span style="font-size: 16px;">📖</span>
+                    <span style="flex-grow: 1;">Quản lý Lý thuyết</span>
+                </div>
+                <a th:href="@{/content/vocabulary}" class="admin-sub-item">
+                    <span>↳ Kho Từ vựng TOPIK 1-6</span>
+                </a>
+                <a th:href="@{/content/grammar}" class="admin-sub-item">
+                    <span>↳ Kho Ngữ pháp TOPIK 1-6</span>
+                </a>
+                <a th:href="@{/content/hanja}" class="admin-sub-item active">
+                    <span>↳ Kho từ Hán Việt</span>
+                    <span class="ssak-badge badge-mint" style="font-size: 10px; padding: 1px 6px; margin-left: auto;" id="sidebarRootCount" th:text="${totalRootsCount}">0</span>
+                </a>
+            </div>
+
+            <a th:href="@{/content?tab=exams}" class="admin-nav-item">
+                <span style="font-size: 16px;">📋</span>
+                <span>Quản lý Đề thi</span>
+            </a>
+
+            <a th:href="@{/content?tab=questions}" class="admin-nav-item">
+                <span style="font-size: 16px;">📝</span>
+                <span>Ngân hàng câu hỏi</span>
+            </a>
+
+            <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 8px 0;"></div>
+
+            <a th:href="@{/ly-thuyet/han-viet}" target="_blank" class="admin-nav-item" style="color: #F4C45A;">
+                <span style="font-size: 16px;">👁️</span>
+                <span>Xem trang Học viên</span>
+            </a>
+        </nav>
+
+        <!-- Logout -->
+        <div style="padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <a th:href="@{/login?logout=true}" style="color: #FFAAA6; text-decoration: none; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                <span>🚪</span> Đăng xuất
+            </a>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main style="flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; max-height: 100vh;">
+
+        <!-- TOP BAR -->
+        <header style="background: #FFFFFF; border-bottom: 1.5px solid #E8E5DC; padding: 14px 32px; display: flex; justify-content: space-between; align-items: center; sticky: top;">
+            <div>
+                <div style="font-size: 12px; color: #8C9BA2; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+                    Quản lý Lý thuyết &gt; Cầu nối Hán Việt
+                </div>
+                <h1 style="margin: 2px 0 0; font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: #24363D;">
+                    Kho từ Hán Việt (Hanja Dictionary)
+                </h1>
+            </div>
+
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button type="button" class="btn-top-action" onclick="downloadTemplate()" title="Tải file Excel mẫu">
+                    📥 Tải Excel mẫu
+                </button>
+                <button type="button" class="btn-top-action" onclick="openImportModal()" title="Import danh sách từ file Excel">
+                    📤 Import Excel
+                </button>
+                <button type="button" class="btn-primary-action" onclick="openCreateModal()">
+                    + Thêm từ mới
+                </button>
+            </div>
+        </header>
+
+        <!-- CONTENT BODY -->
+        <div style="padding: 28px 32px; display: flex; flex-direction: column; gap: 24px;">
+
+            <!-- STATS CARDS -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+                <div class="stat-card">
+                    <span class="stat-label">TỔNG SỐ TỪ GỐC</span>
+                    <div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 6px;">
+                        <span class="stat-value" id="cardTotalRoots" th:text="${totalRootsCount}">0</span>
+                        <span style="font-size: 24px;">學</span>
+                    </div>
+                    <span class="stat-sub">Các gốc chữ Hán trong hệ thống</span>
+                </div>
+
+                <div class="stat-card">
+                    <span class="stat-label">ĐANG HOẠT ĐỘNG</span>
+                    <div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 6px;">
+                        <span class="stat-value" style="color: #2E7D67;" id="cardActiveRoots" th:text="${activeRootsCount}">0</span>
+                        <span class="ssak-badge badge-mint" style="font-size: 11px;">ACTIVE</span>
+                    </div>
+                    <span class="stat-sub">Học viên có thể học ngay</span>
+                </div>
+
+                <div class="stat-card">
+                    <span class="stat-label">BẢN NHÁP / ẨN</span>
+                    <div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 6px;">
+                        <span class="stat-value" style="color: #C05621;" id="cardDraftRoots" th:text="${draftRootsCount}">0</span>
+                        <span class="ssak-badge badge-honey" style="font-size: 11px;">DRAFT</span>
+                    </div>
+                    <span class="stat-sub">Đang biên soạn hoặc tạm ẩn</span>
+                </div>
+
+                <div class="stat-card">
+                    <span class="stat-label">TỪ LIÊN QUAN CÙNG HỌ</span>
+                    <div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 6px;">
+                        <span class="stat-value" style="color: #2B6CB0;" id="cardTotalRelated" th:text="${totalRelatedWordsCount}">0</span>
+                        <span style="font-size: 24px;">📚</span>
+                    </div>
+                    <span class="stat-sub">Từ vựng ghép theo các gốc Hán</span>
+                </div>
+            </div>
+
+            <!-- SEARCH & FILTER TOOLBAR -->
+            <div style="background: #FFFFFF; border: 1.5px solid #E8E5DC; border-radius: 16px; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+                <div style="display: flex; gap: 14px; align-items: center; flex-grow: 1; max-width: 600px;">
+                    <!-- Search input -->
+                    <div style="position: relative; flex-grow: 1;">
+                        <input type="text" id="searchInput" placeholder="Tìm theo chữ Hán (學), âm Hán Việt (học), tiếng Hàn (학), nghĩa..."
+                               oninput="onSearchInput()"
+                               style="width: 100%; height: 42px; border-radius: 12px; border: 1.5px solid #E8E5DC; padding: 0 16px 0 38px; font-size: 14px; font-family: inherit; outline: none; box-sizing: border-box;">
+                        <span style="position: absolute; left: 14px; top: 11px; font-size: 15px; color: #8C9BA2;">🔍</span>
+                    </div>
+
+                    <!-- Status Filter -->
+                    <select id="statusFilter" onchange="loadRoots()"
+                            style="height: 42px; border-radius: 12px; border: 1.5px solid #E8E5DC; padding: 0 14px; font-size: 14px; font-family: inherit; outline: none; background: #FFFFFF; font-weight: 700; color: #24363D;">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="ACTIVE">Đang hoạt động (ACTIVE)</option>
+                        <option value="DRAFT">Bản nháp (DRAFT)</option>
+                    </select>
+                </div>
+
+                <div style="font-size: 13px; color: #53646C; font-weight: 700;">
+                    Hiển thị <span id="filteredCountText" style="color: #2E7D67; font-weight: 800;">0</span> từ
+                </div>
+            </div>
+
+            <!-- DATA TABLE -->
+            <div style="background: #FFFFFF; border: 1.5px solid #E8E5DC; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+                    <thead>
+                        <tr style="background: #F8F6EF; border-bottom: 1.5px solid #E8E5DC; font-size: 12px; font-weight: 800; color: #53646C; text-transform: uppercase; letter-spacing: 0.5px;">
+                            <th style="padding: 14px 20px; width: 60px; text-align: center;">STT</th>
+                            <th style="padding: 14px 16px; width: 100px;">Chữ Hán</th>
+                            <th style="padding: 14px 16px; width: 140px;">Âm Hán Việt</th>
+                            <th style="padding: 14px 16px; width: 120px;">Tiếng Hàn</th>
+                            <th style="padding: 14px 20px;">Nghĩa gốc</th>
+                            <th style="padding: 14px 16px; width: 120px; text-align: center;">Trạng thái</th>
+                            <th style="padding: 14px 16px; width: 80px; text-align: center;">Audio</th>
+                            <th style="padding: 14px 16px; width: 140px; text-align: center;">Từ liên quan</th>
+                            <th style="padding: 14px 20px; width: 140px; text-align: right;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rootsTableBody">
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 40px; color: #8C9BA2;">Đang tải danh sách từ Hán Việt...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL 1: XEM CHI TIẾT TỪ HÁN VIỆT                              -->
+<!-- ============================================================== -->
+<div id="detailModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-box" style="max-width: 720px;">
+        <div class="modal-header">
+            <h3 style="margin: 0; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D;">
+                Chi tiết gốc từ Hán Việt
+            </h3>
+            <button type="button" class="btn-close-modal" onclick="closeDetailModal()">✕</button>
+        </div>
+
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 20px;">
+            <!-- Root Card -->
+            <div style="background: #F8F6EF; border: 1.5px solid #E8E5DC; border-radius: 16px; padding: 22px; display: flex; align-items: center; gap: 22px;">
+                <div id="detailCharBox" style="width: 80px; height: 80px; border-radius: 18px; background: #FDF2EB; color: #C05621; display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-size: 46px; font-weight: 900; flex-shrink: 0;">
+                    學
+                </div>
+                <div style="flex-grow: 1;">
+                    <div style="display: flex; align-items: baseline; gap: 10px;">
+                        <h2 id="detailSinoVi" style="margin: 0; font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: #24363D;">Học</h2>
+                        <span id="detailKoReading" style="font-size: 18px; font-weight: 800; color: #2E7D67;">(학)</span>
+                        <span id="detailStatusBadge" class="ssak-badge badge-mint" style="font-size: 11px;">ACTIVE</span>
+                    </div>
+                    <p id="detailMeaning" style="margin: 8px 0 0; font-size: 14.5px; color: #53646C; line-height: 1.5;">Nghĩa: Học tập, trường học</p>
+                </div>
+                <div>
+                    <button type="button" id="btnPlayDetailRootAudio" class="btn-audio-listen" title="Nghe phát âm">🔊 Nghe</button>
+                </div>
+            </div>
+
+            <!-- Related Words Section -->
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span style="font-size: 15px; font-weight: 800; color: #24363D;">
+                        Các từ liên quan cùng họ (<span id="detailRelatedCount">0</span> từ)
+                    </span>
+                    <span style="font-size: 12px; color: #8C9BA2;">Bấm loa để nghe phát âm từng từ</span>
+                </div>
+
+                <div style="border: 1px solid #E8E5DC; border-radius: 12px; overflow: hidden; max-height: 300px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13.5px;">
+                        <thead style="background: #F8F6EF; border-bottom: 1px solid #E8E5DC; font-size: 12px; color: #53646C; font-weight: 800;">
+                            <tr>
+                                <th style="padding: 10px 14px;">Tiếng Hàn</th>
+                                <th style="padding: 10px 14px;">Chữ Hán</th>
+                                <th style="padding: 10px 14px;">Âm Hán Việt</th>
+                                <th style="padding: 10px 14px;">Nghĩa tiếng Việt</th>
+                                <th style="padding: 10px 14px; text-align: center; width: 60px;">Audio</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailRelatedTableBody">
+                            <!-- rows rendered by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn-top-action" onclick="closeDetailModal()">Đóng</button>
+            <button type="button" class="btn-primary-action" id="btnEditFromDetail">Chỉnh sửa từ này</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL 2: THÊM MỚI / CHỈNH SỬA TỪ HÁN VIỆT                       -->
+<!-- ============================================================== -->
+<div id="formModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-box" style="max-width: 780px;">
+        <div class="modal-header">
+            <h3 id="formModalTitle" style="margin: 0; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D;">
+                Thêm từ Hán Việt mới
+            </h3>
+            <button type="button" class="btn-close-modal" onclick="closeFormModal()">✕</button>
+        </div>
+
+        <form id="hanjaForm" onsubmit="submitHanjaForm(event)">
+            <input type="hidden" id="formRootId" value="">
+
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 18px; max-height: 70vh; overflow-y: auto;">
+
+                <div style="font-size: 13px; font-weight: 800; color: #2E7D67; border-bottom: 1.5px solid #E8E5DC; padding-bottom: 6px;">
+                    1. THÔNG TIN GỐC TỪ HÁN VIỆT
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                    <div>
+                        <label class="form-label">CHỮ HÁN (*) (1-4 ký tự)</label>
+                        <input type="text" id="formHanjaChar" required maxlength="4" placeholder="Ví dụ: 學" class="form-control" style="font-size: 18px; font-weight: 800;">
+                    </div>
+                    <div>
+                        <label class="form-label">ÂM HÁN VIỆT (*) </label>
+                        <input type="text" id="formSinoVi" required maxlength="30" placeholder="Ví dụ: Học" class="form-control">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                    <div>
+                        <label class="form-label">TIẾNG HÀN (*) (âm đọc)</label>
+                        <input type="text" id="formKoReading" required maxlength="10" placeholder="Ví dụ: 학" class="form-control">
+                    </div>
+                    <div>
+                        <label class="form-label">TRẠNG THÁI</label>
+                        <select id="formStatus" class="form-control">
+                            <option value="ACTIVE">Hoạt động (ACTIVE)</option>
+                            <option value="DRAFT">Bản nháp (DRAFT)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label">NGHĨA GỐC (*)</label>
+                    <input type="text" id="formMeaningVi" required maxlength="200" placeholder="Ví dụ: Học tập, trường học..." class="form-control">
+                </div>
+
+                <div>
+                    <label class="form-label">LINK ÂM THANH ĐỌC TIẾNG HÀN (tùy chọn)</label>
+                    <input type="text" id="formAudioUrl" placeholder="Ví dụ: /audio/hanja/hak.mp3 hoặc để trống" class="form-control">
+                </div>
+
+                <!-- Related Words Form Section -->
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid #E8E5DC; padding-bottom: 6px; margin-top: 6px;">
+                    <span style="font-size: 13px; font-weight: 800; color: #2E7D67;">
+                        2. CÁC TỪ LIÊN QUAN CÙNG HỌ (VÍ DỤ: TRƯỜNG HỌC, ĐẠI HỌC...)
+                    </span>
+                    <button type="button" class="btn-top-action" onclick="addRelatedWordRow()" style="height: 32px; font-size: 12px; padding: 0 12px;">
+                        + Thêm từ liên quan
+                    </button>
+                </div>
+
+                <div style="border: 1px solid #E8E5DC; border-radius: 12px; overflow: hidden;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                        <thead style="background: #F8F6EF; border-bottom: 1px solid #E8E5DC; font-weight: 800; color: #53646C;">
+                            <tr>
+                                <th style="padding: 8px 10px; width: 130px;">Tiếng Hàn (*)</th>
+                                <th style="padding: 8px 10px; width: 120px;">Chữ Hán</th>
+                                <th style="padding: 8px 10px; width: 130px;">Âm Hán Việt</th>
+                                <th style="padding: 8px 10px;">Nghĩa tiếng Việt</th>
+                                <th style="padding: 8px 10px; width: 50px; text-align: center;">Xóa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="formRelatedWordsBody">
+                            <!-- dynamic rows -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-top-action" onclick="closeFormModal()">Hủy</button>
+                <button type="submit" class="btn-primary-action" id="btnSubmitForm">Lưu thông tin</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL 3: IMPORT EXCEL & BÁO CÁO PHÂN TÍCH                     -->
+<!-- ============================================================== -->
+<div id="importModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-box" style="max-width: 680px;">
+        <div class="modal-header">
+            <h3 style="margin: 0; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D;">
+                Import Kho từ Hán Việt từ file Excel
+            </h3>
+            <button type="button" class="btn-close-modal" onclick="closeImportModal()">✕</button>
+        </div>
+
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 18px;">
+
+            <!-- Instruction Box -->
+            <div style="background: #E8F5E9; border: 1.5px solid #C1E4D2; border-radius: 14px; padding: 16px 20px; font-size: 13.5px; line-height: 1.6; color: #1E4620;">
+                💡 <b>Quy tắc Import:</b><br>
+                1. Tải <b>File Excel mẫu</b> để có sẵn các cột chuẩn.<br>
+                2. Hệ thống sẽ tự động kiểm tra và thông báo rõ:
+                <b>Tổng số từ</b>, <b>Số từ trùng trong file</b>, <b>Số từ đã có sẵn trong hệ thống</b> và <b>Số từ thêm mới thành công</b>.
+            </div>
+
+            <!-- Dropzone -->
+            <div id="dropzone" onclick="document.getElementById('excelFileInput').click()"
+                 style="border: 2px dashed #96D3B6; border-radius: 16px; background: #FAFCFB; padding: 36px 20px; text-align: center; cursor: pointer; transition: all 0.15s ease;">
+                <span style="font-size: 40px; display: block; margin-bottom: 8px;">📊</span>
+                <span id="dropzoneFileName" style="font-size: 14px; font-weight: 800; color: #24363D; display: block;">
+                    Kéo thả file Excel (.xlsx, .xls) vào đây hoặc bấm để chọn file
+                </span>
+                <span style="font-size: 12px; color: #8C9BA2; margin-top: 4px; display: block;">Hỗ trợ Microsoft Excel</span>
+                <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;" onchange="handleFileSelected(this)">
+            </div>
+
+            <!-- Loading Spinner -->
+            <div id="importLoading" style="display: none; text-align: center; padding: 20px;">
+                <span style="display: inline-block; font-size: 24px; animation: spin 1s infinite linear;">🔄</span>
+                <span style="display: block; font-size: 14px; font-weight: 800; margin-top: 8px; color: #2E7D67;">
+                    Đang xử lý phân tích và import dữ liệu...
+                </span>
+            </div>
+
+            <!-- IMPORT RESULTS REPORT (Shown after import) -->
+            <div id="importResultBox" style="display: none; flex-direction: column; gap: 14px;">
+                <div style="font-size: 14px; font-weight: 800; color: #24363D;">KẾT QUẢ PHÂN TÍCH FILE EXCEL:</div>
+
+                <!-- 4 Report Counters -->
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+                    <div style="padding: 12px; background: #F8F6EF; border: 1px solid #E8E5DC; border-radius: 10px; text-align: center;">
+                        <span style="font-size: 11px; font-weight: 800; color: #8C9BA2; display: block;">TỔNG TỪ</span>
+                        <span id="resTotal" style="font-size: 22px; font-weight: 900; color: #24363D;">0</span>
+                    </div>
+                    <div style="padding: 12px; background: #FEF3C7; border: 1px solid #FDE68A; border-radius: 10px; text-align: center;">
+                        <span style="font-size: 11px; font-weight: 800; color: #92400E; display: block;">TRÙNG FILE</span>
+                        <span id="resDupFile" style="font-size: 22px; font-weight: 900; color: #B45309;">0</span>
+                    </div>
+                    <div style="padding: 12px; background: #FEE2E2; border: 1px solid #FECACA; border-radius: 10px; text-align: center;">
+                        <span style="font-size: 11px; font-weight: 800; color: #991B1B; display: block;">ĐÃ TỒN TẠI</span>
+                        <span id="resExistingDb" style="font-size: 22px; font-weight: 900; color: #DC2626;">0</span>
+                    </div>
+                    <div style="padding: 12px; background: #E8F5E9; border: 1px solid #C1E4D2; border-radius: 10px; text-align: center;">
+                        <span style="font-size: 11px; font-weight: 800; color: #1E4620; display: block;">THÀNH CÔNG</span>
+                        <span id="resSuccess" style="font-size: 22px; font-weight: 900; color: #2E7D67;">0</span>
+                    </div>
+                </div>
+
+                <!-- Detailed Lists -->
+                <div id="resDetailsContainer" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                    <!-- JS fills duplicate / existing / success messages -->
+                </div>
+            </div>
+
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn-top-action" onclick="downloadTemplate()">📥 Tải Excel mẫu</button>
+            <button type="button" class="btn-top-action" onclick="closeImportModal()">Đóng</button>
+            <button type="button" class="btn-primary-action" id="btnDoImport" onclick="doUploadExcel()" disabled>
+                Bắt đầu Import
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Content portal styles */
+.admin-nav-item {
+    display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px;
+    border-radius: 10px; text-decoration: none; font-size: 13.5px; font-weight: 700;
+    color: #E3F2EA; transition: background 0.15s ease;
+}
+.admin-nav-item:hover { background: rgba(255,255,255,0.08); }
+.admin-nav-item.active { background: #2E7D67; color: #FFFFFF; font-weight: 800; }
+
+.admin-sub-item {
+    display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 28px;
+    border-radius: 8px; text-decoration: none; font-size: 12.5px; font-weight: 600;
+    color: #A9D9C0; transition: background 0.15s ease;
+}
+.admin-sub-item:hover { background: rgba(255,255,255,0.06); color: #FFFFFF; }
+.admin-sub-item.active { background: rgba(108,196,159,0.2); color: #6CC49F; font-weight: 800; }
+
+/* Stat Cards */
+.stat-card {
+    background: #FFFFFF; border: 1.5px solid #E8E5DC; border-radius: 16px;
+    padding: 18px 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+.stat-label { font-size: 11px; font-weight: 800; color: #8C9BA2; letter-spacing: 0.3px; }
+.stat-value { font-family: var(--font-heading); font-size: 28px; font-weight: 900; color: #24363D; }
+.stat-sub   { display: block; font-size: 12px; color: #8C9BA2; margin-top: 4px; }
+
+/* Top action buttons */
+.btn-top-action {
+    height: 40px; padding: 0 18px; border-radius: 10px;
+    background: #FFFFFF; color: #24363D; border: 1.5px solid #E8E5DC;
+    font-size: 13.5px; font-weight: 800; cursor: pointer; font-family: inherit;
+    transition: all 0.15s ease;
+}
+.btn-top-action:hover { border-color: #24363D; }
+
+.btn-primary-action {
+    height: 40px; padding: 0 20px; border-radius: 10px;
+    background: #2E7D67; color: #FFFFFF; border: none;
+    font-size: 13.5px; font-weight: 800; cursor: pointer; font-family: inherit;
+    transition: background 0.15s ease;
+}
+.btn-primary-action:hover { background: #235F4F; }
+
+/* Form styles */
+.form-label { display: block; font-size: 11.5px; font-weight: 800; color: #53646C; margin-bottom: 6px; }
+.form-control {
+    width: 100%; height: 42px; border-radius: 10px; border: 1.5px solid #E8E5DC;
+    padding: 0 14px; font-size: 14px; font-family: inherit; outline: none; box-sizing: border-box;
+}
+.form-control:focus { border-color: #2E7D67; }
+
+/* Table styles */
+.table-row { border-bottom: 1px solid #F1EEE6; transition: background 0.15s ease; }
+.table-row:hover { background: #F8F6EF; }
+.btn-audio-listen {
+    border: none; background: #E8F5E9; color: #1E4620; padding: 4px 10px;
+    border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; font-family: inherit;
+}
+.btn-audio-listen:hover { background: #D1EAD9; }
+
+/* Action buttons in table */
+.btn-icon-action {
+    width: 32px; height: 32px; border-radius: 8px; border: 1px solid #E8E5DC;
+    background: #FFFFFF; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; transition: all 0.15s ease;
+}
+.btn-icon-action:hover { background: #F8F6EF; border-color: #24363D; }
+
+/* Modal Backdrop & Box */
+.modal-backdrop {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5); z-index: 2000;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.modal-box {
+    background: #FFFFFF; border-radius: 20px; width: 100%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2); overflow: hidden;
+    animation: fadeIn 0.15s ease;
+}
+.modal-header {
+    padding: 20px 24px; border-bottom: 1.5px solid #E8E5DC;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.modal-body { padding: 24px; }
+.modal-footer {
+    padding: 16px 24px; border-top: 1.5px solid #E8E5DC;
+    display: flex; justify-content: flex-end; gap: 10px; background: #FAFAFA;
+}
+.btn-close-modal {
+    border: none; background: transparent; font-size: 20px; cursor: pointer;
+    color: #8C9BA2; font-weight: 800;
+}
+.btn-close-modal:hover { color: #24363D; }
+
+@keyframes spin { 100% { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+</style>
+
+<script>
+let currentRootsData = [];
+let currentEditingId = null;
+let currentDetailRoot = null;
+let selectedExcelFile = null;
+let searchDebounceTimer = null;
+
+// Initial Load
+document.addEventListener('DOMContentLoaded', () => {
+    loadRoots();
+});
+
+function onSearchInput() {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+        loadRoots();
+    }, 250);
+}
+
+// Fetch list from REST API
+function loadRoots() {
+    const query = document.getElementById('searchInput').value.trim();
+    const status = document.getElementById('statusFilter').value;
+
+    const url = `/content/hanja/api/list?query=${encodeURIComponent(query)}&status=${encodeURIComponent(status)}`;
+
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            currentRootsData = data;
+            renderTable(data);
+            document.getElementById('filteredCountText').textContent = data.length;
+        })
+        .catch(err => {
+            console.error('Error loading roots:', err);
+            document.getElementById('rootsTableBody').innerHTML = `
+                <tr><td colspan="9" style="text-align: center; color: #DC2626; padding: 30px;">
+                    Lỗi tải dữ liệu: ${err.message}
+                </td></tr>
+            `;
+        });
+}
+
+function renderTable(roots) {
+    const tbody = document.getElementById('rootsTableBody');
+    if (!roots || roots.length === 0) {
+        tbody.innerHTML = `
+            <tr><td colspan="9" style="text-align: center; padding: 48px; color: #8C9BA2;">
+                Không tìm thấy từ Hán Việt nào phù hợp. Bấm <b>"+ Thêm từ mới"</b> hoặc <b>"Import Excel"</b> để thêm.
+            </td></tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = '';
+    roots.forEach((item, idx) => {
+        const isDraft = item.status === 'DRAFT';
+        const statusBadge = isDraft
+            ? `<span class="ssak-badge badge-honey" style="font-size: 11px;">DRAFT</span>`
+            : `<span class="ssak-badge badge-mint" style="font-size: 11px;">ACTIVE</span>`;
+
+        const relCount = item.relatedWordsCount || (item.relatedWords ? item.relatedWords.length : 0);
+
+        const tr = document.createElement('tr');
+        tr.className = 'table-row';
+        tr.innerHTML = `
+            <td style="padding: 14px 20px; text-align: center; color: #8C9BA2; font-weight: 700;">${idx + 1}</td>
+            <td style="padding: 14px 16px;">
+                <span style="font-family: var(--font-heading); font-size: 26px; font-weight: 900; color: #C05621; cursor: pointer;" onclick="openDetailModal(${item.id})">
+                    ${escapeHtml(item.hanjaChar)}
+                </span>
+            </td>
+            <td style="padding: 14px 16px; font-weight: 800; font-size: 15px; color: #24363D; cursor: pointer;" onclick="openDetailModal(${item.id})">
+                ${escapeHtml(item.sinoVi)}
+            </td>
+            <td style="padding: 14px 16px; font-family: var(--font-heading); font-size: 15px; font-weight: 800; color: #2E7D67;">
+                ${escapeHtml(item.koReading)}
+            </td>
+            <td style="padding: 14px 20px; color: #53646C;">
+                ${escapeHtml(item.meaningVi)}
+            </td>
+            <td style="padding: 14px 16px; text-align: center;">
+                ${statusBadge}
+            </td>
+            <td style="padding: 14px 16px; text-align: center;">
+                <button type="button" class="btn-audio-listen" onclick="playKoreanAudio('${escapeHtml(item.koReading)}', '${item.audioUrl || ''}')">
+                    🔊
+                </button>
+            </td>
+            <td style="padding: 14px 16px; text-align: center;">
+                <span class="ssak-badge badge-sky" style="font-size: 11px; cursor: pointer;" onclick="openDetailModal(${item.id})">
+                    ${relCount} từ
+                </span>
+            </td>
+            <td style="padding: 14px 20px; text-align: right;">
+                <div style="display: inline-flex; gap: 6px;">
+                    <button class="btn-icon-action" title="Xem chi tiết" onclick="openDetailModal(${item.id})">👁️</button>
+                    <button class="btn-icon-action" title="Chỉnh sửa" onclick="openEditModal(${item.id})">✏️</button>
+                    <button class="btn-icon-action" title="Xóa từ" onclick="confirmDeleteRoot(${item.id}, '${escapeHtml(item.hanjaChar)}')" style="color: #DC2626;">🗑️</button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// -------------------------------------------------------------
+// AUDIO PLAYER HELPER (Web Speech API or URL)
+// -------------------------------------------------------------
+function playKoreanAudio(koText, audioUrl) {
+    if (audioUrl && audioUrl.trim().length > 0) {
+        const audio = new Audio(audioUrl);
+        audio.play().catch(() => playSpeech(koText));
+    } else {
+        playSpeech(koText);
+    }
+}
+
+function playSpeech(text) {
+    if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'ko-KR';
+        u.rate = 0.9;
+        window.speechSynthesis.speak(u);
+    }
+}
+
+// -------------------------------------------------------------
+// MODAL 1: VIEW DETAIL
+// -------------------------------------------------------------
+function openDetailModal(id) {
+    fetch(`/content/hanja/api/${id}`)
+        .then(res => res.json())
+        .then(root => {
+            currentDetailRoot = root;
+            document.getElementById('detailCharBox').textContent = root.hanjaChar;
+            document.getElementById('detailSinoVi').textContent = root.sinoVi;
+            document.getElementById('detailKoReading').textContent = `(${root.koReading})`;
+            document.getElementById('detailMeaning').textContent = `Nghĩa gốc: ${root.meaningVi}`;
+
+            const badge = document.getElementById('detailStatusBadge');
+            badge.className = root.status === 'DRAFT' ? 'ssak-badge badge-honey' : 'ssak-badge badge-mint';
+            badge.textContent = root.status;
+
+            document.getElementById('btnPlayDetailRootAudio').onclick = () => {
+                playKoreanAudio(root.koReading, root.audioUrl);
+            };
+
+            const relList = root.relatedWords || [];
+            document.getElementById('detailRelatedCount').textContent = relList.length;
+
+            const tbody = document.getElementById('detailRelatedTableBody');
+            if (relList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: #8C9BA2;">Chưa có từ liên quan nào. Bấm Chỉnh sửa để thêm.</td></tr>`;
+            } else {
+                tbody.innerHTML = '';
+                relList.forEach(w => {
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = '1px solid #F1EEE6';
+                    tr.innerHTML = `
+                        <td style="padding: 10px 14px; font-weight: 800; color: #2E7D67; font-family: var(--font-heading);">${escapeHtml(w.word)}</td>
+                        <td style="padding: 10px 14px; font-weight: 800; color: #C05621;">${escapeHtml(w.hanjaWord || '')}</td>
+                        <td style="padding: 10px 14px; font-weight: 700;">${escapeHtml(w.sinoVi || '')}</td>
+                        <td style="padding: 10px 14px; color: #53646C;">${escapeHtml(w.meaningVi || '')}</td>
+                        <td style="padding: 10px 14px; text-align: center;">
+                            <button class="btn-audio-listen" onclick="playKoreanAudio('${escapeHtml(w.word)}', '${w.audioUrl || ''}')">🔊</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            document.getElementById('btnEditFromDetail').onclick = () => {
+                closeDetailModal();
+                openEditModal(root.id);
+            };
+
+            document.getElementById('detailModal').style.display = 'flex';
+        })
+        .catch(err => alert('Lỗi tải chi tiết: ' + err.message));
+}
+
+function closeDetailModal() {
+    document.getElementById('detailModal').style.display = 'none';
+}
+
+// -------------------------------------------------------------
+// MODAL 2: CREATE / EDIT
+// -------------------------------------------------------------
+function openCreateModal() {
+    currentEditingId = null;
+    document.getElementById('formModalTitle').textContent = 'Thêm từ Hán Việt mới';
+    document.getElementById('formRootId').value = '';
+    document.getElementById('formHanjaChar').value = '';
+    document.getElementById('formSinoVi').value = '';
+    document.getElementById('formKoReading').value = '';
+    document.getElementById('formMeaningVi').value = '';
+    document.getElementById('formAudioUrl').value = '';
+    document.getElementById('formStatus').value = 'ACTIVE';
+
+    document.getElementById('formRelatedWordsBody').innerHTML = '';
+    // Add 2 empty sample rows
+    addRelatedWordRow();
+    addRelatedWordRow();
+
+    document.getElementById('formModal').style.display = 'flex';
+}
+
+function openEditModal(id) {
+    fetch(`/content/hanja/api/${id}`)
+        .then(res => res.json())
+        .then(root => {
+            currentEditingId = root.id;
+            document.getElementById('formModalTitle').textContent = `Chỉnh sửa từ Hán Việt: ${root.hanjaChar} (${root.sinoVi})`;
+            document.getElementById('formRootId').value = root.id;
+            document.getElementById('formHanjaChar').value = root.hanjaChar;
+            document.getElementById('formSinoVi').value = root.sinoVi;
+            document.getElementById('formKoReading').value = root.koReading;
+            document.getElementById('formMeaningVi').value = root.meaningVi;
+            document.getElementById('formAudioUrl').value = root.audioUrl || '';
+            document.getElementById('formStatus').value = root.status || 'ACTIVE';
+
+            const tbody = document.getElementById('formRelatedWordsBody');
+            tbody.innerHTML = '';
+            const relList = root.relatedWords || [];
+            if (relList.length === 0) {
+                addRelatedWordRow();
+            } else {
+                relList.forEach(w => addRelatedWordRow(w.word, w.hanjaWord, w.sinoVi, w.meaningVi));
+            }
+
+            document.getElementById('formModal').style.display = 'flex';
+        })
+        .catch(err => alert('Lỗi tải thông tin để sửa: ' + err.message));
+}
+
+function closeFormModal() {
+    document.getElementById('formModal').style.display = 'none';
+}
+
+function addRelatedWordRow(word = '', hanja = '', sino = '', meaning = '') {
+    const tbody = document.getElementById('formRelatedWordsBody');
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid #F1EEE6';
+    tr.innerHTML = `
+        <td style="padding: 6px 8px;">
+            <input type="text" class="form-control rel-ko-word" value="${escapeHtml(word)}" placeholder="Ví dụ: 학교" style="height: 36px;">
+        </td>
+        <td style="padding: 6px 8px;">
+            <input type="text" class="form-control rel-hanja-word" value="${escapeHtml(hanja)}" placeholder="Ví dụ: 學校" style="height: 36px;">
+        </td>
+        <td style="padding: 6px 8px;">
+            <input type="text" class="form-control rel-sino-vi" value="${escapeHtml(sino)}" placeholder="Ví dụ: học hiệu" style="height: 36px;">
+        </td>
+        <td style="padding: 6px 8px;">
+            <input type="text" class="form-control rel-meaning-vi" value="${escapeHtml(meaning)}" placeholder="Ví dụ: trường học" style="height: 36px;">
+        </td>
+        <td style="padding: 6px 8px; text-align: center;">
+            <button type="button" onclick="this.closest('tr').remove()" style="border: none; background: transparent; color: #DC2626; cursor: pointer; font-size: 16px; font-weight: 800;">✕</button>
+        </td>
+    `;
+    tbody.appendChild(tr);
+}
+
+function submitHanjaForm(e) {
+    e.preventDefault();
+
+    const hanjaChar = document.getElementById('formHanjaChar').value.trim();
+    const sinoVi = document.getElementById('formSinoVi').value.trim();
+    const koReading = document.getElementById('formKoReading').value.trim();
+    const meaningVi = document.getElementById('formMeaningVi').value.trim();
+    const audioUrl = document.getElementById('formAudioUrl').value.trim();
+    const status = document.getElementById('formStatus').value;
+
+    if (!hanjaChar || !sinoVi || !koReading || !meaningVi) {
+        alert('Vui lòng điền đủ các trường bắt buộc (*)!');
+        return;
+    }
+
+    // Collect related words
+    const relatedWords = [];
+    document.querySelectorAll('#formRelatedWordsBody tr').forEach(row => {
+        const koWord = row.querySelector('.rel-ko-word').value.trim();
+        const hanjaWord = row.querySelector('.rel-hanja-word').value.trim();
+        const sino = row.querySelector('.rel-sino-vi').value.trim();
+        const meaning = row.querySelector('.rel-meaning-vi').value.trim();
+        if (koWord) {
+            relatedWords.add ? relatedWords.add({ word: koWord, hanjaWord: hanjaWord || hanjaChar, sinoVi: sino, meaningVi: meaning, status: 'ACTIVE' })
+                            : relatedWords.push({ word: koWord, hanjaWord: hanjaWord || hanjaChar, sinoVi: sino, meaningVi: meaning, status: 'ACTIVE' });
+        }
+    });
+
+    const payload = {
+        hanjaChar,
+        sinoVi,
+        koReading,
+        meaningVi,
+        audioUrl,
+        status,
+        relatedWords
+    };
+
+    const isEdit = currentEditingId != null;
+    const url = isEdit ? `/content/hanja/api/${currentEditingId}` : `/content/hanja/api/create`;
+    const method = isEdit ? 'PUT' : 'POST';
+
+    const btn = document.getElementById('btnSubmitForm');
+    btn.disabled = true;
+    btn.textContent = 'Đang lưu...';
+
+    fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(resp => {
+        btn.disabled = false;
+        btn.textContent = 'Lưu thông tin';
+        if (resp.success) {
+            alert(resp.message);
+            closeFormModal();
+            loadRoots();
+            updateCounters();
+        } else {
+            alert('Lỗi: ' + resp.message);
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.textContent = 'Lưu thông tin';
+        alert('Lỗi gửi yêu cầu: ' + err.message);
+    });
+}
+
+function confirmDeleteRoot(id, char) {
+    if (!confirm(`Bạn có chắc chắn muốn xóa từ Hán Việt '${char}' không?\nToàn bộ liên kết từ liên quan của gốc này cũng sẽ bị xóa.`)) {
+        return;
+    }
+
+    fetch(`/content/hanja/api/${id}`, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(resp => {
+            if (resp.success) {
+                alert('Đã xóa thành công!');
+                loadRoots();
+                updateCounters();
+            } else {
+                alert('Lỗi: ' + resp.message);
+            }
+        })
+        .catch(err => alert('Lỗi xóa: ' + err.message));
+}
+
+// -------------------------------------------------------------
+// MODAL 3: EXCEL IMPORT & TEMPLATE DOWNLOAD
+// -------------------------------------------------------------
+function downloadTemplate() {
+    window.location.href = '/content/hanja/template';
+}
+
+function openImportModal() {
+    selectedExcelFile = null;
+    document.getElementById('excelFileInput').value = '';
+    document.getElementById('dropzoneFileName').textContent = 'Kéo thả file Excel (.xlsx, .xls) vào đây hoặc bấm để chọn file';
+    document.getElementById('dropzone').style.borderColor = '#96D3B6';
+    document.getElementById('btnDoImport').disabled = true;
+    document.getElementById('importLoading').style.display = 'none';
+    document.getElementById('importResultBox').style.display = 'none';
+    document.getElementById('importModal').style.display = 'flex';
+}
+
+function closeImportModal() {
+    document.getElementById('importModal').style.display = 'none';
+}
+
+function handleFileSelected(input) {
+    if (input.files && input.files[0]) {
+        selectedExcelFile = input.files[0];
+        document.getElementById('dropzoneFileName').textContent = `📄 Đã chọn file: ${selectedExcelFile.name} (${(selectedExcelFile.size / 1024).toFixed(1)} KB)`;
+        document.getElementById('dropzone').style.borderColor = '#2E7D67';
+        document.getElementById('btnDoImport').disabled = false;
+    }
+}
+
+// Drag & drop support
+const dropzone = document.getElementById('dropzone');
+['dragenter', 'dragover'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropzone.style.background = '#E8F5E9';
+    }, false);
+});
+['dragleave', 'drop'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropzone.style.background = '#FAFCFB';
+    }, false);
+});
+dropzone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    if (dt.files && dt.files[0]) {
+        selectedExcelFile = dt.files[0];
+        document.getElementById('dropzoneFileName').textContent = `📄 Đã chọn file: ${selectedExcelFile.name} (${(selectedExcelFile.size / 1024).toFixed(1)} KB)`;
+        document.getElementById('btnDoImport').disabled = false;
+    }
+});
+
+function doUploadExcel() {
+    if (!selectedExcelFile) {
+        alert('Vui lòng chọn file Excel!');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', selectedExcelFile);
+
+    document.getElementById('importLoading').style.display = 'block';
+    document.getElementById('importResultBox').style.display = 'none';
+    document.getElementById('btnDoImport').disabled = true;
+
+    fetch('/content/hanja/import', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(result => {
+        document.getElementById('importLoading').style.display = 'none';
+        document.getElementById('btnDoImport').disabled = false;
+
+        const box = document.getElementById('importResultBox');
+        box.style.display = 'flex';
+
+        document.getElementById('resTotal').textContent = result.totalRows || 0;
+        document.getElementById('resDupFile').textContent = result.duplicateInFileCount || 0;
+        document.getElementById('resExistingDb').textContent = result.existingInDbCount || 0;
+        document.getElementById('resSuccess').textContent = result.successCount || 0;
+
+        const detailsDiv = document.getElementById('resDetailsContainer');
+        detailsDiv.innerHTML = '';
+
+        // Duplicate in file alerts
+        if (result.duplicateInFileDetails && result.duplicateInFileDetails.length > 0) {
+            const dupBox = document.createElement('div');
+            dupBox.style.cssText = 'background: #FEF3C7; border: 1px solid #FDE68A; border-radius: 8px; padding: 10px 14px; font-size: 12.5px; color: #92400E;';
+            dupBox.innerHTML = `<b>⚠️ Từ trùng lặp trong file Excel (${result.duplicateInFileDetails.length}):</b><br>` +
+                                result.duplicateInFileDetails.map(d => `• ${escapeHtml(d)}`).join('<br>');
+            detailsDiv.appendChild(dupBox);
+        }
+
+        // Already exists in DB alerts
+        if (result.existingInDbDetails && result.existingInDbDetails.length > 0) {
+            const existBox = document.createElement('div');
+            existBox.style.cssText = 'background: #FEE2E2; border: 1px solid #FECACA; border-radius: 8px; padding: 10px 14px; font-size: 12.5px; color: #991B1B;';
+            existBox.innerHTML = `<b>🔴 Từ đã tồn tại trong hệ thống (${result.existingInDbDetails.length}):</b><br>` +
+                                 result.existingInDbDetails.map(d => `• ${escapeHtml(d)}`).join('<br>');
+            detailsDiv.appendChild(existBox);
+        }
+
+        // Success alerts
+        if (result.successDetails && result.successDetails.length > 0) {
+            const succBox = document.createElement('div');
+            succBox.style.cssText = 'background: #E8F5E9; border: 1px solid #C1E4D2; border-radius: 8px; padding: 10px 14px; font-size: 12.5px; color: #1E4620;';
+            succBox.innerHTML = `<b>✅ Đã thêm mới thành công (${result.successDetails.length}):</b><br>` +
+                                result.successDetails.map(d => `• ${escapeHtml(d)}`).join('<br>');
+            detailsDiv.appendChild(succBox);
+        }
+
+        // Format errors
+        if (result.errorDetails && result.errorDetails.length > 0) {
+            const errBox = document.createElement('div');
+            errBox.style.cssText = 'background: #F3F4F6; border: 1px solid #E5E7EB; border-radius: 8px; padding: 10px 14px; font-size: 12.5px; color: #374151;';
+            errBox.innerHTML = `<b>ℹ️ Lỗi định dạng dòng (${result.errorDetails.length}):</b><br>` +
+                               result.errorDetails.map(d => `• ${escapeHtml(d)}`).join('<br>');
+            detailsDiv.appendChild(errBox);
+        }
+
+        // Refresh table & counters if any new roots added
+        if (result.successCount > 0) {
+            loadRoots();
+            updateCounters();
+        }
+    })
+    .catch(err => {
+        document.getElementById('importLoading').style.display = 'none';
+        document.getElementById('btnDoImport').disabled = false;
+        alert('Lỗi import: ' + err.message);
+    });
+}
+
+function updateCounters() {
+    fetch('/content/hanja/api/list')
+        .then(res => res.json())
+        .then(data => {
+            const total = data.length;
+            const active = data.filter(d => d.status === 'ACTIVE').length;
+            const draft = data.filter(d => d.status === 'DRAFT').length;
+            let rel = 0;
+            data.forEach(d => { rel += (d.relatedWordsCount || (d.relatedWords ? d.relatedWords.length : 0)); });
+
+            document.getElementById('cardTotalRoots').textContent = total;
+            document.getElementById('cardActiveRoots').textContent = active;
+            document.getElementById('cardDraftRoots').textContent = draft;
+            document.getElementById('cardTotalRelated').textContent = rel;
+            document.getElementById('sidebarRootCount').textContent = total;
+        });
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+</script>
+</body>
+</html>
