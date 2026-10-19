@@ -27,10 +27,10 @@ public class QuestionTypeEntity {
     private Skill skill;
 
     @Nationalized
-    @Column(nullable = false, length = 200)
+    @Column(name = "name_vi", nullable = false, length = 200)
     private String name;
 
-    @Column(nullable = false, length = 60)
+    @Column(name = "number_ranges", nullable = false, length = 60)
     private String ranges;
 
     @Column(name = "zone_min", nullable = false)
@@ -39,15 +39,15 @@ public class QuestionTypeEntity {
     @Column(name = "zone_max", nullable = false)
     private int zoneMax;
 
-    @Column(name = "required_count", nullable = false)
+    @Column(name = "questions_per_session", nullable = false)
     private int requiredCount;
 
     @Nationalized
     @Column(name = "instruction_ko", length = 500)
     private String instructionKo;
 
-    @Column(name = "sort_order", nullable = false)
-    private int sortOrder;
+    @Column(name = "order_in_roadmap")
+    private Integer sortOrder;
 
     /** Khuôn hiển thị. Nhiều dạng chuẩn có thể dùng chung một khuôn. */
     @Column(name = "template_code", length = 20)
