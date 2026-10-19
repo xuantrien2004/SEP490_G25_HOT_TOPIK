@@ -7,6 +7,7 @@ import com.hottopik.service.VocabularyService;
 import com.hottopik.service.exam.ExamComposerService;
 import com.hottopik.service.exam.QuestionBankService;
 import com.hottopik.util.AuthHelper;
+import com.hottopik.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -26,18 +27,21 @@ public class ContentPortalController {
     private final AdminSystemService adminSystemService;
     private final QuestionBankService questionBank;
     private final ExamComposerService examComposer;
+    private final UserService userService;
 
     @Autowired
     public ContentPortalController(ContentManagementService contentService,
                                    VocabularyService vocabularyService,
                                    AdminSystemService adminSystemService,
                                    QuestionBankService questionBank,
-                                   ExamComposerService examComposer) {
+                                   ExamComposerService examComposer,
+                                   UserService userService) {
         this.contentService = contentService;
         this.vocabularyService = vocabularyService;
         this.adminSystemService = adminSystemService;
         this.questionBank = questionBank;
         this.examComposer = examComposer;
+        this.userService = userService;
     }
 
     @GetMapping
@@ -48,9 +52,8 @@ public class ContentPortalController {
         if (currentUser == null) {
             return "redirect:/login";
         }
-        if (!"ROLE_CONTENT_MANAGER".equalsIgnoreCase(currentUser.getRole())
-                && !"ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole())) {
-            if ("ROLE_OPERATION_MANAGER".equalsIgnoreCase(currentUser.getRole())) {
+        if (!currentUser.isContentManager() && !currentUser.isAdmin()) {
+            if (currentUser.isOperationManager()) {
                 return "redirect:/operation";
             }
             return "redirect:/today";
@@ -70,6 +73,58 @@ public class ContentPortalController {
         return "content/dashboard";
     }
 
+
+    @PostMapping("/exam/toggle-status")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> toggleExamStatus(
+            @RequestParam("testId") Long testId,
+            HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+        if (currentUser == null) {
+            resp.put("success", false);
+            resp.put("message", "Chưa đăng nhập.");
+            return ResponseEntity.status(401).body(resp);
+        }
+        boolean ok = contentService.toggleMockTestStatus(testId);
+        resp.put("success", ok);
+        resp.put("message", ok ? "Đã thay đổi trạng thái phát hành đề thi!" : "Không tìm thấy đề.");
+        return ResponseEntity.ok(resp);
+    }
+
+    @PostMapping("/mock-test/submit-approval")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> submitApproval(
+            @RequestParam("testId") Long testId,
+            HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+
+        if (currentUser == null || (!currentUser.isContentManager() && !currentUser.isAdmin())) {
+            resp.put("success", false);
+            resp.put("message", "Từ chối quyền truy cập.");
+            return ResponseEntity.status(403).body(resp);
+        }
+
+        boolean ok = contentService.submitMockTestApproval(testId, currentUser.getFullName());
+        if (ok) {
+            adminSystemService.logAction(
+                    currentUser.getFullName(),
+                    currentUser.getRole(),
+                    "SUBMIT_APPROVAL",
+                    "MOCK_TEST",
+                    "Gửi yêu cầu duyệt phát hành đề thi ID #" + testId + " lên Admin",
+                    "127.0.0.1"
+            );
+            resp.put("success", true);
+            resp.put("message", "Đã gửi yêu cầu phê duyệt đề thi thử lên Admin thành công!");
+        } else {
+            resp.put("success", false);
+            resp.put("message", "Không tìm thấy đề thi.");
+        }
+        return ResponseEntity.ok(resp);
+    }
+
     @PostMapping("/report/resolve")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> resolveReport(
@@ -78,7 +133,7 @@ public class ContentPortalController {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
         Map<String, Object> resp = new HashMap<>();
 
-        if (currentUser == null || (!"ROLE_CONTENT_MANAGER".equalsIgnoreCase(currentUser.getRole()) && !"ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole()))) {
+        if (currentUser == null || (!currentUser.isContentManager() && !currentUser.isAdmin())) {
             resp.put("success", false);
             resp.put("message", "Từ chối quyền truy cập.");
             return ResponseEntity.status(403).body(resp);
@@ -103,6 +158,41 @@ public class ContentPortalController {
         return ResponseEntity.ok(resp);
     }
 
+
+    @PostMapping("/exam/import")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> importExam(
+            @RequestParam(value = "file", required = false) org.springframework.web.multipart.MultipartFile file,
+            @RequestParam(value = "examName", defaultValue = "Đề thi thử mới") String examName,
+            @RequestParam(value = "questionCount", defaultValue = "50") int questionCount,
+            HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+
+        if (currentUser == null || (!currentUser.isContentManager() && !currentUser.isAdmin())) {
+            resp.put("success", false);
+            resp.put("message", "Từ chối quyền truy cập.");
+            return ResponseEntity.status(403).body(resp);
+        }
+
+        String fileName = (file != null && !file.isEmpty()) ? file.getOriginalFilename() : examName;
+        int count = contentService.importExamsMock(fileName, questionCount);
+
+        adminSystemService.logAction(
+                currentUser.getFullName(),
+                currentUser.getRole(),
+                "IMPORT_EXAM",
+                "MOCK_TEST",
+                "Import đề thi mới từ tập tin: " + fileName + " (" + count + " câu hỏi)",
+                "127.0.0.1"
+        );
+
+        resp.put("success", true);
+        resp.put("count", count);
+        resp.put("message", "Đã nhập đề thi thành công (" + count + " câu hỏi được thêm vào hệ thống dạng bản nháp)!");
+        return ResponseEntity.ok(resp);
+    }
+
     // ==========================================
     // GRAMMAR MANAGEMENT
     // ==========================================
@@ -115,8 +205,7 @@ public class ContentPortalController {
             Model model) {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
         if (currentUser == null) return "redirect:/login";
-        if (!"ROLE_CONTENT_MANAGER".equalsIgnoreCase(currentUser.getRole())
-                && !"ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole())) {
+        if (!currentUser.isContentManager() && !currentUser.isAdmin()) {
             return "redirect:/today";
         }
 
@@ -219,8 +308,7 @@ public class ContentPortalController {
     public String profilePage(HttpSession session, Model model) {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
         if (currentUser == null) return "redirect:/login";
-        if (!"ROLE_CONTENT_MANAGER".equalsIgnoreCase(currentUser.getRole())
-                && !"ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole())) {
+        if (!currentUser.isContentManager() && !currentUser.isAdmin()) {
             return "redirect:/today";
         }
 
@@ -248,9 +336,31 @@ public class ContentPortalController {
             @RequestBody Map<String, Object> payload,
             HttpSession session) {
         Map<String, Object> resp = new HashMap<>();
-        resp.put("success", true);
-        resp.put("message", "Đã cập nhật mật khẩu thành công!");
-        return ResponseEntity.ok(resp);
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        if (currentUser == null) {
+            resp.put("success", false);
+            resp.put("message", "Vui lòng đăng nhập lại!");
+            return ResponseEntity.status(401).body(resp);
+        }
+
+        String oldPass = (String) payload.get("oldPassword");
+        String newPass = (String) payload.get("newPassword");
+        if (newPass == null || newPass.trim().length() < 6) {
+            resp.put("success", false);
+            resp.put("message", "Mật khẩu mới phải từ 6 ký tự trở lên!");
+            return ResponseEntity.badRequest().body(resp);
+        }
+
+        boolean ok = userService.changePassword(currentUser.getId(), oldPass, newPass);
+        if (ok) {
+            resp.put("success", true);
+            resp.put("message", "Đã đổi mật khẩu thành công!");
+            return ResponseEntity.ok(resp);
+        } else {
+            resp.put("success", false);
+            resp.put("message", "Mật khẩu hiện tại không đúng. Vui lòng kiểm tra lại!");
+            return ResponseEntity.badRequest().body(resp);
+        }
     }
 
     // ==========================================

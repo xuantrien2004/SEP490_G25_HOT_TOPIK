@@ -18,14 +18,21 @@
             </div>
 
             <div style="text-align: center;">
-                <span id="sidebarName" style="display: block; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D;">Minh</span>
-                <span style="display: block; font-size: 12.5px; color: #53646C; margin-top: 2px;">minh.nguyen@example.com</span>
+                <span id="sidebarName" style="display: block; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D;" th:text="${user != null ? user.displayName : 'Người dùng'}">Người dùng</span>
+                <span style="display: block; font-size: 12.5px; color: #53646C; margin-top: 2px;" th:text="${user != null ? user.email : ''}"></span>
             </div>
 
             <!-- VIP Badge -->
-            <span style="background: #24363D; color: #FFE08A; font-size: 12px; font-weight: 800; padding: 4px 14px; border-radius: 12px; margin-top: 2px;">
-                VIP đến 28/12/2026
-            </span>
+            <th:block th:if="${user != null && user.vip}">
+                <span style="background: #24363D; color: #FFE08A; font-size: 12px; font-weight: 800; padding: 4px 14px; border-radius: 12px; margin-top: 2px;" th:text="${user.vipPackage != null ? user.vipPackage : 'VIP Trọn đời'}">
+                    VIP
+                </span>
+            </th:block>
+            <th:block th:if="${user == null || !user.vip}">
+                <span style="background: #F1EEE6; color: #53646C; font-size: 12px; font-weight: 700; padding: 4px 14px; border-radius: 12px; margin-top: 2px;">
+                    Học viên Tiêu chuẩn
+                </span>
+            </th:block>
         </div>
 
         <!-- Nav Menu -->
@@ -66,7 +73,7 @@
                         <label style="display: block; font-size: 12px; font-weight: 800; color: #53646C; margin-bottom: 8px;">
                             TÊN HIỂN THỊ (2–40 ký tự)
                         </label>
-                        <input type="text" id="inputName" value="Minh" maxlength="40" minlength="2"
+                        <input type="text" id="inputName" th:value="${user != null ? user.displayName : ''}" maxlength="40" minlength="2"
                                style="width: 100%; height: 46px; border-radius: 12px; border: 1.5px solid #E8E5DC; padding: 0 16px; font-size: 15px; outline: none; font-family: inherit; box-sizing: border-box;"
                                oninput="onNameInput()">
                         <span id="nameErr" style="display: none; font-size: 12px; color: #9C4A2E; margin-top: 4px; font-weight: 700;">
@@ -77,7 +84,7 @@
                     <!-- Email (readonly) -->
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #F1EEE6; border-top: 1px solid #F1EEE6;">
                         <span style="font-size: 14px; font-weight: 800; color: #24363D;">Email</span>
-                        <span style="font-size: 13.5px; color: #8C9BA2;">minh.nguyen@example.com (không đổi được)</span>
+                        <span style="font-size: 13.5px; color: #8C9BA2;"><span th:text="${user != null ? user.email : ''}"></span> (không đổi được)</span>
                     </div>
 
                     <!-- Avatar -->
@@ -137,21 +144,17 @@
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
                     <div style="padding: 20px; background: #F8F6EF; border-radius: 16px; border: 1px solid #E8E5DC;">
-                        <span style="font-size: 11.5px; font-weight: 800; color: #8C9BA2;">TRÌNH ĐỘ XÁC NHẬN</span>
+                        <span style="font-size: 11.5px; font-weight: 800; color: #8C9BA2;">TRÌNH ĐỘ HIỆN TẠI</span>
                         <div style="display: flex; align-items: baseline; gap: 10px; margin-top: 8px;">
-                            <span style="font-family: var(--font-heading); font-size: 30px; font-weight: 800; color: #2E7D67;">TOPIK 3</span>
-                            <span style="font-size: 12px; background: #E8F5E9; color: #2E7D67; padding: 2px 10px; border-radius: 8px; font-weight: 800;">Placement Test</span>
+                            <span style="font-family: var(--font-heading); font-size: 30px; font-weight: 800; color: #2E7D67;" th:text="${user != null && user.currentLevel != null ? user.currentLevel : 'TOPIK 1'}">TOPIK 1</span>
                         </div>
-                        <p style="margin: 6px 0 0; font-size: 13px; color: #8C9BA2;">Điểm quy đổi: 134/300 · Ngày 15/09/2026</p>
                     </div>
 
                     <div style="padding: 20px; background: #F8F6EF; border-radius: 16px; border: 1px solid #E8E5DC;">
                         <span style="font-size: 11.5px; font-weight: 800; color: #8C9BA2;">MỤC TIÊU</span>
                         <div style="display: flex; align-items: baseline; gap: 10px; margin-top: 8px;">
-                            <span style="font-family: var(--font-heading); font-size: 30px; font-weight: 800; color: #D97706;">TOPIK 4</span>
-                            <span style="font-size: 13px; font-weight: 700;">Kỳ thi 96 (Tháng 11)</span>
+                            <span style="font-family: var(--font-heading); font-size: 30px; font-weight: 800; color: #D97706;" th:text="${user != null && user.targetLevel != null ? user.targetLevel : 'TOPIK 2'}">TOPIK 2</span>
                         </div>
-                        <p style="margin: 6px 0 0; font-size: 13px; color: #8C9BA2;">Còn 34 ngày trong lộ trình 60 ngày</p>
                     </div>
                 </div>
 
@@ -221,17 +224,31 @@
         <div id="section-vip" class="profile-section" style="display: none;">
             <div style="background: #FFFFFF; border: 1.5px solid #E8E5DC; border-radius: 20px; padding: 30px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 18px;">
                 <h2 style="margin: 0; font-family: var(--font-heading); font-size: 22px; font-weight: 800;">Gói VIP của bạn</h2>
-                <div style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #F4FAF7; border-radius: 16px; border: 2px solid #2E7D67;">
-                    <span style="font-size: 40px;">👑</span>
-                    <div>
-                        <span style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #2E7D67;">HOT TOPIK VIP · Gói 3 Tháng</span>
-                        <span style="display: block; font-size: 13.5px; color: #53646C; margin-top: 4px;">Hết hạn: <b>28/12/2026</b> · Còn 72 ngày</span>
+                <th:block th:if="${user != null && user.vip}">
+                    <div style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #F4FAF7; border-radius: 16px; border: 2px solid #2E7D67;">
+                        <span style="font-size: 40px;">👑</span>
+                        <div>
+                            <span style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #2E7D67;" th:text="${user.vipPackage != null ? user.vipPackage : 'HOT TOPIK VIP'}">HOT TOPIK VIP</span>
+                            <span style="display: block; font-size: 13.5px; color: #53646C; margin-top: 4px;">Tài khoản VIP đang hoạt động</span>
+                        </div>
                     </div>
-                </div>
-                <div style="display: flex; gap: 14px;">
-                    <a th:href="@{/vip}" class="btn-profile-primary" style="text-decoration: none; text-align: center;">Gia hạn / Nâng cấp</a>
-                    <a th:href="@{/goi-cua-toi}" class="btn-profile-outline" style="text-decoration: none; text-align: center;">Xem chi tiết gói</a>
-                </div>
+                    <div style="display: flex; gap: 14px;">
+                        <a th:href="@{/vip}" class="btn-profile-primary" style="text-decoration: none; text-align: center;">Gia hạn / Nâng cấp</a>
+                        <a th:href="@{/goi-cua-toi}" class="btn-profile-outline" style="text-decoration: none; text-align: center;">Xem chi tiết gói</a>
+                    </div>
+                </th:block>
+                <th:block th:if="${user == null || !user.vip}">
+                    <div style="display: flex; align-items: center; gap: 16px; padding: 20px; background: #F8F6EF; border-radius: 16px; border: 1.5px solid #E8E5DC;">
+                        <span style="font-size: 40px;">🌱</span>
+                        <div>
+                            <span style="font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D;">Bạn đang sử dụng gói Tiêu chuẩn (Miễn phí)</span>
+                            <span style="display: block; font-size: 13px; color: #53646C; margin-top: 4px;">Nâng cấp VIP để mở khóa toàn bộ đề thi thật, kho bài tập và AI giải thích chi tiết!</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 14px;">
+                        <a th:href="@{/vip}" class="btn-profile-primary" style="text-decoration: none; text-align: center;">Khám phá các gói VIP →</a>
+                    </div>
+                </th:block>
             </div>
         </div>
 
@@ -326,8 +343,31 @@ function onNameInput() {
 function saveProfile() {
     const name = document.getElementById('inputName').value.trim();
     if (name.length < 2 || name.length > 40) return;
-    document.getElementById('sidebarName').textContent = name;
-    showToast('✅ Đã lưu thông tin cá nhân thành công!');
+
+    const formData = new URLSearchParams();
+    formData.append('displayName', name);
+
+    fetch('/api/user/update-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData.toString()
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('sidebarName').textContent = data.displayName;
+            const topbarName = document.querySelector('.ssak-user-name');
+            if (topbarName) topbarName.textContent = data.displayName;
+            const topbarCircle = document.querySelector('.ssak-avatar-circle');
+            if (topbarCircle && data.displayName.length > 0) topbarCircle.textContent = data.displayName.charAt(0);
+            showToast('✅ ' + data.message);
+        } else {
+            alert('⚠️ ' + data.message);
+        }
+    })
+    .catch(err => {
+        alert('Có lỗi xảy ra khi lưu thông tin, vui lòng thử lại!');
+    });
 }
 
 function handleAvatar(input) {
@@ -340,11 +380,37 @@ function handleAvatar(input) {
 function saveHabit() { showToast('✅ Đã lưu cài đặt thói quen học!'); }
 
 function changePw() {
+    const op = document.getElementById('oldPw').value;
     const np = document.getElementById('newPw').value;
     const cp = document.getElementById('confirmPw').value;
-    if (np.length < 8) { alert('Mật khẩu mới phải từ 8 ký tự trở lên.'); return; }
+    if (!op) { alert('Vui lòng nhập mật khẩu hiện tại.'); return; }
+    if (np.length < 6) { alert('Mật khẩu mới phải từ 6 ký tự trở lên.'); return; }
     if (np !== cp) { alert('Mật khẩu xác nhận không khớp!'); return; }
-    showToast('✅ Đổi mật khẩu thành công. Các phiên khác đã bị huỷ!');
+
+    const formData = new URLSearchParams();
+    formData.append('oldPassword', op);
+    formData.append('newPassword', np);
+    formData.append('confirmPassword', cp);
+
+    fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData.toString()
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ ' + data.message);
+            document.getElementById('oldPw').value = '';
+            document.getElementById('newPw').value = '';
+            document.getElementById('confirmPw').value = '';
+        } else {
+            alert('⚠️ ' + data.message);
+        }
+    })
+    .catch(err => {
+        alert('Có lỗi xảy ra khi đổi mật khẩu, vui lòng thử lại!');
+    });
 }
 
 function setFontSize(btn) {
@@ -357,10 +423,26 @@ function setAudio(btn, val) {
 }
 
 function showToast(msg) {
-    const t = document.getElementById('profileToast');
+    let t = document.getElementById('profileToast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'profileToast';
+        t.style.position = 'fixed';
+        t.style.bottom = '24px';
+        t.style.right = '24px';
+        t.style.backgroundColor = '#2E7D67';
+        t.style.color = '#FFFFFF';
+        t.style.padding = '14px 24px';
+        t.style.borderRadius = '12px';
+        t.style.fontWeight = '700';
+        t.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
+        t.style.zIndex = '9999';
+        t.style.fontSize = '15px';
+        document.body.appendChild(t);
+    }
     t.textContent = msg;
     t.style.display = 'block';
-    setTimeout(() => t.style.display = 'none', 3000);
+    setTimeout(() => { if (t) t.style.display = 'none'; }, 3500);
 }
 </script>
 </body>

@@ -40,10 +40,10 @@ public class AdminController {
         if (currentUser == null) {
             return "redirect:/login";
         }
-        if (!"ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole())) {
-            if ("ROLE_CONTENT_MANAGER".equalsIgnoreCase(currentUser.getRole())) {
+        if (!currentUser.isAdmin()) {
+            if (currentUser.isContentManager()) {
                 return "redirect:/content";
-            } else if ("ROLE_OPERATION_MANAGER".equalsIgnoreCase(currentUser.getRole())) {
+            } else if (currentUser.isOperationManager()) {
                 return "redirect:/operation";
             }
             return "redirect:/today";
@@ -71,7 +71,7 @@ public class AdminController {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
         Map<String, Object> resp = new HashMap<>();
 
-        if (currentUser == null || !"ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole())) {
+        if (currentUser == null || !currentUser.isAdmin()) {
             resp.put("success", false);
             resp.put("message", "Từ chối quyền truy cập.");
             return ResponseEntity.status(403).body(resp);
@@ -118,7 +118,7 @@ public class AdminController {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
         Map<String, Object> resp = new HashMap<>();
 
-        if (currentUser == null || !"ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole())) {
+        if (currentUser == null || !currentUser.isAdmin()) {
             resp.put("success", false);
             resp.put("message", "Từ chối quyền truy cập.");
             return ResponseEntity.status(403).body(resp);
@@ -156,7 +156,7 @@ public class AdminController {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
         Map<String, Object> resp = new HashMap<>();
 
-        if (currentUser == null || !"ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole())) {
+        if (currentUser == null || !currentUser.isAdmin()) {
             resp.put("success", false);
             resp.put("message", "Từ chối quyền truy cập.");
             return ResponseEntity.status(403).body(resp);
@@ -189,7 +189,7 @@ public class AdminController {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
         Map<String, Object> resp = new HashMap<>();
 
-        if (currentUser == null || !"ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole())) {
+        if (currentUser == null || !currentUser.isAdmin()) {
             resp.put("success", false);
             resp.put("message", "Từ chối quyền truy cập.");
             return ResponseEntity.status(403).body(resp);

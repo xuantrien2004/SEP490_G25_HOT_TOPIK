@@ -20,7 +20,15 @@ public class UserDTO implements Serializable {
     private String currentLevel;
     private boolean isVip;
     private String vipPackage;
+    private Integer coinBalance = 0;
+    private Integer studiedDays = 0;
     private LocalDateTime createdAt;
+
+    public Integer getCoinBalance() { return coinBalance != null ? coinBalance : 0; }
+    public void setCoinBalance(Integer coinBalance) { this.coinBalance = coinBalance; }
+
+    public Integer getStudiedDays() { return studiedDays != null ? studiedDays : 0; }
+    public void setStudiedDays(Integer studiedDays) { this.studiedDays = studiedDays; }
 
     public UserDTO() {
     }
@@ -60,7 +68,30 @@ public class UserDTO implements Serializable {
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
 
-    public String getRole() { return role; }
+    public String getRole() {
+        if (role == null) return "ROLE_USER";
+        if (role.startsWith("ROLE_")) return role;
+        switch (role.toUpperCase()) {
+            case "ADMIN": return "ROLE_ADMIN";
+            case "CONTENT_MANAGER": return "ROLE_CONTENT_MANAGER";
+            case "OPERATION_MANAGER": return "ROLE_OPERATION_MANAGER";
+            case "MENTOR": return "ROLE_TEACHER";
+            case "STUDENT": return isVip ? "ROLE_VIP" : "ROLE_USER";
+            default: return "ROLE_" + role.toUpperCase();
+        }
+    }
+
+    public String getRawRole() {
+        if (role == null) return "STUDENT";
+        if (role.startsWith("ROLE_")) {
+            String r = role.substring(5);
+            if ("TEACHER".equals(r)) return "MENTOR";
+            if ("USER".equals(r) || "VIP".equals(r)) return "STUDENT";
+            return r;
+        }
+        return role;
+    }
+
     public void setRole(String role) { this.role = role; }
 
     public String getRoleName() { return roleName; }
@@ -87,6 +118,31 @@ public class UserDTO implements Serializable {
     public String getVipPackage() { return vipPackage; }
     public void setVipPackage(String vipPackage) { this.vipPackage = vipPackage; }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public String getDisplayName() {
+        return fullName != null ? fullName : username;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.fullName = displayName;
+    }
+
+    public boolean isAdmin() {
+        return "ADMIN".equalsIgnoreCase(role) || "ROLE_ADMIN".equalsIgnoreCase(role);
+    }
+
+    public boolean isMentor() {
+        return "MENTOR".equalsIgnoreCase(role) || "ROLE_TEACHER".equalsIgnoreCase(role);
+    }
+
+    public boolean isContentManager() {
+        return "CONTENT_MANAGER".equalsIgnoreCase(role) || "ROLE_CONTENT_MANAGER".equalsIgnoreCase(role);
+    }
+
+    public boolean isOperationManager() {
+        return "OPERATION_MANAGER".equalsIgnoreCase(role) || "ROLE_OPERATION_MANAGER".equalsIgnoreCase(role);
+    }
+
+    public boolean isStudent() {
+        return "STUDENT".equalsIgnoreCase(role) || "ROLE_USER".equalsIgnoreCase(role) || "ROLE_VIP".equalsIgnoreCase(role);
+    }
 }

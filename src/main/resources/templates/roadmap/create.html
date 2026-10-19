@@ -24,18 +24,22 @@
         </p>
     </div>
 
-    <form th:action="@{/lo-trinh}" method="GET" class="p-4 p-md-5 rounded-5 bg-white border shadow-sm">
+    <form th:action="@{/lo-trinh/tao}" method="POST" class="p-4 p-md-5 rounded-5 bg-white border shadow-sm">
+        <input type="hidden" name="startLevel" id="startLevelInput" th:value="${startLevel != null ? startLevel : 'TOPIK_3'}">
+        <input type="hidden" name="levelSource" th:value="${entryMode != null ? entryMode : 'SELF'}">
+        <input type="hidden" name="durationDays" id="durationDaysInput" value="60">
         
         <!-- 1. Trình độ hiện tại (Chỉ xem, kèm nguồn và link đổi theo mục 5.2) -->
         <div class="mb-4 pb-4 border-bottom">
             <label class="form-label fw-bold text-muted small">1. TRÌNH ĐỘ HIỆN TẠI</label>
             <div class="p-3 rounded-4 border d-flex justify-content-between align-items-center" style="background: var(--ssak-bg);">
                 <div class="d-flex align-items-center gap-3">
-                    <span class="badge rounded-pill bg-success px-3 py-2 fs-6" style="background: var(--ssak-primary) !important;">
+                    <span class="badge rounded-pill bg-success px-3 py-2 fs-6" style="background: var(--ssak-primary) !important;"
+                          th:text="${startLevel != null ? startLevel.replace('_', ' ') : 'TOPIK 3'}">
                         TOPIK Cấp 3
                     </span>
                     <span class="small text-muted">
-                        Nguồn: <strong>Bài kiểm tra thích ứng 15 phút (PLACEMENT)</strong>
+                        Nguồn: <strong th:text="${entryMode == 'PLACEMENT' || entryMode == 'adaptive_full' || entryMode == 'adaptive_topik2' ? 'Bài kiểm tra thích ứng 15 phút (PLACEMENT)' : 'Tự khai cấp độ xuất phát (SELF)'}">Tự khai (SELF)</strong>
                     </span>
                 </div>
                 <a th:href="@{/onboarding}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
@@ -159,6 +163,7 @@
 <script>
     function updateDuration(val) {
         if(val == 30) val = 31;
+        document.getElementById('durationDaysInput').value = val;
         document.getElementById('durationDisplay').innerText = val + ' ngày (~ ' + (val/30).toFixed(1) + ' tháng)';
         const d = new Date();
         d.setDate(d.getDate() + parseInt(val));

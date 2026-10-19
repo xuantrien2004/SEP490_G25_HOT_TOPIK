@@ -46,7 +46,7 @@
                 <path d="M12 12C12 7 8 4 3.5 4.5C3.5 9 7 12.5 12 12Z" fill="#6CC49F"/>
                 <path d="M12 10C12 6 15.5 3 20.5 3.5C20.5 8 17 11 12 10Z" fill="#2E7D67"/>
             </svg>
-            <span>Đã học <strong id="topbar-learned">12</strong> ngày</span>
+            <span>Đã học <strong id="topbar-learned" th:text="${session.LOGGED_IN_USER != null && session.LOGGED_IN_USER.studiedDays != null ? session.LOGGED_IN_USER.studiedDays : 0}">0</strong> ngày</span>
         </span>
 
         <!-- Xu của bạn: mở /xu -->
@@ -55,7 +55,7 @@
                 <circle cx="12" cy="12" r="10" fill="#F4C45A" stroke="#C99A2E" stroke-width="2"/>
                 <circle cx="12" cy="12" r="5" fill="none" stroke="#C99A2E" stroke-width="2"/>
             </svg>
-            <span><strong id="topbar-coins">185</strong> Xu</span>
+            <span><strong id="topbar-coins" th:text="${session.LOGGED_IN_USER != null && session.LOGGED_IN_USER.coinBalance != null ? session.LOGGED_IN_USER.coinBalance : 0}">0</strong> Xu</span>
         </a>
 
         <!-- Chuông thông báo: /thong-bao -->
@@ -108,31 +108,58 @@
             <a th:href="@{/vip}" class="ssak-badge badge-honey text-decoration-none" style="font-weight: 800; padding: 4px 12px; font-size: 12.5px; height: 34px;">Nâng cấp VIP</a>
         </th:block>
 
-        <!-- User Profile: Bấm vào Tên hoặc Avatar để trực tiếp vào /ho-so -->
-        <div style="position: relative; display: inline-flex; align-items: center; gap: 2px;">
-            <a th:href="@{/ho-so}" class="ssak-avatar-badge" title="Bấm vào để xem Hồ sơ cá nhân">
-                <span class="ssak-user-name" th:text="${session.LOGGED_IN_USER != null ? session.LOGGED_IN_USER.fullName : 'Phạm Minh Anh'}">Phạm Minh Anh</span>
-                <span class="ssak-avatar-circle" th:text="${session.LOGGED_IN_USER != null ? #strings.substring(session.LOGGED_IN_USER.fullName, 0, 1) : 'P'}">P</span>
-            </a>
-            <button type="button" class="ssak-user-caret-btn" id="userCaretBtn" onclick="toggleUserDropdown(event)" aria-label="Tùy chọn tài khoản" title="Menu tùy chọn">
-                <i class="bi bi-chevron-down" style="font-size: 11px;"></i>
-            </button>
-
-            <!-- Dropdown Menu Tài khoản -->
-            <div id="userDropdownMenu" class="ssak-dropdown-menu" style="right: 0; top: 44px; width: 220px; padding: 8px;">
-                <div style="padding: 8px 12px; border-bottom: 1px solid var(--ssak-border); margin-bottom: 6px;">
-                    <div class="fw-bold" style="font-size: 13.5px; color: var(--ssak-text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" th:text="${session.LOGGED_IN_USER != null ? session.LOGGED_IN_USER.fullName : 'Phạm Minh Anh'}">Phạm Minh Anh</div>
-                    <small class="text-muted" style="font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;" th:text="${session.LOGGED_IN_USER != null ? session.LOGGED_IN_USER.email : 'learner@hottopik.com'}">learner@hottopik.com</small>
-                </div>
-                <a class="ssak-user-drop-item" th:href="@{/ho-so}"><i class="bi bi-person me-2 text-primary"></i>Hồ sơ cá nhân</a>
-                <a class="ssak-user-drop-item" th:href="@{/xu}"><i class="bi bi-coin me-2 text-warning"></i>Kho Xu của bạn</a>
-                <a class="ssak-user-drop-item" th:href="@{/bai-cham}"><i class="bi bi-journal-check me-2 text-success"></i>Bài Viết gửi Mentor</a>
-                <a class="ssak-user-drop-item" th:href="@{/goi-cua-toi}"><i class="bi bi-gem me-2 text-danger"></i>Gói VIP của tôi</a>
-                <a class="ssak-user-drop-item" th:href="@{/cai-dat}"><i class="bi bi-gear me-2 text-secondary"></i>Cài đặt học tập</a>
-                <div style="height: 1px; background: var(--ssak-border); margin: 4px 0;"></div>
-                <a class="ssak-user-drop-item text-danger fw-bold" th:href="@{/login?logout=true}"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a>
+        <!-- User Profile & Auth Status -->
+        <th:block th:if="${session.LOGGED_IN_USER == null}">
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <a th:href="@{/login(tab='login')}" class="btn-ssak-outline" style="height: 36px; padding: 0 14px; font-size: 13px; font-weight: 700; text-decoration: none;">Đăng nhập</a>
+                <a th:href="@{/login(tab='register')}" class="btn-ssak-primary" style="height: 36px; padding: 0 16px; font-size: 13px; font-weight: 800; text-decoration: none;">Đăng ký</a>
             </div>
-        </div>
+        </th:block>
+
+        <th:block th:if="${session.LOGGED_IN_USER != null}">
+            <div style="position: relative; display: inline-flex; align-items: center; gap: 2px;">
+                <a th:href="@{/ho-so}" class="ssak-avatar-badge" title="Bấm vào để xem Hồ sơ cá nhân">
+                    <span class="ssak-user-name" th:text="${session.LOGGED_IN_USER.displayName}">Phạm Minh Anh</span>
+                    <span class="ssak-avatar-circle" th:text="${#strings.substring(session.LOGGED_IN_USER.displayName, 0, 1)}">P</span>
+                </a>
+                <button type="button" class="ssak-user-caret-btn" id="userCaretBtn" onclick="toggleUserDropdown(event)" aria-label="Tùy chọn tài khoản" title="Menu tùy chọn">
+                    <i class="bi bi-chevron-down" style="font-size: 11px;"></i>
+                </button>
+
+                <!-- Dropdown Menu Tài khoản -->
+                <div id="userDropdownMenu" class="ssak-dropdown-menu" style="right: 0; top: 44px; width: 230px; padding: 8px;">
+                    <div style="padding: 8px 12px; border-bottom: 1px solid var(--ssak-border); margin-bottom: 6px;">
+                        <div class="fw-bold" style="font-size: 13.5px; color: var(--ssak-text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" th:text="${session.LOGGED_IN_USER.displayName}">Phạm Minh Anh</div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 3px;">
+                            <small class="text-muted" style="font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" th:text="${session.LOGGED_IN_USER.email}">learner@hottopik.com</small>
+                            <span class="badge bg-secondary" style="font-size: 10px; font-weight: 800;" th:text="${session.LOGGED_IN_USER.role}">STUDENT</span>
+                        </div>
+                    </div>
+
+                    <!-- Lối tắt vào các Cổng nghiệp vụ theo Role -->
+                    <th:block th:if="${session.LOGGED_IN_USER.admin}">
+                        <a class="ssak-user-drop-item text-danger fw-bold" th:href="@{/admin}"><i class="bi bi-shield-check me-2"></i>Cổng Quản trị (Admin)</a>
+                    </th:block>
+                    <th:block th:if="${session.LOGGED_IN_USER.contentManager}">
+                        <a class="ssak-user-drop-item text-primary fw-bold" th:href="@{/content}"><i class="bi bi-file-earmark-ruled me-2"></i>Cổng Nội dung (Content)</a>
+                    </th:block>
+                    <th:block th:if="${session.LOGGED_IN_USER.operationManager}">
+                        <a class="ssak-user-drop-item text-warning fw-bold" th:href="@{/operation}"><i class="bi bi-kanban me-2"></i>Cổng Vận hành (Operation)</a>
+                    </th:block>
+                    <th:block th:if="${session.LOGGED_IN_USER.mentor}">
+                        <a class="ssak-user-drop-item text-success fw-bold" th:href="@{/teacher}"><i class="bi bi-mortarboard me-2"></i>Cổng Giảng viên (Mentor)</a>
+                    </th:block>
+
+                    <a class="ssak-user-drop-item" th:href="@{/ho-so}"><i class="bi bi-person me-2 text-primary"></i>Hồ sơ cá nhân</a>
+                    <a class="ssak-user-drop-item" th:href="@{/xu}"><i class="bi bi-coin me-2 text-warning"></i>Kho Xu của bạn</a>
+                    <a class="ssak-user-drop-item" th:href="@{/bai-cham}"><i class="bi bi-journal-check me-2 text-success"></i>Bài Viết gửi Mentor</a>
+                    <a class="ssak-user-drop-item" th:href="@{/goi-cua-toi}"><i class="bi bi-gem me-2 text-danger"></i>Gói VIP của tôi</a>
+                    <a class="ssak-user-drop-item" th:href="@{/cai-dat}"><i class="bi bi-gear me-2 text-secondary"></i>Cài đặt học tập</a>
+                    <div style="height: 1px; background: var(--ssak-border); margin: 4px 0;"></div>
+                    <a class="ssak-user-drop-item text-danger fw-bold" th:href="@{/logout}"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a>
+                </div>
+            </div>
+        </th:block>
     </div>
 </nav>
 

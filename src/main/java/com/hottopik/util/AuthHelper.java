@@ -22,11 +22,23 @@ public class AuthHelper {
         if (user == null || user.getRole() == null) {
             return false;
         }
+        String uRole = normalizeRole(user.getRole());
         for (String r : allowedRoles) {
-            if (user.getRole().equalsIgnoreCase(r)) {
+            if (uRole.equalsIgnoreCase(normalizeRole(r))) {
                 return true;
             }
         }
         return false;
+    }
+
+    private static String normalizeRole(String role) {
+        if (role == null) return "";
+        String r = role.trim().toUpperCase();
+        if (r.startsWith("ROLE_")) {
+            r = r.substring(5);
+        }
+        if ("TEACHER".equals(r)) return "MENTOR";
+        if ("USER".equals(r) || "VIP".equals(r)) return "STUDENT";
+        return r;
     }
 }

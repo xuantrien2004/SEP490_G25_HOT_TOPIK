@@ -198,10 +198,15 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="u : ${learners}" style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
+                            <tr th:each="u : ${learners}" th:id="${'row-learner-' + u.id}" style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
                                 <td style="padding: 14px 10px; font-weight: 800;" th:text="${u.id}">4</td>
-                                <td style="padding: 14px 10px; font-weight: 700; color: #24363D;" th:text="${u.fullName}">Nguyễn Hoàng Nam</td>
-                                <td style="padding: 14px 10px;" th:text="${u.email}">viplearner@hottopik.com</td>
+                                <td style="padding: 14px 10px; font-weight: 700; color: #24363D;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span style="width: 32px; height: 32px; border-radius: 50%; background: #E8F5E9; color: #1F6B56; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px;" th:text="${u.fullName != null && !u.fullName.isEmpty() ? #strings.substring(u.fullName, 0, 1) : 'U'}">N</span>
+                                        <span th:text="${u.fullName}">Nguyễn Hoàng Nam</span>
+                                    </div>
+                                </td>
+                                <td style="padding: 14px 10px; font-weight: 500;" th:text="${u.email}">viplearner@hottopik.com</td>
                                 <td style="padding: 14px 10px;">
                                     <span class="ssak-badge badge-honey" th:if="${u.role == 'ROLE_VIP'}">👑 VIP Member</span>
                                     <span class="ssak-badge badge-mint" th:if="${u.role != 'ROLE_VIP'}">🎓 Học viên</span>
@@ -212,16 +217,22 @@
                                     <span th:if="${!u.vip}" style="color: var(--ssak-text-muted);">Gói miễn phí</span>
                                 </td>
                                 <td style="padding: 14px 10px;">
-                                    <span class="ssak-badge"
-                                          th:classappend="${u.status == 'ACTIVE' ? 'badge-mint' : 'badge-terracotta'}"
-                                          th:text="${u.status == 'ACTIVE' ? 'Đang hoạt động' : 'Tạm khóa'}">
+                                    <span th:id="${'learner-status-' + u.id}" class="ssak-badge"
+                                          th:classappend="${u.status == 'ACTIVE' ? 'badge-mint' : (u.status == 'PENDING_VERIFY' ? 'badge-honey' : 'badge-terracotta')}"
+                                          th:text="${u.status == 'ACTIVE' ? 'Đang hoạt động' : (u.status == 'PENDING_VERIFY' ? 'Chờ kích hoạt' : 'Tạm khóa')}">
                                         Hoạt động
                                     </span>
                                 </td>
                                 <td style="padding: 14px 10px; text-align: right;">
-                                    <button type="button" class="btn-ssak-light" style="height: 32px; padding: 0 12px; font-size: 12px;"
-                                            th:data-id="${u.id}" onclick="toggleLearnerLock(this.getAttribute('data-id'))">
-                                        Khóa / Mở khóa
+                                    <button type="button" class="btn-ssak-light" style="height: 34px; padding: 0 14px; font-size: 12.5px; font-weight: 800; border-radius: 10px; cursor: pointer; transition: all 0.15s ease;"
+                                            th:id="${'btn-toggle-learner-' + u.id}"
+                                            th:data-id="${u.id}"
+                                            th:data-name="${u.fullName}"
+                                            th:data-email="${u.email}"
+                                            th:data-status="${u.status}"
+                                            onclick="openLearnerModal(this.getAttribute('data-id'), this.getAttribute('data-name'), this.getAttribute('data-email'), this.getAttribute('data-status'))">
+                                        <span th:if="${u.status == 'LOCKED'}" style="color: #1F6B56;">🔓 Mở khóa</span>
+                                        <span th:if="${u.status != 'LOCKED'}" style="color: #9C4A2E;">🔒 Khóa tài khoản</span>
                                     </button>
                                 </td>
                             </tr>
@@ -577,11 +588,75 @@
         }
     }
 
-    function toggleLearnerLock(id) {
-        if (!confirm('Bạn có chắc muốn cập nhật trạng thái hoạt động của học viên này?')) return;
+    let currentTargetUserId = null;
+    let currentTargetUserStatus = null;
+
+    function openLearnerModal(id, name, email, currentStatus) {
+        currentTargetUserId = id;
+        currentTargetUserStatus = currentStatus;
+
+        const modal = document.getElementById('userActionModal');
+        const iconBox = document.getElementById('modalIconBox');
+        const title = document.getElementById('modalTitle');
+        const subtitle = document.getElementById('modalSubtitle');
+        const desc = document.getElementById('modalDescription');
+        const confirmBtn = document.getElementById('modalConfirmBtn');
+        const userName = document.getElementById('modalUserName');
+        const userEmail = document.getElementById('modalUserEmail');
+        const userAvatar = document.getElementById('modalUserAvatar');
+        const userBadge = document.getElementById('modalUserBadge');
+
+        userName.textContent = name || 'Học viên';
+        userEmail.textContent = email || '';
+        userAvatar.textContent = (name && name.length > 0) ? name.charAt(0) : 'U';
+
+        const isLocked = (currentStatus === 'LOCKED');
+        if (isLocked) {
+            iconBox.style.background = '#E8F5E9';
+            iconBox.style.color = '#1F6B56';
+            iconBox.innerHTML = '🔓';
+            title.textContent = 'Mở khóa tài khoản học viên';
+            subtitle.textContent = 'Khôi phục toàn bộ quyền truy cập và làm bài thi';
+            desc.innerHTML = `Bạn có chắc chắn muốn <strong>mở khóa</strong> tài khoản của <strong>${name}</strong>? Học viên sẽ có thể đăng nhập và tiếp tục lộ trình học ngay lập tức.`;
+            confirmBtn.style.background = '#1F6B56';
+            confirmBtn.innerHTML = '🔓 Xác nhận mở khóa';
+            userBadge.innerHTML = '<span class="ssak-badge badge-terracotta">Đang bị khóa</span>';
+        } else {
+            iconBox.style.background = '#FFF1F0';
+            iconBox.style.color = '#CF1322';
+            iconBox.innerHTML = '🔒';
+            title.textContent = 'Tạm khóa tài khoản học viên';
+            subtitle.textContent = 'Đình chỉ quyền truy cập hệ thống do vi phạm chính sách';
+            desc.innerHTML = `Bạn có chắc chắn muốn <strong>tạm khóa</strong> tài khoản của <strong>${name}</strong>? Học viên sẽ <strong>không thể đăng nhập</strong> hoặc làm bài thi cho đến khi được mở khóa.`;
+            confirmBtn.style.background = '#CF1322';
+            confirmBtn.innerHTML = '🔒 Xác nhận khóa tài khoản';
+            userBadge.innerHTML = '<span class="ssak-badge badge-mint">Đang hoạt động</span>';
+        }
+
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            const card = document.getElementById('modalCard');
+            if (card) card.style.transform = 'scale(1)';
+        }, 10);
+    }
+
+    function closeLearnerModal() {
+        const modal = document.getElementById('userActionModal');
+        const card = document.getElementById('modalCard');
+        if (card) card.style.transform = 'scale(0.96)';
+        setTimeout(() => {
+            if (modal) modal.style.display = 'none';
+        }, 150);
+    }
+
+    function executeToggleLock() {
+        if (!currentTargetUserId) return;
+        const confirmBtn = document.getElementById('modalConfirmBtn');
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '⏳ Đang xử lý...';
 
         const formData = new FormData();
-        formData.append('userId', id);
+        formData.append('userId', currentTargetUserId);
 
         fetch('/operation/users/toggle-lock', {
             method: 'POST',
@@ -589,14 +664,33 @@
         })
         .then(r => r.json())
         .then(data => {
+            confirmBtn.disabled = false;
+            closeLearnerModal();
             if (data.success) {
                 showSsakToast(data.message);
-                setTimeout(() => window.location.reload(), 800);
+                const newStatus = data.status;
+                const statusBadge = document.getElementById('learner-status-' + currentTargetUserId);
+                const toggleBtn = document.getElementById('btn-toggle-learner-' + currentTargetUserId);
+                if (statusBadge) {
+                    statusBadge.className = 'ssak-badge ' + (newStatus === 'ACTIVE' ? 'badge-mint' : 'badge-terracotta');
+                    statusBadge.textContent = (newStatus === 'ACTIVE' ? 'Đang hoạt động' : 'Tạm khóa');
+                }
+                if (toggleBtn) {
+                    toggleBtn.setAttribute('data-status', newStatus);
+                    if (newStatus === 'LOCKED') {
+                        toggleBtn.innerHTML = '<span style="color: #1F6B56;">🔓 Mở khóa</span>';
+                    } else {
+                        toggleBtn.innerHTML = '<span style="color: #9C4A2E;">🔒 Khóa tài khoản</span>';
+                    }
+                }
             } else {
                 showSsakToast('Lỗi: ' + data.message);
             }
         })
-        .catch(e => showSsakToast('Có lỗi: ' + e));
+        .catch(e => {
+            confirmBtn.disabled = false;
+            showSsakToast('Có lỗi: ' + e);
+        });
     }
 
     function requestRefund(id) {
@@ -702,6 +796,56 @@
         })
         .catch(e => showSsakToast('Có lỗi: ' + e));
     }
+    // Close on Escape or click outside
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeLearnerModal();
+    });
 </script>
+
+<!-- Sleek Confirmation Modal for Locking/Unlocking Users -->
+<div id="userActionModal" onclick="if(event.target === this) closeLearnerModal()" style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(6px); transition: all 0.2s ease;">
+    <div id="modalCard" style="background: #FFFFFF; width: 100%; max-width: 480px; border-radius: 24px; border: 1.5px solid #E8E5DC; box-shadow: 0 24px 48px -12px rgba(0,0,0,0.25); overflow: hidden; transform: scale(0.96); transition: transform 0.2s ease; margin: 16px;">
+        <!-- Header Banner -->
+        <div id="modalHeaderBg" style="padding: 24px 28px 18px; border-bottom: 1px solid #F1EEE6; display: flex; align-items: center; gap: 16px;">
+            <div id="modalIconBox" style="width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; background: #FFF1F0;">
+                🔒
+            </div>
+            <div>
+                <h4 id="modalTitle" style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">Xác nhận thao tác</h4>
+                <p id="modalSubtitle" style="margin: 4px 0 0; font-size: 13px; color: #64748B;">Cập nhật quyền hạn truy cập của học viên</p>
+            </div>
+        </div>
+
+        <!-- Body with User Card -->
+        <div style="padding: 22px 28px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 16px; padding: 14px 18px; display: flex; align-items: center; gap: 14px;">
+                <div id="modalUserAvatar" style="width: 44px; height: 44px; border-radius: 50%; background: #E2E8F0; color: #334155; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; flex-shrink: 0;">
+                    U
+                </div>
+                <div style="flex-grow: 1; min-width: 0;">
+                    <div id="modalUserName" style="font-weight: 800; font-size: 15px; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Học viên</div>
+                    <div id="modalUserEmail" style="font-size: 12.5px; color: #64748B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">email@example.com</div>
+                </div>
+                <div id="modalUserBadge">
+                    <span class="ssak-badge badge-mint">Đang hoạt động</span>
+                </div>
+            </div>
+
+            <p id="modalDescription" style="margin: 0; font-size: 13.5px; line-height: 1.6; color: #475569;">
+                Bạn có chắc chắn muốn thực hiện thao tác này?
+            </p>
+        </div>
+
+        <!-- Footer Actions -->
+        <div style="padding: 16px 28px 22px; display: flex; justify-content: flex-end; gap: 12px; background: #FAFAFA; border-top: 1px solid #F1EEE6;">
+            <button type="button" onclick="closeLearnerModal()" style="height: 42px; padding: 0 18px; border-radius: 12px; border: 1.5px solid #CBD5E1; background: #FFFFFF; font-size: 13.5px; font-weight: 700; color: #475569; cursor: pointer; transition: all 0.15s ease;">
+                Hủy bỏ
+            </button>
+            <button type="button" id="modalConfirmBtn" onclick="executeToggleLock()" style="height: 42px; padding: 0 22px; border-radius: 12px; border: none; font-size: 13.5px; font-weight: 800; color: #FFFFFF; background: #CF1322; cursor: pointer; transition: all 0.15s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.12);">
+                Xác nhận
+            </button>
+        </div>
+    </div>
+</div>
 </body>
 </html>

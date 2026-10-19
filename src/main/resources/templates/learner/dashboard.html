@@ -17,10 +17,10 @@
                      style="background: linear-gradient(120deg, #E3F2EA 0%, #F3FAF6 100%); border-color: var(--ssak-primary-border) !important;">
                     <div style="max-width: 480px;">
                         <span class="badge rounded-pill bg-white text-success px-3 py-1 mb-2 border fw-bold" style="color: var(--ssak-primary) !important;">
-                            🌱 Ngày 12 của lộ trình · 17/10 · Tuần 2
+                            🌱 Ngày <span th:text="${session.LOGGED_IN_USER != null && session.LOGGED_IN_USER.studiedDays != null ? (session.LOGGED_IN_USER.studiedDays + 1) : 1}">1</span> của lộ trình · Hôm nay
                         </span>
                         <h1 style="font-family: var(--font-heading); font-size: clamp(26px, 3.5vw, 36px); font-weight: 800; line-height: 1.25; margin: 0;">
-                            Chào Minh Anh! Hôm nay có 2 bài trong lộ trình.
+                            Chào <span th:text="${session.LOGGED_IN_USER != null ? session.LOGGED_IN_USER.displayName : 'bạn'}">bạn</span>! Hôm nay có 2 bài trong lộ trình.
                         </h1>
                         <p class="text-muted mt-2 mb-3" style="font-size: 15px;">
                             Cùng hoàn thành để nhận +3 Xu cho mỗi bài và giúp mầm cây Bé Ssak lớn lên nhé.
