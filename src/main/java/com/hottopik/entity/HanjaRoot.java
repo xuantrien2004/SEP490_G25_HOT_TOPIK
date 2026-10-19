@@ -31,7 +31,7 @@ public class HanjaRoot {
     @Column(name = "ko_reading", length = 10, nullable = false)
     private String koReading;
 
-    @Column(name = "meaning_vi", length = 200, nullable = false)
+    @Column(name = "meaning_vi", length = 200)
     private String meaningVi;
 
     @Column(name = "audio_url", length = 500)
@@ -43,7 +43,7 @@ public class HanjaRoot {
 
     @Column(name = "status", length = 10, nullable = false)
     @Builder.Default
-    private String status = "ACTIVE";
+    private String status = "DRAFT";
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

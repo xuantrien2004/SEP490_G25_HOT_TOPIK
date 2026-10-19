@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<div style="min-height: 100vh; background: #F4F3EF; font-family: var(--font-body); color: var(--ssak-text-main); display: flex;">
+
+    <!-- ==================== LEFT SIDEBAR (THANH TÁC VỤ BÊN TRÁI - ĐỒNG BỘ 100%) ==================== -->
+    <aside style="width: 275px; background: #24363D; color: #FFFFFF; display: flex; flex-direction: column; flex-shrink: 0; min-height: 100vh; position: sticky; top: 0; z-index: 100; box-shadow: 4px 0 16px rgba(0,0,0,0.08);">
+        
+        <!-- Sidebar Brand / Logo -->
+        <div style="padding: 24px 24px 18px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;">
+            <a th:href="@{/content}" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #FFFFFF;">
+                <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 21V11" stroke="#6CC49F" stroke-width="2.5" stroke-linecap="round"/>
+                    <path d="M12 12C12 7 8 4 3.5 4.5C3.5 9 7 12.5 12 12Z" fill="#6CC49F"/>
+                    <path d="M12 10C12 6 15.5 3 20.5 3.5C20.5 8 17 11 12 10Z" fill="#A9D9C0"/>
+                </svg>
+                <span style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #6CC49F; letter-spacing: -0.5px;">HOT TOPIK</span>
+            </a>
+            <div>
+                <span style="font-size: 11px; color: #6CC49F; background: rgba(46, 125, 103, 0.35); border: 1px solid rgba(108, 196, 159, 0.4); padding: 3px 10px; border-radius: 12px; font-weight: 800; text-transform: uppercase;">
+                    📝 Content Manager
+                </span>
+            </div>
+        </div>
+
+        <!-- User Profile Card (Click → Trang Profile riêng) -->
+        <a th:href="@{/content/profile}" style="padding: 14px 20px; margin: 12px 14px; background: rgba(0,0,0,0.22); border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px; text-decoration: none; transition: background 0.2s;"
+           onmouseover="this.style.background='rgba(46, 125, 103, 0.35)'" onmouseout="this.style.background='rgba(0,0,0,0.22)'">
+            <div style="width: 40px; height: 40px; border-radius: 20px; background: #1F6B56; color: #FFFFFF; font-family: var(--font-heading); font-size: 18px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                <span th:text="${userName != null and #strings.length(userName) > 0 ? #strings.substring(userName, 0, 1) : 'H'}">H</span>
+            </div>
+            <div style="display: flex; flex-direction: column; overflow: hidden; min-width: 0; flex-grow: 1;">
+                <span style="font-weight: 800; font-size: 14px; color: #FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" th:text="${userName != null ? userName : 'Lê Thu Hà'}">Lê Thu Hà</span>
+                <span style="font-size: 11px; color: #6CC49F; font-weight: 600;">Xem hồ sơ cá nhân→</span>
+            </div>
+        </a>
+
+        <!-- Sidebar Navigation Menu Items -->
+        <div style="padding: 6px 14px; display: flex; flex-direction: column; gap: 2px; flex-grow: 1; overflow-y: auto;">
+            <div style="font-size: 11px; font-weight: 800; color: #8ECDB0; padding: 8px 12px 4px 12px; text-transform: uppercase; letter-spacing: 0.8px;">
+                Tác vụ Chuyên môn
+            </div>
+
+            <!-- Tổng quan -->
+            <a th:href="@{/content}" class="sidebar-item">
+                <span style="font-size: 17px;">🏠</span>
+                <span style="flex-grow: 1;">Tổng quan</span>
+            </a>
+
+            <!-- Quản lý Lý thuyết (expanded) -->
+            <div style="display: flex; flex-direction: column;">
+                <a th:href="@{/content}" class="sidebar-item" style="background: rgba(255,255,255,0.06);">
+                    <span style="font-size: 17px;">📖</span>
+                    <span style="flex-grow: 1;">Quản lý Lý thuyết</span>
+                    <span style="font-size: 12px; color: #A9D9C0;">▾</span>
+                </a>
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <a th:href="@{/content/vocabulary}" class="sidebar-sub-item">
+                        <span style="font-size: 14px;">↳</span>
+                        <span style="flex-grow: 1;">Kho Từ vựng TOPIK 1-6</span>
+                    </a>
+                    <a th:href="@{/content/grammar}" class="sidebar-sub-item">
+                        <span style="font-size: 14px;">↳</span>
+                        <span style="flex-grow: 1;">Kho Ngữ pháp TOPIK 1-6</span>
+                    </a>
+                    <a th:href="@{/content/hanja}" class="sidebar-sub-item active-sub">
+                        <span style="font-size: 14px;">↳</span>
+                        <span style="flex-grow: 1;">Kho từ Hán Việt</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Quản lý Đề -->
+            <a th:href="@{/content?tab=exams}" class="sidebar-item">
+                <span style="font-size: 17px;">📋</span>
+                <span style="flex-grow: 1;">Quản lý Đề</span>
+            </a>
+
+            <!-- Ngân hàng câu hỏi -->
+            <a th:href="@{/content?tab=questions}" class="sidebar-item">
+                <span style="font-size: 17px;">📝</span>
+                <span style="flex-grow: 1;">Ngân hàng câu hỏi</span>
+            </a>
+
+            <!-- Xử lý Báo lỗi -->
+            <a th:href="@{/content?tab=reports}" class="sidebar-item">
+                <span style="font-size: 17px;">⚠️</span>
+                <span style="flex-grow: 1;">Xử lý Báo lỗi</span>
+            </a>
+
+            <!-- Nhật ký Thao tác -->
+            <a th:href="@{/content?tab=audit}" class="sidebar-item">
+                <span style="font-size: 17px;">📜</span>
+                <span style="flex-grow: 1;">Nhật ký Thao tác</span>
+            </a>
+        </div>
+
+        <!-- Sidebar Bottom Footer: ONLY ONE LOGOUT BUTTON -->
+        <div style="padding: 16px 14px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;">
+            <a th:href="@{/logout}" class="sidebar-bottom-link logout">
+                <span>🚪</span>
+                <span>Đăng xuất hệ thống</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- ==================== RIGHT MAIN CONTENT AREA ==================== -->
+    <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0; overflow-y: auto; max-height: 100vh;">
+        
+        <!-- Top Header Bar -->
+        <header style="height: 68px; padding: 0 40px; background: #FFFFFF; border-bottom: 2px solid var(--ssak-border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <a th:href="@{/content/hanja}" class="btn-back-link" title="Quay lại Kho từ Hán Việt">
+                    ← Quay lại
+                </a>
+                <div style="width: 1px; height: 28px; background: var(--ssak-border);"></div>
+                <div>
+                    <div style="font-size: 11.5px; color: var(--ssak-text-muted); font-weight: 700; text-transform: uppercase;">
+                        Quản lý Lý thuyết &gt; Kho từ Hán Việt &gt; Danh sách từ liên quan
+                    </div>
+                    <h2 style="margin: 2px 0 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">
+                        Từ liên quan của chữ Hán: <span style="color: #1F6B56;" th:text="${root.hanjaChar}">學</span> (<span th:text="${root.sinoVi}">Học</span> - <span th:text="${root.koReading}">학</span>)
+                    </h2>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main style="padding: 28px 40px; display: flex; flex-direction: column; gap: 24px;">
+            
+            <!-- Root Character Banner / Summary Card -->
+            <div style="background: #FFFFFF; border-radius: 18px; border: 1.5px solid var(--ssak-border); padding: 22px 28px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 16px rgba(0,0,0,0.03);">
+                <div style="display: flex; align-items: center; gap: 22px;">
+                    <!-- Big Glyph Avatar -->
+                    <div style="width: 64px; height: 64px; border-radius: 18px; background: #24363D; color: #6CC49F; display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-size: 36px; font-weight: 800; flex-shrink: 0; box-shadow: 0 4px 12px rgba(36, 54, 61, 0.25);">
+                        <span th:text="${root.hanjaChar}">學</span>
+                    </div>
+
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <span style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #24363D;" th:text="${root.sinoVi}">
+                                Học
+                            </span>
+                            <span style="font-family: var(--font-korean); font-size: 18px; font-weight: 800; color: #1F6B56; background: rgba(46, 125, 103, 0.1); padding: 2px 10px; border-radius: 8px;" th:text="${root.koReading}">
+                                학
+                            </span>
+                            <button type="button" class="btn-audio-circle" 
+                                    th:data-audio="${root.audioUrl}"
+                                    th:data-reading="${root.koReading}"
+                                    onclick="playPronunciation(this.getAttribute('data-audio'), this.getAttribute('data-reading'))" 
+                                    title="Nghe phát âm chữ Hán">
+                                🔊
+                            </button>
+                            <span th:class="${root.status == 'ACTIVE'} ? 'ssak-badge badge-mint' : 'ssak-badge badge-honey'" 
+                                  style="font-size: 11px; padding: 3px 8px; font-weight: 800;"
+                                  th:text="${root.status == 'ACTIVE'} ? 'Hoạt động' : 'Bản nháp / Ẩn'">
+                                Hoạt động
+                            </span>
+                        </div>
+                        <div style="font-size: 13px; color: var(--ssak-text-muted); margin-top: 4px;">
+                            Đang quản lý danh sách các từ ghép, từ vựng mở rộng liên kết với gốc chữ Hán này.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Stats -->
+                <div style="display: flex; align-items: center; gap: 20px; text-align: right;">
+                    <div style="border-right: 1.5px solid var(--ssak-border); padding-right: 20px;">
+                        <div style="font-size: 11.5px; font-weight: 700; color: var(--ssak-text-muted); text-transform: uppercase;">Tổng từ vựng</div>
+                        <div id="statWordsCount" style="font-family: var(--font-heading); font-size: 26px; font-weight: 800; color: #1F6B56;" th:text="${words != null ? words.size() : 0}">
+                            0
+                        </div>
+                    </div>
+                    <button type="button" class="btn-top-primary" onclick="openCreateWordModal()" style="height: 42px; padding: 0 18px;">
+                        <span>➕</span> Thêm từ mới
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table of Related Words -->
+            <div style="background: #FFFFFF; border-radius: 16px; border: 1.5px solid var(--ssak-border); overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.03);">
+                <div style="padding: 18px 24px; border-bottom: 1.5px solid var(--ssak-border); display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-weight: 800; font-size: 15px; color: #24363D;">
+                        Danh sách từ vựng liên quan
+                    </div>
+                    <div style="font-size: 12.5px; color: var(--ssak-text-muted);">
+                        Mỗi từ có trạng thái và chức năng sửa/xóa độc lập
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="words-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="background: #FAF8F2; border-bottom: 2px solid var(--ssak-border);">
+                                <th style="width: 60px; text-align: center;">STT</th>
+                                <th style="width: 170px;">Tiếng Hàn</th>
+                                <th style="width: 150px;">Chữ Hán</th>
+                                <th style="width: 170px;">Âm Hán Việt</th>
+                                <th>Nghĩa Tiếng Việt</th>
+                                <th style="width: 100px; text-align: center;">Audio</th>
+                                <th style="width: 140px; text-align: center;">Trạng thái</th>
+                                <th style="width: 190px; text-align: center;">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="wordsTableBody">
+                            <tr th:if="${words == null or #lists.isEmpty(words)}">
+                                <td colspan="8" style="padding: 60px 20px; text-align: center; color: var(--ssak-text-muted);">
+                                    <div style="font-size: 40px; margin-bottom: 12px;">📭</div>
+                                    <div style="font-size: 16px; font-weight: 700; color: #24363D;">Chưa có từ liên quan nào cho chữ Hán này</div>
+                                    <div style="font-size: 13px; margin-top: 4px;">Hãy nhấn nút <strong>"Thêm từ liên quan mới"</strong> ở trên để bổ sung từ vựng.</div>
+                                </td>
+                            </tr>
+
+                            <tr th:each="w, iterStat : ${words}" th:id="'word-row-' + ${w.vocabularyId}" style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;" onmouseover="this.style.background='#FBFBF9'" onmouseout="this.style.background='#FFFFFF'">
+                                <!-- STT -->
+                                <td style="text-align: center; font-weight: 700; color: var(--ssak-text-muted); font-size: 13px;" th:text="${iterStat.count}">
+                                    1
+                                </td>
+
+                                <!-- Tiếng Hàn -->
+                                <td>
+                                    <span style="font-family: var(--font-korean); font-size: 17px; font-weight: 800; color: #1F6B56;" th:text="${w.word}">
+                                        학교
+                                    </span>
+                                </td>
+
+                                <!-- Chữ Hán -->
+                                <td>
+                                    <span style="font-family: var(--font-heading); font-size: 17px; font-weight: 700; color: #24363D;" th:text="${w.hanjaWord != null and !#strings.isEmpty(w.hanjaWord)} ? ${w.hanjaWord} : '-'">
+                                        學校
+                                    </span>
+                                </td>
+
+                                <!-- Âm Hán Việt -->
+                                <td>
+                                    <span style="font-weight: 700; font-size: 14.5px; color: #4A5568;" th:text="${w.sinoVi != null and !#strings.isEmpty(w.sinoVi)} ? ${w.sinoVi} : '-'">
+                                        học hiệu
+                                    </span>
+                                </td>
+
+                                <!-- Nghĩa Tiếng Việt -->
+                                <td>
+                                    <span style="font-weight: 600; font-size: 14px; color: #24363D;" th:text="${w.meaningVi != null and !#strings.isEmpty(w.meaningVi)} ? ${w.meaningVi} : '-'">
+                                        trường học
+                                    </span>
+                                </td>
+
+                                <!-- Audio -->
+                                <td style="text-align: center;">
+                                    <button type="button" class="btn-audio-circle" 
+                                            th:data-audio="${w.audioUrl}"
+                                            th:data-reading="${w.word}"
+                                            onclick="playPronunciation(this.getAttribute('data-audio'), this.getAttribute('data-reading'))" 
+                                            title="Nghe phát âm tiếng Hàn">
+                                        🔊
+                                    </button>
+                                </td>
+
+                                <!-- Trạng thái: Badge + Standalone Toggle Switch -->
+                                <!-- Trạng thái: Badge đồng bộ với Từ vựng -->
+                                <td style="text-align: center;">
+                                    <span th:id="'word-status-badge-' + ${w.vocabularyId}" 
+                                          class="ssak-badge"
+                                          th:style="${w.status == 'ACTIVE' ? 'background: #E8F5EE; color: #1F6B56;' : 'background: #E0DFD8; color: #666;'}"
+                                          th:text="${w.status == 'ACTIVE' ? 'Kích hoạt' : 'Đang ẩn'}">
+                                        Kích hoạt
+                                    </span>
+                                </td>
+
+                                <!-- Thao tác: Sửa, Nút điều chỉnh trạng thái (Ẩn/Bật), Xóa -->
+                                <td style="text-align: center;">
+                                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                        <button type="button" class="btn-action-edit" 
+                                                th:data-id="${w.vocabularyId}"
+                                                th:data-word="${w.word}"
+                                                th:data-hanja="${w.hanjaWord}"
+                                                th:data-sino="${w.sinoVi}"
+                                                th:data-meaning="${w.meaningVi}"
+                                                th:data-audio="${w.audioUrl}"
+                                                th:data-status="${w.status}"
+                                                onclick="openEditWordModal(this.getAttribute('data-id'), this.getAttribute('data-word'), this.getAttribute('data-hanja'), this.getAttribute('data-sino'), this.getAttribute('data-meaning'), this.getAttribute('data-audio'), this.getAttribute('data-status'))" 
+                                                title="Sửa thông tin từ này">
+                                            ✏️ Sửa
+                                        </button>
+                                        <button type="button" 
+                                                th:id="'word-btn-toggle-' + ${w.vocabularyId}"
+                                                class="btn-ssak-outline"
+                                                style="padding: 4px 10px; height: 32px; font-size: 12px; font-weight: 700;" 
+                                                th:data-id="${w.vocabularyId}"
+                                                onclick="toggleWordStatus(this.getAttribute('data-id'))"
+                                                th:title="${w.status == 'ACTIVE' ? 'Bấm để ẩn từ này' : 'Bấm để kích hoạt từ này'}"
+                                                th:text="${w.status == 'ACTIVE' ? 'Ẩn' : 'Bật'}">
+                                            Ẩn
+                                        </button>
+                                        <button type="button" class="btn-action-delete" 
+                                                th:data-id="${w.vocabularyId}"
+                                                th:data-word="${w.word}"
+                                                onclick="openDeleteWordModal(this.getAttribute('data-id'), this.getAttribute('data-word'))" 
+                                                title="Xóa từ khỏi chữ Hán">
+                                            🗑️ Xóa
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Thanh Phân Trang (Pagination) Từ Liên Quan -->
+                <div id="wordsPaginationWrapper" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border-top: 1.5px solid var(--ssak-border); background: #FAF8F2; flex-wrap: wrap; gap: 12px;">
+                    <div style="font-size: 13px; color: var(--ssak-text-muted); font-weight: 600;" id="wordsPaginationInfo">
+                        Hiển thị 1 - 10 trong tổng số <span id="wordsPaginationTotalCount">0</span> từ
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;" id="wordsPaginationButtons">
+                        <!-- JS renders pagination buttons -->
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<!-- ==================== MODAL: THÊM TỪ LIÊN QUAN ==================== -->
+<div class="modal fade" id="modalCreateWord" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 16px 40px rgba(0,0,0,0.18); overflow: hidden;">
+            <div style="background: #24363D; color: #FFFFFF; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 22px;">➕</span>
+                    <h5 style="margin: 0; font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #6CC49F;">
+                        Thêm Từ Liên Quan Mới
+                    </h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <form id="formCreateWord" onsubmit="handleCreateWord(event)" novalidate>
+                <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+                    
+                    <div style="background: rgba(244, 196, 90, 0.15); border: 1.5px solid rgba(244, 196, 90, 0.4); border-radius: 12px; padding: 12px 16px; font-size: 13px; color: #7C5C00; line-height: 1.45;">
+                        ℹ️ <strong>Quy định hệ thống:</strong> Từ liên quan khi thêm mới sẽ mặc định ở trạng thái <strong>Bản nháp / Ẩn (DRAFT)</strong>. Chữ Hán ghép bắt buộc phải chứa chữ Hán gốc <strong><span th:text="${root.hanjaChar}">學</span></strong>.
+                    </div>
+
+                    <!-- Error Alert -->
+                    <div id="createWordErrorAlert" style="display: none; background: #FFF1F0; border: 1.5px solid #FFA39E; border-radius: 10px; padding: 11px 16px; font-size: 13px; color: #C93B2B; font-weight: 700;"></div>
+
+                    <!-- Row 1: Tiếng Hàn & Chữ Hán ghép -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                        <div>
+                            <label class="form-label-custom">Tiếng Hàn <span style="color: #C93B2B;">*</span> <span style="font-size: 11px; color: var(--ssak-text-muted); font-weight: normal;">(VD: 학교)</span></label>
+                            <input type="text" id="createWordKorean" maxlength="100" placeholder="Ví dụ: 학교" class="form-control-custom" style="font-family: var(--font-korean); font-size: 17px; font-weight: 800;" />
+                        </div>
+                        <div>
+                            <label class="form-label-custom">Chữ Hán ghép <span style="color: #C93B2B;">*</span> <span style="font-size: 11px; color: var(--ssak-text-muted); font-weight: normal;">(phải chứa <strong th:text="${root.hanjaChar}">學</strong>)</span></label>
+                            <input type="text" id="createWordHanja" maxlength="20" th:placeholder="'Ví dụ: ' + ${root.hanjaChar} + '校'" class="form-control-custom" style="font-family: var(--font-heading); font-size: 17px; font-weight: 700;" />
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Âm Hán Việt & Nghĩa Tiếng Việt -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                        <div>
+                            <label class="form-label-custom">Âm Hán Việt <span style="color: #C93B2B;">*</span> <span style="font-size: 11px; color: var(--ssak-text-muted); font-weight: normal;">(VD: học hiệu)</span></label>
+                            <input type="text" id="createWordSinoVi" maxlength="100" placeholder="Ví dụ: học hiệu" class="form-control-custom" />
+                        </div>
+                        <div>
+                            <label class="form-label-custom">Nghĩa Tiếng Việt <span style="color: #C93B2B;">*</span> <span style="font-size: 11px; color: var(--ssak-text-muted); font-weight: normal;">(VD: trường học)</span></label>
+                            <input type="text" id="createWordMeaningVi" maxlength="300" placeholder="Ví dụ: trường học" class="form-control-custom" />
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Audio URL -->
+                    <div>
+                        <label class="form-label-custom">Audio URL <span style="font-size: 11px; color: var(--ssak-text-muted); font-weight: normal;">(tùy chọn)</span></label>
+                        <input type="url" id="createWordAudioUrl" placeholder="https://..." class="form-control-custom" />
+                    </div>
+                </div>
+
+                <div style="background: #F8F6EF; padding: 16px 24px; border-top: 1.5px solid var(--ssak-border); display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn-modal-cancel" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" id="btnSubmitCreateWord" class="btn-modal-submit">Lưu từ liên quan (Bản nháp)</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== MODAL: SỬA TỪ LIÊN QUAN ==================== -->
+<div class="modal fade" id="modalEditWord" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 16px 40px rgba(0,0,0,0.18); overflow: hidden;">
+            <div style="background: #24363D; color: #FFFFFF; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 22px;">✏️</span>
+                    <h5 style="margin: 0; font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #6CC49F;">
+                        Sửa Từ Liên Quan
+                    </h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <form id="formEditWord" onsubmit="handleUpdateWord(event)">
+                <input type="hidden" id="editWordVocabId" />
+                <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+                    
+                    <!-- Row 1: Tiếng Hàn & Chữ Hán -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                        <div>
+                            <label class="form-label-custom">Tiếng Hàn (*)</label>
+                            <input type="text" id="editWordKorean" required maxlength="100" class="form-control-custom" style="font-family: var(--font-korean); font-size: 17px; font-weight: 800;" />
+                        </div>
+                        <div>
+                            <label class="form-label-custom">Chữ Hán ghép</label>
+                            <input type="text" id="editWordHanja" maxlength="20" class="form-control-custom" style="font-family: var(--font-heading); font-size: 17px; font-weight: 700;" />
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Âm Hán Việt & Nghĩa Tiếng Việt -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                        <div>
+                            <label class="form-label-custom">Âm Hán Việt</label>
+                            <input type="text" id="editWordSinoVi" maxlength="100" class="form-control-custom" />
+                        </div>
+                        <div>
+                            <label class="form-label-custom">Nghĩa Tiếng Việt (*)</label>
+                            <input type="text" id="editWordMeaningVi" required maxlength="300" class="form-control-custom" />
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Audio URL -->
+                    <div>
+                        <label class="form-label-custom">Audio URL <span style="font-size: 11px; color: var(--ssak-text-muted); font-weight: normal;">(tùy chọn)</span></label>
+                        <input type="url" id="editWordAudioUrl" placeholder="https://..." class="form-control-custom" />
+                    </div>
+                </div>
+
+                <div style="background: #F8F6EF; padding: 16px 24px; border-top: 1.5px solid var(--ssak-border); display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn-modal-cancel" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" id="btnSubmitEditWord" class="btn-modal-submit">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== MODAL: XÓA TỪ LIÊN QUAN ==================== -->
+<div class="modal fade" id="modalDeleteWord" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 16px 40px rgba(0,0,0,0.2); overflow: hidden;">
+            <div style="background: #C93B2B; color: #FFFFFF; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 22px;">⚠️</span>
+                    <h5 style="margin: 0; font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #FFFFFF;">
+                        Xác Nhận Xóa Từ Liên Quan
+                    </h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div style="padding: 24px;">
+                <input type="hidden" id="deleteWordVocabId" />
+                <div style="font-size: 14.5px; line-height: 1.6; color: #24363D;">
+                    Bạn có chắc chắn muốn xóa từ <span id="deleteWordDisplay" style="font-weight: 800; font-size: 18px; color: #C93B2B;">학교</span> khỏi danh sách từ liên quan của chữ Hán này không?
+                </div>
+                <div style="margin-top: 10px; font-size: 12.5px; color: var(--ssak-text-muted);">
+                    Hành động này sẽ ngắt liên kết và gỡ từ vựng này.
+                </div>
+            </div>
+
+            <div style="background: #F8F6EF; padding: 16px 24px; border-top: 1.5px solid var(--ssak-border); display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-modal-cancel" data-bs-dismiss="modal">Hủy bỏ</button>
+                <button type="button" id="btnConfirmDeleteWord" class="btn-modal-danger" onclick="executeDeleteWord()">
+                    Đồng ý Xóa
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* CSS đồng bộ tuyệt đối thanh tác vụ */
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    color: #CFE9DC;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+    transform: translateX(3px);
+}
+.sidebar-item.active {
+    background: #2E7D67;
+    color: #FFFFFF;
+    font-weight: 800;
+    box-shadow: 0 4px 14px rgba(46, 125, 103, 0.35);
+}
+.sidebar-sub-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px 8px 32px;
+    border-radius: 10px;
+    color: #A9D9C0;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.sidebar-sub-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+}
+.sidebar-sub-item.active-sub {
+    background: rgba(46, 125, 103, 0.55);
+    color: #FFFFFF;
+    font-weight: 800;
+    border-left: 3px solid #6CC49F;
+}
+.sidebar-bottom-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    color: #A9D9C0;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    transition: all 0.2s;
+}
+.sidebar-bottom-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+}
+.sidebar-bottom-link.logout {
+    color: #FFA39E;
+}
+.sidebar-bottom-link.logout:hover {
+    background: rgba(207, 19, 34, 0.15);
+    color: #FF7875;
+}
+
+/* Table */
+.words-table th {
+    padding: 14px 16px;
+    font-size: 12.5px;
+    font-weight: 800;
+    color: #24363D;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.words-table td {
+    padding: 14px 16px;
+    vertical-align: middle;
+}
+
+.btn-back-link {
+    height: 38px;
+    padding: 0 14px;
+    background: #F4F8F6;
+    color: #1F6B56;
+    border: 1.5px solid rgba(46, 125, 103, 0.25);
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 13px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.2s;
+}
+.btn-back-link:hover {
+    background: #2E7D67;
+    color: #FFFFFF;
+}
+
+.btn-audio-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+    border: 1.5px solid var(--ssak-border);
+    background: #FFFFFF;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.2s;
+}
+.btn-audio-circle:hover {
+    background: #EAF5F0;
+    border-color: #6CC49F;
+    transform: scale(1.1);
+}
+
+.btn-ssak-outline {
+    background: transparent;
+    color: #1F6B56;
+    border: 1.5px solid #1F6B56;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+}
+.btn-ssak-outline:hover {
+    background: #E8F5EE;
+}
+
+/* Pagination buttons */
+.page-btn {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1.5px solid var(--ssak-border);
+    background: #FFFFFF;
+    color: #24363D;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    user-select: none;
+    font-family: inherit;
+}
+.page-btn:hover:not(:disabled) {
+    border-color: #2E7D67;
+    color: #2E7D67;
+    background: #F4F8F6;
+}
+.page-btn.active {
+    background: #2E7D67;
+    color: #FFFFFF;
+    border-color: #2E7D67;
+}
+.page-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: #F4F3EF;
+}
+
+.btn-top-primary {
+    height: 38px;
+    padding: 0 16px;
+    background: #2E7D67;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+.btn-top-primary:hover {
+    background: #1F6B56;
+    box-shadow: 0 4px 12px rgba(46, 125, 103, 0.3);
+}
+
+.btn-action-edit {
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: #F4F8F6;
+    color: #1F6B56;
+    border: 1.5px solid rgba(46, 125, 103, 0.25);
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.btn-action-edit:hover {
+    background: #2E7D67;
+    color: #FFFFFF;
+}
+.btn-action-delete {
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: #FFF1F0;
+    color: #C93B2B;
+    border: 1.5px solid rgba(201, 59, 43, 0.25);
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.btn-action-delete:hover {
+    background: #C93B2B;
+    color: #FFFFFF;
+}
+
+.form-label-custom {
+    display: block;
+    font-size: 13px;
+    font-weight: 800;
+    color: #24363D;
+    margin-bottom: 6px;
+}
+.form-control-custom {
+    width: 100%;
+    height: 42px;
+    padding: 0 14px;
+    border: 1.5px solid var(--ssak-border);
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    background: #FFFFFF;
+}
+.form-control-custom:focus {
+    border-color: #2E7D67;
+    box-shadow: 0 0 0 3px rgba(46, 125, 103, 0.15);
+}
+.btn-modal-cancel {
+    height: 38px;
+    padding: 0 18px;
+    background: #FFFFFF;
+    border: 1.5px solid var(--ssak-border);
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 13px;
+    color: #555555;
+    cursor: pointer;
+}
+.btn-modal-submit {
+    height: 38px;
+    padding: 0 20px;
+    background: #2E7D67;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 13px;
+    color: #FFFFFF;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.btn-modal-submit:hover {
+    background: #1F6B56;
+}
+.btn-modal-danger {
+    height: 38px;
+    padding: 0 20px;
+    background: #C93B2B;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 13px;
+    color: #FFFFFF;
+    cursor: pointer;
+}
+.btn-modal-danger:hover {
+    background: #A8071A;
+}
+</style>
+
+<script th:inline="javascript">
+    const currentRootId = /*[[${root.id}]]*/ 1;
+    const currentRootChar = /*[[${root.hanjaChar}]]*/ '';
+
+    // Speech audio playback
+    function playPronunciation(audioUrl, koText) {
+        if (audioUrl && audioUrl.trim().length > 0) {
+            const audio = new Audio(audioUrl.trim());
+            audio.play().catch(e => {
+                console.warn('Audio URL playback failed, falling back to TTS:', e);
+                speakKorean(koText);
+            });
+        } else {
+            speakKorean(koText);
+        }
+    }
+
+    function speakKorean(text) {
+        if (!text || text.trim().length === 0) return;
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ko-KR';
+            utterance.rate = 0.85;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ==========================================
+    // PHÂN TRANG TỪ LIÊN QUAN (PAGINATION)
+    // ==========================================
+    let wordsCurrentPage = 1;
+    const wordsPageSize = 10;
+
+    function applyWordsPagination() {
+        const allRows = Array.from(document.querySelectorAll('#wordsTableBody tr[id^="word-row-"]'));
+        const totalMatching = allRows.length;
+        const totalPages = Math.max(1, Math.ceil(totalMatching / wordsPageSize));
+        if (wordsCurrentPage > totalPages) wordsCurrentPage = totalPages;
+        if (wordsCurrentPage < 1) wordsCurrentPage = 1;
+
+        const startIndex = (wordsCurrentPage - 1) * wordsPageSize;
+        const endIndex = Math.min(startIndex + wordsPageSize, totalMatching);
+
+        allRows.forEach(row => row.style.display = 'none');
+        allRows.slice(startIndex, endIndex).forEach(row => row.style.display = '');
+
+        renderWordsPaginationControls(totalMatching, totalPages, startIndex, endIndex);
+    }
+
+    function renderWordsPaginationControls(totalMatching, totalPages, startIndex, endIndex) {
+        const totalSpan = document.getElementById('wordsPaginationTotalCount');
+        const infoEl = document.getElementById('wordsPaginationInfo');
+        const btnsEl = document.getElementById('wordsPaginationButtons');
+        if (!infoEl || !btnsEl) return;
+
+        if (totalSpan) totalSpan.innerText = totalMatching;
+
+        if (totalMatching === 0) {
+            infoEl.innerText = 'Chưa có từ liên quan nào';
+            btnsEl.innerHTML = '';
+            return;
+        }
+
+        infoEl.innerText = `Hiển thị ${startIndex + 1} - ${endIndex} trong tổng số ${totalMatching} từ`;
+
+        let html = '';
+        html += `<button type="button" class="page-btn" ${wordsCurrentPage === 1 ? 'disabled' : ''} onclick="goToWordsPage(${wordsCurrentPage - 1})">◀ Trước</button>`;
+
+        let startPage = Math.max(1, wordsCurrentPage - 2);
+        let endPage = Math.min(totalPages, wordsCurrentPage + 2);
+        if (startPage > 1) {
+            html += `<button type="button" class="page-btn" onclick="goToWordsPage(1)">1</button>`;
+            if (startPage > 2) html += `<span style="padding: 0 4px; color: #8C9BA2;">...</span>`;
+        }
+
+        for (let p = startPage; p <= endPage; p++) {
+            html += `<button type="button" class="page-btn ${p === wordsCurrentPage ? 'active' : ''}" onclick="goToWordsPage(${p})">${p}</button>`;
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) html += `<span style="padding: 0 4px; color: #8C9BA2;">...</span>`;
+            html += `<button type="button" class="page-btn" onclick="goToWordsPage(${totalPages})">${totalPages}</button>`;
+        }
+
+        html += `<button type="button" class="page-btn" ${wordsCurrentPage === totalPages ? 'disabled' : ''} onclick="goToWordsPage(${wordsCurrentPage + 1})">Sau ▶</button>`;
+
+        btnsEl.innerHTML = html;
+    }
+
+    function goToWordsPage(page) {
+        wordsCurrentPage = page;
+        applyWordsPagination();
+    }
+
+    // Standalone Word Status Toggle (Đồng bộ Từ vựng)
+    function toggleWordStatus(vocabId) {
+        fetch('/content/hanja/api/' + currentRootId + '/words/' + vocabId + '/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(res => res.json())
+        .then(res => {
+            if (res.success && res.data) {
+                const data = res.data;
+                const badge = document.getElementById('word-status-badge-' + vocabId);
+                const btn   = document.getElementById('word-btn-toggle-' + vocabId);
+                const isAct = (data.status === 'ACTIVE');
+
+                if (badge) {
+                    badge.innerText = isAct ? "Kích hoạt" : "Đang ẩn";
+                    badge.style.background = isAct ? "#E8F5EE" : "#E0DFD8";
+                    badge.style.color = isAct ? "#1F6B56" : "#666";
+                }
+                if (btn) {
+                    btn.innerText = isAct ? "Ẩn" : "Bật";
+                    btn.title = isAct ? "Bấm để ẩn từ này" : "Bấm để kích hoạt từ này";
+                }
+                showToast(res.message || 'Đã cập nhật trạng thái');
+            } else {
+                alert('Lỗi: ' + (res.message || 'Không thể đổi trạng thái!'));
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Lỗi kết nối máy chủ!');
+        });
+    }
+
+    // Modal Create Word
+    function openCreateWordModal() {
+        document.getElementById('formCreateWord').reset();
+        const errAlert = document.getElementById('createWordErrorAlert');
+        if (errAlert) {
+            errAlert.style.display = 'none';
+            errAlert.innerText = '';
+        }
+        const modal = new bootstrap.Modal(document.getElementById('modalCreateWord'));
+        modal.show();
+    }
+
+    function handleCreateWord(event) {
+        event.preventDefault();
+        const errAlert = document.getElementById('createWordErrorAlert');
+        if (errAlert) {
+            errAlert.style.display = 'none';
+            errAlert.innerText = '';
+        }
+
+        const koWord  = document.getElementById('createWordKorean').value.trim();
+        const hanjaW  = document.getElementById('createWordHanja').value.trim();
+        const sinoV   = document.getElementById('createWordSinoVi').value.trim();
+        const meanV   = document.getElementById('createWordMeaningVi').value.trim();
+        const audioU  = document.getElementById('createWordAudioUrl').value.trim();
+
+        // 1. Validate required fields: Tiếng Hàn, Âm Hán Việt, Nghĩa Tiếng Việt, Chữ Hán Ghép
+        if (!koWord || !hanjaW || !sinoV || !meanV) {
+            if (errAlert) {
+                errAlert.innerText = 'Vui lòng điền đầy đủ các trường thông tin bắt buộc: Tiếng Hàn, Chữ Hán ghép, Âm Hán Việt và Nghĩa Tiếng Việt!';
+                errAlert.style.display = 'block';
+            } else {
+                alert('Vui lòng điền đầy đủ các trường thông tin bắt buộc: Tiếng Hàn, Chữ Hán ghép, Âm Hán Việt và Nghĩa Tiếng Việt!');
+            }
+            return;
+        }
+
+        // 2. Validate that Chữ Hán ghép contains the current root character
+        if (currentRootChar && !hanjaW.includes(currentRootChar)) {
+            const msg = `Chữ Hán ghép "${hanjaW}" phải chứa chữ Hán gốc "${currentRootChar}" đang truy cập!`;
+            if (errAlert) {
+                errAlert.innerText = msg;
+                errAlert.style.display = 'block';
+            } else {
+                alert(msg);
+            }
+            return;
+        }
+
+        const btn = document.getElementById('btnSubmitCreateWord');
+        btn.disabled = true;
+        btn.innerText = 'Đang lưu...';
+
+        const payload = {
+            word: koWord,
+            hanjaWord: hanjaW,
+            sinoVi: sinoV,
+            meaningVi: meanV,
+            audioUrl: audioU,
+            status: 'DRAFT' // Mặc định luôn là DRAFT
+        };
+
+        fetch('/content/hanja/api/' + currentRootId + '/words', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(res => {
+            btn.disabled = false;
+            btn.innerText = 'Lưu từ liên quan (Bản nháp)';
+            if (res.success && res.data) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalCreateWord'));
+                if (modal) modal.hide();
+
+                const newWord = res.data;
+                const tbody = document.getElementById('wordsTableBody');
+                const rowCount = tbody.querySelectorAll('tr[id^="word-row-"]').length + 1;
+                
+                const tr = document.createElement('tr');
+                tr.id = 'word-row-' + newWord.vocabularyId;
+                tr.style.borderBottom = '1px solid var(--ssak-border)';
+                tr.style.transition = 'background 0.15s';
+                tr.onmouseover = function() { this.style.background = '#FBFBF9'; };
+                tr.onmouseout = function() { this.style.background = '#FFFFFF'; };
+
+                tr.innerHTML = `
+                    <td style="text-align: center; font-weight: 700; color: var(--ssak-text-muted); font-size: 13px;">${rowCount}</td>
+                    <td>
+                        <span style="font-family: var(--font-korean); font-size: 17px; font-weight: 800; color: #1F6B56;">${escapeHtml(newWord.word)}</span>
+                    </td>
+                    <td>
+                        <span style="font-family: var(--font-heading); font-size: 17px; font-weight: 700; color: #24363D;">${escapeHtml(newWord.hanjaWord || '-')}</span>
+                    </td>
+                    <td>
+                        <span style="font-weight: 700; font-size: 14.5px; color: #4A5568;">${escapeHtml(newWord.sinoVi || '-')}</span>
+                    </td>
+                    <td>
+                        <span style="font-weight: 600; font-size: 14px; color: #24363D;">${escapeHtml(newWord.meaningVi || '-')}</span>
+                    </td>
+                    <td style="text-align: center;">
+                        <button type="button" class="btn-audio-circle" data-audio="${escapeHtml(newWord.audioUrl || '')}" data-reading="${escapeHtml(newWord.word || '')}" onclick="playPronunciation(this.getAttribute('data-audio'), this.getAttribute('data-reading'))" title="Nghe phát âm tiếng Hàn">
+                            🔊
+                        </button>
+                    </td>
+                    <td style="text-align: center;">
+                        <span id="word-status-badge-${newWord.vocabularyId}" class="ssak-badge" style="background: #E0DFD8; color: #666;">
+                            Đang ẩn
+                        </span>
+                    </td>
+                    <td style="text-align: center;">
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            <button type="button" class="btn-action-edit" data-id="${newWord.vocabularyId}" data-word="${escapeHtml(newWord.word)}" data-hanja="${escapeHtml(newWord.hanjaWord || '')}" data-sino="${escapeHtml(newWord.sinoVi || '')}" data-meaning="${escapeHtml(newWord.meaningVi || '')}" data-audio="${escapeHtml(newWord.audioUrl || '')}" data-status="DRAFT" onclick="openEditWordModal(this.getAttribute('data-id'), this.getAttribute('data-word'), this.getAttribute('data-hanja'), this.getAttribute('data-sino'), this.getAttribute('data-meaning'), this.getAttribute('data-audio'), this.getAttribute('data-status'))" title="Sửa thông tin từ này">
+                                ✏️ Sửa
+                            </button>
+                            <button type="button" id="word-btn-toggle-${newWord.vocabularyId}" class="btn-ssak-outline" style="padding: 4px 10px; height: 32px; font-size: 12px; font-weight: 700;" data-id="${newWord.vocabularyId}" onclick="toggleWordStatus(this.getAttribute('data-id'))" title="Bấm để kích hoạt từ này">
+                                Bật
+                            </button>
+                            <button type="button" class="btn-action-delete" data-id="${newWord.vocabularyId}" data-word="${escapeHtml(newWord.word)}" onclick="openDeleteWordModal(this.getAttribute('data-id'), this.getAttribute('data-word'))" title="Xóa từ khỏi chữ Hán">
+                                🗑️ Xóa
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.insertBefore(tr, tbody.firstChild);
+
+                // Cập nhật thẻ tổng số từ
+                const statCount = document.getElementById('statWordsCount');
+                if (statCount) statCount.innerText = (parseInt(statCount.innerText) || 0) + 1;
+
+                applyWordsPagination();
+                showToast('Thêm từ mới thành công!');
+            } else {
+                if (errAlert) {
+                    errAlert.innerText = 'Lỗi: ' + (res.message || 'Không thể tạo từ liên quan!');
+                    errAlert.style.display = 'block';
+                } else {
+                    alert('Lỗi: ' + (res.message || 'Không thể tạo từ liên quan!'));
+                }
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerText = 'Lưu từ liên quan (Bản nháp)';
+            if (errAlert) {
+                errAlert.innerText = 'Lỗi kết nối: ' + err.message;
+                errAlert.style.display = 'block';
+            } else {
+                alert('Lỗi kết nối: ' + err.message);
+            }
+        });
+    }
+
+    // Modal Edit Word
+    function openEditWordModal(vocabId, word, hanjaWord, sinoVi, meaningVi, audioUrl, status) {
+        document.getElementById('editWordVocabId').value = vocabId;
+        document.getElementById('editWordKorean').value = word || '';
+        document.getElementById('editWordHanja').value = hanjaWord || '';
+        document.getElementById('editWordSinoVi').value = sinoVi || '';
+        document.getElementById('editWordMeaningVi').value = meaningVi || '';
+        document.getElementById('editWordAudioUrl').value = audioUrl || '';
+
+        const modal = new bootstrap.Modal(document.getElementById('modalEditWord'));
+        modal.show();
+    }
+
+    function handleUpdateWord(event) {
+        event.preventDefault();
+        const vocabId = document.getElementById('editWordVocabId').value;
+        const btn = document.getElementById('btnSubmitEditWord');
+        btn.disabled = true;
+        btn.innerText = 'Đang lưu...';
+
+        const koWord  = document.getElementById('editWordKorean').value.trim();
+        const hanjaW  = document.getElementById('editWordHanja').value.trim();
+        const sinoV   = document.getElementById('editWordSinoVi').value.trim();
+        const meanV   = document.getElementById('editWordMeaningVi').value.trim();
+        const audioU  = document.getElementById('editWordAudioUrl').value.trim();
+
+        const payload = {
+            word: koWord,
+            hanjaWord: hanjaW,
+            sinoVi: sinoV,
+            meaningVi: meanV,
+            audioUrl: audioU
+        };
+
+        fetch('/content/hanja/api/' + currentRootId + '/words/' + vocabId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(res => {
+            btn.disabled = false;
+            btn.innerText = 'Lưu thay đổi';
+            if (res.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditWord'));
+                if (modal) modal.hide();
+
+                // Cập nhật DOM trực tiếp không cần reload
+                const row = document.getElementById('word-row-' + vocabId);
+                if (row) {
+                    const cells = row.querySelectorAll('td');
+                    if (cells[1]) cells[1].innerHTML = `<span style="font-family: var(--font-korean); font-size: 17px; font-weight: 800; color: #1F6B56;">${escapeHtml(koWord)}</span>`;
+                    if (cells[2]) cells[2].innerHTML = `<span style="font-family: var(--font-heading); font-size: 17px; font-weight: 700; color: #24363D;">${escapeHtml(hanjaW || '-')}</span>`;
+                    if (cells[3]) cells[3].innerHTML = `<span style="font-weight: 700; font-size: 14.5px; color: #4A5568;">${escapeHtml(sinoV || '-')}</span>`;
+                    if (cells[4]) cells[4].innerHTML = `<span style="font-weight: 600; font-size: 14px; color: #24363D;">${escapeHtml(meanV || '-')}</span>`;
+                    if (cells[5]) {
+                        const audioBtn = cells[5].querySelector('.btn-audio-circle');
+                        if (audioBtn) {
+                            audioBtn.setAttribute('data-audio', audioU);
+                            audioBtn.setAttribute('data-reading', koWord);
+                        }
+                    }
+                    const editBtn = row.querySelector('.btn-action-edit');
+                    if (editBtn) {
+                        editBtn.setAttribute('data-word', koWord);
+                        editBtn.setAttribute('data-hanja', hanjaW);
+                        editBtn.setAttribute('data-sino', sinoV);
+                        editBtn.setAttribute('data-meaning', meanV);
+                        editBtn.setAttribute('data-audio', audioU);
+                    }
+                    const delBtn = row.querySelector('.btn-action-delete');
+                    if (delBtn) {
+                        delBtn.setAttribute('data-word', koWord);
+                    }
+                }
+                showToast('Đã lưu thay đổi từ thành công!');
+            } else {
+                alert('Lỗi: ' + (res.message || 'Không thể cập nhật!'));
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerText = 'Lưu thay đổi';
+            alert('Lỗi: ' + err.message);
+        });
+    }
+
+    // Modal Delete Word
+    function openDeleteWordModal(vocabId, word) {
+        document.getElementById('deleteWordVocabId').value = vocabId;
+        document.getElementById('deleteWordDisplay').innerText = word;
+        const modal = new bootstrap.Modal(document.getElementById('modalDeleteWord'));
+        modal.show();
+    }
+
+    function executeDeleteWord() {
+        const vocabId = document.getElementById('deleteWordVocabId').value;
+        const btn = document.getElementById('btnConfirmDeleteWord');
+        btn.disabled = true;
+        btn.innerText = 'Đang xóa...';
+
+        fetch('/content/hanja/api/' + currentRootId + '/words/' + vocabId, {
+            method: 'DELETE'
+        })
+        .then(res => res.json())
+        .then(res => {
+            btn.disabled = false;
+            btn.innerText = 'Đồng ý Xóa';
+            if (res.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalDeleteWord'));
+                if (modal) modal.hide();
+
+                // Xóa hàng trong DOM và cập nhật stat card
+                const row = document.getElementById('word-row-' + vocabId);
+                if (row) row.remove();
+
+                const statCount = document.getElementById('statWordsCount');
+                if (statCount) statCount.innerText = Math.max(0, (parseInt(statCount.innerText) || 0) - 1);
+
+                applyWordsPagination();
+                showToast('Đã xóa từ thành công!');
+            } else {
+                alert('Lỗi: ' + (res.message || 'Không thể xóa từ!'));
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerText = 'Đồng ý Xóa';
+            alert('Lỗi: ' + err.message);
+        });
+    }
+
+    // Khởi tạo phân trang từ liên quan khi load trang
+    document.addEventListener('DOMContentLoaded', function() {
+        applyWordsPagination();
+    });
+
+    function showToast(msg) {
+        const toast = document.createElement('div');
+        toast.style.position = 'fixed';
+        toast.style.bottom = '24px';
+        toast.style.right = '24px';
+        toast.style.background = '#24363D';
+        toast.style.color = '#FFFFFF';
+        toast.style.padding = '12px 20px';
+        toast.style.borderRadius = '12px';
+        toast.style.fontWeight = '700';
+        toast.style.fontSize = '13.5px';
+        toast.style.zIndex = '9999';
+        toast.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)';
+        toast.innerText = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2500);
+    }
+</script>
+</body>
+</html>

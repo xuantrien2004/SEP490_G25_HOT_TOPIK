@@ -59,17 +59,14 @@
                     <a th:href="@{/content/vocabulary}" class="sidebar-sub-item">
                         <span style="font-size: 14px;">↳</span>
                         <span style="flex-grow: 1;">Kho Từ vựng TOPIK 1-6</span>
-                        <span class="ssak-badge badge-mint" style="font-size: 10px; padding: 1px 6px;" th:text="${totalVocabCount}">42</span>
                     </a>
                     <a th:href="@{/content/grammar}" class="sidebar-sub-item">
                         <span style="font-size: 14px;">↳</span>
                         <span style="flex-grow: 1;">Kho Ngữ pháp TOPIK 1-6</span>
-                        <span class="ssak-badge badge-mint" style="font-size: 10px; padding: 1px 6px;" th:text="${totalGrammarCount}">12</span>
                     </a>
                     <a th:href="@{/content/hanja}" class="sidebar-sub-item">
                         <span style="font-size: 14px;">↳</span>
                         <span style="flex-grow: 1;">Kho từ Hán Việt</span>
-                        <span class="ssak-badge badge-honey" style="font-size: 10px; padding: 1px 6px;">Mới</span>
                     </a>
                 </div>
             </div>
@@ -78,21 +75,18 @@
             <a href="javascript:void(0)" onclick="switchContentTab('exams')" id="side-nav-exams" class="sidebar-item">
                 <span style="font-size: 17px;">📋</span>
                 <span style="flex-grow: 1;">Quản lý Đề</span>
-                <span class="ssak-badge badge-honey" style="font-size: 11px; padding: 2px 7px;" th:text="${totalExamCount}">4</span>
             </a>
 
             <!-- Tab 3: Ngân hàng câu hỏi -->
             <a href="javascript:void(0)" onclick="switchContentTab('questions')" id="side-nav-questions" class="sidebar-item">
                 <span style="font-size: 17px;">📝</span>
                 <span style="flex-grow: 1;">Ngân hàng câu hỏi</span>
-                <span class="ssak-badge badge-sky" style="font-size: 11px; padding: 2px 7px;" th:text="${totalQuestionCount}">8</span>
             </a>
 
             <!-- Tab 4: Xử lý Báo lỗi -->
             <a href="javascript:void(0)" onclick="switchContentTab('reports')" id="side-nav-reports" class="sidebar-item">
                 <span style="font-size: 17px;">⚠️</span>
                 <span style="flex-grow: 1;">Xử lý Báo lỗi</span>
-                <span class="ssak-badge badge-terracotta" style="font-size: 11px; padding: 2px 7px;" th:text="${pendingReportCount}">2</span>
             </a>
 
             <!-- Tab 5: Nhật ký Thao tác -->
@@ -128,11 +122,8 @@
                 </div>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <a th:href="@{/logout}" class="btn-ssak-outline" style="height: 38px; padding: 0 16px; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; color: #CF1322; border-color: #FFA39E;">
-                    🚪 Đăng xuất
-                </a>
-            </div>
+            <!-- Top Right: empty or actions only -->
+            <div></div>
         </header>
 
         <!-- Main Workspace -->
@@ -196,27 +187,6 @@
 
                 </div>
 
-                <!-- Theory Notice Banner: Tổng từ vựng và ngữ pháp hiển thị trực tiếp trong kho -->
-                <div style="background: #E8F5EE; border: 1.5px solid #A9D9C0; border-radius: 18px; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between;">
-                    <div style="display: flex; align-items: center; gap: 16px;">
-                        <span style="font-size: 32px;">📖</span>
-                        <div>
-                            <div style="font-weight: 800; font-size: 15px; color: #1F6B56;">KHO LÝ THUYẾT: TỪ VỰNG & NGỮ PHÁP TOPIK 1-6</div>
-                            <div style="font-size: 13px; color: #24363D; margin-top: 2px;">
-                                Tổng số từ vựng (<strong th:text="${totalVocabCount}">42</strong> từ) và tổng số ngữ pháp (<strong th:text="${totalGrammarCount}">12</strong> mẫu câu) được quản lý và thống kê đầy đủ, trực quan trong từng kho chuyên biệt.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="display: flex; gap: 10px;">
-                        <a th:href="@{/content/vocabulary}" class="btn-ssak-primary" style="height: 38px; padding: 0 16px; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
-                            Kho Từ vựng →
-                        </a>
-                        <a th:href="@{/content/grammar}" class="btn-ssak-light" style="height: 38px; padding: 0 16px; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
-                            Kho Ngữ pháp →
-                        </a>
-                    </div>
-                </div>
 
                 <!-- Action Highlights -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">

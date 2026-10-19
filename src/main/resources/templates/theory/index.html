@@ -48,7 +48,7 @@
         </div>
 
         <!-- Tab 3: Cầu nối Hán Việt -->
-        <div id="tab-hanja" class="theory-main-tab" onclick="switchTheoryCategory('hanja')">
+        <a th:href="@{/ly-thuyet/han-viet}" id="tab-hanja" class="theory-main-tab" style="text-decoration: none;">
             <div class="theory-tab-icon" style="background: #FDF2EB; color: #C05621;">
                 學
             </div>
@@ -56,7 +56,7 @@
                 <span class="theory-tab-title">Cầu nối Hán Việt</span>
                 <span class="theory-tab-sub">32 gốc chữ Hán</span>
             </div>
-        </div>
+        </a>
 
         <!-- Tab 4: Đặc thù tiếng Hàn -->
         <div id="tab-special" class="theory-main-tab" onclick="switchTheoryCategory('special')">
@@ -334,6 +334,10 @@ const specialData = [
 ];
 
 function switchTheoryCategory(cat) {
+    if (cat === 'hanja') {
+        window.location.href = '/ly-thuyet/han-viet';
+        return;
+    }
     currentCategory = cat;
     document.querySelectorAll('.theory-main-tab').forEach(t => t.classList.remove('active'));
     document.getElementById('tab-' + cat).classList.add('active');
