@@ -7,6 +7,7 @@ import com.hottopik.repository.GrammarGroupRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -67,7 +68,7 @@ public class GrammarGroupService {
         group.setLevel(level);
         group.setGroupNo(groupNo);
         group.setNameVi(form.getNameVi().trim());
-
+        LocalDateTime now = LocalDateTime.now();
         return grammarGroupRepository.save(group);
     }
 

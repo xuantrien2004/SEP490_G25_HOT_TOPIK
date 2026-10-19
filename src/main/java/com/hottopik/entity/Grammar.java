@@ -53,19 +53,32 @@ public class Grammar {
 
     @Column(
             name = "created_at",
-            nullable = false,
-            insertable = false,
-            updatable = false
+            nullable = false
     )
     private LocalDateTime createdAt;
 
     @Column(
             name = "updated_at",
-            nullable = false,
-            insertable = false,
-            updatable = false
+            nullable = false
+
     )
     private LocalDateTime updatedAt;
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (this.createdAt == null) {
+            this.createdAt = now;
+        }
+        if (this.updatedAt == null) {
+            this.updatedAt = now;
+        }
+    }
+
+    // Tự động cập nhật thời gian trước khi UPDATE
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 
     @OneToMany(
             mappedBy = "grammar",
@@ -141,6 +154,13 @@ public class Grammar {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
     public Boolean getIsFrequent() {
