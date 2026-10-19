@@ -4,13 +4,14 @@ import com.hottopik.dto.UserDTO;
 import com.hottopik.service.AdminSystemService;
 import com.hottopik.service.ContentManagementService;
 import com.hottopik.service.VocabularyService;
+import com.hottopik.service.exam.ExamComposerService;
+import com.hottopik.service.exam.QuestionBankService;
 import com.hottopik.util.AuthHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpSession;
 import java.util.HashMap;
@@ -23,14 +24,20 @@ public class ContentPortalController {
     private final ContentManagementService contentService;
     private final VocabularyService vocabularyService;
     private final AdminSystemService adminSystemService;
+    private final QuestionBankService questionBank;
+    private final ExamComposerService examComposer;
 
     @Autowired
     public ContentPortalController(ContentManagementService contentService,
                                    VocabularyService vocabularyService,
-                                   AdminSystemService adminSystemService) {
+                                   AdminSystemService adminSystemService,
+                                   QuestionBankService questionBank,
+                                   ExamComposerService examComposer) {
         this.contentService = contentService;
         this.vocabularyService = vocabularyService;
         this.adminSystemService = adminSystemService;
+        this.questionBank = questionBank;
+        this.examComposer = examComposer;
     }
 
     @GetMapping
@@ -54,67 +61,13 @@ public class ContentPortalController {
         model.addAttribute("totalVocabCount", vocabularyService.getTotalCount());
         model.addAttribute("totalTopicCount", vocabularyService.getTotalTopicsCount());
         model.addAttribute("totalGrammarCount", contentService.getTotalGrammarCount());
-        model.addAttribute("totalQuestionCount", contentService.getTotalQuestionCount());
+        model.addAttribute("totalQuestionCount", questionBank.counts().get("total"));
         model.addAttribute("pendingReportCount", contentService.getPendingReportCount());
-        model.addAttribute("totalExamCount", contentService.getTotalExamCount());
-        model.addAttribute("questions", contentService.getQuestions());
-        model.addAttribute("mockTests", contentService.getMockTests());
-        model.addAttribute("mockExams", contentService.getMockTests());
+        model.addAttribute("totalExamCount", examComposer.libraryCounts().values().stream().mapToLong(Long::longValue).sum());
         model.addAttribute("reports", contentService.getReports());
         model.addAttribute("auditLogs", adminSystemService.getAuditLogsForRole("ROLE_CONTENT_MANAGER"));
 
         return "content/dashboard";
-    }
-
-    @PostMapping("/exam/toggle-status")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> toggleExamStatus(
-            @RequestParam("testId") Long testId,
-            HttpSession session) {
-        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
-        Map<String, Object> resp = new HashMap<>();
-        if (currentUser == null) {
-            resp.put("success", false);
-            resp.put("message", "Chưa đăng nhập.");
-            return ResponseEntity.status(401).body(resp);
-        }
-        boolean ok = contentService.toggleMockTestStatus(testId);
-        resp.put("success", ok);
-        resp.put("message", ok ? "Đã thay đổi trạng thái phát hành đề thi!" : "Không tìm thấy đề.");
-        return ResponseEntity.ok(resp);
-    }
-
-    @PostMapping("/mock-test/submit-approval")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> submitApproval(
-            @RequestParam("testId") Long testId,
-            HttpSession session) {
-        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
-        Map<String, Object> resp = new HashMap<>();
-
-        if (currentUser == null || (!"ROLE_CONTENT_MANAGER".equalsIgnoreCase(currentUser.getRole()) && !"ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole()))) {
-            resp.put("success", false);
-            resp.put("message", "Từ chối quyền truy cập.");
-            return ResponseEntity.status(403).body(resp);
-        }
-
-        boolean ok = contentService.submitMockTestApproval(testId, currentUser.getFullName());
-        if (ok) {
-            adminSystemService.logAction(
-                    currentUser.getFullName(),
-                    currentUser.getRole(),
-                    "SUBMIT_APPROVAL",
-                    "MOCK_TEST",
-                    "Gửi yêu cầu duyệt phát hành đề thi ID #" + testId + " lên Admin",
-                    "127.0.0.1"
-            );
-            resp.put("success", true);
-            resp.put("message", "Đã gửi yêu cầu phê duyệt đề thi thử lên Admin thành công!");
-        } else {
-            resp.put("success", false);
-            resp.put("message", "Không tìm thấy đề thi.");
-        }
-        return ResponseEntity.ok(resp);
     }
 
     @PostMapping("/report/resolve")
@@ -147,40 +100,6 @@ public class ContentPortalController {
             resp.put("success", false);
             resp.put("message", "Không tìm thấy báo cáo.");
         }
-        return ResponseEntity.ok(resp);
-    }
-
-    @PostMapping("/exam/import")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> importExam(
-            @RequestParam(value = "file", required = false) MultipartFile file,
-            @RequestParam(value = "examName", defaultValue = "Đề thi thử mới") String examName,
-            @RequestParam(value = "questionCount", defaultValue = "50") int questionCount,
-            HttpSession session) {
-        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
-        Map<String, Object> resp = new HashMap<>();
-
-        if (currentUser == null || (!"ROLE_CONTENT_MANAGER".equalsIgnoreCase(currentUser.getRole()) && !"ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole()))) {
-            resp.put("success", false);
-            resp.put("message", "Từ chối quyền truy cập.");
-            return ResponseEntity.status(403).body(resp);
-        }
-
-        String fileName = (file != null && !file.isEmpty()) ? file.getOriginalFilename() : examName;
-        int count = contentService.importExamsMock(fileName, questionCount);
-
-        adminSystemService.logAction(
-                currentUser.getFullName(),
-                currentUser.getRole(),
-                "IMPORT_EXAM",
-                "MOCK_TEST",
-                "Import đề thi mới từ tập tin: " + fileName + " (" + count + " câu hỏi)",
-                "127.0.0.1"
-        );
-
-        resp.put("success", true);
-        resp.put("count", count);
-        resp.put("message", "Đã nhập đề thi thành công (" + count + " câu hỏi được thêm vào hệ thống dạng bản nháp)!");
         return ResponseEntity.ok(resp);
     }
 

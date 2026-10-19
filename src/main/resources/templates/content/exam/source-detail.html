@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<th:block th:replace="~{fragments/content-shell :: styles}"></th:block>
+<div class="cm-shell" th:with="activated=${source.status.name() == 'ACTIVE'}, hasJob=${job != null}, clean=${job != null and job.errorCount == 0}, editable=${canEdit and source.status.name() != 'ACTIVE'}, total=${#lists.size(slots)}">
+    <aside th:replace="~{fragments/content-shell :: sidebar('sources')}"></aside>
+    <div class="cm-main">
+        <header class="cm-header">
+            <div>
+                <div class="cm-muted"><a th:href="@{/content/sources}">Nhập đề mới</a> / Bộ đề #<span th:text="${source.id}">1</span></div>
+                <h1 th:text="${source.name}">TOPIK II kỳ 83</h1>
+                <div class="sub">
+                    <span th:text="${source.track.label}">TOPIK II</span>
+                    <span th:if="${manual}"> · chọn phần, chọn dạng câu, rồi bấm số câu</span>
+                    <span th:unless="${manual}" th:text="${' · ' + source.expectedCount + ' câu'}"> · 104 câu</span>
+                    <span th:if="${!manual and source.fullExam}"> · đề đầy đủ</span>
+                    <span th:if="${source.assessment}"> · bài đánh giá đầu vào</span>
+                    <span th:if="${source.round != null}" th:text="${' · kỳ ' + source.round}"></span>
+                    <span th:if="${source.year != null}" th:text="${' · ' + source.year}"></span>
+                </div>
+            </div>
+            <div class="cm-toolbar">
+                <a class="btn btn-ssak-outline btn-sm" th:href="@{/content/sources/{id}/preview(id=${source.id})}">Xem như học viên</a>
+                <span th:if="${activated}" class="pill pill-mint">Đã vào ngân hàng</span>
+                <span th:unless="${activated}" class="pill pill-gray">Đang nhập</span>
+                <span th:if="${canEdit}" class="perm perm-full">Toàn quyền</span>
+                <span th:unless="${canEdit}" class="perm perm-view">Chỉ xem</span>
+            </div>
+        </header>
+        <main class="cm-body">
+            <th:block th:replace="~{fragments/content-shell :: flash}"></th:block>
+
+            <div th:if="${manual and hasJob and !activated}" id="paper">
+                <div class="cm-card">
+                    <div class="paper-bar">
+                        <div class="grow">
+                            <h2 style="margin:0;">Nhập đề</h2>
+                            <div class="cm-muted" th:text="${filledSlots + ' câu đã nhập' + (job.errorCount > 0 ? ' · còn ' + job.errorCount + ' lỗi' : ' · đủ để đưa vào ngân hàng và thư viện đề') + (job.warningCount > 0 ? ' · ' + job.warningCount + ' nhắc' : '')}">0 câu</div>
+                        </div>
+                        <a class="btn btn-ssak-outline btn-sm" th:href="@{/content/sources/{id}/preview(id=${source.id})}">Xem như học viên</a>
+                        <form th:if="${editable}" th:action="@{/content/sources/{id}/activate(id=${source.id})}" method="post"
+                              onsubmit="return confirm('Đưa các câu đã nhập vào ngân hàng và mở đề trong thư viện để gửi duyệt phát hành?');">
+                            <button class="btn btn-ssak-primary btn-sm" type="submit" th:disabled="${!clean}"
+                                    th:title="${clean} ? 'Đưa vào ngân hàng và thư viện đề' : 'Mỗi câu cần đủ đề bài, đáp án và file bắt buộc. Giải thích điền sau cũng được.'">Đưa vào ngân hàng và thư viện đề</button>
+                        </form>
+                    </div>
+                    <p class="cm-muted" style="margin: 10px 0 0;">Chọn Nghe, Đọc hoặc Viết, rồi chọn dạng câu của phần đó. Danh sách là các mẫu đã chốt, ví dụ TPL1-LIS-01. Bấm ô số bất kỳ trên lưới. Ô xám là chưa nhập, ô xanh là đã nhập, ô đang mở sáng hơn. Câu dùng chung thì bấm đủ số ô của dạng đó, lần lượt ô nào cũng được.</p>
+                </div>
+
+                <div th:if="${job.errorCount > 0 and !#lists.isEmpty(errors)}" class="cm-flash info">
+                    <span>i</span>
+                    <span>
+                        <th:block th:each="i, st : ${errors}">
+                            <th:block th:if="${st.index < 4}"><span th:text="${i.message()}">Thiếu câu</span><br th:if="${!st.last and st.index < 3}"></th:block>
+                        </th:block>
+                    </span>
+                </div>
+
+                <div class="paper entry-paper">
+                    <nav class="paper-rail" aria-label="Chọn câu">
+                        <div class="skill-tabs" role="tablist">
+                            <a th:each="sec : ${entrySections}" role="tab"
+                               th:href="${'/content/sources/' + source.id + '?skill=' + sec.skill.name() + '#paper'}"
+                               th:classappend="${entrySkill == sec.skill} ? 'on' : ''"
+                               th:text="${sec.skill.label}">Nghe</a>
+                        </div>
+                        <label for="typeCode">Dạng câu</label>
+                        <select id="typeCode" class="form-select" th:disabled="${!editable}"
+                                onchange="if (this.selectedOptions[0].dataset.href) location = this.selectedOptions[0].dataset.href">
+                            <option th:each="t : ${entryTypes}"
+                                    th:value="${t.code}"
+                                    th:selected="${t.selected}"
+                                    th:attr="data-href=${t.href},data-audio=${t.audioScope},data-image=${t.imageScope},data-passage=${t.passageScope},data-script=${t.scriptScope},data-choices=${t.choices},data-answer=${t.answerType},data-writing=${t.writing},data-help=${t.help}"
+                                    th:text="${t.name}">TPL1-LIS-01</option>
+                        </select>
+                        <p class="cm-muted" id="tpl-help" style="margin: 8px 0;">Bấm ô để nhập. Câu dùng chung thì bấm đủ các ô của bài.</p>
+                        <div class="num-grid" aria-label="Số câu">
+                            <a th:each="cell : ${entryCells}" class="num" th:classappend="${cell.css}"
+                               th:href="${cell.href}" th:text="${cell.no}">1</a>
+                        </div>
+                        <a class="btn btn-ssak-primary btn-sm" style="margin-top: 12px;" th:href="${addHref}">Thêm câu</a>
+                    </nav>
+
+                    <form class="cm-card paper-editor" id="card-form" th:if="${showCardForm}"
+                          th:action="@{/content/sources/{id}/cards(id=${source.id})}" method="post">
+                        <input type="hidden" name="cardId" th:if="${editCard != null}" th:value="${editCard.id}">
+                        <input type="hidden" name="templateCode" th:value="${currentTemplate}">
+                        <input type="hidden" name="typeCode" th:value="${currentTypeCode}">
+                        <div class="grow">
+                            <h2 style="margin:0;" th:text="${editCard != null} ? 'Sửa câu' : 'Nhập câu'">Nhập câu</h2>
+                            <p class="cm-muted" th:text="${currentTemplate + ' · ' + currentTypeName}">TPL1-LIS-01</p>
+                        </div>
+
+                        <div data-when="audio">
+                            <label for="audio">File nghe dùng chung cho cả bài</label>
+                            <input id="audio" name="audio" class="form-control" list="media-names" placeholder="bai-nghe.mp3"
+                                   th:value="${editCard != null ? editCard.audio : ''}" th:disabled="${!editable}">
+                            <p class="cm-muted">Một file cho mọi câu trong bài. Học viên nghe lại được nhiều lần.</p>
+                            <audio th:if="${editCard != null and editCard.audio != ''}" controls preload="none" style="width: 100%; margin-top: 8px;"
+                                   th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${editCard.audio})}"></audio>
+                        </div>
+                        <div data-when="image">
+                            <label for="image">Ảnh hoặc biểu đồ dùng chung</label>
+                            <input id="image" name="image" class="form-control" list="media-names"
+                                   th:value="${editCard != null ? editCard.image : ''}" th:disabled="${!editable}">
+                        </div>
+                        <div data-when="passage">
+                            <label for="passage">Đoạn văn dùng chung</label>
+                            <textarea id="passage" name="passage" rows="4" class="form-control ko" th:disabled="${!editable}"
+                                      th:text="${editCard != null ? editCard.passage : ''}"></textarea>
+                        </div>
+                        <div data-when="script">
+                            <label for="script">Phụ đề</label>
+                            <textarea id="script" name="script" rows="3" class="form-control ko" th:disabled="${!editable}"
+                                      th:text="${editCard != null ? editCard.script : ''}"></textarea>
+                            <p class="cm-muted">Giấu khi đang làm bài. Chỉ mở trong phần giải thích.</p>
+                        </div>
+
+                        <div id="asks">
+                            <div class="ask-block" th:each="ask, st : ${editAsks}"
+                                 th:classappend="${focusNo != null and ask.no == focusNo} ? 'lit' : ''">
+                                <input type="hidden" name="qno" th:value="${ask.no}">
+                                <div class="cm-toolbar">
+                                    <h3 class="ask-title" style="margin:0;" th:text="${ask.no != null ? 'Câu ' + ask.no : 'Câu ' + (st.index + 1)}">Câu 1</h3>
+                                </div>
+                                <label>Câu hỏi / đề bài</label>
+                                <textarea name="prompt" rows="3" class="form-control ko" th:disabled="${!editable}" th:text="${ask.prompt}"></textarea>
+                                <div data-when="choices">
+                                    <label>Bốn phương án. Chọn đáp án đúng.</label>
+                                    <p class="cm-muted choice-hint">Với dạng chọn tranh, mỗi phương án là tên file ảnh đã tải.</p>
+                                    <div class="opt-line"><span class="mark">①</span><input name="opt1" class="form-control ko" th:value="${ask.opt1}" th:disabled="${!editable}" placeholder="Phương án 1" list="media-names"></div>
+                                    <div class="opt-line"><span class="mark">②</span><input name="opt2" class="form-control ko" th:value="${ask.opt2}" th:disabled="${!editable}" placeholder="Phương án 2" list="media-names"></div>
+                                    <div class="opt-line"><span class="mark">③</span><input name="opt3" class="form-control ko" th:value="${ask.opt3}" th:disabled="${!editable}" placeholder="Phương án 3" list="media-names"></div>
+                                    <div class="opt-line"><span class="mark">④</span><input name="opt4" class="form-control ko" th:value="${ask.opt4}" th:disabled="${!editable}" placeholder="Phương án 4" list="media-names"></div>
+                                    <label>Đáp án đúng</label>
+                                    <select name="answer" class="form-select" th:disabled="${!editable}">
+                                        <option value="">Chọn</option>
+                                        <option value="1" th:selected="${ask.answer == '1'}">①</option>
+                                        <option value="2" th:selected="${ask.answer == '2'}">②</option>
+                                        <option value="3" th:selected="${ask.answer == '3'}">③</option>
+                                        <option value="4" th:selected="${ask.answer == '4'}">④</option>
+                                    </select>
+                                </div>
+                                <div data-when="keys">
+                                    <label>Đáp án chấp nhận chỗ ㉠, ngăn bằng dấu |</label>
+                                    <input name="keys1" class="form-control ko" th:value="${ask.keys1}" th:disabled="${!editable}">
+                                    <label>Đáp án chấp nhận chỗ ㉡</label>
+                                    <input name="keys2" class="form-control ko" th:value="${ask.keys2}" th:disabled="${!editable}">
+                                </div>
+                                <div data-when="free">
+                                    <label>Bài mẫu</label>
+                                    <textarea name="modelAnswer" rows="4" class="form-control ko" th:disabled="${!editable}" th:text="${ask.modelAnswer}"></textarea>
+                                    <label>Ghi chú chấm</label>
+                                    <input name="rubric" class="form-control" th:value="${ask.rubric}" th:disabled="${!editable}">
+                                </div>
+                                <label>Giải thích tiếng Việt <span style="font-weight: 600;">(điền sau cũng được)</span></label>
+                                <textarea name="explanation" rows="2" class="form-control" th:disabled="${!editable}" th:text="${ask.explanation}"></textarea>
+                            </div>
+                        </div>
+                        <datalist id="media-names">
+                            <option th:each="m : ${media}" th:value="${m.filename}"></option>
+                        </datalist>
+                        <div class="cm-toolbar" style="margin-top: 16px;" th:if="${editable}">
+                            <button class="btn btn-ssak-primary btn-sm" type="submit">Lưu câu này</button>
+                        </div>
+                        <p class="cm-muted" th:unless="${editable}" style="margin-top: 12px;">Bạn đang ở chế độ xem.</p>
+                    </form>
+                    <div class="cm-card" th:unless="${showCardForm}">
+                        <h2>Chọn đủ ô</h2>
+                        <p class="cm-muted" th:text="${pairHint != '' ? pairHint : 'Bấm Thêm câu hoặc một ô xám để nhập.'}">Chọn thêm ô.</p>
+                    </div>
+                </div>
+                <form th:if="${editable and editCard != null}" th:action="@{/content/sources/{id}/cards/delete(id=${source.id})}" method="post"
+                      style="margin-top: 12px;" onsubmit="return confirm('Xóa câu đang mở? Câu dùng chung sẽ xóa cả các ô của bài đó.');">
+                    <input type="hidden" name="cardId" th:value="${editCard.id}">
+                    <button class="btn btn-ssak-light btn-sm" type="submit">Xóa câu này</button>
+                </form>
+            </div>
+
+            <div class="cm-card" id="media" th:if="${manual and !activated}">
+                <h2>File nghe và ảnh</h2>
+                <p class="cm-muted">Tải mp3 hoặc ảnh trước, rồi gõ đúng tên file vào bài. Một file nghe dùng cho mọi câu trong cùng bài.</p>
+                <form th:if="${editable}" class="cm-drop" th:action="@{/content/sources/{id}/media(id=${source.id})}" method="post" enctype="multipart/form-data">
+                    <label for="files" style="font-weight: 800;">mp3, ảnh hoặc một file .zip</label>
+                    <input id="files" type="file" name="files" multiple accept=".mp3,.png,.jpg,.jpeg,.webp,.gif,.zip" required class="form-control">
+                    <div class="cm-toolbar">
+                        <button type="submit" class="btn btn-ssak-primary btn-sm">Tải file</button>
+                        <span class="pill pill-sky" th:text="${audioCount + ' nghe'}">0 nghe</span>
+                        <span class="pill pill-honey" th:text="${imageCount + ' ảnh'}">0 ảnh</span>
+                    </div>
+                </form>
+                <div class="cm-table-wrap" th:unless="${#lists.isEmpty(media)}" style="margin-top: 14px;">
+                    <table class="cm-table">
+                        <thead><tr><th>File</th><th>Loại</th><th>Dung lượng</th><th>Nghe / xem</th><th th:if="${editable}"></th></tr></thead>
+                        <tbody>
+                        <tr th:each="m : ${media}">
+                            <td class="code" th:text="${m.filename}">L01.mp3</td>
+                            <td><span class="pill" th:classappend="${m.kind.name() == 'AUDIO'} ? 'pill-sky' : 'pill-honey'" th:text="${m.kind.name() == 'AUDIO'} ? 'Âm thanh' : 'Ảnh'">Âm thanh</span></td>
+                            <td th:text="${m.sizeBytes >= 1048576} ? ${#numbers.formatDecimal(m.sizeBytes / 1048576.0, 1, 2) + ' MB'} : ${#numbers.formatDecimal(m.sizeBytes / 1024.0, 1, 1) + ' KB'}">1.2 MB</td>
+                            <td>
+                                <audio th:if="${m.kind.name() == 'AUDIO'}" controls preload="none" style="height: 32px; max-width: 260px;"
+                                       th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${m.filename})}"></audio>
+                                <a th:if="${m.kind.name() == 'IMAGE'}" target="_blank" th:href="@{/content/media/{s}/{f}(s=${source.id}, f=${m.filename})}">Mở ảnh</a>
+                            </td>
+                            <td th:if="${editable}">
+                                <form th:action="@{/content/sources/{id}/media/{mid}/delete(id=${source.id}, mid=${m.id})}" method="post"
+                                      onsubmit="return confirm('Xóa file này? Bài đang dùng file sẽ báo thiếu file.');">
+                                    <button class="btn btn-ssak-light btn-sm" type="submit">Xóa</button>
+                                </form>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="cm-card" th:if="${hasJob and !activated and !manual}" id="paper">
+                <div class="paper-bar">
+                    <div class="grow">
+                        <h2 style="margin:0;">Nhập đề</h2>
+                        <div class="cm-muted" th:text="${filledSlots + ' / ' + total + ' câu đã có nội dung' + (job.errorCount > 0 ? ' · còn ' + job.errorCount + ' lỗi cấu trúc' : ' · đủ để đưa vào ngân hàng') + (job.warningCount > 0 ? ' · ' + job.warningCount + ' cảnh báo' : '')}">0 / 70</div>
+                    </div>
+                    <div class="paper-meter" th:if="${total > 0}" aria-hidden="true">
+                        <span th:style="'width:' + (${filledSlots * 100 / total}) + '%'"></span>
+                    </div>
+                    <a class="btn btn-ssak-outline btn-sm" th:href="@{/content/sources/{id}/preview(id=${source.id})}">Xem như học viên</a>
+                    <form th:if="${editable}" th:action="@{/content/sources/{id}/activate(id=${source.id})}" method="post"
+                          onsubmit="return confirm('Đưa các câu đã nhập vào ngân hàng? Học viên chưa thấy đề. Admin duyệt Full Mock thì đề mới được phát hành.');">
+                        <button class="btn btn-ssak-primary btn-sm" type="submit" th:disabled="${!clean}"
+                                th:title="${clean} ? 'Đưa vào ngân hàng' : 'Nhập đủ câu hỏi, đáp án và file nghe. Thiếu giải thích không chặn.'">Đưa vào ngân hàng</button>
+                    </form>
+                </div>
+                <p class="cm-muted" style="margin: 10px 0 0;">Chọn số câu bên trái. Sửa câu nào cũng được, kể cả câu không báo lỗi. Ô để trống khi lưu sẽ giữ nội dung đang có, không xóa câu khác.</p>
+            </div>
+
+            <div th:if="${hasJob and !activated and !manual and !#lists.isEmpty(sheetIssues)}" class="cm-flash info">
+                <span>i</span>
+                <span>
+                    <th:block th:each="i, st : ${sheetIssues}">
+                        <th:block th:if="${st.index < 3}"><span th:text="${i.questionLabel() + ': ' + i.message()}">Thiếu câu</span><br th:if="${st.index < 2 and !st.last}"></th:block>
+                    </th:block>
+                    <span th:if="${#lists.size(sheetIssues) > 3}" th:text="${'Còn ' + (#lists.size(sheetIssues) - 3) + ' mục cùng loại. Cứ nhập tiếp, nút ngân hàng tự bật khi đủ.'}">Còn mục khác</span>
+                </span>
+            </div>
+
+            <div class="paper" th:if="${hasJob and !activated and !manual and editSlot != null}">
+                <nav class="paper-rail" aria-label="Danh sách câu">
+                    <div class="cm-muted" style="margin: 0 4px 6px;">Xanh: đã nhập. Đỏ: câu này còn thiếu. Ô đậm: đang mở.</div>
+                    <th:block th:each="p, st : ${slots}">
+                        <div class="paper-skill" th:if="${st.first or p.skill.name() != slots[st.index - 1].skill.name()}" th:text="${p.skill.label}">Nghe</div>
+                        <div class="paper-type" th:if="${st.first or p.typeCode != slots[st.index - 1].typeCode}" th:text="${p.typeCode + ' · ' + p.typeName}">II-N1</div>
+                        <a class="paper-chip"
+                           th:classappend="${(editSlot.key == p.key ? 'on ' : '') + (!#lists.isEmpty(p.problems) ? 'bad' : (p.filled ? 'filled' : ''))}"
+                           th:href="@{/content/sources/{id}#paper(id=${source.id}, slot=${p.key})}"
+                           th:text="${p.no}"
+                           th:title="${p.filled ? #strings.abbreviate(p.prompt, 80) : 'Chưa nhập'}">1</a>
+                    </th:block>
+                </nav>
+
+                <form class="cm-card paper-editor" th:action="@{/content/sources/{id}/paper(id=${source.id})}" method="post">
+                    <input type="hidden" name="writing" th:value="${editSlot.writing}">
+                    <input type="hidden" name="skill" th:value="${editSlot.skill}">
+                    <input type="hidden" name="no" th:value="${editSlot.no}">
+                    <div class="cm-toolbar">
+                        <div class="grow">
+                            <h2 style="margin:0;" th:text="${editSlot.skill.label + ' ' + editSlot.no}">Nghe 1</h2>
+                            <div class="cm-muted" th:text="${editSlot.typeCode + ' · ' + editSlot.typeName}">II-N1</div>
+                        </div>
+                        <a class="btn btn-ssak-light btn-sm" th:if="${prevKey != null}" th:href="@{/content/sources/{id}#paper(id=${source.id}, slot=${prevKey})}">Câu trước</a>
+                        <a class="btn btn-ssak-light btn-sm" th:if="${nextKey != null}" th:href="@{/content/sources/{id}#paper(id=${source.id}, slot=${nextKey})}">Câu sau</a>
+                    </div>
+
+                    <div th:if="${!#lists.isEmpty(editSlot.problems)}" class="cm-flash info" style="margin-top: 12px;">
+                        <span>i</span>
+                        <span th:text="${#strings.listJoin(editSlot.problems, ' ')}">Thiếu đáp án</span>
+                    </div>
+
+                    <label for="prompt">Câu hỏi / đề bài</label>
+                    <textarea id="prompt" name="prompt" rows="4" class="form-control ko" th:disabled="${!editable}" th:text="${editSlot.prompt}"></textarea>
+
+                    <div th:unless="${editSlot.writing}">
+                        <label>Bốn phương án. Chọn ô tròn ở đáp án đúng.</label>
+                        <div class="opt-line">
+                            <input type="radio" name="answer" value="1" th:checked="${editSlot.answer == '1' or #strings.toUpperCase(editSlot.answer) == 'A'}" th:disabled="${!editable}" aria-label="Đáp án 1">
+                            <span class="mark">①</span>
+                            <input name="opt1" class="form-control ko" th:value="${editSlot.opt1}" th:disabled="${!editable}" placeholder="Phương án 1">
+                        </div>
+                        <div class="opt-line">
+                            <input type="radio" name="answer" value="2" th:checked="${editSlot.answer == '2' or #strings.toUpperCase(editSlot.answer) == 'B'}" th:disabled="${!editable}" aria-label="Đáp án 2">
+                            <span class="mark">②</span>
+                            <input name="opt2" class="form-control ko" th:value="${editSlot.opt2}" th:disabled="${!editable}" placeholder="Phương án 2">
+                        </div>
+                        <div class="opt-line">
+                            <input type="radio" name="answer" value="3" th:checked="${editSlot.answer == '3' or #strings.toUpperCase(editSlot.answer) == 'C'}" th:disabled="${!editable}" aria-label="Đáp án 3">
+                            <span class="mark">③</span>
+                            <input name="opt3" class="form-control ko" th:value="${editSlot.opt3}" th:disabled="${!editable}" placeholder="Phương án 3">
+                        </div>
+                        <div class="opt-line">
+                            <input type="radio" name="answer" value="4" th:checked="${editSlot.answer == '4' or #strings.toUpperCase(editSlot.answer) == 'D'}" th:disabled="${!editable}" aria-label="Đáp án 4">
+                            <span class="mark">④</span>
+                            <input name="opt4" class="form-control ko" th:value="${editSlot.opt4}" th:disabled="${!editable}" placeholder="Phương án 4">
+                        </div>
+                    </div>
+
+                    <div th:if="${editSlot.writing}">
+                        <label for="keys1">Đáp án chấp nhận chỗ ㉠, ngăn bằng dấu |</label>
+                        <input id="keys1" name="keys1" class="form-control ko" th:value="${editSlot.keys1}" th:disabled="${!editable}">
+                        <label for="keys2">Đáp án chấp nhận chỗ ㉡</label>
+                        <input id="keys2" name="keys2" class="form-control ko" th:value="${editSlot.keys2}" th:disabled="${!editable}">
+                        <div th:if="${editSlot.no == 53}">
+                            <label for="chart">Biểu đồ câu 53: tên file ảnh hoặc mô tả</label>
+                            <input id="chart" name="chart" class="form-control" th:value="${editSlot.chart}" th:disabled="${!editable}" list="media-names">
+                        </div>
+                        <label for="modelAnswer">Bài mẫu</label>
+                        <textarea id="modelAnswer" name="modelAnswer" rows="4" class="form-control ko" th:disabled="${!editable}" th:text="${editSlot.modelAnswer}"></textarea>
+                        <label for="rubric">Ghi chú chấm</label>
+                        <input id="rubric" name="rubric" class="form-control" th:value="${editSlot.rubric}" th:disabled="${!editable}">
+                    </div>
+
+                    <label for="explanation">Giải thích tiếng Việt <span style="font-weight: 600;">(điền sau cũng được, không chặn)</span></label>
+                    <textarea id="explanation" name="explanation" rows="3" class="form-control" th:disabled="${!editable}" th:text="${editSlot.explanation}"></textarea>
+
+                    <details th:unless="${editSlot.writing}" th:open="${editSlot.audio != '' or editSlot.script != '' or editSlot.passage != '' or editSlot.image != ''}">
+                        <summary>File nghe, lời thoại, đoạn văn, ảnh</summary>
+                        <p class="cm-muted">Câu trong cùng một bài nhìn thấy chung file nghe và đoạn văn. Xóa trắng một ô rồi lưu sẽ không xóa nội dung cũ.</p>
+                        <label for="audio">File nghe</label>
+                        <input id="audio" name="audio" class="form-control" list="media-names" th:value="${editSlot.audio}" th:disabled="${!editable}" placeholder="vi-du-nghe.mp3">
+                        <audio th:if="${editSlot.audio != ''}" controls preload="none" style="width: 100%; margin-top: 8px;"
+                               th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${editSlot.audio})}"></audio>
+                        <label for="image">Ảnh</label>
+                        <input id="image" name="image" class="form-control" list="media-names" th:value="${editSlot.image}" th:disabled="${!editable}">
+                        <img th:if="${editSlot.image != ''}" alt="Ảnh của câu" style="max-width: 100%; margin-top: 8px; border-radius: 12px;"
+                             th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${editSlot.image})}">
+                        <label for="script">Lời thoại</label>
+                        <textarea id="script" name="script" rows="3" class="form-control ko" th:disabled="${!editable}" th:text="${editSlot.script}"></textarea>
+                        <label for="passage">Đoạn văn</label>
+                        <textarea id="passage" name="passage" rows="4" class="form-control ko" th:disabled="${!editable}" th:text="${editSlot.passage}"></textarea>
+                    </details>
+                    <datalist id="media-names">
+                        <option th:each="m : ${media}" th:value="${m.filename}"></option>
+                    </datalist>
+
+                    <div class="cm-toolbar" style="margin-top: 16px;" th:if="${editable}">
+                        <button class="btn btn-ssak-primary btn-sm" type="submit" name="andNext" value="false">Lưu câu này</button>
+                        <button class="btn btn-ssak-outline btn-sm" type="submit" name="andNext" value="true" th:if="${nextKey != null}">Lưu và sang câu sau</button>
+                    </div>
+                    <p class="cm-muted" th:unless="${editable}" style="margin-top: 12px;">Bạn đang ở chế độ xem.</p>
+                </form>
+            </div>
+
+            <details class="cm-card" id="tools" th:unless="${activated or manual}">
+                <summary style="font-weight: 800; cursor: pointer;">Đổ nhanh từ Excel, hoặc thêm file nghe / ảnh</summary>
+                <p class="cm-muted" style="margin-top: 10px;">Không bắt buộc. Dùng khi đề đã gõ sẵn: câu hỏi, bốn phương án, đáp án, tên file nghe, lời thoại, đoạn văn. Giải thích để trống. Tải Excel mới sẽ thay toàn bộ bản đang nhập trên trang này.</p>
+                <div class="cm-grid-2" style="margin-top: 14px;">
+                    <form th:if="${editable}" class="cm-drop" th:action="@{/content/sources/{id}/excel(id=${source.id})}" method="post" enctype="multipart/form-data">
+                        <label for="excel" style="font-weight: 800;">File Excel .xlsx, tối đa 10MB</label>
+                        <input id="excel" type="file" name="file" accept=".xlsx" required class="form-control">
+                        <div class="cm-toolbar">
+                            <button type="submit" class="btn btn-ssak-primary btn-sm">Đổ vào đề</button>
+                            <a th:href="@{/content/import-template}" class="btn btn-ssak-light btn-sm">Tải file mẫu</a>
+                        </div>
+                    </form>
+                    <form th:if="${editable}" class="cm-drop" id="media" th:action="@{/content/sources/{id}/media(id=${source.id})}" method="post" enctype="multipart/form-data">
+                        <label for="files" style="font-weight: 800;">mp3, ảnh hoặc một file .zip</label>
+                        <input id="files" type="file" name="files" multiple accept=".mp3,.png,.jpg,.jpeg,.webp,.gif,.zip" required class="form-control">
+                        <div class="cm-toolbar">
+                            <button type="submit" class="btn btn-ssak-primary btn-sm">Tải file</button>
+                            <span class="pill pill-sky" th:text="${audioCount + ' nghe'}">0 nghe</span>
+                            <span class="pill pill-honey" th:text="${imageCount + ' ảnh'}">0 ảnh</span>
+                        </div>
+                    </form>
+                </div>
+                <div class="cm-table-wrap" th:unless="${#lists.isEmpty(media)}" style="margin-top: 14px;">
+                    <table class="cm-table">
+                        <thead><tr><th>File</th><th>Loại</th><th>Dung lượng</th><th>Nghe / xem</th><th th:if="${editable}"></th></tr></thead>
+                        <tbody>
+                        <tr th:each="m : ${media}">
+                            <td class="code" th:text="${m.filename}">L01.mp3</td>
+                            <td><span class="pill" th:classappend="${m.kind.name() == 'AUDIO'} ? 'pill-sky' : 'pill-honey'" th:text="${m.kind.name() == 'AUDIO'} ? 'Âm thanh' : 'Ảnh'">Âm thanh</span></td>
+                            <td th:text="${m.sizeBytes >= 1048576} ? ${#numbers.formatDecimal(m.sizeBytes / 1048576.0, 1, 2) + ' MB'} : ${#numbers.formatDecimal(m.sizeBytes / 1024.0, 1, 1) + ' KB'}">1.2 MB</td>
+                            <td>
+                                <audio th:if="${m.kind.name() == 'AUDIO'}" controls preload="none" style="height: 32px; max-width: 260px;"
+                                       th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${m.filename})}"></audio>
+                                <a th:if="${m.kind.name() == 'IMAGE'}" target="_blank" th:href="@{/content/media/{s}/{f}(s=${source.id}, f=${m.filename})}">Mở ảnh</a>
+                            </td>
+                            <td th:if="${editable}">
+                                <form th:action="@{/content/sources/{id}/media/{mid}/delete(id=${source.id}, mid=${m.id})}" method="post"
+                                      onsubmit="return confirm('Xóa file này? Câu đang dùng file sẽ báo thiếu file.');">
+                                    <button class="btn btn-ssak-light btn-sm" type="submit">Xóa</button>
+                                </form>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+
+            <th:block th:if="${activated}">
+                <div class="cm-card" th:unless="${#lists.isEmpty(sourceExams)}">
+                    <h2>Full Mock nháp từ bộ đề này</h2>
+                    <div class="cm-toolbar" style="margin-top: 10px;" th:each="e : ${sourceExams}">
+                        <a class="code" th:href="@{/content/exams/{id}(id=${e.id})}" th:text="${e.code + ' · ' + e.name}">EX0001</a>
+                        <span class="pill pill-honey" th:text="${e.status.name() == 'DRAFT'} ? 'Nháp' : 'Chờ duyệt'">Nháp</span>
+                        <a class="btn btn-ssak-primary btn-sm" th:href="@{/content/exams/{id}(id=${e.id})}">Mở trình soạn đề</a>
+                    </div>
+                </div>
+                <div class="cm-card">
+                    <div class="cm-toolbar">
+                        <div class="grow">
+                            <h2>Câu đã vào ngân hàng</h2>
+                            <div class="cm-muted">Sửa chính tả hoặc giải thích trong ngân hàng câu hỏi. File nghe và đoạn văn của bài giữ nguyên.</div>
+                        </div>
+                        <a class="btn btn-ssak-outline btn-sm" th:href="@{/content/questions(source=${source.id})}">Mở ngân hàng</a>
+                    </div>
+                    <div class="cm-table-wrap" style="margin-top: 12px; max-height: 420px; overflow-y: auto;">
+                        <table class="cm-table">
+                            <thead><tr><th>Mã</th><th>Câu gốc</th><th>Dạng</th><th>Nội dung</th></tr></thead>
+                            <tbody>
+                            <tr th:each="q : ${createdQuestions}">
+                                <td class="code" th:text="${q.code}">E0001</td>
+                                <td style="white-space: nowrap;" th:text="${q.skill.label + ' ' + q.originalNo}">Nghe 1</td>
+                                <td><span class="pill pill-sky" th:text="${q.templateCode != null ? q.templateCode : q.typeCode}">II-N1</span></td>
+                                <td class="ko" th:text="${#strings.abbreviate(q.promptKo, 90)}">…</td>
+                            </tr>
+                            <tr th:each="w : ${createdWriting}">
+                                <td class="code" th:text="${w.code}">W0001</td>
+                                <td th:text="${'Viết ' + w.no}">Viết 51</td>
+                                <td><span class="pill pill-honey" th:text="${w.typeCode()}">II-V1</span></td>
+                                <td class="ko" th:text="${#strings.abbreviate(w.promptKo, 90)}">…</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </th:block>
+
+            <details class="cm-card" th:if="${#lists.size(history) > 1}">
+                <summary style="font-weight: 800; cursor: pointer;">Lịch sử file đã đổ</summary>
+                <table class="cm-table" style="margin-top: 8px;">
+                    <thead><tr><th>File</th><th>Trạng thái</th><th>Lỗi / cảnh báo</th><th>Thời gian</th></tr></thead>
+                    <tbody>
+                    <tr th:each="h : ${history}">
+                        <td th:text="${h.fileName}">de.xlsx</td>
+                        <td>
+                            <span class="pill" th:classappend="${h.status.name() == 'SUPERSEDED'} ? 'pill-gray' : (${h.status.name() == 'HAS_ERRORS'} ? 'pill-peach' : 'pill-mint')"
+                                  th:text="${h.status.name() == 'SUPERSEDED'} ? 'Đã thay' : (${h.status.name() == 'HAS_ERRORS'} ? 'Có lỗi' : (${h.status.name() == 'ACTIVATED'} ? 'Đã kích hoạt' : 'Hợp lệ'))">Hợp lệ</span>
+                        </td>
+                        <td th:text="${h.errorCount + ' / ' + h.warningCount}">0 / 0</td>
+                        <td th:text="${#temporals.format(h.createdAt, 'dd/MM/yyyy HH:mm')}">—</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </details>
+
+            <div th:if="${editable}" class="cm-toolbar">
+                <form th:action="@{/content/sources/{id}/delete(id=${source.id})}" method="post" onsubmit="return confirm('Xóa bộ đề nháp này và mọi câu đang nhập?');">
+                    <button class="btn btn-ssak-light btn-sm" type="submit">Xóa bộ đề nháp</button>
+                </form>
+            </div>
+        </main>
+    </div>
+</div>
+<script>
+    document.querySelector('.num.focus')?.scrollIntoView({block: 'nearest'});
+    (function () {
+        const select = document.getElementById('typeCode');
+        if (!select) return;
+        const parts = () => document.querySelectorAll('#card-form [data-when]');
+        function show(name, on) {
+            parts().forEach(el => { if (el.dataset.when === name) el.hidden = !on; });
+        }
+        const opt = select.selectedOptions[0];
+        const help = document.getElementById('tpl-help');
+        if (!opt || !opt.value) return;
+        const image = opt.dataset.image || 'NONE';
+        show('audio', opt.dataset.audio !== 'NONE');
+        show('image', image === 'GROUP');
+        show('passage', opt.dataset.passage !== 'NONE');
+        show('script', opt.dataset.script !== 'NONE');
+        show('choices', opt.dataset.choices === 'true');
+        show('keys', opt.dataset.answer === 'ACCEPT_KEYS');
+        show('free', opt.dataset.answer === 'FREE_TEXT');
+        if (help && opt.dataset.help) help.textContent = opt.dataset.help;
+    })();
+</script>
+</body>
+</html>

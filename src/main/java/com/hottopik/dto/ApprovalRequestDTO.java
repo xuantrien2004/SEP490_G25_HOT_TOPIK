@@ -62,4 +62,22 @@ public class ApprovalRequestDTO implements Serializable {
 
     public String getDecidedAt() { return decidedAt; }
     public void setDecidedAt(String decidedAt) { this.decidedAt = decidedAt; }
+
+    /** Đối tượng mà payload sẽ áp dụng khi duyệt, ví dụ targetType = EXAM, targetId = 12. */
+    private String targetType;
+    private Long targetId;
+    private String payload;
+    private String decidedBy;
+
+    public String getTargetType() { return targetType; }
+    public void setTargetType(String targetType) { this.targetType = targetType; }
+
+    public Long getTargetId() { return targetId; }
+    public void setTargetId(Long targetId) { this.targetId = targetId; }
+
+    public String getPayload() { return payload; }
+    public void setPayload(String payload) { this.payload = payload; }
+
+    public String getDecidedBy() { return decidedBy; }
+    public void setDecidedBy(String decidedBy) { this.decidedBy = decidedBy; }
 }

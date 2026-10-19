@@ -159,4 +159,65 @@ File script cơ sở dữ liệu gốc nằm tại: `D:\SEP490_G25\HOT_TOPIK_3.s
 | `/profile` | Thông tin tài khoản, cài đặt & đổi quà bằng Xu | `HoSoV2` |
 | `/admin` | Cổng Quản trị (Duyệt câu hỏi, phân quyền, thống kê) | `AdminV2` |
 | `/faq` & `/terms` | Câu hỏi thường gặp & Điều khoản bảo mật | `ThongTinV2` |
->>>>>>> 61a8df0 (Initial project setup)
+| `/content/sources` | Nhập đề: tạo bộ đề, chọn khuôn, điền câu, tải file nghe/ảnh, đưa vào ngân hàng | BRD 8 |
+| `/content/templates` | Thư viện khuôn câu hỏi (cách hiển thị, không gắn số câu chuẩn) | — |
+| `/content/exams` | Thư viện đề (Đã phát hành / Nháp và chờ duyệt / Lưu trữ) | BRD 9 |
+| `/content/exams/{id}` | Trình soạn khung đề theo 42 dạng câu, gửi duyệt, nhân bản, lưu trữ | BRD 9 |
+| `/content/questions` | Ngân hàng câu hỏi: 8 bộ lọc, sửa, ẩn/hiện, đổi mục đích, thao tác hàng loạt | BRD 10 |
+| `/content/question-types` | Bảng 42 dạng câu và cấu trúc đề TOPIK I/II | BRD 7.1 |
+
+---
+
+## 📥 Module nhập đề, quản lý đề và ngân hàng câu hỏi
+
+Đây là lớp dữ liệu gốc: mọi câu hỏi đều gắn **mã dạng câu** (I-N1 … II-V4), **kỹ năng**, **số câu gốc** và **vùng cấp**,
+để sau này luyện theo dạng, tự sinh Mini Test và dựng lộ trình đều tra trên cùng một nguồn.
+
+### Chạy thử không cần SQL Server (profile `local`, H2 lưu trong `./data`)
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+# Windows: .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
+```
+
+Mở `http://localhost:8490/login`, đăng nhập Content Manager `content@hottopik.com` / `content@123`
+(Admin chỉ xem và duyệt: `admin@hottopik.com` / `admin@123`). Xoá thư mục `data/` để làm lại từ đầu.
+
+Lần chạy đầu với profile `local` tự thêm bốn đề mẫu: mỗi dạng của TOPIK I và TOPIK II có mặt trong hai đề.
+**Đề mẫu 1** nằm ở tab Đã phát hành, kèm Mini Test của những phần có câu. **Đề mẫu 2** là nháp để bấm Gửi duyệt.
+Ngân hàng lọc theo một dạng sẽ thấy câu của cả hai đề (câu dùng chung hiện từng câu con). Chạy lại không tạo trùng.
+
+Thư mục `samples/` có sẵn 3 bộ đề mẫu hợp lệ (TOPIK II × 2, TOPIK I × 1), mỗi bộ gồm file `.xlsx` và file `_media.zip`
+(mp3/ảnh giả). Sinh lại bằng: `./mvnw test -Dtest=SampleFilesGenerator -Dsamples.out=samples`.
+
+### Chạy với SQL Server của nhóm
+
+DB nhóm dùng `ddl-auto=none`, nên chạy script `db/exam_module_sqlserver.sql` một lần để tạo 9 bảng mới
+(`question_types`, `exam_sources`, `import_jobs`, `media_assets`, `question_groups`, `questions`, `writing_prompts`,
+`exams`, `exam_items`). File upload lưu ở `hottopik.storage.dir` (mặc định `./data/storage`).
+
+### Luồng nghiệp vụ
+
+1. **Tạo bộ đề**: tên, track, kỳ, năm, ghi chú bản quyền. Số câu ghi trên form không khóa số câu lúc nhập.
+2. **Chọn phần rồi chọn dạng câu**: Nghe, Đọc hoặc Viết, rồi chọn một mẫu đã chốt (TPL1-LIS-01, TPL1-REA-01, TPL2-WRI-01…). Bấm ô số trên lưới, không cần theo thứ tự. Ô xám là chưa nhập, ô xanh là đã nhập. Câu dùng chung thì bấm đủ số ô của dạng đó. File nghe, ảnh, đoạn văn và phụ đề nhập một lần cho các câu đó.
+3. **Đưa vào ngân hàng và thư viện đề**: khi không còn lỗi (thiếu câu hỏi, đáp án, file nghe bắt buộc…). Mỗi câu là một mã `E0001…`, đề Viết là `W0001…`. Cùng lúc mở một đề nháp mang tên bộ đề. Tải mp3 hoặc ảnh trước khi gõ tên file. Giải thích tiếng Việt điền sau cũng được.
+4. **Gửi duyệt** từ đề trong thư viện. Admin duyệt ở Hộp duyệt thì đề chuyển "Đã phát hành" và hệ thống sinh Mini Test cho những phần có câu. Từ chối thì đề về nháp.
+5. **Ngân hàng câu hỏi**: lọc theo track, kỹ năng (kể cả Viết), dạng câu TPL, nguồn, mục đích và trạng thái. Đổi đáp án phải ghi lý do; ẩn câu cần lý do; ẩn hàng loạt hơn 20 câu cần Admin duyệt.
+
+Quyền: Content Manager toàn quyền; Admin chỉ xem các trang này (và duyệt ở Hộp duyệt); vai trò khác bị chuyển hướng.
+Mọi thao tác ghi đều vào Nhật ký thao tác.
+
+### Mã nguồn chính
+
+| Thành phần | Vị trí |
+| :--- | :--- |
+| 42 dạng câu, block nhóm câu, cấu trúc phần thi | `service/exam/QuestionTypeCatalog.java` |
+| Đọc Excel / kiểm tra lỗi | `service/exam/ExamWorkbookParser.java`, `ExamImportValidator.java` |
+| Nhập đề 4 bước | `service/exam/ExamImportService.java` |
+| Soạn đề, duyệt, tự sinh Mini Test | `service/exam/ExamComposerService.java` |
+| Ngân hàng câu hỏi | `service/exam/QuestionBankService.java` |
+| Controller + giao diện | `controller/ContentExamController.java`, `templates/content/exam/*`, `static/css/content-admin.css` |
+| Test | `src/test/java/com/hottopik/service/exam/*` (`./mvnw test`) |
+
+Giới hạn hiện tại: kiểm tra file chạy đồng bộ khi tải lên (trạng thái job vẫn được lưu: VALIDATING → HAS_ERRORS/VALID → ACTIVATED);
+Hộp duyệt và Nhật ký vẫn là bộ nhớ trong như phần còn lại của dự án, nên khởi động lại app sẽ mất yêu cầu đang chờ.
