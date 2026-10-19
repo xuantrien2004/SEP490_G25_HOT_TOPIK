@@ -54,12 +54,12 @@
             </div>
             <div>
                 <span class="theory-tab-title">Cầu nối Hán Việt</span>
-                <span class="theory-tab-sub">32 gốc chữ Hán</span>
+                <span class="theory-tab-sub">Gốc chữ Hán</span>
             </div>
         </a>
 
         <!-- Tab 4: Đặc thù tiếng Hàn -->
-        <div id="tab-special" class="theory-main-tab" onclick="switchTheoryCategory('special')">
+        <a th:href="@{/ly-thuyet/dac-thu}" id="tab-special" class="theory-main-tab" style="text-decoration: none;">
             <div class="theory-tab-icon" style="background: #FEF9E7; color: #B7791F;">
                 한
             </div>
@@ -67,7 +67,7 @@
                 <span class="theory-tab-title">Đặc thù tiếng Hàn</span>
                 <span class="theory-tab-sub">Biến âm, ngữ pháp dễ nhầm</span>
             </div>
-        </div>
+        </a>
 
     </div>
 
@@ -241,7 +241,7 @@
 }
 </style>
 
-<script>
+<script th:inline="javascript">
 let currentCategory = 'vocab'; // 'vocab', 'grammar', 'hanja', 'special'
 let currentLevel = 1;          // 1 .. 6
 
@@ -338,15 +338,25 @@ function switchTheoryCategory(cat) {
         window.location.href = '/ly-thuyet/han-viet';
         return;
     }
+    if (cat === 'special') {
+        window.location.href = '/ly-thuyet/dac-thu';
+        return;
+    }
     currentCategory = cat;
     document.querySelectorAll('.theory-main-tab').forEach(t => t.classList.remove('active'));
-    document.getElementById('tab-' + cat).classList.add('active');
+    const activeTabEl = document.getElementById('tab-' + cat);
+    if (activeTabEl) activeTabEl.classList.add('active');
 
     const levelRow = document.getElementById('levelSelectorRow');
     if (cat === 'vocab' || cat === 'grammar') {
         levelRow.style.display = 'flex';
     } else {
         levelRow.style.display = 'none'; // Hanja & Special have standalone structure
+    }
+
+    if (window.history && window.history.replaceState) {
+        const newUrl = cat === 'grammar' ? '/ly-thuyet?tab=grammar' : '/ly-thuyet';
+        window.history.replaceState(null, '', newUrl);
     }
 
     renderCards();
@@ -424,8 +434,15 @@ function handleSearch(val) {
     renderCards(val);
 }
 
-// Initial render for TOPIK 1 Vocab (Image 4)
-renderCards();
+// Initial render: check URL parameter or server tab
+const urlParams = new URLSearchParams(window.location.search);
+const serverTab = /*[[${currentTab}]]*/ 'vocab';
+const initialTab = urlParams.get('tab') || urlParams.get('category') || serverTab;
+if (initialTab === 'grammar') {
+    switchTheoryCategory('grammar');
+} else {
+    renderCards();
+}
 </script>
 </body>
 </html>

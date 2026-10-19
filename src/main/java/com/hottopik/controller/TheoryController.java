@@ -7,6 +7,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 @Controller
 public class TheoryController {
 
@@ -17,10 +19,16 @@ public class TheoryController {
         this.hanjaService = hanjaService;
     }
 
-    @GetMapping({"/ly-thuyet", "/theory"})
-    public String theory(Model model) {
+    @GetMapping({"/ly-thuyet", "/theory", "/ly-thuyet/ngu-phap"})
+    public String theory(@RequestParam(value = "tab", required = false) String tab,
+                         HttpServletRequest request,
+                         Model model) {
+        if (tab == null && request != null && request.getRequestURI() != null && request.getRequestURI().endsWith("/ngu-phap")) {
+            tab = "grammar";
+        }
         model.addAttribute("pageTitle", "Lý thuyết · Từ vựng, Ngữ pháp, Hán Việt, Đặc thù");
         model.addAttribute("activePage", "theory");
+        model.addAttribute("currentTab", tab != null ? tab : "vocab");
         return "theory/index";
     }
 
