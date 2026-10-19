@@ -140,4 +140,38 @@ public class ContentManagementService {
         return false;
     }
 
+    // =====================================================================
+    // Exam management stubs (used by ContentPortalController / VinhTH)
+    // TODO: Implement with real MockTest entity/repository when exam module is ready
+    // =====================================================================
+
+    /**
+     * Toggle publish/draft status of a mock test by ID.
+     * @return true if found and toggled, false if not found
+     */
+    public boolean toggleMockTestStatus(Long testId) {
+        // Stub: will be replaced with real MockTest repository logic
+        return testId != null;
+    }
+
+    /**
+     * Submit a mock test for Admin approval.
+     * @return true if found and submitted, false if not found
+     */
+    public boolean submitMockTestApproval(Long testId, String submitterName) {
+        // Stub: will be replaced with real approval workflow logic
+        return testId != null;
+    }
+
+    /**
+     * Import exam questions from an uploaded file (mock).
+     * @param fileName  Original file name or exam name
+     * @param questionCount  Number of questions to generate (mock)
+     * @return number of questions imported
+     */
+    public int importExamsMock(String fileName, int questionCount) {
+        // Stub: will be replaced with real Excel-parse + entity-save logic
+        return questionCount;
+    }
+
 }
