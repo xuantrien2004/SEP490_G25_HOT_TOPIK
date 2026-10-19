@@ -4,44 +4,295 @@
 
 <th:block th:fragment="styles">
     <link rel="stylesheet" th:href="@{/css/content-admin.css}">
+    <style>
+    /* ====================================================
+       Standardized sidebar styles for content-shell pages
+       ==================================================== */
+    .cm-shell-sidebar {
+        width: 275px;
+        background: #24363D;
+        color: #FFFFFF;
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        min-height: 100vh;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: 4px 0 16px rgba(0,0,0,0.08);
+    }
+    .cm-shell-sidebar .brand-wrap {
+        padding: 24px 24px 18px 24px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .cm-shell-sidebar .brand-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: #FFFFFF;
+    }
+    .cm-shell-sidebar .brand-name {
+        font-size: 22px;
+        font-weight: 800;
+        color: #6CC49F;
+        letter-spacing: -0.5px;
+    }
+    .cm-shell-sidebar .role-badge {
+        font-size: 11px;
+        color: #6CC49F;
+        background: rgba(46,125,103,0.35);
+        border: 1px solid rgba(108,196,159,0.4);
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        display: inline-block;
+    }
+    .cm-shell-sidebar .profile-card {
+        padding: 14px 20px;
+        margin: 12px 14px;
+        background: rgba(0,0,0,0.22);
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,0.06);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        transition: background 0.2s;
+    }
+    .cm-shell-sidebar .profile-card:hover {
+        background: rgba(46,125,103,0.35);
+    }
+    .cm-shell-sidebar .profile-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 21px;
+        background: #1F6B56;
+        color: #FFFFFF;
+        font-size: 19px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .cm-shell-sidebar .profile-info {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-width: 0;
+        flex-grow: 1;
+    }
+    .cm-shell-sidebar .profile-name {
+        font-weight: 800;
+        font-size: 14px;
+        color: #FFFFFF;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .cm-shell-sidebar .profile-hint {
+        font-size: 11px;
+        color: #6CC49F;
+        font-weight: 600;
+    }
+    .cm-shell-sidebar .nav-wrap {
+        padding: 6px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        flex-grow: 1;
+        overflow-y: auto;
+    }
+    .cm-shell-sidebar .nav-group-label {
+        font-size: 11px;
+        font-weight: 800;
+        color: #8ECDB0;
+        padding: 8px 12px 4px 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+    }
+    .cs-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        color: #CFE9DC;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    .cs-nav-item:hover {
+        background: rgba(255,255,255,0.08);
+        color: #FFFFFF;
+        transform: translateX(3px);
+    }
+    .cs-nav-item.active {
+        background: #2E7D67;
+        color: #FFFFFF;
+        font-weight: 800;
+        box-shadow: 0 4px 14px rgba(46,125,103,0.35);
+    }
+    .cs-nav-sub {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px 8px 32px;
+        border-radius: 10px;
+        color: #A9D9C0;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    .cs-nav-sub:hover {
+        background: rgba(255,255,255,0.08);
+        color: #FFFFFF;
+    }
+    .cm-shell-sidebar .foot-wrap {
+        padding: 16px 14px;
+        border-top: 1px solid rgba(255,255,255,0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .cs-foot-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        color: #A9D9C0;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 700;
+        transition: all 0.2s;
+    }
+    .cs-foot-link:hover {
+        background: rgba(255,255,255,0.08);
+        color: #FFFFFF;
+    }
+    .cs-foot-link.logout { color: #FFA39E; }
+    .cs-foot-link.logout:hover {
+        background: rgba(207,19,34,0.15);
+        color: #FF7875;
+    }
+    </style>
 </th:block>
 
-<aside th:fragment="sidebar(active)" class="cm-side" aria-label="Menu quản trị nội dung">
-    <div class="cm-brand">
-        <a th:href="@{/content}">
-            <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
+<aside th:fragment="sidebar(active)" class="cm-shell-sidebar" aria-label="Menu quản trị nội dung">
+
+    <!-- Brand / Logo -->
+    <div class="brand-wrap">
+        <a th:href="@{/content}" class="brand-link">
+            <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 21V11" stroke="#6CC49F" stroke-width="2.5" stroke-linecap="round"/>
                 <path d="M12 12C12 7 8 4 3.5 4.5C3.5 9 7 12.5 12 12Z" fill="#6CC49F"/>
                 <path d="M12 10C12 6 15.5 3 20.5 3.5C20.5 8 17 11 12 10Z" fill="#A9D9C0"/>
             </svg>
-            <span class="name">HOT TOPIK</span>
+            <span class="brand-name">HOT TOPIK</span>
         </a>
-        <span class="cm-role" th:text="${currentUser != null and currentUser.role == 'ROLE_ADMIN'} ? 'Admin · chỉ xem' : 'Content Manager'">Content Manager</span>
+        <div>
+            <span class="role-badge"
+                  th:text="${currentUser != null and currentUser.role == 'ROLE_ADMIN'} ? '🔒 Admin · chỉ xem' : '📝 Content Manager'">
+                📝 Content Manager
+            </span>
+        </div>
     </div>
-    <nav class="cm-nav">
-        <div class="group">Bảng điều khiển</div>
-        <a th:href="@{/content}" th:classappend="${active == 'overview'} ? 'active'">🏠 Tổng quan</a>
 
-        <div class="group">Đề và câu hỏi</div>
-        <a th:href="@{/content/exams}" th:classappend="${active == 'exams'} ? 'active'">📚 Thư viện đề</a>
-        <a th:href="@{/content/sources}" th:classappend="${active == 'sources'} ? 'active'">📥 Nhập đề mới</a>
-        <a th:href="@{/content/questions}" th:classappend="${active == 'questions'} ? 'active'">📝 Ngân hàng câu hỏi</a>
-        <a th:href="@{/content/templates}" th:classappend="${active == 'templates'} ? 'active'">🧩 Dạng câu</a>
-        <a th:href="@{/content/question-types}" th:classappend="${active == 'types'} ? 'active'">🗂 Vị trí trong đề chuẩn</a>
+    <!-- User Profile Card -->
+    <a th:href="@{/content/profile}" class="profile-card">
+        <div class="profile-avatar">
+            <span th:text="${currentUser != null ? #strings.substring(currentUser.fullName, 0, 1) : 'U'}">H</span>
+        </div>
+        <div class="profile-info">
+            <span class="profile-name" th:text="${currentUser != null ? currentUser.fullName : 'Người dùng'}">Lê Thu Hà</span>
+            <span class="profile-hint">Xem hồ sơ cá nhân →</span>
+        </div>
+    </a>
 
-        <div class="group">Học liệu</div>
-        <a th:href="@{/content/vocabulary}">📖 Từ vựng</a>
-        <a th:href="@{/content/grammar}">✍️ Ngữ pháp</a>
-        <a th:href="@{/content/hanja}">🈶 Hán Việt</a>
+    <!-- Navigation -->
+    <div class="nav-wrap">
 
-        <div class="group">Chất lượng</div>
-        <a th:href="@{/content(tab='reports')}">⚠️ Báo lỗi nội dung</a>
-        <a th:href="@{/content(tab='audit')}">📜 Nhật ký thao tác</a>
-    </nav>
-    <div class="cm-side-foot">
-        <div style="color:#A9D9C0; margin-bottom: 6px;" th:text="${currentUser != null ? currentUser.fullName : ''}">Lê Thu Hà</div>
-        <a th:href="@{/logout}">Đăng xuất</a>
+        <div class="nav-group-label">Tác vụ Chuyên môn</div>
+
+        <!-- Tổng quan -->
+        <a th:href="@{/content}" class="cs-nav-item" th:classappend="${active == 'overview'} ? ' active'">
+            <span>🏠</span><span>Tổng quan</span>
+        </a>
+
+        <!-- Quản lý Lý thuyết (always expanded on sub-pages) -->
+        <div style="display:flex;flex-direction:column;">
+            <span class="cs-nav-item" style="cursor:default;">
+                <span>📖</span><span style="flex-grow:1;">Quản lý Lý thuyết</span>
+            </span>
+            <a th:href="@{/content/vocabulary}" class="cs-nav-sub"
+               th:classappend="${active == 'vocabulary'} ? ' active'">
+                <span>↳</span><span>Kho Từ vựng TOPIK 1-6</span>
+            </a>
+            <a th:href="@{/content/grammar}" class="cs-nav-sub"
+               th:classappend="${active == 'grammar'} ? ' active'">
+                <span>↳</span><span>Kho Ngữ pháp TOPIK 1-6</span>
+            </a>
+            <a th:href="@{/content/hanja}" class="cs-nav-sub"
+               th:classappend="${active == 'hanja'} ? ' active'">
+                <span>↳</span><span>Kho từ Hán Việt</span>
+            </a>
+        </div>
+
+        <!-- Thư viện đề -->
+        <a th:href="@{/content/exams}" class="cs-nav-item" th:classappend="${active == 'exams'} ? ' active'">
+            <span>📚</span><span>Thư viện đề</span>
+        </a>
+
+        <!-- Nhập đề mới -->
+        <a th:href="@{/content/sources}" class="cs-nav-item" th:classappend="${active == 'sources'} ? ' active'">
+            <span>📥</span><span>Nhập đề mới</span>
+        </a>
+
+        <!-- Ngân hàng câu hỏi -->
+        <a th:href="@{/content/questions}" class="cs-nav-item" th:classappend="${active == 'questions'} ? ' active'">
+            <span>📝</span><span>Ngân hàng câu hỏi</span>
+        </a>
+
+        <!-- Dạng câu -->
+        <a th:href="@{/content/templates}" class="cs-nav-item" th:classappend="${active == 'templates'} ? ' active'">
+            <span>🧩</span><span>Dạng câu</span>
+        </a>
+
+        <!-- Vị trí trong đề chuẩn -->
+        <a th:href="@{/content/question-types}" class="cs-nav-item" th:classappend="${active == 'types'} ? ' active'">
+            <span>🗂</span><span>Vị trí trong đề chuẩn</span>
+        </a>
+
+        <div class="nav-group-label" style="margin-top:6px;">Chất lượng</div>
+
+        <!-- Xử lý Báo lỗi -->
+        <a th:href="@{/content(tab='reports')}" class="cs-nav-item">
+            <span>⚠️</span><span>Xử lý Báo lỗi</span>
+        </a>
+
+        <!-- Nhật ký Thao tác -->
+        <a th:href="@{/content(tab='audit')}" class="cs-nav-item">
+            <span>📜</span><span>Nhật ký Thao tác</span>
+        </a>
+
     </div>
+
+    <!-- Footer -->
+    <div class="foot-wrap">
+        <a th:href="@{/logout}" class="cs-foot-link logout">
+            <span>🚪</span><span>Đăng xuất hệ thống</span>
+        </a>
+    </div>
+
 </aside>
 
 <header th:fragment="header(title, subtitle)" class="cm-header">

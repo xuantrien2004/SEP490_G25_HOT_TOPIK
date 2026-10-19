@@ -6,7 +6,7 @@
 
     <!-- ==================== LEFT SIDEBAR (THANH TÁC VỤ BÊN TRÁI - ĐỒNG BỘ 100%) ==================== -->
     <aside style="width: 275px; background: #24363D; color: #FFFFFF; display: flex; flex-direction: column; flex-shrink: 0; min-height: 100vh; position: sticky; top: 0; z-index: 100; box-shadow: 4px 0 16px rgba(0,0,0,0.08);">
-        
+
         <!-- Sidebar Brand / Logo -->
         <div style="padding: 24px 24px 18px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;">
             <a th:href="@{/content}" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #FFFFFF;">
@@ -71,26 +71,38 @@
                 </div>
             </div>
 
-            <!-- Quản lý Đề -->
-            <a th:href="@{/content?tab=exams}" class="sidebar-item">
-                <span style="font-size: 17px;">📋</span>
-                <span style="flex-grow: 1;">Quản lý Đề</span>
+            <!-- Thư viện đề -->
+            <a th:href="@{/content/exams}" class="sidebar-item">
+                <span style="font-size: 17px;">📚</span>
+                <span style="flex-grow: 1;">Thư viện đề</span>
+            </a>
+
+            <!-- Nhập đề mới -->
+            <a th:href="@{/content/sources}" class="sidebar-item">
+                <span style="font-size: 17px;">📥</span>
+                <span style="flex-grow: 1;">Nhập đề mới</span>
             </a>
 
             <!-- Ngân hàng câu hỏi -->
-            <a th:href="@{/content?tab=questions}" class="sidebar-item">
+            <a th:href="@{/content/questions}" class="sidebar-item">
                 <span style="font-size: 17px;">📝</span>
                 <span style="flex-grow: 1;">Ngân hàng câu hỏi</span>
             </a>
 
+            <!-- Dạng câu -->
+            <a th:href="@{/content/templates}" class="sidebar-item">
+                <span style="font-size: 17px;">🧩</span>
+                <span style="flex-grow: 1;">Dạng câu</span>
+            </a>
+
             <!-- Xử lý Báo lỗi -->
-            <a th:href="@{/content?tab=reports}" class="sidebar-item">
+            <a th:href="@{/content(tab='reports')}" class="sidebar-item">
                 <span style="font-size: 17px;">⚠️</span>
                 <span style="flex-grow: 1;">Xử lý Báo lỗi</span>
             </a>
 
             <!-- Nhật ký Thao tác -->
-            <a th:href="@{/content?tab=audit}" class="sidebar-item">
+            <a th:href="@{/content(tab='audit')}" class="sidebar-item">
                 <span style="font-size: 17px;">📜</span>
                 <span style="flex-grow: 1;">Nhật ký Thao tác</span>
             </a>
