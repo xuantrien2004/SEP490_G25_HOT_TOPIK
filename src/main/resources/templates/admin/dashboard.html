@@ -286,12 +286,19 @@
                                     </span>
                                 </td>
                                 <td style="padding: 14px 10px; text-align: right;">
-                                    <button th:if="${staff.role != 'ROLE_ADMIN'}" type="button" class="btn-ssak-light" style="height: 34px; padding: 0 14px; font-size: 13px;"
-                                            th:data-id="${staff.id}" onclick="toggleStaffLock(this.getAttribute('data-id'))">
-                                        Khóa / Mở khóa
+                                    <button th:if="${staff.role != 'ROLE_ADMIN'}" type="button" class="btn-ssak-light" style="height: 34px; padding: 0 14px; font-size: 13px; font-weight: 800; border-radius: 10px; cursor: pointer; transition: all 0.15s ease;"
+                                            th:id="${'btn-toggle-staff-' + staff.id}"
+                                            th:data-id="${staff.id}"
+                                            th:data-name="${staff.fullName}"
+                                            th:data-email="${staff.email}"
+                                            th:data-role="${staff.roleName}"
+                                            th:data-status="${staff.status}"
+                                            onclick="openStaffModal(this.getAttribute('data-id'), this.getAttribute('data-name'), this.getAttribute('data-email'), this.getAttribute('data-role'), this.getAttribute('data-status'))">
+                                        <span th:if="${staff.status == 'LOCKED'}" style="color: #1F6B56;">🔓 Mở khóa</span>
+                                        <span th:if="${staff.status != 'LOCKED'}" style="color: #9C4A2E;">🔒 Khóa tài khoản</span>
                                     </button>
-                                    <span th:if="${staff.role == 'ROLE_ADMIN'}" style="font-size: 12px; color: var(--ssak-text-muted);">
-                                        Tài khoản gốc (Root)
+                                    <span th:if="${staff.role == 'ROLE_ADMIN'}" style="font-size: 12px; font-weight: 700; color: var(--ssak-text-muted);">
+                                        🛡️ Tài khoản gốc (Root)
                                     </span>
                                 </td>
                             </tr>
@@ -560,11 +567,73 @@
         .catch(e => showSsakToast('Có lỗi xảy ra: ' + e));
     }
 
-    function toggleStaffLock(id) {
-        if (!confirm('Bạn có chắc chắn muốn thay đổi trạng thái hoạt động của nhân sự này?')) return;
+    let currentTargetStaffId = null;
+
+    function openStaffModal(id, name, email, role, currentStatus) {
+        currentTargetStaffId = id;
+
+        const modal = document.getElementById('staffActionModal');
+        const iconBox = document.getElementById('modalStaffIconBox');
+        const title = document.getElementById('modalStaffTitle');
+        const subtitle = document.getElementById('modalStaffSubtitle');
+        const desc = document.getElementById('modalStaffDescription');
+        const confirmBtn = document.getElementById('modalStaffConfirmBtn');
+        const staffName = document.getElementById('modalStaffName');
+        const staffEmail = document.getElementById('modalStaffEmail');
+        const staffAvatar = document.getElementById('modalStaffAvatar');
+        const staffBadge = document.getElementById('modalStaffBadge');
+
+        staffName.textContent = name || 'Nhân sự';
+        staffEmail.textContent = (email || '') + (role ? ' · ' + role : '');
+        staffAvatar.textContent = (name && name.length > 0) ? name.charAt(0) : 'S';
+
+        const isLocked = (currentStatus === 'LOCKED');
+        if (isLocked) {
+            iconBox.style.background = '#E8F5E9';
+            iconBox.style.color = '#1F6B56';
+            iconBox.innerHTML = '🔓';
+            title.textContent = 'Mở khóa nhân sự & khôi phục quyền';
+            subtitle.textContent = 'Khôi phục quyền truy cập phân hệ quản lý nội bộ';
+            desc.innerHTML = `Bạn có chắc chắn muốn <strong>mở khóa</strong> cho nhân sự <strong>${name}</strong>? Tài khoản này sẽ có thể đăng nhập vào cổng nghiệp vụ được phân quyền ngay lập tức.`;
+            confirmBtn.style.background = '#1F6B56';
+            confirmBtn.innerHTML = '🔓 Xác nhận mở khóa';
+            staffBadge.innerHTML = '<span class="ssak-badge badge-terracotta">Đang bị khóa</span>';
+        } else {
+            iconBox.style.background = '#FFF1F0';
+            iconBox.style.color = '#CF1322';
+            iconBox.innerHTML = '🔒';
+            title.textContent = 'Đình chỉ & Tạm khóa tài khoản nhân sự';
+            subtitle.textContent = 'Thu hồi quyền truy cập cổng quản trị nội bộ';
+            desc.innerHTML = `Bạn có chắc chắn muốn <strong>tạm khóa</strong> tài khoản của <strong>${name}</strong>? Nhân sự này sẽ <strong>bị tước quyền truy cập</strong> toàn bộ cổng quản lý cho đến khi có quyết định mở khóa.`;
+            confirmBtn.style.background = '#CF1322';
+            confirmBtn.innerHTML = '🔒 Xác nhận khóa nhân sự';
+            staffBadge.innerHTML = '<span class="ssak-badge badge-mint">Đang hoạt động</span>';
+        }
+
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            const card = document.getElementById('modalStaffCard');
+            if (card) card.style.transform = 'scale(1)';
+        }, 10);
+    }
+
+    function closeStaffModal() {
+        const modal = document.getElementById('staffActionModal');
+        const card = document.getElementById('modalStaffCard');
+        if (card) card.style.transform = 'scale(0.96)';
+        setTimeout(() => {
+            if (modal) modal.style.display = 'none';
+        }, 150);
+    }
+
+    function executeStaffToggleLock() {
+        if (!currentTargetStaffId) return;
+        const confirmBtn = document.getElementById('modalStaffConfirmBtn');
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '⏳ Đang xử lý...';
 
         const formData = new FormData();
-        formData.append('userId', id);
+        formData.append('userId', currentTargetStaffId);
 
         fetch('/admin/staff/toggle-lock', {
             method: 'POST',
@@ -572,14 +641,33 @@
         })
         .then(r => r.json())
         .then(data => {
+            confirmBtn.disabled = false;
+            closeStaffModal();
             if (data.success) {
                 showSsakToast(data.message);
-                setTimeout(() => window.location.reload(), 800);
+                const newStatus = data.status;
+                const statusBadge = document.getElementById('staff-status-' + currentTargetStaffId);
+                const toggleBtn = document.getElementById('btn-toggle-staff-' + currentTargetStaffId);
+                if (statusBadge) {
+                    statusBadge.className = 'ssak-badge ' + (newStatus === 'ACTIVE' ? 'badge-mint' : 'badge-terracotta');
+                    statusBadge.textContent = (newStatus === 'ACTIVE' ? 'Đang hoạt động' : 'Tạm khóa');
+                }
+                if (toggleBtn) {
+                    toggleBtn.setAttribute('data-status', newStatus);
+                    if (newStatus === 'LOCKED') {
+                        toggleBtn.innerHTML = '<span style="color: #1F6B56;">🔓 Mở khóa</span>';
+                    } else {
+                        toggleBtn.innerHTML = '<span style="color: #9C4A2E;">🔒 Khóa tài khoản</span>';
+                    }
+                }
             } else {
                 showSsakToast('Lỗi: ' + data.message);
             }
         })
-        .catch(e => showSsakToast('Có lỗi xảy ra: ' + e));
+        .catch(e => {
+            confirmBtn.disabled = false;
+            showSsakToast('Có lỗi xảy ra: ' + e);
+        });
     }
 
     function updateAiBudget(id) {
@@ -624,6 +712,55 @@
         })
         .catch(e => showSsakToast('Có lỗi: ' + e));
     }
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeStaffModal();
+    });
 </script>
+
+<!-- Sleek Confirmation Modal for Staff Access Lock/Unlock -->
+<div id="staffActionModal" onclick="if(event.target === this) closeStaffModal()" style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(6px); transition: all 0.2s ease;">
+    <div id="modalStaffCard" style="background: #FFFFFF; width: 100%; max-width: 480px; border-radius: 24px; border: 1.5px solid #E8E5DC; box-shadow: 0 24px 48px -12px rgba(0,0,0,0.25); overflow: hidden; transform: scale(0.96); transition: transform 0.2s ease; margin: 16px;">
+        <!-- Header Banner -->
+        <div style="padding: 24px 28px 18px; border-bottom: 1px solid #F1EEE6; display: flex; align-items: center; gap: 16px;">
+            <div id="modalStaffIconBox" style="width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; background: #FFF1F0;">
+                🔒
+            </div>
+            <div>
+                <h4 id="modalStaffTitle" style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">Xác nhận phân quyền nhân sự</h4>
+                <p id="modalStaffSubtitle" style="margin: 4px 0 0; font-size: 13px; color: #64748B;">Cập nhật trạng thái truy cập hệ thống nội bộ</p>
+            </div>
+        </div>
+
+        <!-- Body with Staff Card -->
+        <div style="padding: 22px 28px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 16px; padding: 14px 18px; display: flex; align-items: center; gap: 14px;">
+                <div id="modalStaffAvatar" style="width: 44px; height: 44px; border-radius: 50%; background: #E2E8F0; color: #334155; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; flex-shrink: 0;">
+                    S
+                </div>
+                <div style="flex-grow: 1; min-width: 0;">
+                    <div id="modalStaffName" style="font-weight: 800; font-size: 15px; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Nhân sự</div>
+                    <div id="modalStaffEmail" style="font-size: 12.5px; color: #64748B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">email@hottopik.com</div>
+                </div>
+                <div id="modalStaffBadge">
+                    <span class="ssak-badge badge-mint">Đang hoạt động</span>
+                </div>
+            </div>
+
+            <p id="modalStaffDescription" style="margin: 0; font-size: 13.5px; line-height: 1.6; color: #475569;">
+                Bạn có chắc chắn muốn thực hiện thao tác này đối với nhân sự?
+            </p>
+        </div>
+
+        <!-- Footer Actions -->
+        <div style="padding: 16px 28px 22px; display: flex; justify-content: flex-end; gap: 12px; background: #FAFAFA; border-top: 1px solid #F1EEE6;">
+            <button type="button" onclick="closeStaffModal()" style="height: 42px; padding: 0 18px; border-radius: 12px; border: 1.5px solid #CBD5E1; background: #FFFFFF; font-size: 13.5px; font-weight: 700; color: #475569; cursor: pointer; transition: all 0.15s ease;">
+                Hủy bỏ
+            </button>
+            <button type="button" id="modalStaffConfirmBtn" onclick="executeStaffToggleLock()" style="height: 42px; padding: 0 22px; border-radius: 12px; border: none; font-size: 13.5px; font-weight: 800; color: #FFFFFF; background: #CF1322; cursor: pointer; transition: all 0.15s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.12);">
+                Xác nhận
+            </button>
+        </div>
+    </div>
+</div>
 </body>
 </html>

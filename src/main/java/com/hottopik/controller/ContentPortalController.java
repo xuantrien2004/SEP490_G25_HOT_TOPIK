@@ -5,6 +5,7 @@ import com.hottopik.service.AdminSystemService;
 import com.hottopik.service.ContentManagementService;
 import com.hottopik.service.VocabularyService;
 import com.hottopik.util.AuthHelper;
+import com.hottopik.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -23,14 +24,17 @@ public class ContentPortalController {
     private final ContentManagementService contentService;
     private final VocabularyService vocabularyService;
     private final AdminSystemService adminSystemService;
+    private final UserService userService;
 
     @Autowired
     public ContentPortalController(ContentManagementService contentService,
                                    VocabularyService vocabularyService,
-                                   AdminSystemService adminSystemService) {
+                                   AdminSystemService adminSystemService,
+                                   UserService userService) {
         this.contentService = contentService;
         this.vocabularyService = vocabularyService;
         this.adminSystemService = adminSystemService;
+        this.userService = userService;
     }
 
     @GetMapping
@@ -41,9 +45,8 @@ public class ContentPortalController {
         if (currentUser == null) {
             return "redirect:/login";
         }
-        if (!"ROLE_CONTENT_MANAGER".equalsIgnoreCase(currentUser.getRole())
-                && !"ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole())) {
-            if ("ROLE_OPERATION_MANAGER".equalsIgnoreCase(currentUser.getRole())) {
+        if (!currentUser.isContentManager() && !currentUser.isAdmin()) {
+            if (currentUser.isOperationManager()) {
                 return "redirect:/operation";
             }
             return "redirect:/today";
@@ -92,7 +95,7 @@ public class ContentPortalController {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
         Map<String, Object> resp = new HashMap<>();
 
-        if (currentUser == null || (!"ROLE_CONTENT_MANAGER".equalsIgnoreCase(currentUser.getRole()) && !"ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole()))) {
+        if (currentUser == null || (!currentUser.isContentManager() && !currentUser.isAdmin())) {
             resp.put("success", false);
             resp.put("message", "Từ chối quyền truy cập.");
             return ResponseEntity.status(403).body(resp);
@@ -125,7 +128,7 @@ public class ContentPortalController {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
         Map<String, Object> resp = new HashMap<>();
 
-        if (currentUser == null || (!"ROLE_CONTENT_MANAGER".equalsIgnoreCase(currentUser.getRole()) && !"ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole()))) {
+        if (currentUser == null || (!currentUser.isContentManager() && !currentUser.isAdmin())) {
             resp.put("success", false);
             resp.put("message", "Từ chối quyền truy cập.");
             return ResponseEntity.status(403).body(resp);
@@ -160,7 +163,7 @@ public class ContentPortalController {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
         Map<String, Object> resp = new HashMap<>();
 
-        if (currentUser == null || (!"ROLE_CONTENT_MANAGER".equalsIgnoreCase(currentUser.getRole()) && !"ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole()))) {
+        if (currentUser == null || (!currentUser.isContentManager() && !currentUser.isAdmin())) {
             resp.put("success", false);
             resp.put("message", "Từ chối quyền truy cập.");
             return ResponseEntity.status(403).body(resp);
@@ -196,8 +199,7 @@ public class ContentPortalController {
             Model model) {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
         if (currentUser == null) return "redirect:/login";
-        if (!"ROLE_CONTENT_MANAGER".equalsIgnoreCase(currentUser.getRole())
-                && !"ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole())) {
+        if (!currentUser.isContentManager() && !currentUser.isAdmin()) {
             return "redirect:/today";
         }
 
@@ -300,8 +302,7 @@ public class ContentPortalController {
     public String profilePage(HttpSession session, Model model) {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
         if (currentUser == null) return "redirect:/login";
-        if (!"ROLE_CONTENT_MANAGER".equalsIgnoreCase(currentUser.getRole())
-                && !"ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole())) {
+        if (!currentUser.isContentManager() && !currentUser.isAdmin()) {
             return "redirect:/today";
         }
 
@@ -329,9 +330,31 @@ public class ContentPortalController {
             @RequestBody Map<String, Object> payload,
             HttpSession session) {
         Map<String, Object> resp = new HashMap<>();
-        resp.put("success", true);
-        resp.put("message", "Đã cập nhật mật khẩu thành công!");
-        return ResponseEntity.ok(resp);
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        if (currentUser == null) {
+            resp.put("success", false);
+            resp.put("message", "Vui lòng đăng nhập lại!");
+            return ResponseEntity.status(401).body(resp);
+        }
+
+        String oldPass = (String) payload.get("oldPassword");
+        String newPass = (String) payload.get("newPassword");
+        if (newPass == null || newPass.trim().length() < 6) {
+            resp.put("success", false);
+            resp.put("message", "Mật khẩu mới phải từ 6 ký tự trở lên!");
+            return ResponseEntity.badRequest().body(resp);
+        }
+
+        boolean ok = userService.changePassword(currentUser.getId(), oldPass, newPass);
+        if (ok) {
+            resp.put("success", true);
+            resp.put("message", "Đã đổi mật khẩu thành công!");
+            return ResponseEntity.ok(resp);
+        } else {
+            resp.put("success", false);
+            resp.put("message", "Mật khẩu hiện tại không đúng. Vui lòng kiểm tra lại!");
+            return ResponseEntity.badRequest().body(resp);
+        }
     }
 
     // ==========================================

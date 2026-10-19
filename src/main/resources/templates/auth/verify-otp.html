@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Xác thực mã OTP · HOT TOPIK')}"></head>
+<body>
+<div style="min-width: 1280px; max-width: 1440px; min-height: 100vh; margin: 0 auto; background: var(--ssak-bg); display: flex;">
+
+    <!-- Left Brand Column -->
+    <div style="width: 580px; padding: 64px 72px; background: var(--ssak-primary-light); color: var(--ssak-primary-dark); display: flex; flex-direction: column; justify-content: space-between;">
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <a th:href="@{/}" style="color: var(--ssak-primary-dark); text-decoration: none; font-family: var(--font-heading); font-size: 26px; font-weight: 800;">
+                HOT TOPIK
+            </a>
+            <div style="margin-top: 40px; display: flex; justify-content: center;">
+                <div th:replace="~{fragments/ssak :: mascot('cheer', 'young', 220, 'Bé Ssak mầm cây vẫy tay')}"></div>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <span class="korean-text" style="font-size: 64px; font-weight: 800; color: #1F6B56; line-height: 1;">이메일 인증</span>
+            <h1 style="margin: 0; font-family: var(--font-heading); font-size: 32px; line-height: 1.25; color: var(--ssak-primary-dark);">
+                Xác thực email để bắt đầu
+            </h1>
+            <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #3A695B;">
+                Chỉ một bước nữa thôi! Nhập mã OTP 6 số gửi đến hộp thư của bạn để kích hoạt tài khoản cùng Bé Ssak.
+            </p>
+        </div>
+    </div>
+
+    <!-- Right Form Column -->
+    <div style="flex-grow: 1; padding: 64px 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <div style="width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 24px;">
+
+            <div>
+                <h2 style="font-family: var(--font-heading); font-size: 28px; font-weight: 800; color: var(--ssak-text-main); margin-bottom: 8px;">
+                    📩 Nhập mã xác thực OTP
+                </h2>
+                <p style="font-size: 14.5px; color: var(--ssak-text-muted); line-height: 1.5; margin: 0;">
+                    Mã xác thực 6 số đã được gửi đến email: <br>
+                    <strong style="color: var(--ssak-primary-dark); font-size: 16px;" th:text="${email}">ban@example.com</strong>
+                </p>
+            </div>
+
+            <!-- Error Banner -->
+            <div th:if="${errorMessage != null}" style="padding: 14px 18px; border-radius: 14px; background: #FFF1F0; border: 1.5px solid #FFA39E; color: #CF1322; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                <span>⚠️</span>
+                <span th:text="${errorMessage}">Mã OTP không chính xác</span>
+            </div>
+
+            <!-- Success Banner -->
+            <div th:if="${successMessage != null}" style="padding: 14px 18px; border-radius: 14px; background: #F6FFED; border: 1.5px solid #B7EB8F; color: #389E0D; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                <span>✅</span>
+                <span th:text="${successMessage}">Đã gửi lại mã OTP</span>
+            </div>
+
+            <!-- Form Verify OTP -->
+            <form th:action="@{/verify-otp}" method="post" style="display: flex; flex-direction: column; gap: 20px;">
+                <input type="hidden" name="email" th:value="${email}">
+
+                <div>
+                    <label style="font-size: 13px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Mã OTP (6 chữ số)</label>
+                    <input type="text" id="otpCode" name="otpCode" maxlength="6" autofocus required
+                           class="ssak-input"
+                           placeholder="••••••"
+                           style="margin-top: 8px; text-align: center; font-size: 32px; font-weight: 800; letter-spacing: 12px; height: 60px; font-family: monospace; color: var(--ssak-primary-dark); background: #FFFFFF;">
+                </div>
+
+                <!-- Countdown Timer -->
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; color: var(--ssak-text-muted);">
+                    <span>Mã hết hạn sau: <strong id="countdownTimer" style="color: #CF1322;">05:00</strong></span>
+                    <a th:href="@{/resend-verify-otp(email=${email})}" class="btn-ssak-link" style="font-weight: 700;">
+                        Gửi lại mã OTP
+                    </a>
+                </div>
+
+                <button type="submit" class="btn-ssak-primary" style="width: 100%; height: 52px; font-size: 16px; font-weight: 800; margin-top: 6px;">
+                    Kích hoạt & Bắt đầu học
+                </button>
+            </form>
+
+            <div style="text-align: center; margin-top: 8px;">
+                <a th:href="@{/login}" class="btn-ssak-link" style="font-size: 14px; font-weight: 700;">
+                    ← Quay lại màn hình Đăng nhập
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // Đồng hồ đếm ngược 5 phút
+    let timeLeft = 300;
+    const timerElem = document.getElementById('countdownTimer');
+    const countdown = setInterval(function() {
+        timeLeft--;
+        if (timeLeft <= 0) {
+            clearInterval(countdown);
+            timerElem.textContent = 'Đã hết hạn';
+        } else {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerElem.textContent = (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+        }
+    }, 1000);
+
+    // Chỉ cho phép nhập số vào ô OTP
+    const otpInput = document.getElementById('otpCode');
+    otpInput.addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^0-9]/g, '');
+    });
+</script>
+</body>
+</html>

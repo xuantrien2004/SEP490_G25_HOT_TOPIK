@@ -24,10 +24,4 @@ public class OnboardingController {
         model.addAttribute("pageTitle", "Kết quả kiểm tra trình độ");
         return "placement/result";
     }
-
-    @GetMapping("/roadmap/create")
-    public String createRoadmap(Model model) {
-        model.addAttribute("pageTitle", "Tạo lộ trình học cá nhân");
-        return "roadmap/create";
-    }
 }

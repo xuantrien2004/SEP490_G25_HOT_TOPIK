@@ -73,25 +73,25 @@
             </form>
 
             <!-- REGISTER FORM -->
-            <form id="formRegister" th:action="@{/onboarding}" method="get" style="display: none; flex-direction: column; gap: 16px;">
+            <form id="formRegister" th:action="@{/register}" method="post" style="display: none; flex-direction: column; gap: 16px;">
                 <div>
                     <label style="font-size: 14px; font-weight: 700; color: #24363D; display: block; margin-bottom: 6px;">Tên hiển thị</label>
-                    <input type="text" class="ssak-input" placeholder="2–40 ký tự" required style="width: 100%; height: 50px; border-radius: 14px; border: 1.5px solid var(--ssak-border); padding: 0 16px; font-size: 15px;">
+                    <input type="text" name="displayName" class="ssak-input" placeholder="Ví dụ: Minh Anh" required style="width: 100%; height: 50px; border-radius: 14px; border: 1.5px solid var(--ssak-border); padding: 0 16px; font-size: 15px;">
                 </div>
                 <div>
                     <label style="font-size: 14px; font-weight: 700; color: #24363D; display: block; margin-bottom: 6px;">Email</label>
-                    <input type="email" class="ssak-input" placeholder="ban@example.com" required style="width: 100%; height: 50px; border-radius: 14px; border: 1.5px solid var(--ssak-border); padding: 0 16px; font-size: 15px;">
+                    <input type="email" name="email" class="ssak-input" placeholder="ban@example.com" required style="width: 100%; height: 50px; border-radius: 14px; border: 1.5px solid var(--ssak-border); padding: 0 16px; font-size: 15px;">
                 </div>
                 <div>
                     <label style="font-size: 14px; font-weight: 700; color: #24363D; display: block; margin-bottom: 6px;">Mật khẩu</label>
-                    <input type="password" class="ssak-input" placeholder="Tối thiểu 8 ký tự, có chữ và số" required style="width: 100%; height: 50px; border-radius: 14px; border: 1.5px solid var(--ssak-border); padding: 0 16px; font-size: 15px;">
+                    <input type="password" name="password" class="ssak-input" placeholder="Tối thiểu 6 ký tự" required style="width: 100%; height: 50px; border-radius: 14px; border: 1.5px solid var(--ssak-border); padding: 0 16px; font-size: 15px;">
                 </div>
                 <div>
                     <label style="font-size: 14px; font-weight: 700; color: #24363D; display: block; margin-bottom: 6px;">Nhập lại mật khẩu</label>
-                    <input type="password" class="ssak-input" required style="width: 100%; height: 50px; border-radius: 14px; border: 1.5px solid var(--ssak-border); padding: 0 16px; font-size: 15px;">
+                    <input type="password" name="confirmPassword" class="ssak-input" placeholder="Nhập lại đúng mật khẩu trên" required style="width: 100%; height: 50px; border-radius: 14px; border: 1.5px solid var(--ssak-border); padding: 0 16px; font-size: 15px;">
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px; margin-top: 2px;">
-                    <input type="checkbox" id="termsCheck" style="width: 18px; height: 18px; accent-color: var(--ssak-primary); cursor: pointer;" required>
+                    <input type="checkbox" id="termsCheck" style="width: 18px; height: 18px; accent-color: var(--ssak-primary); cursor: pointer;" required checked>
                     <label for="termsCheck" style="font-size: 14px; font-weight: 600; color: #24363D; cursor: pointer;">Tôi đồng ý với <a th:href="@{/terms}" style="color: #24363D; text-decoration: underline;">Điều khoản sử dụng</a></label>
                 </div>
                 <button type="submit" class="btn-ssak-primary" style="width: 100%; height: 52px; border-radius: 14px; font-size: 16px; font-weight: 800; margin-top: 6px; box-shadow: none;">Tạo tài khoản</button>
@@ -103,27 +103,38 @@
                 <div style="flex-grow: 1; height: 1px; background: var(--ssak-border);"></div>
             </div>
 
-            <!-- Social Login -->
-            <button type="button" class="btn-ssak-outline" style="width: 100%; height: 48px; font-size: 15px;" onclick="window.location.href='/today'">
-                <svg width="20" height="20" viewBox="0 0 24 24" style="margin-right: 8px;">
-                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
-                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
-                    <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.16 0 9.94 0 12s.45 3.84 1.25 5.42l4.03-3.15z"/>
-                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-                </svg>
-                Tiếp tục với Google
-            </button>
+            <!-- Social Login - Google Sign-In -->
+            <div id="googleBtnContainer">
+                <button type="button" id="googleSignInBtn" class="btn-ssak-outline" style="width: 100%; height: 48px; font-size: 15px; position: relative;" onclick="handleGoogleLogin()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" style="margin-right: 8px;">
+                        <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                        <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+                        <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.16 0 9.94 0 12s.45 3.84 1.25 5.42l4.03-3.15z"/>
+                        <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                    </svg>
+                    <span id="googleBtnText">Tiếp tục với Google</span>
+                    <div id="googleBtnSpinner" style="display: none; position: absolute; right: 16px;">
+                        <div style="width: 20px; height: 20px; border: 2.5px solid #e0e0e0; border-top-color: #4285F4; border-radius: 50%; animation: spinGoogle 0.6s linear infinite;"></div>
+                    </div>
+                </button>
+                <div id="googleErrorMsg" style="display: none; margin-top: 8px; padding: 10px 14px; border-radius: 12px; background: #FFF1F0; border: 1.5px solid #FFA39E; color: #CF1322; font-size: 13px; font-weight: 600;"></div>
+            </div>
+            <style>
+                @keyframes spinGoogle {
+                    to { transform: rotate(360deg); }
+                }
+            </style>
 
             <!-- Quick Demo Accounts Helper -->
             <div style="margin-top: 4px; padding: 12px 14px; border-radius: 14px; background: #FFFFFF; border: 1.5px dashed var(--ssak-border); font-size: 12px;">
-                <div style="font-weight: 800; color: #24363D; margin-bottom: 6px;">🎯 Điền nhanh tài khoản mẫu:</div>
+                <div style="font-weight: 800; color: #24363D; margin-bottom: 6px;">🎯 Điền nhanh tài khoản phân quyền:</div>
                 <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                    <button type="button" onclick="fillDemo('teacher@hottopik.com','teacher@123')" class="ssak-badge badge-mint" style="border: 0; cursor: pointer;">👩‍🏫 Giáo viên (Cô Mai)</button>
                     <button type="button" onclick="fillDemo('learner@hottopik.com','user@123')" class="ssak-badge badge-mint" style="border: 0; cursor: pointer;">🧑‍🎓 Học viên (Minh Anh)</button>
-                    <button type="button" onclick="fillDemo('viplearner@hottopik.com','vip@123')" class="ssak-badge badge-honey" style="border: 0; cursor: pointer;">👑 VIP (Hoàng Nam)</button>
-                    <button type="button" onclick="fillDemo('content@hottopik.com','content@123')" class="ssak-badge" style="background: #E4EEF5; color: #2F5F7D; border: 0; cursor: pointer;">📝 Content Manager</button>
-                    <button type="button" onclick="fillDemo('operation@hottopik.com','operation@123')" class="ssak-badge" style="background: #E4EEF5; color: #2F5F7D; border: 0; cursor: pointer;">💼 Vận hành</button>
-                    <button type="button" onclick="fillDemo('admin@hottopik.com','admin@123')" class="ssak-badge" style="background: #E4EEF5; color: #2F5F7D; border: 0; cursor: pointer;">🛡️ Admin</button>
+                    <button type="button" onclick="fillDemo('viplearner@hottopik.com','vip@123')" class="ssak-badge badge-honey" style="border: 0; cursor: pointer;">👑 Học viên VIP</button>
+                    <button type="button" onclick="fillDemo('mai.mentor@hottopik.vn','teacher@123')" class="ssak-badge badge-mint" style="border: 0; cursor: pointer;">👩‍🏫 Mentor (Cô Mai)</button>
+                    <button type="button" onclick="fillDemo('content@hottopik.vn','content@123')" class="ssak-badge" style="background: #E4EEF5; color: #2F5F7D; border: 0; cursor: pointer;">📝 Content Manager</button>
+                    <button type="button" onclick="fillDemo('operation@hottopik.vn','operation@123')" class="ssak-badge" style="background: #E4EEF5; color: #2F5F7D; border: 0; cursor: pointer;">💼 Operation Manager</button>
+                    <button type="button" onclick="fillDemo('admin@hottopik.vn','admin@123')" class="ssak-badge" style="background: #FFE8E6; color: #CF1322; border: 0; cursor: pointer;">🛡️ Admin (Quân)</button>
                 </div>
             </div>
         </div>
@@ -135,15 +146,20 @@
     <div class="ssak-modal">
         <h3 style="margin: 0; font-family: var(--font-heading); font-size: 24px; font-weight: 800;">Khôi phục mật khẩu</h3>
         <p style="margin: 0; font-size: 14px; color: var(--ssak-text-muted);">
-            Nhập email của bạn, HOT TOPIK sẽ gửi liên kết tạo lại mật khẩu mới.
+            Nhập email đã đăng ký của bạn. Hệ thống sẽ tạo liên kết đặt lại mật khẩu có hiệu lực trong 30 phút.
         </p>
-        <input type="email" class="ssak-input" placeholder="ban@example.com">
-        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px;">
-            <button type="button" class="btn-ssak-outline" style="height: 44px; padding: 0 18px;" onclick="closeForgotModal()">Đóng</button>
-            <button type="button" class="btn-ssak-primary" style="height: 44px; padding: 0 20px;" onclick="submitForgot()">Gửi liên kết</button>
-        </div>
+        <form th:action="@{/forgot-password}" method="post" style="display: flex; flex-direction: column; gap: 14px; margin-top: 8px;">
+            <input type="email" name="email" class="ssak-input" placeholder="ban@example.com" required>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px;">
+                <button type="button" class="btn-ssak-outline" style="height: 44px; padding: 0 18px;" onclick="closeForgotModal()">Đóng</button>
+                <button type="submit" class="btn-ssak-primary" style="height: 44px; padding: 0 20px;">Gửi liên kết</button>
+            </div>
+        </form>
     </div>
 </div>
+
+<!-- Google Identity Services (GIS) Library -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <script th:inline="javascript">
     const initialTab = /*[[${activeTab}]]*/ 'login';
@@ -195,6 +211,129 @@
         document.getElementById('loginEmail').value = email;
         document.getElementById('loginPassword').value = pass;
         switchAuthTab('login');
+    }
+
+    // ============ GOOGLE SIGN-IN ============
+    let googleClientId = null;
+    let googleInitialized = false;
+
+    // Lấy Google Client ID từ backend khi trang load
+    (async function initGoogleSignIn() {
+        try {
+            const resp = await fetch('/auth/google-client-id');
+            const data = await resp.json();
+            if (data.configured === 'true' && data.clientId) {
+                googleClientId = data.clientId;
+                // Đợi Google GIS library load xong
+                waitForGoogleGIS();
+            } else {
+                console.warn('[HOT TOPIK] Google Client ID chưa được cấu hình.');
+            }
+        } catch (e) {
+            console.warn('[HOT TOPIK] Không lấy được Google Client ID:', e);
+        }
+    })();
+
+    function waitForGoogleGIS() {
+        if (window.google && window.google.accounts) {
+            initializeGIS();
+        } else {
+            setTimeout(waitForGoogleGIS, 200);
+        }
+    }
+
+    function initializeGIS() {
+        if (googleInitialized || !googleClientId) return;
+        google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: handleGoogleCredentialResponse,
+            auto_select: false,
+            cancel_on_tap_outside: true
+        });
+        googleInitialized = true;
+        console.log('[HOT TOPIK] Google Sign-In initialized.');
+    }
+
+    function handleGoogleLogin() {
+        const errEl = document.getElementById('googleErrorMsg');
+        errEl.style.display = 'none';
+
+        if (!googleClientId) {
+            errEl.textContent = '⚠️ Chức năng đăng nhập Google chưa được cấu hình. Vui lòng liên hệ quản trị viên để thiết lập Google Client ID.';
+            errEl.style.display = 'block';
+            return;
+        }
+
+        if (!googleInitialized) {
+            initializeGIS();
+        }
+
+        // Mở popup Google One Tap / Sign-In
+        google.accounts.id.prompt((notification) => {
+            if (notification.isNotDisplayed()) {
+                // One Tap bị chặn, dùng renderButton fallback
+                const tempDiv = document.createElement('div');
+                tempDiv.id = 'g_id_onload_temp';
+                tempDiv.style.display = 'none';
+                document.body.appendChild(tempDiv);
+
+                google.accounts.id.renderButton(tempDiv, {
+                    type: 'standard',
+                    theme: 'outline',
+                    size: 'large',
+                    width: 400
+                });
+
+                // Tự động click nút Google render
+                setTimeout(() => {
+                    const gBtn = tempDiv.querySelector('div[role="button"]') || tempDiv.querySelector('iframe');
+                    if (gBtn) gBtn.click();
+                    setTimeout(() => tempDiv.remove(), 500);
+                }, 300);
+            }
+        });
+    }
+
+    async function handleGoogleCredentialResponse(response) {
+        const btn = document.getElementById('googleSignInBtn');
+        const spinner = document.getElementById('googleBtnSpinner');
+        const btnText = document.getElementById('googleBtnText');
+        const errEl = document.getElementById('googleErrorMsg');
+
+        errEl.style.display = 'none';
+        btn.disabled = true;
+        spinner.style.display = 'block';
+        btnText.textContent = 'Đang xác thực...';
+
+        try {
+            const resp = await fetch('/auth/google', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential: response.credential })
+            });
+
+            const data = await resp.json();
+
+            if (data.success === 'true' && data.redirect) {
+                btnText.textContent = '✅ Đăng nhập thành công!';
+                spinner.style.display = 'none';
+                setTimeout(() => {
+                    window.location.href = data.redirect;
+                }, 400);
+            } else {
+                errEl.textContent = '⚠️ ' + (data.error || 'Đăng nhập Google thất bại. Vui lòng thử lại.');
+                errEl.style.display = 'block';
+                btn.disabled = false;
+                spinner.style.display = 'none';
+                btnText.textContent = 'Tiếp tục với Google';
+            }
+        } catch (e) {
+            errEl.textContent = '⚠️ Lỗi kết nối tới server. Vui lòng thử lại.';
+            errEl.style.display = 'block';
+            btn.disabled = false;
+            spinner.style.display = 'none';
+            btnText.textContent = 'Tiếp tục với Google';
+        }
     }
 </script>
 </body>

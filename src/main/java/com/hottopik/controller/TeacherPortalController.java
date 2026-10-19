@@ -38,14 +38,10 @@ public class TeacherPortalController {
 
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
         if (currentUser == null) {
-            // For smooth development & demo, auto-mock as Teacher "Cô Mai"
-            currentUser = userService.findByEmail("teacher@hottopik.com").orElse(new UserDTO(
-                    6L, "teacher", "teacher@hottopik.com", "teacher@123",
-                    "Cô Mai (Giáo viên TOPIK)", "ROLE_TEACHER", "Giáo viên (Mentor)",
-                    "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=teacher",
-                    "0967890123", "TOPIK_6", "TOPIK_6", false, null
-            ));
-            session.setAttribute(AuthHelper.SESSION_KEY, currentUser);
+            return "redirect:/login";
+        }
+        if (!currentUser.isMentor() && !currentUser.isAdmin()) {
+            return "redirect:/today";
         }
 
         model.addAttribute("currentUser", currentUser);
