@@ -398,4 +398,21 @@ public class GrammarService {
 
         return value.trim();
     }
+    public void updateGrammar(GrammarForm form) {
+        if (form.getId() == null) {
+            throw new IllegalArgumentException("ID ngữ pháp không được để trống khi cập nhật.");
+        }
+
+        Grammar grammar = grammarRepository.findById(form.getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy mẫu ngữ pháp với ID: " + form.getId()));
+
+        grammar.setPattern(form.getPattern());
+        grammar.setTranslation(form.getTranslation());
+        grammar.setMeaning(form.getMeaning());
+        grammar.setExplanation(form.getExplanation());
+        grammar.setStatus(form.getStatus());
+        grammar.setIsFrequent(form.getIsFrequent());
+
+        grammarRepository.save(grammar);
+    }
 }

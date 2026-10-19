@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 
 @Entity
 @Table(
@@ -35,19 +37,34 @@ public class GrammarGroup {
 
     @Column(
             name = "created_at",
-            nullable = false,
-            insertable = false,
-            updatable = false
+            nullable = false
+
     )
     private LocalDateTime createdAt;
 
     @Column(
             name = "updated_at",
-            nullable = false,
-            insertable = false,
-            updatable = false
+            nullable = false
+
     )
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (this.createdAt == null) {
+            this.createdAt = now;
+        }
+        if (this.updatedAt == null) {
+            this.updatedAt = now;
+        }
+    }
+
+    // Tự động cập nhật thời gian trước khi UPDATE vào Database
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 
     @JsonIgnore
     @OneToMany(mappedBy = "grammarGroup", fetch = FetchType.LAZY)
