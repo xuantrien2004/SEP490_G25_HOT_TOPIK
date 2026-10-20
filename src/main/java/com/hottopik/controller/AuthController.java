@@ -85,7 +85,7 @@ public class AuthController {
             case "ROLE_ADMIN":
                 return "redirect:/admin";
             case "ROLE_CONTENT_MANAGER":
-                return "redirect:/content";
+                return redirectContent(session);
             case "ROLE_OPERATION_MANAGER":
                 return "redirect:/operation";
             case "ROLE_TEACHER":
@@ -95,6 +95,15 @@ public class AuthController {
             default:
                 return "redirect:/today";
         }
+    }
+
+    private String redirectContent(HttpSession session) {
+        Object back = session.getAttribute("RETURN_AFTER_LOGIN");
+        session.removeAttribute("RETURN_AFTER_LOGIN");
+        if (back instanceof String path && path.startsWith("/content/") && !path.contains("://") && !path.startsWith("//")) {
+            return "redirect:" + path;
+        }
+        return "redirect:/content";
     }
 
     @GetMapping("/register")

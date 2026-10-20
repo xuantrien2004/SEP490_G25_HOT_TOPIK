@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<th:block th:replace="~{fragments/content-shell :: styles}"></th:block>
+<div class="cm-shell">
+    <aside th:replace="~{fragments/content-shell :: sidebar('roadmap')}"></aside>
+    <div class="cm-main">
+        <header th:replace="~{fragments/content-shell :: header(${program.versionCode}, 'Sắp thứ tự dạng. Học viên chỉ đổi lịch khi Admin duyệt bản này.')}"></header>
+        <main class="cm-body">
+            <th:block th:replace="~{fragments/content-shell :: flash}"></th:block>
+
+            <div class="cm-flash info" th:if="${program.status.name() == 'PUBLISHED'}">
+                <span>i</span><span>Đây là bản học viên đang dùng. Muốn đổi thứ tự, hãy tạo bản nháp.</span>
+            </div>
+            <div class="cm-flash info" th:if="${program.status.name() == 'PENDING_APPROVAL'}">
+                <span>i</span><span>Bản này đang chờ Admin duyệt. Học viên vẫn học theo bản đang phát hành.</span>
+            </div>
+            <div class="cm-flash info" th:if="${program.status.name() == 'ARCHIVED'}">
+                <span>i</span><span>Bản đã lưu trữ, chỉ để xem lại.</span>
+            </div>
+
+            <div class="cm-toolbar" th:if="${canEdit and program.status.name() == 'PUBLISHED'}">
+                <form th:action="@{/content/roadmap}" method="post">
+                    <button class="btn btn-ssak-primary btn-sm" type="submit">Tạo bản nháp từ bản này</button>
+                </form>
+            </div>
+
+            <section class="cm-card">
+                <h2>Quy tắc xếp lịch</h2>
+                <p class="cm-muted">Lần 1 là bài mới. Các lần sau là bài ôn, cách bài mới đúng số ngày ở mốc ôn. Ngày thứ 7, 14, 21… dành một ô cho ôn tuần.</p>
+                <form class="cm-form" style="margin-top: 14px;" method="post" th:action="@{/content/roadmap/{id}/settings(id=${program.id})}">
+                    <div>
+                        <label for="reviews">Mốc ôn (ngày)</label>
+                        <input id="reviews" class="form-control ssak-input" name="reviewOffsets" th:value="${program.reviewOffsets}" th:readonly="${!editable}" required>
+                        <div class="hint">Ví dụ 2, 7, 14. Cần đủ số mốc cho số lần học trừ lần đầu.</div>
+                    </div>
+                    <div>
+                        <label for="phases">Ba chặng (%)</label>
+                        <input id="phases" class="form-control ssak-input" name="phaseSplit" th:value="${program.phaseSplit}" th:readonly="${!editable}" required>
+                        <div class="hint">Làm quen, Tăng tốc, Nước rút. Cộng đủ 100.</div>
+                    </div>
+                    <div>
+                        <label for="sessions">Số lần học mỗi dạng</label>
+                        <input id="sessions" class="form-control ssak-input" type="number" min="1" max="4" name="sessions" th:value="${program.sessionsPerType}" th:readonly="${!editable}" required>
+                    </div>
+                    <div>
+                        <label for="questions">Số câu mỗi bài</label>
+                        <input id="questions" class="form-control ssak-input" type="number" min="5" max="30" name="questions" th:value="${program.questionsPerSession}" th:readonly="${!editable}" required>
+                    </div>
+                    <div>
+                        <label for="weekly">Số câu ôn tuần</label>
+                        <input id="weekly" class="form-control ssak-input" type="number" min="5" max="40" name="weekly" th:value="${program.weeklyReviewQuestions}" th:readonly="${!editable}" required>
+                    </div>
+                    <div class="full">
+                        <label for="note">Ghi chú</label>
+                        <input id="note" class="form-control ssak-input" name="note" maxlength="500" th:value="${program.note}" th:readonly="${!editable}">
+                    </div>
+                    <div class="full" th:if="${editable}">
+                        <button class="btn btn-ssak-outline btn-sm" type="submit">Lưu quy tắc</button>
+                    </div>
+                </form>
+            </section>
+
+            <div class="cm-grid-2">
+                <section class="cm-card" th:each="col : ${columns}">
+                    <h2 th:text="${col.track.label}">TOPIK I</h2>
+                    <p class="cm-muted">Học từ trên xuống. Dạng Viết không có trong danh sách này.</p>
+                    <div th:if="${#lists.isEmpty(col.items)}" class="cm-empty" style="padding: 16px 0;">
+                        <h3>Chưa có dạng</h3>
+                    </div>
+                    <ol class="rd-order" th:unless="${#lists.isEmpty(col.items)}">
+                        <li th:each="item, stat : ${col.items}">
+                            <div>
+                                <b th:text="${stat.count + '. ' + item.template.code}">1. TPL1-LIS-01</b>
+                                <div th:text="${item.template.name}">Nghe câu hỏi</div>
+                                <div class="cm-muted" th:text="${item.template.skill.label + ' · vùng ' + item.template.zoneMin + '–' + item.template.zoneMax}">Nghe</div>
+                            </div>
+                            <div class="rd-actions" th:if="${editable}">
+                                <form method="post" th:action="@{/content/roadmap/{id}/items/{itemId}/move(id=${program.id}, itemId=${item.id})}">
+                                    <input type="hidden" name="dir" value="up">
+                                    <button class="btn btn-ssak-outline btn-sm" type="submit" th:disabled="${stat.first}">Lên</button>
+                                </form>
+                                <form method="post" th:action="@{/content/roadmap/{id}/items/{itemId}/move(id=${program.id}, itemId=${item.id})}">
+                                    <input type="hidden" name="dir" value="down">
+                                    <button class="btn btn-ssak-outline btn-sm" type="submit" th:disabled="${stat.last}">Xuống</button>
+                                </form>
+                                <form method="post" th:action="@{/content/roadmap/{id}/items/{itemId}/remove(id=${program.id}, itemId=${item.id})}">
+                                    <button class="btn btn-sm" type="submit" style="color:#9C4A2E;" onclick="return confirm('Gỡ dạng này khỏi lộ trình?')">Gỡ</button>
+                                </form>
+                            </div>
+                        </li>
+                    </ol>
+                    <form th:if="${editable and !#lists.isEmpty(col.available)}" method="post" th:action="@{/content/roadmap/{id}/items(id=${program.id})}" class="rd-add">
+                        <label class="cm-muted" th:for="${'add-' + col.track}">Thêm dạng</label>
+                        <div>
+                            <select class="form-select ssak-input" name="templateId" th:id="${'add-' + col.track}" required>
+                                <option th:each="t : ${col.available}" th:value="${t.id}" th:text="${t.code + ' · ' + t.name}">TPL</option>
+                            </select>
+                            <button class="btn btn-ssak-outline btn-sm" type="submit">Thêm vào cuối</button>
+                        </div>
+                    </form>
+                </section>
+            </div>
+
+            <section class="cm-card" th:if="${editable}">
+                <h2>Gửi duyệt phát hành</h2>
+                <p class="cm-muted">Khi Admin duyệt, bản đang phát hành chuyển vào lưu trữ. Học viên tạo lộ trình mới sẽ dùng bản này. Lộ trình đã tạo của học viên không bị xếp lại.</p>
+                <form method="post" th:action="@{/content/roadmap/{id}/publish(id=${program.id})}" style="margin-top: 12px;">
+                    <button class="btn btn-ssak-primary btn-sm" type="submit">Gửi Admin duyệt</button>
+                </form>
+            </section>
+
+            <section class="cm-card">
+                <div class="cm-toolbar">
+                    <h2 style="margin: 0;">Lịch mẫu 21 ngày đầu</h2>
+                    <form method="get" th:action="@{/content/roadmap/{id}(id=${program.id})}" class="rd-add" style="margin: 0;">
+                        <div>
+                            <select class="form-select ssak-input" name="track" onchange="this.form.submit()">
+                                <option value="TOPIK_I" th:selected="${previewTrack.name() == 'TOPIK_I'}">TOPIK I</option>
+                                <option value="TOPIK_II" th:selected="${previewTrack.name() == 'TOPIK_II'}">TOPIK II</option>
+                            </select>
+                            <label class="cm-muted" for="days">Số ngày</label>
+                            <input id="days" class="form-control ssak-input" type="number" name="days" min="31" max="200" th:value="${days}" style="width: 96px;">
+                            <label class="cm-muted" for="perDay">Bài/ngày</label>
+                            <input id="perDay" class="form-control ssak-input" type="number" name="perDay" min="1" max="4" th:value="${perDay}" style="width: 80px;">
+                            <button class="btn btn-ssak-outline btn-sm" type="submit">Xem lịch</button>
+                        </div>
+                    </form>
+                </div>
+                <p class="cm-flash err" th:if="${previewError != null}" th:text="${previewError}">Lỗi</p>
+                <div th:if="${preview != null}">
+                    <div class="rd-phases" th:if="${!#lists.isEmpty(preview.phases)}">
+                        <div th:each="phase, stat : ${preview.phases}" class="rd-phase"
+                             th:style="'flex:' + ${phase.days()}"
+                             th:text="${phase.name + ' · ngày ' + phase.fromDay + '–' + phase.toDay}">Làm quen</div>
+                    </div>
+                    <p class="cm-muted" style="margin: 10px 0;">
+                        <span th:text="${preview.newCount + ' bài mới'}">0</span>
+                        · <span th:text="${preview.reviewCount + ' bài ôn'}">0</span>
+                        · <span th:text="${preview.weeklyCount + ' buổi ôn tuần, mỗi buổi ' + program.weeklyReviewQuestions + ' câu'}">ôn tuần</span>
+                        · mỗi bài mới hoặc bài ôn lấy <span th:text="${program.questionsPerSession}">8</span> câu.
+                    </p>
+                    <p class="cm-flash err" th:if="${!#lists.isEmpty(preview.unplaced)}">
+                        <span>!</span>
+                        <span th:text="'Chưa xếp được vì lịch không còn chỗ: ' + ${#strings.listJoin(preview.unplaced, ', ')}">thiếu</span>
+                    </p>
+                    <div class="rd-days">
+                        <article class="rd-day" th:each="day : ${previewDays}">
+                            <div class="n" th:text="${'Ngày ' + day.day + ' · tuần ' + day.week}">Ngày 1</div>
+                            <div class="cm-muted" th:text="${day.phase}">Làm quen</div>
+                            <div th:if="${#lists.isEmpty(day.slots)}" class="rd-slot">Trống</div>
+                            <div th:each="slot : ${day.slots}" class="rd-slot"
+                                 th:classappend="${slot.kind == 'NEW'} ? 'new' : (${slot.kind == 'WEEKLY'} ? 'weekly' : 'review')">
+                                <span th:if="${slot.kind == 'WEEKLY'}">Ôn tuần</span>
+                                <span th:if="${slot.kind == 'NEW'}" th:text="${'Mới · ' + slot.code}">Mới</span>
+                                <span th:if="${slot.kind == 'REVIEW'}" th:text="${'Ôn lần ' + slot.repetition + ' · ' + slot.code}">Ôn</span>
+                                <div th:if="${slot.name != null and slot.kind != 'WEEKLY'}" th:text="${slot.name}">Tên dạng</div>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+</body>
+</html>

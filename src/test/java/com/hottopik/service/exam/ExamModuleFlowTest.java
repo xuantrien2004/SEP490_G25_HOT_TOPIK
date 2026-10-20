@@ -45,6 +45,7 @@ class ExamModuleFlowTest {
     @Autowired QuestionTemplateRepository templates;
     @Autowired QuestionTemplateSeeder templateSeeder;
     @Autowired QuestionTypeRepository typeRepo;
+    @Autowired ProgramRoadmapService roadmap;
 
     private ExamImportService.ActivationResult importFull(Track track, int variant) throws Exception {
         ExamSource src = importService.createSource(new ExamImportService.SourceForm(
@@ -508,5 +509,29 @@ class ExamModuleFlowTest {
         assertThrows(ExamDomainException.class, () -> composer.createDraft(Track.TOPIK_II, ADMIN));
         assertThrows(ExamDomainException.class, () -> importService.createSource(new ExamImportService.SourceForm(
                 "x", Track.TOPIK_I, null, null, null, false, "c", null), ADMIN));
+    }
+
+    @Test
+    void contentManagerSeesPublishedRoadmapWithoutWriting() throws Exception {
+        UserDTO user = new UserDTO(2L, "content_manager", "content@hottopik.com", "", "Lê Thu Hà",
+                Actor.ROLE_CONTENT, "Content Manager", "ACTIVE", "", "", "TOPIK_6", "TOPIK_5", false, null);
+        mvc.perform(get("/content/roadmap").sessionAttr(AuthHelper.SESSION_KEY, user))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("v1")))
+                .andExpect(content().string(containsString("Đã phát hành")));
+
+        ProgramVersion published = roadmap.published();
+        assertNotNull(published);
+        List<String> codes = roadmap.itemsOf(published.getId()).stream().map(i -> i.getTemplate().getCode()).toList();
+        assertTrue(codes.contains("TPL1-LIS-01"));
+        assertTrue(codes.contains("TPL2-REA-01"));
+        assertFalse(codes.contains("TPL2-WRI-01"));
+        assertTrue(codes.indexOf("TPL1-LIS-01") < codes.indexOf("TPL1-REA-01"));
+
+        mvc.perform(get("/content/roadmap/" + published.getId()).sessionAttr(AuthHelper.SESSION_KEY, user))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Lịch mẫu 21 ngày đầu")))
+                .andExpect(content().string(containsString("TPL1-LIS-01")))
+                .andExpect(content().string(not(containsString("TPL2-WRI-01"))));
     }
 }

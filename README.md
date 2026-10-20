@@ -165,6 +165,7 @@ File script cơ sở dữ liệu gốc nằm tại: `D:\SEP490_G25\HOT_TOPIK_3.s
 | `/content/exams/{id}` | Trình soạn khung đề theo 42 dạng câu, gửi duyệt, nhân bản, lưu trữ | BRD 9 |
 | `/content/questions` | Ngân hàng câu hỏi: 8 bộ lọc, sửa, ẩn/hiện, đổi mục đích, thao tác hàng loạt | BRD 10 |
 | `/content/question-types` | Bảng 42 dạng câu và cấu trúc đề TOPIK I/II | BRD 7.1 |
+| `/content/roadmap` | Lộ trình học: thứ tự dạng Nghe/Đọc, mốc ôn, ba chặng, gửi duyệt phát hành | — |
 
 ---
 
@@ -186,6 +187,9 @@ Mở `http://localhost:8490/login`, đăng nhập Content Manager `content@hotto
 Lần chạy đầu với profile `local` tự thêm bốn đề mẫu: mỗi dạng của TOPIK I và TOPIK II có mặt trong hai đề.
 **Đề mẫu 1** nằm ở tab Đã phát hành, kèm Mini Test của những phần có câu. **Đề mẫu 2** là nháp để bấm Gửi duyệt.
 Ngân hàng lọc theo một dạng sẽ thấy câu của cả hai đề (câu dùng chung hiện từng câu con). Chạy lại không tạo trùng.
+
+Lần chạy đầu cũng tạo bản lộ trình `v1` tại `/content/roadmap`: mọi dạng Nghe và Đọc, Viết không vào lịch ngày.
+Content Manager tạo bản nháp, đổi thứ tự, rồi gửi Admin duyệt. Học viên mới lấy bản đang phát hành.
 
 Thư mục `samples/` có sẵn 3 bộ đề mẫu hợp lệ (TOPIK II × 2, TOPIK I × 1), mỗi bộ gồm file `.xlsx` và file `_media.zip`
 (mp3/ảnh giả). Sinh lại bằng: `./mvnw test -Dtest=SampleFilesGenerator -Dsamples.out=samples`.
