@@ -52,51 +52,71 @@
                 <span style="flex-grow: 1;">Tổng quan</span>
             </a>
 
-            <!-- Quản lý Lý thuyết (parent, expanded since we're inside vocabulary) -->
-            <a th:href="@{/content}" class="sidebar-item" style="background: rgba(255,255,255,0.06);">
-                <span style="font-size: 17px;">📖</span>
-                <span style="flex-grow: 1;">Quản lý Lý thuyết</span>
-                <span style="font-size: 12px; color: #A9D9C0;">▾</span>
+            <!-- Quản lý Lý thuyết -->
+            <div style="display: flex; flex-direction: column;">
+                <span class="sidebar-item" style="cursor: default; background: rgba(255,255,255,0.06);">
+                    <span style="font-size: 17px;">📖</span>
+                    <span style="flex-grow: 1; font-weight: 700;">Quản lý Lý thuyết</span>
+                </span>
+                <!-- Sub-item: Kho Từ vựng (Active) -->
+                <a th:href="@{/content/vocabulary}" class="sidebar-sub-item active-sub">
+                    <span style="font-size: 14px;">↳</span>
+                    <span style="flex-grow: 1;">Kho Từ vựng TOPIK 1-6</span>
+                </a>
+                <!-- Sub-item: Kho Ngữ pháp -->
+                <a th:href="@{/content/grammar}" class="sidebar-sub-item">
+                    <span style="font-size: 14px;">↳</span>
+                    <span style="flex-grow: 1;">Kho Ngữ pháp TOPIK 1-6</span>
+                </a>
+                <!-- Sub-item: Kho từ Hán Việt -->
+                <a th:href="@{/content/hanja}" class="sidebar-sub-item">
+                    <span style="font-size: 14px;">↳</span>
+                    <span style="flex-grow: 1;">Kho từ Hán Việt</span>
+                </a>
+            </div>
+
+            <!-- Thư viện đề -->
+            <a th:href="@{/content/exams}" class="sidebar-item">
+                <span style="font-size: 17px;">📚</span>
+                <span style="flex-grow: 1;">Thư viện đề</span>
             </a>
 
-            <!-- Sub-item: Kho Từ vựng (ACTIVE) -->
-            <a th:href="@{/content/vocabulary}" class="sidebar-sub-item active-sub">
-                <span style="font-size: 14px;">↳</span>
-                <span style="flex-grow: 1;">Kho Từ vựng TOPIK 1-6</span>
-            </a>
-
-            <!-- Sub-item: Kho Ngữ pháp -->
-            <a th:href="@{/content/grammar}" class="sidebar-sub-item">
-                <span style="font-size: 14px;">↳</span>
-                <span style="flex-grow: 1;">Kho Ngữ pháp TOPIK 1-6</span>
-            </a>
-
-            <!-- Sub-item: Kho từ Hán Việt -->
-            <a th:href="@{/content/hanja}" class="sidebar-sub-item">
-                <span style="font-size: 14px;">↳</span>
-                <span style="flex-grow: 1;">Kho từ Hán Việt</span>
-            </a>
-
-            <!-- Quản lý Đề -->
-            <a th:href="@{/content?tab=exams}" class="sidebar-item">
-                <span style="font-size: 17px;">📋</span>
-                <span style="flex-grow: 1;">Quản lý Đề</span>
+            <!-- Nhập đề mới -->
+            <a th:href="@{/content/sources}" class="sidebar-item">
+                <span style="font-size: 17px;">📥</span>
+                <span style="flex-grow: 1;">Nhập đề mới</span>
             </a>
 
             <!-- Ngân hàng câu hỏi -->
-            <a th:href="@{/content?tab=questions}" class="sidebar-item">
+            <a th:href="@{/content/questions}" class="sidebar-item">
                 <span style="font-size: 17px;">📝</span>
                 <span style="flex-grow: 1;">Ngân hàng câu hỏi</span>
             </a>
 
+            <!-- Dạng câu -->
+            <a th:href="@{/content/templates}" class="sidebar-item">
+                <span style="font-size: 17px;">🧩</span>
+                <span style="flex-grow: 1;">Dạng câu</span>
+            </a>
+
+            <!-- Vị trí trong đề chuẩn -->
+            <a th:href="@{/content/question-types}" class="sidebar-item">
+                <span style="font-size: 17px;">🗂</span>
+                <span style="flex-grow: 1;">Vị trí trong đề chuẩn</span>
+            </a>
+
+            <div style="font-size: 11px; font-weight: 800; color: #8ECDB0; padding: 12px 12px 4px 12px; text-transform: uppercase; letter-spacing: 0.8px;">
+                Chất lượng
+            </div>
+
             <!-- Xử lý Báo lỗi -->
-            <a th:href="@{/content?tab=reports}" class="sidebar-item">
+            <a th:href="@{/content(tab='reports')}" class="sidebar-item">
                 <span style="font-size: 17px;">⚠️</span>
                 <span style="flex-grow: 1;">Xử lý Báo lỗi</span>
             </a>
 
             <!-- Nhật ký Thao tác -->
-            <a th:href="@{/content?tab=audit}" class="sidebar-item">
+            <a th:href="@{/content(tab='audit')}" class="sidebar-item">
                 <span style="font-size: 17px;">📜</span>
                 <span style="flex-grow: 1;">Nhật ký Thao tác</span>
             </a>

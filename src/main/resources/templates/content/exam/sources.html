@@ -18,7 +18,7 @@
 
             <div class="cm-toolbar">
                 <div class="grow cm-muted">
-                    Mỗi dòng là một bộ đề. Mở ra, chọn dạng câu, rồi bấm số câu trên lưới. Sửa một câu không làm mất các câu khác.
+                    Mỗi dòng là một bộ đề. Mở ra, chọn dạng câu, rồi bấm số câu trên lưới. Sửa một câu không làm mất các câu khác. Bạn có thể điều chỉnh trạng thái giữa Bản nháp và Đã kích hoạt bất kỳ lúc nào.
                 </div>
                 <a th:if="${canEdit}" th:href="@{/content/sources/new}" class="btn btn-ssak-primary btn-sm">+ Tạo nguồn đề</a>
             </div>
@@ -40,6 +40,7 @@
                         <th>Lần tải gần nhất</th>
                         <th>Trạng thái</th>
                         <th>Người tạo</th>
+                        <th th:if="${canEdit}">Thao tác</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -65,12 +66,31 @@
                             </th:block>
                         </td>
                         <td>
-                            <span th:if="${s.status.name() == 'ACTIVE'}" class="pill pill-mint">Đã kích hoạt</span>
-                            <span th:unless="${s.status.name() == 'ACTIVE'}" class="pill pill-gray">Nháp</span>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span th:if="${s.status.name() == 'ACTIVE'}" class="pill pill-mint">Đã kích hoạt</span>
+                                <span th:unless="${s.status.name() == 'ACTIVE'}" class="pill pill-gray">Bản nháp</span>
+                                <form th:if="${canEdit}" th:action="@{/content/sources/{id}/status(id=${s.id})}" method="post" style="display:inline; margin:0;">
+                                    <input type="hidden" name="status" th:value="${s.status.name() == 'ACTIVE' ? 'DRAFT' : 'ACTIVE'}" />
+                                    <button type="submit" class="btn btn-ssak-outline btn-xs" style="padding: 2px 7px; font-size: 11px;"
+                                            th:text="${s.status.name() == 'ACTIVE' ? 'Về Nháp' : 'Kích hoạt'}"
+                                            th:title="${s.status.name() == 'ACTIVE' ? 'Chuyển về trạng thái Bản nháp' : 'Chuyển sang trạng thái Đã kích hoạt'}">
+                                        Đổi
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                         <td>
                             <div th:text="${s.createdBy}">Lê Thu Hà</div>
                             <div class="cm-muted" th:text="${#temporals.format(s.createdAt, 'dd/MM/yyyy HH:mm')}">01/10/2026</div>
+                        </td>
+                        <td th:if="${canEdit}">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <a th:href="@{/content/sources/{id}(id=${s.id})}" class="btn btn-ssak-outline btn-xs" style="padding: 3px 8px; font-size: 12px;">Vào sửa</a>
+                                <form th:if="${s.status.name() != 'ACTIVE'}" th:action="@{/content/sources/{id}/delete(id=${s.id})}" method="post"
+                                      onsubmit="return confirm('Xoá nguồn đề nháp này?');" style="display:inline; margin:0;">
+                                    <button type="submit" class="btn btn-ssak-outline btn-xs" style="padding: 3px 8px; font-size: 12px; color: #ff4d4f; border-color: #ffccc7;">Xoá</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     </tbody>

@@ -1275,6 +1275,18 @@ public class ExamImportService {
         return writingPrompts.findBySourceIdOrderByNoAsc(sourceId);
     }
 
+    @Transactional
+    public void updateSourceStatus(Long sourceId, SourceStatus newStatus, Actor actor) {
+        requireContent(actor);
+        ExamSource source = getSource(sourceId);
+        source.setStatus(newStatus);
+        if (newStatus == SourceStatus.ACTIVE && source.getActivatedAt() == null) {
+            source.setActivatedAt(LocalDateTime.now());
+        }
+        sources.save(source);
+        log(actor, "UPDATE_STATUS", "Cập nhật trạng thái nguồn đề " + source.getName() + " thành " + newStatus);
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private ExamSource draftSource(Long id) {

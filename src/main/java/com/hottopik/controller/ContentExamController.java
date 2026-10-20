@@ -454,6 +454,19 @@ public class ContentExamController {
         });
     }
 
+    @PostMapping("/sources/{id}/status")
+    public String updateSourceStatus(@PathVariable Long id, @RequestParam SourceStatus status,
+                                     @RequestParam(required = false) String back,
+                                     HttpSession session, RedirectAttributes ra) {
+        String target = (back != null && !back.isBlank()) ? back : "/content/sources";
+        return mutate(session, ra, target, actor -> {
+            importService.updateSourceStatus(id, status, actor);
+            ra.addFlashAttribute("flashOk", "Đã đổi trạng thái nguồn đề thành: "
+                    + (status == SourceStatus.ACTIVE ? "Đã kích hoạt" : "Bản nháp"));
+            return "redirect:" + target;
+        });
+    }
+
     @PostMapping("/sources/{id}/delete")
     public String deleteSource(@PathVariable Long id, HttpSession session, RedirectAttributes ra) {
         return mutate(session, ra, "/content/sources/" + id, actor -> {

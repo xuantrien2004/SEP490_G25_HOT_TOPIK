@@ -31,7 +31,6 @@ import java.util.List;
  * Chạy lại không tạo trùng.
  */
 @Component
-@Profile("local")
 @Order(30)
 public class SamplePaperSeeder implements ApplicationRunner {
 

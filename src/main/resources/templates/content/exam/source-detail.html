@@ -22,8 +22,17 @@
             </div>
             <div class="cm-toolbar">
                 <a class="btn btn-ssak-outline btn-sm" th:href="@{/content/sources/{id}/preview(id=${source.id})}">Xem như học viên</a>
-                <span th:if="${activated}" class="pill pill-mint">Đã vào ngân hàng</span>
-                <span th:unless="${activated}" class="pill pill-gray">Đang nhập</span>
+                <span th:if="${activated}" class="pill pill-mint">Đã kích hoạt</span>
+                <span th:unless="${activated}" class="pill pill-gray">Bản nháp</span>
+                <form th:if="${canEdit}" th:action="@{/content/sources/{id}/status(id=${source.id})}" method="post" style="display:inline; margin:0;">
+                    <input type="hidden" name="status" th:value="${activated ? 'DRAFT' : 'ACTIVE'}" />
+                    <input type="hidden" name="back" th:value="@{/content/sources/{id}(id=${source.id})}" />
+                    <button type="submit" class="btn btn-ssak-outline btn-sm"
+                            th:text="${activated ? 'Chuyển về Bản nháp' : 'Kích hoạt ngay'}"
+                            th:title="${activated ? 'Chuyển về Bản nháp để chỉnh sửa' : 'Kích hoạt nguồn đề này'}">
+                        Chuyển trạng thái
+                    </button>
+                </form>
                 <span th:if="${canEdit}" class="perm perm-full">Toàn quyền</span>
                 <span th:unless="${canEdit}" class="perm perm-view">Chỉ xem</span>
             </div>
