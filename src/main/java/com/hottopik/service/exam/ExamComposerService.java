@@ -98,7 +98,7 @@ public class ExamComposerService {
     // ------------------------------------------------------------------ thư viện đề
 
     public List<Exam> library(String tab, ExamKind kind, Track track) {
-        return exams.findAllByOrderByIdDesc().stream()
+        return exams.findAllForLibrary().stream()
                 .filter(e -> kind == null || e.getKind() == kind)
                 .filter(e -> track == null || e.getTrack() == track)
                 .filter(e -> switch (tab == null ? "PUBLISHED" : tab) {
@@ -130,7 +130,7 @@ public class ExamComposerService {
     }
 
     public Exam get(Long id) {
-        return exams.findById(id).orElseThrow(() -> new ExamDomainException("Không tìm thấy đề #" + id + "."));
+        return exams.findForComposerById(id).orElseThrow(() -> new ExamDomainException("Không tìm thấy đề #" + id + "."));
     }
 
     public List<Exam> children(Long id) {

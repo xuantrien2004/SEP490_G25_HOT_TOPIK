@@ -76,7 +76,7 @@
                         <td>
                             <span class="pill"
                                   th:classappend="${e.status.name() == 'PUBLISHED'} ? 'pill-mint' : (${e.status.name() == 'PENDING_APPROVAL'} ? 'pill-honey' : 'pill-gray')"
-                                  th:text="${e.status.name() == 'PENDING_APPROVAL'} ? (${e.pendingAction == 'ARCHIVE'} ? 'Chờ duyệt lưu trữ' : 'Chờ duyệt phát hành') : ${e.status.label}">Nháp</span>
+                                  th:text="${e.status.name() == 'PENDING_APPROVAL' ? (e.pendingAction == 'ARCHIVE' ? 'Chờ duyệt lưu trữ' : 'Chờ duyệt phát hành') : e.status.label}">Nháp</span>
                         </td>
                         <td class="cm-muted" th:text="${#temporals.format(e.updatedAt, 'dd/MM/yyyy HH:mm')}">—</td>
                     </tr>

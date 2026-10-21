@@ -60,7 +60,7 @@ public class QuestionBankService {
                 PageRequest.of(Math.max(page, 0), PAGE_SIZE, Sort.by("id").ascending()));
         result.forEach(q -> {
             if (q.getSource() != null) q.getSource().getName();
-            q.getGroup().getId();
+            if (q.getGroup() != null) q.getGroup().getSize();
         });
         return result;
     }
@@ -126,12 +126,12 @@ public class QuestionBankService {
         m.put("causeHint", q.getCauseHint());
         m.put("correctRate", q.correctRate());
         m.put("attempts", q.getStatsAttempts());
-        m.put("groupSize", g.getSize());
-        m.put("groupCodes", g.getQuestions().stream().map(Question::getCode).toList());
-        m.put("scriptKo", g.getScriptKo());
-        m.put("passageKo", g.getPassageKo());
-        m.put("audioFile", g.getAudioFile());
-        m.put("imageFile", g.getImageFile());
+        m.put("groupSize", g == null ? 1 : g.getSize());
+        m.put("groupCodes", g == null ? List.of(q.getCode()) : g.getQuestions().stream().map(Question::getCode).toList());
+        m.put("scriptKo", g == null ? null : g.getScriptKo());
+        m.put("passageKo", g == null ? null : g.getPassageKo());
+        m.put("audioFile", g == null ? null : g.getAudioFile());
+        m.put("imageFile", g == null ? null : g.getImageFile());
         m.put("usages", usages(id));
         return m;
     }

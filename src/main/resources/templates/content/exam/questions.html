@@ -113,7 +113,7 @@
                             </td>
                             <td class="ko" style="max-width: 420px;">
                                 <span th:text="${#strings.abbreviate(q.promptKo, 110)}">질문</span>
-                                <div th:if="${q.group.size > 1}" class="cm-muted" th:text="${'Nhóm ' + q.group.size + ' câu'}"></div>
+                                <div th:if="${q.group != null and q.group.size > 1}" class="cm-muted" th:text="${'Nhóm ' + q.group.size + ' câu'}"></div>
                             </td>
                             <td class="cm-muted" th:text="${q.source != null ? q.source.name : 'Biên soạn'}">kỳ 83</td>
                             <td><span class="pill" th:classappend="${q.purpose.name() == 'EXAM'} ? 'pill-mint' : (${q.purpose.name() == 'PRACTICE'} ? 'pill-honey' : 'pill-gray')" th:text="${q.purpose.label}">Thi</span></td>

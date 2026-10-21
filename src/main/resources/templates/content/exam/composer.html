@@ -9,7 +9,7 @@
         <header class="cm-header">
             <div>
                 <div class="cm-muted">
-                    <a th:href="@{/content/exams(tab=${exam.status.name() == 'ARCHIVED'} ? 'ARCHIVED' : (${exam.status.name() == 'PUBLISHED'} ? 'PUBLISHED' : 'DRAFT'))}">Thư viện đề</a>
+                    <a th:href="@{/content/exams(tab=${exam.status.name() == 'ARCHIVED' ? 'ARCHIVED' : (exam.status.name() == 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT')})}">Thư viện đề</a>
                     <th:block th:if="${exam.parent != null}"> / <a th:href="@{/content/exams/{id}(id=${exam.parent.id})}" th:text="${exam.parent.name}">Full Mock</a></th:block>
                     / <span th:text="${exam.code}">EX0001</span>
                 </div>
@@ -23,7 +23,7 @@
             <div class="cm-toolbar">
                 <span class="pill"
                       th:classappend="${exam.status.name() == 'PUBLISHED'} ? 'pill-mint' : (${exam.status.name() == 'PENDING_APPROVAL'} ? 'pill-honey' : 'pill-gray')"
-                      th:text="${exam.status.name() == 'PENDING_APPROVAL'} ? (${exam.pendingAction == 'ARCHIVE'} ? 'Chờ duyệt lưu trữ' : 'Chờ duyệt phát hành') : ${exam.status.label}">Nháp</span>
+                      th:text="${exam.status.name() == 'PENDING_APPROVAL' ? (exam.pendingAction == 'ARCHIVE' ? 'Chờ duyệt lưu trữ' : 'Chờ duyệt phát hành') : exam.status.label}">Nháp</span>
                 <th:block th:if="${canEdit and isFull}">
                     <form th:if="${exam.editable}" th:action="@{/content/exams/{id}/submit(id=${exam.id})}" method="post">
                         <button class="btn btn-ssak-primary btn-sm" type="submit" th:disabled="${!chk.isOk()}"
