@@ -70,7 +70,8 @@ class ExamModuleFlowTest {
         assertTrue(importService.mediaOf(composer.get(r.examId()).getSource().getId()).stream()
                 .allMatch(m -> m.getStoragePath().startsWith("sources/")), "đường dẫn file phải tương đối so với thư mục lưu trữ");
 
-        Question first = questions.findAll().stream().min(Comparator.comparing(Question::getId)).orElseThrow();
+        Long sourceId = composer.get(r.examId()).getSource().getId();
+        Question first = questions.findBySourceIdOrderBySkillAscOriginalNoAsc(sourceId).get(0);
         assertTrue(first.getCode().matches("E\\d{4}"));
         assertEquals("II-N1", first.getTypeCode());
 

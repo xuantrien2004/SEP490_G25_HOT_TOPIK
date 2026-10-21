@@ -7,7 +7,7 @@
 
 ## 🛠️ Công nghệ sử dụng (Tech Stack)
 
-- **Backend:** Java 17, Spring Boot 3.3.4 (Spring MVC, Spring Data JPA, DevTools)
+- **Backend:** Java 25, Spring Boot 3.5.16 (Spring MVC, Spring Data JPA, DevTools)
 - **Frontend:** Thymeleaf Template Engine, HTML5, CSS3, JavaScript ES6+, Bootstrap 5.3 & Bootstrap Icons
 - **Database:** Microsoft SQL Server (tương thích cơ sở dữ liệu `FALL2026_SEP490_G25` trong file `HOT_TOPIK_3.sql`)
 - **Build Tool:** Maven (sẵn Maven Wrapper `./mvnw`, `mvnw.cmd`)
