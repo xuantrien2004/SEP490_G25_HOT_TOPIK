@@ -93,7 +93,7 @@ public class AuthController {
             case "ROLE_VIP":
             case "ROLE_USER":
             default:
-                return "redirect:/today";
+                return "redirect:/hom-nay";
         }
     }
 

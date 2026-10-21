@@ -125,7 +125,7 @@
 
             <section class="cm-card" id="roadmap-preview">
                 <div class="cm-toolbar">
-                    <h2 style="margin: 0;">Lịch mẫu 21 ngày đầu</h2>
+                    <h2 style="margin: 0;" th:text="'Lịch mẫu ' + ${days} + ' ngày'">Lịch mẫu</h2>
                     <form id="preview-form" method="get" th:action="@{/content/roadmap/{id}(id=${program.id})}" class="rd-add" style="margin: 0;">
                         <div>
                             <select class="form-select ssak-input" name="track" onchange="this.form.submit()">
@@ -151,22 +151,28 @@
                         <span th:text="${preview.newCount + ' bài mới'}">0</span>
                         · <span th:text="${preview.reviewCount + ' bài ôn'}">0</span>
                         · <span th:text="${preview.weeklyCount + ' buổi ôn tuần, mỗi buổi ' + program.weeklyReviewQuestions + ' câu'}">ôn tuần</span>
-                        · mỗi bài mới hoặc bài ôn lấy <span th:text="${program.questionsPerSession}">8</span> câu.
+                        · <span th:text="${preview.miniCount + ' mini test'}">mini</span>
+                        · <span th:text="${preview.fullCount + ' full test'}">full</span>
+                        · mỗi bài mới hoặc bài ôn lấy <span th:text="${program.questionsPerSession}">8</span> câu của dạng.
                     </p>
-                    <p class="cm-flash err" th:if="${!#lists.isEmpty(preview.unplaced)}">
+                    <p class="cm-flash err" th:if="${shortfalls != null and !#lists.isEmpty(shortfalls)}">
                         <span>!</span>
-                        <span th:text="'Chưa xếp được vì lịch không còn chỗ: ' + ${#strings.listJoin(preview.unplaced, ', ')}">thiếu</span>
+                        <span>Số ngày này chưa bao hết dạng hoặc chưa đủ số lần học. Thêm ngày rồi bấm Xem lịch.</span>
                     </p>
+                    <p class="cm-muted" th:if="${shortfalls != null and !#lists.isEmpty(shortfalls)}"
+                       th:text="${#strings.listJoin(shortfalls, ' · ')}">thiếu</p>
                     <div class="rd-days">
                         <article class="rd-day" th:each="day : ${previewDays}">
                             <div class="n" th:text="${'Ngày ' + day.day + ' · tuần ' + day.week}">Ngày 1</div>
                             <div class="cm-muted" th:text="${day.phase}">Làm quen</div>
                             <div th:if="${#lists.isEmpty(day.slots)}" class="rd-slot">Trống</div>
                             <div th:each="slot : ${day.slots}" class="rd-slot"
-                                 th:classappend="${slot.kind == 'NEW'} ? 'new' : (${slot.kind == 'WEEKLY'} ? 'weekly' : 'review')">
+                                 th:classappend="${slot.kind == 'NEW'} ? 'new' : (${slot.kind == 'WEEKLY'} ? 'weekly' : (${slot.kind == 'MINI' or slot.kind == 'FULL'} ? 'weekly' : 'review'))">
                                 <span th:if="${slot.kind == 'WEEKLY'}">Ôn tuần</span>
-                                <span th:if="${slot.kind == 'NEW'}" th:text="${'Mới · ' + slot.code}">Mới</span>
-                                <span th:if="${slot.kind == 'REVIEW'}" th:text="${'Ôn lần ' + slot.repetition + ' · ' + slot.code}">Ôn</span>
+                                <span th:if="${slot.kind == 'NEW'}">Bài mới</span>
+                                <span th:if="${slot.kind == 'REVIEW'}" th:text="${'Ôn lần ' + slot.repetition}">Ôn</span>
+                                <span th:if="${slot.kind == 'MINI'}">Mini test</span>
+                                <span th:if="${slot.kind == 'FULL'}">Full test</span>
                                 <div th:if="${slot.name != null and slot.kind != 'WEEKLY'}" th:text="${slot.name}">Tên dạng</div>
                             </div>
                         </article>

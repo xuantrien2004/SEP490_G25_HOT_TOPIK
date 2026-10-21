@@ -7,6 +7,8 @@ import java.util.List;
  * Lịch mẫu để Content Manager xem trước thứ tự đã xếp.
  * Mỗi dạng có một bài mới, rồi ôn vào các mốc (mặc định +2, +7, +14 ngày).
  * Ngày chia hết cho 7 dành một ô cho ôn tuần.
+ * Ô còn trống, thường dồn về cuối lịch, là mini test Nghe và Đọc xen kẽ.
+ * Hai ô trống cuối cùng là full test.
  */
 public final class RoadmapSketch {
 
@@ -26,7 +28,7 @@ public final class RoadmapSketch {
     }
 
     public record Result(List<Phase> phases, List<DayPlan> days, int newCount, int reviewCount,
-                         int weeklyCount, List<String> unplaced) {
+                         int weeklyCount, List<String> unplaced, int miniCount, int fullCount) {
     }
 
     private static final String[] PHASE_NAMES = {"Làm quen", "Tăng tốc", "Nước rút"};
@@ -84,6 +86,8 @@ public final class RoadmapSketch {
             }
         }
 
+        int[] trails = fillOpenSlots(grid, taken, totalDays, itemsPerDay);
+
         List<DayPlan> days = new ArrayList<>();
         for (int day = 1; day <= totalDays; day++) {
             List<Slot> slots = new ArrayList<>();
@@ -92,7 +96,54 @@ public final class RoadmapSketch {
             }
             days.add(new DayPlan(day, (day - 1) / 7 + 1, phaseOf(phases, day), slots));
         }
-        return new Result(phases, days, news, reviews, weekly, List.copyOf(unplaced));
+        return new Result(phases, days, news, reviews, weekly, List.copyOf(unplaced), trails[0], trails[1]);
+    }
+
+    /** Ô chưa xếp dạng: mini test xen kẽ Nghe/Đọc, hai ô cuối là full test. */
+    private static int[] fillOpenSlots(Slot[][] grid, boolean[][] taken, int totalDays, int itemsPerDay) {
+        List<int[]> open = new ArrayList<>();
+        for (int day = 1; day <= totalDays; day++) {
+            for (int slot = 0; slot < itemsPerDay; slot++) {
+                if (!taken[day][slot]) open.add(new int[]{day, slot});
+            }
+        }
+        int full = Math.min(2, open.size());
+        int mini = open.size() - full;
+        for (int i = 0; i < mini; i++) {
+            int[] at = open.get(i);
+            String skill = i % 2 == 0 ? "Nghe" : "Đọc";
+            grid[at[0]][at[1]] = new Slot("MINI", null, "Mini test " + skill, i + 1);
+            taken[at[0]][at[1]] = true;
+        }
+        for (int i = 0; i < full; i++) {
+            int[] at = open.get(mini + i);
+            grid[at[0]][at[1]] = new Slot("FULL", null, "Full test", i + 1);
+            taken[at[0]][at[1]] = true;
+        }
+        return new int[]{mini, full};
+    }
+
+    /** Dạng chưa có chỗ, hoặc đã có bài nhưng chưa đủ số lần học. */
+    public static List<String> incomplete(Result result, int sessions) {
+        java.util.Map<String, Integer> counts = new java.util.LinkedHashMap<>();
+        java.util.Map<String, String> names = new java.util.LinkedHashMap<>();
+        for (DayPlan day : result.days()) {
+            for (Slot slot : day.slots()) {
+                if (slot.code() == null) continue;
+                counts.merge(slot.code(), 1, Integer::sum);
+                names.putIfAbsent(slot.code(), slot.name());
+            }
+        }
+        List<String> missing = new ArrayList<>();
+        for (String name : result.unplaced()) {
+            missing.add(name + " chưa có chỗ");
+        }
+        for (java.util.Map.Entry<String, Integer> entry : counts.entrySet()) {
+            if (entry.getValue() < sessions) {
+                missing.add(names.get(entry.getKey()) + " mới có " + entry.getValue() + "/" + sessions + " lần");
+            }
+        }
+        return missing;
     }
 
     static List<Phase> phases(int totalDays, int[] split) {

@@ -212,11 +212,11 @@
             </div>
         </div>
         <p style="margin: 0; font-size: 14px; color: var(--ssak-text-muted);">
-            Sau khi nộp, hệ thống sẽ chấm điểm chi tiết và Bé Ssak sẽ cập nhật tiến độ cho bạn.
+            Nộp bài xong, lộ trình tự tính bài này.
         </p>
         <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px;">
             <button type="button" class="btn-ssak-outline" style="height: 46px; padding: 0 20px;" onclick="closeSubmitConfirm()">Làm tiếp</button>
-            <a th:href="@{/practice/result}" class="btn-ssak-primary" style="height: 46px; padding: 0 24px; text-decoration: none;">Xác nhận nộp</a>
+            <a th:href="${resultHref}" class="btn-ssak-primary" style="height: 46px; padding: 0 24px; text-decoration: none;">Xác nhận nộp</a>
         </div>
     </div>
 </div>

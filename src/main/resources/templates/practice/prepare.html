@@ -10,17 +10,23 @@
             <div style="margin: 0 auto;">
                 <div th:replace="~{fragments/ssak :: mascot('happy', 'sprout', 100, 'Ssak sẵn sàng')}"></div>
             </div>
-            <h1 style="margin: 0; font-family: var(--font-heading); font-size: 30px; font-weight: 800;">
-                Chuẩn bị bài: Đọc 13–15 · Sắp xếp câu
+            <h1 style="margin: 0; font-family: var(--font-heading); font-size: 30px; font-weight: 800;"
+                th:text="'Chuẩn bị bài: ' + ${lessonName}">
+                Chuẩn bị bài: Bài luyện
             </h1>
-            <p style="margin: 0; font-size: 15px; color: var(--ssak-text-muted); line-height: 1.6;">
-                Mục tiêu của bài này là nhận biết liên từ chuyển ý và tìm câu giới thiệu chủ đề chung trong đoạn văn ngắn.
-            </p>
+            <p style="margin: 0; font-size: 15px; color: var(--ssak-text-muted); line-height: 1.6;"
+               th:if="${trailSession}">Buổi này là mini test hoặc full test ở ô trống cuối lộ trình.</p>
+            <p style="margin: 0; font-size: 15px; color: var(--ssak-text-muted); line-height: 1.6;"
+               th:unless="${trailSession}">Bài này luyện đúng dạng Content Manager đã xếp trên lộ trình.</p>
 
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 8px 0;">
                 <div style="padding: 12px; border-radius: 14px; background: var(--ssak-bg);">
-                    <div style="font-weight: 800; font-size: 18px;">6 câu</div>
-                    <div style="font-size: 12px; color: var(--ssak-text-muted);">Số lượng câu hỏi</div>
+                    <div style="font-weight: 800; font-size: 18px;" th:if="${trailSession}"
+                         th:text="${practiceType == 'full'} ? 'Full test' : 'Mini test'">Mini test</div>
+                    <div style="font-weight: 800; font-size: 18px;" th:unless="${trailSession}"
+                         th:text="${questionCount} + ' câu'">6 câu</div>
+                    <div style="font-size: 12px; color: var(--ssak-text-muted);"
+                         th:text="${trailSession} ? 'Buổi ôn cuối lịch' : 'Số lượng câu hỏi'">Số lượng câu hỏi</div>
                 </div>
                 <div style="padding: 12px; border-radius: 14px; background: var(--ssak-bg);">
                     <div style="font-weight: 800; font-size: 18px;">12 phút</div>
@@ -32,9 +38,12 @@
                 </div>
             </div>
 
+            <p style="margin: 0; font-size: 13px; font-weight: 700; color: var(--ssak-text-muted);">
+                Nộp bài xong, lộ trình tự tính bài này.
+            </p>
             <div style="display: flex; gap: 12px; justify-content: center;">
-                <a th:href="@{/today}" class="btn-ssak-outline" style="height: 48px; padding: 0 20px;">Để sau</a>
-                <a th:href="@{/practice/play(mode='practice')}" class="btn-ssak-primary" style="height: 48px; padding: 0 32px; font-size: 16px; text-decoration: none;">
+                <a th:href="${backHref}" class="btn-ssak-outline" style="height: 48px; padding: 0 20px;">Để sau</a>
+                <a th:href="${playHref}" class="btn-ssak-primary" style="height: 48px; padding: 0 32px; font-size: 16px; text-decoration: none;">
                     Bắt đầu làm bài ngay →
                 </a>
             </div>

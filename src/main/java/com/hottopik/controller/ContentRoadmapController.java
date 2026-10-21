@@ -89,6 +89,7 @@ public class ContentRoadmapController {
             RoadmapSketch.Result preview = programs.preview(program, previewTrack, days, perDay);
             model.addAttribute("preview", preview);
             model.addAttribute("previewDays", preview.days().stream().limit(21).toList());
+            model.addAttribute("shortfalls", RoadmapSketch.incomplete(preview, program.getSessionsPerType()));
         } catch (ExamDomainException e) {
             model.addAttribute("previewError", e.getMessage());
         }

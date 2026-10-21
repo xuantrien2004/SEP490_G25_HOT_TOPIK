@@ -138,9 +138,9 @@ File script cơ sở dữ liệu gốc nằm tại: `D:\SEP490_G25\HOT_TOPIK_3.s
 | `/onboarding` | Khởi tạo mục tiêu & cách bắt đầu | `OnboardingV2` |
 | `/placement` | Kiểm tra trình độ có bấm giờ 15 phút | `KiemTraV2` |
 | `/placement/result` | Báo cáo kết quả kiểm tra & đề xuất cấp độ | `PlacementKetQuaV2` |
-| `/roadmap/create` | Thiết lập lộ trình học cá nhân hóa | `TaoLoTrinhV2` |
-| `/today` (hoặc `/dashboard`) | Cổng Hôm nay của học viên (Mầm cây Ssak, bài tập ngày) | `HomNayV2` |
-| `/roadmap` | Lộ trình học 4 chặng & Lịch trình học tập | `LoTrinhV2` / `LoTrinhChangV2` |
+| `/lo-trinh/tao` | Tạo lộ trình cá nhân từ bản Content Manager đang phát hành | `TaoLoTrinhV2` |
+| `/hom-nay` (hoặc `/today`, `/dashboard`) | Hôm nay: bài trong ngày, làm bù, ôn tuần, tuần đang học | `HomNayV2` |
+| `/lo-trinh` | Lịch học theo ngày: dạng của Content Manager, số bài trong ngày theo số ngày hoàn thành, mini test và full test ở ô trống cuối | `LoTrinhV2` |
 | `/roadmap/adjust` | Điều chỉnh lộ trình & thời gian ôn | `DieuChinhV2` |
 | `/roadmap/retrospective` | Bảng nhìn lại tuần (Weekly Retrospective) | `NhinLaiTuanV2` |
 | `/practice` | Ngân hàng câu hỏi & Luyện thi theo kỹ năng | `LuyenTapV2` |

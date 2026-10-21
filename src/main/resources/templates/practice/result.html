@@ -135,10 +135,14 @@
 
         </div>
 
-        <!-- Next Actions -->
-        <div style="display: flex; justify-content: flex-end; gap: 14px; margin-top: 10px;">
-            <a th:href="@{/today}" class="btn-ssak-outline" style="height: 52px; padding: 0 24px;">Về trang Hôm nay</a>
-            <a th:href="@{/practice/play(mode='practice', qType='listening')}" class="btn-ssak-primary" style="height: 52px; padding: 0 28px;">Làm bài tiếp theo (Nghe 9-12) →</a>
+        <div class="ssak-card" style="padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+            <p style="margin: 0; font-weight: 700; color: #4A5B60;" th:if="${counted}">
+                Bài này đã được tính vào lộ trình.
+            </p>
+            <p style="margin: 0; font-weight: 700; color: #4A5B60;" th:if="${counted == null}">
+                Xem lại bài làm, rồi quay về lịch học.
+            </p>
+            <a th:href="${backHref}" class="btn-ssak-primary" style="height: 48px; padding: 0 18px; text-decoration: none;">Về lộ trình</a>
         </div>
 
     </main>
