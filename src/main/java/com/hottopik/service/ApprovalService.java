@@ -77,6 +77,11 @@ public class ApprovalService {
 
     public ApprovalRequestDTO submitRequest(String requesterName, String requesterRole,
                                             String requestType, String title, String description) {
+        return submitRequest(requesterName, requesterRole, requestType, title, description, null);
+    }
+
+    public ApprovalRequestDTO submitRequest(String requesterName, String requesterRole,
+                                            String requestType, String title, String description, Long targetId) {
         long id = idGenerator.incrementAndGet();
         ApprovalRequestDTO req = new ApprovalRequestDTO(
                 id,
@@ -88,28 +93,22 @@ public class ApprovalService {
                 "PENDING",
                 LocalDateTime.now().format(FORMATTER)
         );
+        req.setTargetId(targetId);
         requests.put(id, req);
         return req;
     }
 
-    public ApprovalRequestDTO submitTargetedRequest(String requesterName, String requesterRole,
-                                                    String requestType, String title, String description,
-                                                    String targetType, Long targetId, String payload) {
-        boolean duplicate = requests.values().stream().anyMatch(r -> "PENDING".equalsIgnoreCase(r.getStatus())
-                && targetType.equals(r.getTargetType()) && Objects.equals(targetId, r.getTargetId())
-                && requestType.equals(r.getRequestType()));
-        if (duplicate) {
-            throw new IllegalStateException("Đối tượng này đang chờ duyệt, không gửi trùng được.");
-        }
-        ApprovalRequestDTO req = submitRequest(requesterName, requesterRole, requestType, title, description);
-        req.setTargetType(targetType);
-        req.setTargetId(targetId);
-        req.setPayload(payload);
-        return req;
+    public Optional<ApprovalRequestDTO> getRequestById(Long id) {
+        if (id == null) return Optional.empty();
+        return Optional.ofNullable(requests.get(id));
     }
 
-    public Optional<ApprovalRequestDTO> findById(Long id) {
-        return Optional.ofNullable(requests.get(id));
+    public boolean hasPendingPermanentLockRequest(Long userId) {
+        if (userId == null) return false;
+        return requests.values().stream()
+                .anyMatch(r -> "PENDING".equalsIgnoreCase(r.getStatus())
+                        && "PERMANENT_LOCK_USER".equalsIgnoreCase(r.getRequestType())
+                        && userId.equals(r.getTargetId()));
     }
 
     public boolean decideRequest(Long id, boolean approve, String note) {

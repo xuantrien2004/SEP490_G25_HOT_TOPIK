@@ -53,26 +53,33 @@
                 <span class="ssak-badge badge-honey" style="font-size: 11px; padding: 2px 7px;" th:text="${#lists.size(pendingRequests)}">3</span>
             </a>
 
-            <!-- Tab 2: Staff & Access Reviews -->
+            <!-- Tab 2: Manage Learners -->
+            <a href="javascript:void(0)" onclick="switchAdminTab('learners')" id="side-nav-learners" class="sidebar-item">
+                <span style="font-size: 17px;">🎓</span>
+                <span style="flex-grow: 1;">Quản lý Học viên</span>
+                <span class="ssak-badge badge-mint" style="font-size: 11px; padding: 2px 7px;" th:text="${#lists.size(learners)}">2</span>
+            </a>
+
+            <!-- Tab 3: Staff & Access Reviews -->
             <a href="javascript:void(0)" onclick="switchAdminTab('staff')" id="side-nav-staff" class="sidebar-item">
                 <span style="font-size: 17px;">👥</span>
                 <span style="flex-grow: 1;">Nhân sự & Phân quyền</span>
                 <span class="ssak-badge badge-mint" style="font-size: 11px; padding: 2px 7px;" th:text="${#lists.size(staffUsers)}">3</span>
             </a>
 
-            <!-- Tab 3: Configuration & AI Budget -->
+            <!-- Tab 4: Configuration & AI Budget -->
             <a href="javascript:void(0)" onclick="switchAdminTab('aibudget')" id="side-nav-aibudget" class="sidebar-item">
                 <span style="font-size: 17px;">⚙️</span>
                 <span style="flex-grow: 1;">Cấu hình & Ngân sách AI</span>
             </a>
 
-            <!-- Tab 4: Audit Log -->
+            <!-- Tab 5: Audit Log -->
             <a href="javascript:void(0)" onclick="switchAdminTab('audit')" id="side-nav-audit" class="sidebar-item">
                 <span style="font-size: 17px;">📜</span>
                 <span style="flex-grow: 1;">Nhật ký Kiểm toán</span>
             </a>
 
-            <!-- Tab 5: Break-glass Emergency -->
+            <!-- Tab 6: Break-glass Emergency -->
             <a href="javascript:void(0)" onclick="switchAdminTab('breakglass')" id="side-nav-breakglass" class="sidebar-item">
                 <span style="font-size: 17px;">🚨</span>
                 <span style="flex-grow: 1;">Quyền Khẩn cấp</span>
@@ -123,8 +130,8 @@
         <!-- Main Content Area -->
         <main style="padding: 28px 40px; display: flex; flex-direction: column; gap: 24px; flex-grow: 1;">
             
-            <!-- 4 Metric KPI Cards -->
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+            <!-- 5 Metric KPI Cards -->
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px;">
                 <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border);">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Yêu cầu chờ duyệt</span>
@@ -132,6 +139,15 @@
                     </div>
                     <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; color: #1F6B56; margin: 4px 0;" th:text="${#lists.size(pendingRequests) + ' mục'}">3 mục</div>
                     <span style="font-size: 12px; color: #1F6B56; font-weight: 700;">Từ Content & Operation</span>
+                </div>
+
+                <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Tổng học viên</span>
+                        <span style="font-size: 20px;">🎓</span>
+                    </div>
+                    <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; color: #2E7D67; margin: 4px 0;" th:text="${#lists.size(learners) + ' người'}">2 người</div>
+                    <span style="font-size: 12px; color: #2E7D67; font-weight: 700;">Gồm VIP & Standard</span>
                 </div>
 
                 <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border);">
@@ -205,8 +221,7 @@
                                     <span class="ssak-badge badge-terracotta" th:if="${req.requestType == 'REFUND_ORDER'}">Hoàn tiền đơn</span>
                                     <span class="ssak-badge badge-honey" th:if="${req.requestType == 'VIP_COMPENSATION'}">Cấp bù VIP</span>
                                     <span class="ssak-badge badge-sky" th:if="${req.requestType == 'PRICE_UPDATE'}">Điều chỉnh giá</span>
-                                    <span class="ssak-badge badge-peach" th:if="${req.requestType == 'ARCHIVE_EXAM'}">Lưu trữ đề thi</span>
-                                    <span class="ssak-badge badge-peach" th:if="${req.requestType == 'BULK_HIDE_QUESTIONS'}">Ẩn hàng loạt câu hỏi</span>
+                                    <span class="ssak-badge badge-terracotta" th:if="${req.requestType == 'PERMANENT_LOCK_USER'}">🔒 Khóa vĩnh viễn</span>
                                 </td>
                                 <td style="padding: 14px 10px; max-width: 400px;">
                                     <div style="font-weight: 800; color: #24363D;" th:text="${req.title}">Tiêu đề yêu cầu</div>
@@ -240,7 +255,83 @@
                 </div>
             </section>
 
-            <!-- TAB 2: MANAGE STAFF & ACCESS REVIEWS (Use Case: Manage Staff & Access Reviews) -->
+            <!-- TAB 2: MANAGE LEARNERS (Use Case: Manage Learners) -->
+            <section id="pane-learners" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: none; flex-direction: column; gap: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">
+                            🎓 Danh sách Học viên trong hệ thống (Manage Learners)
+                        </h3>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
+                            Quản lý quyền học viên, rà soát cấp độ mục tiêu và khóa tài khoản khi có dấu hiệu vi phạm.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase;">
+                                <th style="padding: 12px 10px;">ID</th>
+                                <th style="padding: 12px 10px;">Họ tên học viên</th>
+                                <th style="padding: 12px 10px;">Email đăng nhập</th>
+                                <th style="padding: 12px 10px;">Loại tài khoản</th>
+                                <th style="padding: 12px 10px;">Cấp độ mục tiêu</th>
+                                <th style="padding: 12px 10px;">Gói VIP</th>
+                                <th style="padding: 12px 10px;">Trạng thái</th>
+                                <th style="padding: 12px 10px; text-align: right;">Thao tác quản trị</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="u : ${learners}" th:id="${'row-learner-' + u.id}" style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
+                                <td style="padding: 14px 10px; font-weight: 800;" th:text="${u.id}">4</td>
+                                <td style="padding: 14px 10px; font-weight: 700; color: #24363D;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span style="width: 32px; height: 32px; border-radius: 50%; background: #E8F5E9; color: #1F6B56; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px;" th:text="${u.fullName != null && !u.fullName.isEmpty() ? #strings.substring(u.fullName, 0, 1) : 'U'}">N</span>
+                                        <span th:text="${u.fullName}">Nguyễn Hoàng Nam</span>
+                                    </div>
+                                </td>
+                                <td style="padding: 14px 10px; font-weight: 500;" th:text="${u.email}">viplearner@hottopik.com</td>
+                                <td style="padding: 14px 10px;">
+                                    <span class="ssak-badge badge-honey" th:if="${u.role == 'ROLE_VIP'}">👑 VIP Member</span>
+                                    <span class="ssak-badge badge-mint" th:if="${u.role != 'ROLE_VIP'}">🎓 Học viên</span>
+                                </td>
+                                <td style="padding: 14px 10px; font-weight: 700;" th:text="${u.targetLevel}">TOPIK_5</td>
+                                <td style="padding: 14px 10px;">
+                                    <span th:if="${u.vip}" style="color: #7A5A12; font-weight: 800;" th:text="${u.vipPackage}">Trọn đời</span>
+                                    <span th:if="${!u.vip}" style="color: var(--ssak-text-muted);">Gói miễn phí</span>
+                                </td>
+                                <td style="padding: 14px 10px;">
+                                    <span th:id="${'learner-status-' + u.id}" class="ssak-badge"
+                                          th:classappend="${u.pendingPermanentLock ? 'badge-honey' : (u.status == 'ACTIVE' ? 'badge-mint' : (u.status == 'PENDING_VERIFY' ? 'badge-honey' : 'badge-terracotta'))}"
+                                          th:text="${u.pendingPermanentLock ? '⏳ Chờ duyệt khóa vĩnh viễn' : (u.status == 'ACTIVE' ? 'Đang hoạt động' : (u.status == 'PENDING_VERIFY' ? 'Chờ kích hoạt' : (u.permanentlyLocked ? 'Khóa vĩnh viễn' : 'Tạm khóa')))}">
+                                        Hoạt động
+                                    </span>
+                                    <div th:if="${!u.pendingPermanentLock && u.status == 'LOCKED' && u.formattedLockedUntil != null && !u.permanentlyLocked}" style="font-size: 11px; color: #9C4A2E; margin-top: 3px;" th:text="${'Đến: ' + u.formattedLockedUntil}"></div>
+                                </td>
+                                <td style="padding: 14px 10px; text-align: right;">
+                                    <button th:if="${u.pendingPermanentLock}" type="button" class="btn-ssak-light" style="height: 34px; padding: 0 14px; font-size: 12.5px; font-weight: 800; border-radius: 10px; cursor: pointer; background: #FFFBE6; border: 1.5px solid #FFE58F; color: #D48806;"
+                                            onclick="switchAdminTab('approvals')" title="Học viên này đang có yêu cầu đề xuất khóa vĩnh viễn cần duyệt">
+                                        ⏳ Xem phiếu duyệt
+                                    </button>
+                                    <button th:if="${!u.pendingPermanentLock}" type="button" class="btn-ssak-light" style="height: 34px; padding: 0 14px; font-size: 12.5px; font-weight: 800; border-radius: 10px; cursor: pointer; transition: all 0.15s ease;"
+                                            th:id="${'btn-toggle-learner-' + u.id}"
+                                            th:data-id="${u.id}"
+                                            th:data-name="${u.fullName}"
+                                            th:data-email="${u.email}"
+                                            th:data-status="${u.status}"
+                                            onclick="openLearnerModal(this.getAttribute('data-id'), this.getAttribute('data-name'), this.getAttribute('data-email'), this.getAttribute('data-status'))">
+                                        <span th:if="${u.status == 'LOCKED'}" style="color: #1F6B56;">🔓 Mở khóa</span>
+                                        <span th:if="${u.status != 'LOCKED'}" style="color: #9C4A2E;">🔒 Khóa tài khoản</span>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB 3: MANAGE STAFF & ACCESS REVIEWS (Use Case: Manage Staff & Access Reviews) -->
             <section id="pane-staff" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: none; flex-direction: column; gap: 18px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
@@ -498,6 +589,11 @@
             title: 'Hộp phê duyệt yêu cầu (Decide Approval Requests)',
             subtitle: 'Xem xét và đưa ra quyết định phê duyệt hoặc từ chối các đề xuất từ Content Manager và Operation Manager.'
         },
+        learners: {
+            icon: '🎓',
+            title: 'Quản lý Học viên & Thành viên VIP (Manage Learners)',
+            subtitle: 'Xem thông tin học viên, cấp độ mục tiêu, trạng thái gói VIP và khóa/mở khóa tài khoản khi có vi phạm.'
+        },
         staff: {
             icon: '👥',
             title: 'Quản lý Nhân sự & Phân quyền (Manage Staff & Access Reviews)',
@@ -521,7 +617,7 @@
     };
 
     function switchAdminTab(tabName) {
-        const tabs = ['approvals', 'staff', 'aibudget', 'audit', 'breakglass'];
+        const tabs = ['approvals', 'learners', 'staff', 'aibudget', 'audit', 'breakglass'];
         tabs.forEach(t => {
             const pane = document.getElementById('pane-' + t);
             const sideNav = document.getElementById('side-nav-' + t);
@@ -714,8 +810,224 @@
         })
         .catch(e => showSsakToast('Có lỗi: ' + e));
     }
+    // ==================== LEARNER MANAGEMENT FUNCTIONS ====================
+    let currentTargetLearnerId = null;
+    let currentTargetLearnerStatus = null;
+    let currentAdminLearnerLockType = 'TEMPORARY';
+    let selectedAdminLearnerDays = 7;
+
+    function openLearnerModal(id, name, email, currentStatus) {
+        currentTargetLearnerId = id;
+        currentTargetLearnerStatus = currentStatus;
+
+        const modal = document.getElementById('learnerActionModal');
+        const iconBox = document.getElementById('modalLearnerIconBox');
+        const title = document.getElementById('modalLearnerTitle');
+        const subtitle = document.getElementById('modalLearnerSubtitle');
+        const userName = document.getElementById('modalLearnerName');
+        const userEmail = document.getElementById('modalLearnerEmail');
+        const userAvatar = document.getElementById('modalLearnerAvatar');
+        const userBadge = document.getElementById('modalLearnerBadge');
+
+        userName.textContent = name || 'Học viên';
+        userEmail.textContent = email || '';
+        userAvatar.textContent = (name && name.length > 0) ? name.charAt(0) : 'U';
+
+        const isLocked = (currentStatus === 'LOCKED');
+        const unlockPane = document.getElementById('modalAdminLearnerUnlockPane');
+        const lockPane = document.getElementById('modalAdminLearnerLockPane');
+
+        if (isLocked) {
+            unlockPane.style.display = 'block';
+            lockPane.style.display = 'none';
+            iconBox.style.background = '#E8F5E9';
+            iconBox.style.color = '#1F6B56';
+            iconBox.innerHTML = '🔓';
+            title.textContent = 'Mở khóa tài khoản học viên';
+            subtitle.textContent = 'Khôi phục toàn bộ quyền truy cập và làm bài thi';
+            userBadge.innerHTML = '<span class="ssak-badge badge-terracotta">Đang bị khóa</span>';
+            const confirmBtn = document.getElementById('modalLearnerConfirmBtn');
+            confirmBtn.style.background = '#1F6B56';
+            confirmBtn.innerHTML = '🔓 Xác nhận mở khóa';
+        } else {
+            unlockPane.style.display = 'none';
+            lockPane.style.display = 'block';
+            iconBox.style.background = '#FFF1F0';
+            iconBox.style.color = '#CF1322';
+            iconBox.innerHTML = '🔒';
+            title.textContent = 'Khóa tài khoản học viên';
+            subtitle.textContent = 'Lựa chọn hình thức tạm khóa hoặc khóa vĩnh viễn';
+            userBadge.innerHTML = '<span class="ssak-badge badge-mint">Đang hoạt động</span>';
+
+            document.getElementById('adminTempLockReason').value = '';
+            document.getElementById('adminPermLockReason').value = '';
+            document.getElementById('adminCustomDaysInput').value = '';
+            selectAdminLearnerDays(7);
+            switchAdminLearnerLockType('TEMPORARY');
+        }
+
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            const card = document.getElementById('modalLearnerCard');
+            if (card) card.style.transform = 'scale(1)';
+        }, 10);
+    }
+
+    function switchAdminLearnerLockType(type) {
+        currentAdminLearnerLockType = type;
+        const tabTemp = document.getElementById('tabAdminLockTemp');
+        const tabPerm = document.getElementById('tabAdminLockPerm');
+        const paneTemp = document.getElementById('paneAdminLockTemp');
+        const panePerm = document.getElementById('paneAdminLockPerm');
+        const confirmBtn = document.getElementById('modalLearnerConfirmBtn');
+
+        if (type === 'TEMPORARY') {
+            tabTemp.style.background = '#FFFFFF';
+            tabTemp.style.borderColor = '#C25E3E';
+            tabTemp.style.color = '#9C4A2E';
+            tabTemp.style.boxShadow = '0 2px 8px rgba(194, 94, 62, 0.12)';
+
+            tabPerm.style.background = '#F8FAFC';
+            tabPerm.style.borderColor = '#E2E8F0';
+            tabPerm.style.color = '#64748B';
+            tabPerm.style.boxShadow = 'none';
+
+            paneTemp.style.display = 'block';
+            panePerm.style.display = 'none';
+
+            confirmBtn.style.background = '#C25E3E';
+            confirmBtn.innerHTML = '🔒 Xác nhận tạm khóa';
+        } else {
+            tabPerm.style.background = '#FFFFFF';
+            tabPerm.style.borderColor = '#CF1322';
+            tabPerm.style.color = '#CF1322';
+            tabPerm.style.boxShadow = '0 2px 8px rgba(207, 19, 34, 0.12)';
+
+            tabTemp.style.background = '#F8FAFC';
+            tabTemp.style.borderColor = '#E2E8F0';
+            tabTemp.style.color = '#64748B';
+            tabTemp.style.boxShadow = 'none';
+
+            paneTemp.style.display = 'none';
+            panePerm.style.display = 'block';
+
+            confirmBtn.style.background = '#CF1322';
+            confirmBtn.innerHTML = '⛔ Xác nhận khóa vĩnh viễn';
+        }
+    }
+
+    function selectAdminLearnerDays(days) {
+        selectedAdminLearnerDays = days;
+        const chips = document.querySelectorAll('.admin-day-chip');
+        chips.forEach(c => {
+            if (parseInt(c.getAttribute('data-days')) === days) {
+                c.style.background = '#1F6B56';
+                c.style.color = '#FFFFFF';
+                c.style.borderColor = '#1F6B56';
+            } else {
+                c.style.background = '#F8FAFC';
+                c.style.color = '#334155';
+                c.style.borderColor = '#CBD5E1';
+            }
+        });
+        const customWrapper = document.getElementById('adminCustomDaysWrapper');
+        if (days === 0) {
+            customWrapper.style.display = 'block';
+            const val = parseInt(document.getElementById('adminCustomDaysInput').value);
+            selectedAdminLearnerDays = (val > 0) ? val : 7;
+        } else {
+            customWrapper.style.display = 'none';
+        }
+    }
+
+    function onAdminCustomDaysChange() {
+        const val = parseInt(document.getElementById('adminCustomDaysInput').value);
+        if (val > 0) {
+            selectedAdminLearnerDays = val;
+        }
+    }
+
+    function closeLearnerModal() {
+        const modal = document.getElementById('learnerActionModal');
+        const card = document.getElementById('modalLearnerCard');
+        if (card) card.style.transform = 'scale(0.96)';
+        setTimeout(() => {
+            if (modal) modal.style.display = 'none';
+        }, 150);
+    }
+
+    function executeLearnerToggleLock() {
+        if (!currentTargetLearnerId) return;
+        const confirmBtn = document.getElementById('modalLearnerConfirmBtn');
+
+        const isLocked = (currentTargetLearnerStatus === 'LOCKED');
+        if (isLocked) {
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '⏳ Đang xử lý...';
+            const formData = new FormData();
+            formData.append('userId', currentTargetLearnerId);
+
+            fetch('/admin/learners/unlock', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                confirmBtn.disabled = false;
+                closeLearnerModal();
+                if (data.success) {
+                    showSsakToast(data.message);
+                    setTimeout(() => window.location.reload(), 700);
+                } else {
+                    showSsakToast('Lỗi: ' + data.message);
+                }
+            })
+            .catch(e => {
+                confirmBtn.disabled = false;
+                showSsakToast('Có lỗi: ' + e);
+            });
+        } else {
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '⏳ Đang xử lý...';
+
+            const formData = new FormData();
+            formData.append('userId', currentTargetLearnerId);
+            formData.append('lockType', currentAdminLearnerLockType);
+
+            if (currentAdminLearnerLockType === 'TEMPORARY') {
+                const reason = document.getElementById('adminTempLockReason').value.trim();
+                const days = selectedAdminLearnerDays > 0 ? selectedAdminLearnerDays : 7;
+                formData.append('days', days);
+                formData.append('reason', reason || 'Tạm khóa bởi Admin');
+            } else {
+                const reason = document.getElementById('adminPermLockReason').value.trim();
+                formData.append('reason', reason || 'Khóa vĩnh viễn bởi Admin');
+            }
+
+            fetch('/admin/learners/lock', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                confirmBtn.disabled = false;
+                closeLearnerModal();
+                if (data.success) {
+                    showSsakToast(data.message);
+                    setTimeout(() => window.location.reload(), 700);
+                } else {
+                    showSsakToast('Lỗi: ' + data.message);
+                }
+            })
+            .catch(e => {
+                confirmBtn.disabled = false;
+                showSsakToast('Có lỗi: ' + e);
+            });
+        }
+    }
+
     window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeStaffModal();
+        if (e.key === 'Escape') { closeStaffModal(); closeLearnerModal(); }
     });
 </script>
 
@@ -760,6 +1072,135 @@
             </button>
             <button type="button" id="modalStaffConfirmBtn" onclick="executeStaffToggleLock()" style="height: 42px; padding: 0 22px; border-radius: 12px; border: none; font-size: 13.5px; font-weight: 800; color: #FFFFFF; background: #CF1322; cursor: pointer; transition: all 0.15s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.12);">
                 Xác nhận
+            </button>
+        </div>
+    </div>
+</div>
+<!-- Sleek Confirmation Modal for Locking/Unlocking Learners -->
+<div id="learnerActionModal" onclick="if(event.target === this) closeLearnerModal()" style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(6px); transition: all 0.2s ease;">
+    <div id="modalLearnerCard" style="background: #FFFFFF; width: 100%; max-width: 520px; border-radius: 24px; border: 1.5px solid #E8E5DC; box-shadow: 0 24px 48px -12px rgba(0,0,0,0.25); overflow: hidden; transform: scale(0.96); transition: transform 0.2s ease; margin: 16px;">
+        <!-- Header Banner -->
+        <div style="padding: 22px 28px 16px; border-bottom: 1px solid #F1EEE6; display: flex; align-items: center; gap: 14px;">
+            <div id="modalLearnerIconBox" style="width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; background: #FFF1F0;">
+                🔒
+            </div>
+            <div>
+                <h4 id="modalLearnerTitle" style="margin: 0; font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: #24363D;">Khóa tài khoản học viên</h4>
+                <p id="modalLearnerSubtitle" style="margin: 3px 0 0; font-size: 13px; color: #64748B;">Cập nhật quyền hạn truy cập của học viên</p>
+            </div>
+        </div>
+
+        <!-- Body with User Card -->
+        <div style="padding: 20px 28px; display: flex; flex-direction: column; gap: 16px; max-height: 75vh; overflow-y: auto;">
+            <!-- User Summary -->
+            <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 14px; padding: 12px 16px; display: flex; align-items: center; gap: 12px;">
+                <div id="modalLearnerAvatar" style="width: 40px; height: 40px; border-radius: 50%; background: #E8F5E9; color: #1F6B56; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; flex-shrink: 0;">
+                    U
+                </div>
+                <div style="flex-grow: 1; min-width: 0;">
+                    <div id="modalLearnerName" style="font-weight: 800; font-size: 14.5px; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Học viên</div>
+                    <div id="modalLearnerEmail" style="font-size: 12px; color: #64748B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">email@example.com</div>
+                </div>
+                <div id="modalLearnerBadge">
+                    <span class="ssak-badge badge-mint">Đang hoạt động</span>
+                </div>
+            </div>
+
+            <!-- UNLOCK PANE (Shown when current user is LOCKED) -->
+            <div id="modalAdminLearnerUnlockPane" style="display: none;">
+                <div style="padding: 16px; border-radius: 14px; background: #E8F5E9; border: 1.5px solid #C8E6C9; display: flex; gap: 12px; align-items: flex-start;">
+                    <span style="font-size: 22px;">🔓</span>
+                    <div style="font-size: 13.5px; color: #1F6B56; line-height: 1.6;">
+                        Tài khoản hiện đang bị khóa. Khi <strong>Mở khóa</strong>, học viên sẽ ngay lập tức được khôi phục toàn bộ quyền truy cập và lộ trình học tập.
+                    </div>
+                </div>
+            </div>
+
+            <!-- LOCK PANE (Shown when current user is ACTIVE) -->
+            <div id="modalAdminLearnerLockPane" style="display: block;">
+                <!-- Lock Type Tabs -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                    <button type="button" id="tabAdminLockTemp" onclick="switchAdminLearnerLockType('TEMPORARY')"
+                            style="padding: 10px 12px; border-radius: 12px; border: 1.5px solid #C25E3E; background: #FFFFFF; color: #9C4A2E; font-size: 13px; font-weight: 800; cursor: pointer; transition: all 0.15s ease; text-align: center;">
+                        ⏱️ Tạm khóa tài khoản
+                    </button>
+                    <button type="button" id="tabAdminLockPerm" onclick="switchAdminLearnerLockType('PERMANENT')"
+                            style="padding: 10px 12px; border-radius: 12px; border: 1.5px solid #E2E8F0; background: #F8FAFC; color: #64748B; font-size: 13px; font-weight: 800; cursor: pointer; transition: all 0.15s ease; text-align: center;">
+                        ⛔ Khóa vĩnh viễn (Trực tiếp)
+                    </button>
+                </div>
+
+                <!-- Subpane: Temporary Lock -->
+                <div id="paneAdminLockTemp" style="display: block;">
+                    <div style="margin-bottom: 14px;">
+                        <label style="display: block; font-size: 12.5px; font-weight: 800; color: #24363D; margin-bottom: 6px;">
+                            Thời hạn tạm khóa:
+                        </label>
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <button type="button" class="admin-day-chip" data-days="3" onclick="selectAdminLearnerDays(3)"
+                                    style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #CBD5E1; background: #F8FAFC; font-size: 12px; font-weight: 700; cursor: pointer;">
+                                3 ngày
+                            </button>
+                            <button type="button" class="admin-day-chip" data-days="7" onclick="selectAdminLearnerDays(7)"
+                                    style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #1F6B56; background: #1F6B56; color: #FFFFFF; font-size: 12px; font-weight: 700; cursor: pointer;">
+                                7 ngày (Chuẩn)
+                            </button>
+                            <button type="button" class="admin-day-chip" data-days="14" onclick="selectAdminLearnerDays(14)"
+                                    style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #CBD5E1; background: #F8FAFC; font-size: 12px; font-weight: 700; cursor: pointer;">
+                                14 ngày
+                            </button>
+                            <button type="button" class="admin-day-chip" data-days="30" onclick="selectAdminLearnerDays(30)"
+                                    style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #CBD5E1; background: #F8FAFC; font-size: 12px; font-weight: 700; cursor: pointer;">
+                                30 ngày
+                            </button>
+                            <button type="button" class="admin-day-chip" data-days="0" onclick="selectAdminLearnerDays(0)"
+                                    style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #CBD5E1; background: #F8FAFC; font-size: 12px; font-weight: 700; cursor: pointer;">
+                                Tùy chỉnh...
+                            </button>
+                        </div>
+                        <div id="adminCustomDaysWrapper" style="display: none; margin-top: 8px;">
+                            <input type="number" id="adminCustomDaysInput" class="ssak-input" min="1" max="365" placeholder="Nhập số ngày tạm khóa (vd: 45)" oninput="onAdminCustomDaysChange()" style="height: 38px; font-size: 13px;">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 12.5px; font-weight: 800; color: #24363D; margin-bottom: 6px;">
+                            Lý do tạm khóa:
+                        </label>
+                        <textarea id="adminTempLockReason" class="ssak-input" rows="3" style="width: 100%; font-size: 13px; line-height: 1.5; padding: 10px 12px; resize: vertical;"
+                                  placeholder="Ghi rõ lý do tạm khóa (được lưu vào Audit log)..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Subpane: Permanent Lock -->
+                <div id="paneAdminLockPerm" style="display: none;">
+                    <div style="padding: 12px 14px; border-radius: 12px; background: #FFF1F0; border: 1.5px solid #FFA39E; margin-bottom: 12px;">
+                        <div style="font-weight: 800; font-size: 12.5px; color: #CF1322; margin-bottom: 4px;">
+                            ⚠️ QUYỀN HẠN QUẢN TRỊ VIÊN
+                        </div>
+                        <div style="font-size: 12px; color: #5C1D11; line-height: 1.5;">
+                            Tài khoản học viên sẽ bị <strong>khóa vĩnh viễn ngay lập tức</strong> theo thẩm quyền quản trị của Administrator.
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 12.5px; font-weight: 800; color: #24363D; margin-bottom: 6px;">
+                            Lý do khóa vĩnh viễn:
+                        </label>
+                        <textarea id="adminPermLockReason" class="ssak-input" rows="3" style="width: 100%; font-size: 13px; line-height: 1.5; padding: 10px 12px; resize: vertical;"
+                                  placeholder="Ghi rõ lý do quyết định khóa vĩnh viễn..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div style="padding: 16px 28px 20px; display: flex; justify-content: flex-end; gap: 12px; background: #FAFAFA; border-top: 1px solid #F1EEE6;">
+            <button type="button" onclick="closeLearnerModal()" style="height: 42px; padding: 0 18px; border-radius: 12px; border: 1.5px solid #CBD5E1; background: #FFFFFF; font-size: 13.5px; font-weight: 700; color: #475569; cursor: pointer; transition: all 0.15s ease;">
+                Hủy bỏ
+            </button>
+            <button type="button" id="modalLearnerConfirmBtn" onclick="executeLearnerToggleLock()" style="height: 42px; padding: 0 22px; border-radius: 12px; border: none; font-size: 13.5px; font-weight: 800; color: #FFFFFF; background: #C25E3E; cursor: pointer; transition: all 0.15s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.12);">
+                🔒 Xác nhận tạm khóa
             </button>
         </div>
     </div>

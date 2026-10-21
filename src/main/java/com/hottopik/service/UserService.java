@@ -62,72 +62,72 @@ public class UserService {
     public void initSeedAccounts() {
         // Tài khoản mẫu tương thích cả seed SEP490 cũ và HotTopik_2 mới
         // 1. Administrator
-        users.put(1L, new UserDTO(
-                1L, "admin", "admin@hottopik.vn", "admin@123",
+        users.put(9001L, new UserDTO(
+                9001L, "admin", "admin@hottopik.vn", "admin@123",
                 "Quân (Admin)", "ADMIN", "Quản trị viên (Admin)",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=admin",
                 "0912345678", "TOPIK_6", "TOPIK_6", false, null
         ));
-        users.put(101L, new UserDTO(
-                101L, "admin_com", "admin@hottopik.com", "admin@123",
+        users.put(9101L, new UserDTO(
+                9101L, "admin_com", "admin@hottopik.com", "admin@123",
                 "Vũ Minh Quân", "ADMIN", "Quản trị viên (Admin)",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=admin",
                 "0912345678", "TOPIK_6", "TOPIK_6", false, null
         ));
 
         // 2. Content Manager
-        users.put(2L, new UserDTO(
-                2L, "content_manager", "content@hottopik.vn", "content@123",
+        users.put(9002L, new UserDTO(
+                9002L, "content_manager", "content@hottopik.vn", "content@123",
                 "Hà (Content)", "CONTENT_MANAGER", "Content Manager",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=content",
                 "0923456789", "TOPIK_6", "TOPIK_5", false, null
         ));
-        users.put(102L, new UserDTO(
-                102L, "content_com", "content@hottopik.com", "content@123",
+        users.put(9102L, new UserDTO(
+                9102L, "content_com", "content@hottopik.com", "content@123",
                 "Lê Thu Hà", "CONTENT_MANAGER", "Content Manager",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=content",
                 "0923456789", "TOPIK_6", "TOPIK_5", false, null
         ));
 
         // 3. Operation Manager
-        users.put(3L, new UserDTO(
-                3L, "operation_manager", "operation@hottopik.vn", "operation@123",
+        users.put(9003L, new UserDTO(
+                9003L, "operation_manager", "operation@hottopik.vn", "operation@123",
                 "Tuấn (Operation)", "OPERATION_MANAGER", "Operation Manager",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=operation",
                 "0934567890", "TOPIK_4", "TOPIK_3", false, null
         ));
-        users.put(103L, new UserDTO(
-                103L, "operation_com", "operation@hottopik.com", "operation@123",
+        users.put(9103L, new UserDTO(
+                9103L, "operation_com", "operation@hottopik.com", "operation@123",
                 "Trần Quốc Tuấn", "OPERATION_MANAGER", "Operation Manager",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=operation",
                 "0934567890", "TOPIK_4", "TOPIK_3", false, null
         ));
 
         // 4. Mentor / Teacher
-        users.put(4L, new UserDTO(
-                4L, "mentor", "mai.mentor@hottopik.vn", "teacher@123",
+        users.put(9004L, new UserDTO(
+                9004L, "mentor", "mai.mentor@hottopik.vn", "teacher@123",
                 "Cô Mai (Mentor)", "MENTOR", "Giáo viên (Mentor)",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=teacher",
                 "0967890123", "TOPIK_6", "TOPIK_6", false, null
         ));
-        users.put(104L, new UserDTO(
-                104L, "teacher_com", "teacher@hottopik.com", "teacher@123",
+        users.put(9104L, new UserDTO(
+                9104L, "teacher_com", "teacher@hottopik.com", "teacher@123",
                 "Cô Mai (Giáo viên)", "MENTOR", "Giáo viên (Mentor)",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=teacher",
                 "0967890123", "TOPIK_6", "TOPIK_6", false, null
         ));
 
         // 5. Learner (Student)
-        users.put(5L, new UserDTO(
-                5L, "learner", "learner@hottopik.com", "user@123",
+        users.put(9005L, new UserDTO(
+                9005L, "learner", "learner@hottopik.com", "user@123",
                 "Phạm Minh Anh", "STUDENT", "Học viên",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=learner",
                 "0956789012", "TOPIK_2", "TOPIK_1", false, null
         ));
 
         // 6. VIP Learner
-        users.put(6L, new UserDTO(
-                6L, "vip_learner", "viplearner@hottopik.com", "vip@123",
+        users.put(9006L, new UserDTO(
+                9006L, "vip_learner", "viplearner@hottopik.com", "vip@123",
                 "Nguyễn Hoàng Nam", "STUDENT", "Học viên VIP",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=viplearner",
                 "0945678901", "TOPIK_5", "TOPIK_3", true, "VIP Trọn đời (Lifetime VIP)"
@@ -605,26 +605,37 @@ public class UserService {
         );
         dto.setCoinBalance(u.getCoinBalance() != null ? u.getCoinBalance() : 0);
         dto.setStudiedDays(u.getStudiedDays() != null ? u.getStudiedDays() : 0);
+        dto.setLockedUntil(u.getLockedUntil());
+        dto.setLockReason(u.getLockReason());
         return dto;
     }
 
     public List<UserDTO> getAllUsers() {
         Map<String, UserDTO> merged = new LinkedHashMap<>();
+        Set<Long> usedIds = new HashSet<>();
         try {
             List<User> dbUsers = userRepository.findAll();
             for (User u : dbUsers) {
                 if (u.getEmail() != null) {
                     UserDTO dto = mapToDTO(u);
                     merged.put(u.getEmail().trim().toLowerCase(), dto);
+                    if (dto.getId() != null) {
+                        usedIds.add(dto.getId());
+                    }
                 }
             }
         } catch (Exception ex) {
             log.warn("Lỗi đọc danh sách users từ database: {}", ex.getMessage());
         }
 
-        // Bổ sung các tài khoản mẫu in-memory nếu chưa có trong DB
+        // Bổ sung các tài khoản mẫu in-memory nếu chưa có trong DB (đảm bảo ID không trùng lặp với DB)
+        long nextFallbackId = 9000L;
         for (UserDTO u : users.values()) {
             if (u.getEmail() != null && !merged.containsKey(u.getEmail().trim().toLowerCase())) {
+                while (usedIds.contains(u.getId())) {
+                    u.setId(++nextFallbackId);
+                }
+                usedIds.add(u.getId());
                 merged.put(u.getEmail().trim().toLowerCase(), u);
             }
         }
@@ -674,48 +685,140 @@ public class UserService {
     }
 
     @Transactional
-    public boolean toggleUserLock(Long id) {
+    public boolean lockUserTemporarily(Long id, int days, String reason) {
+        if (id == null) return false;
+        int lockDays = days > 0 ? days : 7;
+        String lockRsn = (reason != null && !reason.trim().isEmpty()) ? reason.trim() : "Tạm khóa theo quy định vận hành";
+        LocalDateTime until = LocalDateTime.now().plusDays(lockDays);
+        boolean found = false;
+        try {
+            Optional<User> uOpt = userRepository.findById(id);
+            if (uOpt.isPresent()) {
+                User u = uOpt.get();
+                u.setStatus("LOCKED");
+                u.setLockedUntil(until);
+                u.setLockReason(lockRsn);
+                userRepository.save(u);
+                found = true;
+
+                // Chỉ đồng bộ in-memory nếu cùng EMAIL
+                for (UserDTO mem : users.values()) {
+                    if (mem.getEmail() != null && mem.getEmail().equalsIgnoreCase(u.getEmail())) {
+                        mem.setStatus("LOCKED");
+                        mem.setLockedUntil(until);
+                        mem.setLockReason(lockRsn);
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Lỗi tạm khóa user trong DB: {}", ex.getMessage());
+        }
+
+        // Chỉ tìm trong in-memory nếu DB không có user này
+        if (!found) {
+            UserDTO mem = users.get(id);
+            if (mem != null) {
+                mem.setStatus("LOCKED");
+                mem.setLockedUntil(until);
+                mem.setLockReason(lockRsn);
+                found = true;
+            }
+        }
+        return found;
+    }
+
+    @Transactional
+    public boolean lockUserPermanently(Long id, String reason) {
+        if (id == null) return false;
+        String lockRsn = (reason != null && !reason.trim().isEmpty()) ? reason.trim() : "Khóa vĩnh viễn theo quyết định của ban quản trị";
+        LocalDateTime until = LocalDateTime.now().plusYears(100);
+        boolean found = false;
+        try {
+            Optional<User> uOpt = userRepository.findById(id);
+            if (uOpt.isPresent()) {
+                User u = uOpt.get();
+                u.setStatus("LOCKED");
+                u.setLockedUntil(until);
+                u.setLockReason(lockRsn);
+                userRepository.save(u);
+                found = true;
+
+                // Chỉ đồng bộ in-memory nếu cùng EMAIL
+                for (UserDTO mem : users.values()) {
+                    if (mem.getEmail() != null && mem.getEmail().equalsIgnoreCase(u.getEmail())) {
+                        mem.setStatus("LOCKED");
+                        mem.setLockedUntil(until);
+                        mem.setLockReason(lockRsn);
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Lỗi khóa vĩnh viễn user trong DB: {}", ex.getMessage());
+        }
+
+        // Chỉ tìm trong in-memory nếu DB không có user này
+        if (!found) {
+            UserDTO mem = users.get(id);
+            if (mem != null) {
+                mem.setStatus("LOCKED");
+                mem.setLockedUntil(until);
+                mem.setLockReason(lockRsn);
+                found = true;
+            }
+        }
+        return found;
+    }
+
+    @Transactional
+    public boolean unlockUser(Long id) {
         if (id == null) return false;
         boolean found = false;
         try {
             Optional<User> uOpt = userRepository.findById(id);
             if (uOpt.isPresent()) {
                 User u = uOpt.get();
-                if ("LOCKED".equalsIgnoreCase(u.getStatus())) {
-                    u.setStatus("ACTIVE");
-                    u.setLockedUntil(null);
-                    u.setLockReason(null);
-                    u.setFailedLoginCount((short) 0);
-                } else {
-                    u.setStatus("LOCKED");
-                    u.setLockedUntil(LocalDateTime.now().plusYears(10));
-                    u.setLockReason("Khóa bởi ban điều hành/quản trị viên");
-                }
+                u.setStatus("ACTIVE");
+                u.setLockedUntil(null);
+                u.setLockReason(null);
+                u.setFailedLoginCount((short) 0);
                 userRepository.save(u);
                 found = true;
 
-                // Đồng bộ in-memory nếu tồn tại
+                // Chỉ đồng bộ in-memory nếu cùng EMAIL
                 for (UserDTO mem : users.values()) {
                     if (mem.getEmail() != null && mem.getEmail().equalsIgnoreCase(u.getEmail())) {
-                        mem.setStatus(u.getStatus());
+                        mem.setStatus("ACTIVE");
+                        mem.setLockedUntil(null);
+                        mem.setLockReason(null);
                     }
                 }
             }
         } catch (Exception ex) {
-            log.warn("Lỗi cập nhật trạng thái khóa user trong DB: {}", ex.getMessage());
+            log.warn("Lỗi mở khóa user trong DB: {}", ex.getMessage());
         }
 
-        UserDTO mem = users.get(id);
-        if (mem != null) {
-            if ("LOCKED".equalsIgnoreCase(mem.getStatus())) {
+        // Chỉ tìm trong in-memory nếu DB không có user này
+        if (!found) {
+            UserDTO mem = users.get(id);
+            if (mem != null) {
                 mem.setStatus("ACTIVE");
-            } else {
-                mem.setStatus("LOCKED");
+                mem.setLockedUntil(null);
+                mem.setLockReason(null);
+                found = true;
             }
-            found = true;
         }
-
         return found;
+    }
+
+    @Transactional
+    public boolean toggleUserLock(Long id) {
+        if (id == null) return false;
+        Optional<UserDTO> uOpt = findById(id);
+        if (uOpt.isPresent() && "LOCKED".equalsIgnoreCase(uOpt.get().getStatus())) {
+            return unlockUser(id);
+        } else {
+            return lockUserTemporarily(id, 7, "Khóa tài khoản bởi ban điều hành/quản trị viên");
+        }
     }
 
     /**

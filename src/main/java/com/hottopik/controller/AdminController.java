@@ -54,11 +54,149 @@ public class AdminController {
         model.addAttribute("pendingRequests", approvalService.getPendingRequests());
         model.addAttribute("allRequests", approvalService.getAllRequests());
         model.addAttribute("staffUsers", userService.getStaffUsers());
+        java.util.List<UserDTO> learners = userService.getLearners();
+        for (UserDTO l : learners) {
+            l.setPendingPermanentLock(approvalService.hasPendingPermanentLockRequest(l.getId()));
+        }
+        model.addAttribute("learners", learners);
         model.addAttribute("aiBudgets", adminSystemService.getAiBudgets());
         model.addAttribute("auditLogs", adminSystemService.getAuditLogs());
         model.addAttribute("breakGlassActive", adminSystemService.isBreakGlassActive());
 
         return "admin/dashboard";
+    }
+
+    @PostMapping("/learners/lock")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> lockLearner(
+            @RequestParam("userId") Long userId,
+            @RequestParam("lockType") String lockType,
+            @RequestParam(value = "days", required = false, defaultValue = "7") Integer days,
+            @RequestParam(value = "reason", required = false) String reason,
+            HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+
+        if (currentUser == null || !currentUser.isAdmin()) {
+            resp.put("success", false);
+            resp.put("message", "Từ chối quyền truy cập.");
+            return ResponseEntity.status(403).body(resp);
+        }
+
+        UserDTO target = userService.findById(userId).orElse(null);
+        if (target == null) {
+            resp.put("success", false);
+            resp.put("message", "Không tìm thấy học viên.");
+            return ResponseEntity.ok(resp);
+        }
+
+        String targetEmail = target.getEmail() != null ? target.getEmail() : ("ID #" + userId);
+        String lockRsn = (reason != null && !reason.trim().isEmpty()) ? reason.trim() : "Khóa bởi Admin";
+
+        if ("PERMANENT".equalsIgnoreCase(lockType)) {
+            boolean ok = userService.lockUserPermanently(userId, lockRsn);
+            if (ok) {
+                adminSystemService.logAction(
+                        currentUser.getFullName(),
+                        currentUser.getRole(),
+                        "LOCK_LEARNER_PERMANENT",
+                        "LEARNER",
+                        "Admin khóa vĩnh viễn tài khoản " + targetEmail + ". Lý do: " + lockRsn,
+                        "127.0.0.1"
+                );
+                resp.put("success", true);
+                resp.put("status", "LOCKED");
+                resp.put("message", "Đã khóa vĩnh viễn tài khoản " + targetEmail + " thành công!");
+            } else {
+                resp.put("success", false);
+                resp.put("message", "Không thể khóa tài khoản.");
+            }
+        } else {
+            int lockDays = (days != null && days > 0) ? days : 7;
+            boolean ok = userService.lockUserTemporarily(userId, lockDays, lockRsn);
+            if (ok) {
+                String expiryStr = java.time.LocalDateTime.now().plusDays(lockDays).format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+                adminSystemService.logAction(
+                        currentUser.getFullName(),
+                        currentUser.getRole(),
+                        "LOCK_LEARNER_TEMP",
+                        "LEARNER",
+                        "Admin tạm khóa tài khoản " + targetEmail + " trong " + lockDays + " ngày (đến " + expiryStr + "). Lý do: " + lockRsn,
+                        "127.0.0.1"
+                );
+                resp.put("success", true);
+                resp.put("status", "LOCKED");
+                resp.put("message", "Đã tạm khóa tài khoản " + targetEmail + " trong " + lockDays + " ngày thành công!");
+            } else {
+                resp.put("success", false);
+                resp.put("message", "Không thể tạm khóa tài khoản.");
+            }
+        }
+        return ResponseEntity.ok(resp);
+    }
+
+    @PostMapping("/learners/unlock")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> unlockLearner(
+            @RequestParam("userId") Long userId,
+            HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+
+        if (currentUser == null || !currentUser.isAdmin()) {
+            resp.put("success", false);
+            resp.put("message", "Từ chối quyền truy cập.");
+            return ResponseEntity.status(403).body(resp);
+        }
+
+        UserDTO target = userService.findById(userId).orElse(null);
+        if (target == null) {
+            resp.put("success", false);
+            resp.put("message", "Không tìm thấy học viên.");
+            return ResponseEntity.ok(resp);
+        }
+
+        boolean ok = userService.unlockUser(userId);
+        if (ok) {
+            String targetEmail = target.getEmail() != null ? target.getEmail() : ("ID #" + userId);
+            adminSystemService.logAction(
+                    currentUser.getFullName(),
+                    currentUser.getRole(),
+                    "UNLOCK_LEARNER",
+                    "LEARNER",
+                    "Admin mở khóa tài khoản học viên " + targetEmail,
+                    "127.0.0.1"
+            );
+            resp.put("success", true);
+            resp.put("status", "ACTIVE");
+            resp.put("message", "Đã mở khóa tài khoản học viên " + targetEmail + " thành công!");
+        } else {
+            resp.put("success", false);
+            resp.put("message", "Không thể mở khóa tài khoản.");
+        }
+        return ResponseEntity.ok(resp);
+    }
+
+    @PostMapping("/learners/toggle-lock")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> toggleLearnerLock(
+            @RequestParam("userId") Long userId,
+            HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+
+        if (currentUser == null || !currentUser.isAdmin()) {
+            resp.put("success", false);
+            resp.put("message", "Từ chối quyền truy cập.");
+            return ResponseEntity.status(403).body(resp);
+        }
+
+        UserDTO target = userService.findById(userId).orElse(null);
+        if (target != null && "LOCKED".equalsIgnoreCase(target.getStatus())) {
+            return unlockLearner(userId, session);
+        } else {
+            return lockLearner(userId, "TEMPORARY", 7, "Tạm khóa bởi Admin", session);
+        }
     }
 
     @PostMapping("/approval/decide")
@@ -77,6 +215,14 @@ public class AdminController {
             return ResponseEntity.status(403).body(resp);
         }
 
+        java.util.Optional<com.hottopik.dto.ApprovalRequestDTO> reqOpt = approvalService.getRequestById(requestId);
+        if (reqOpt.isEmpty()) {
+            resp.put("success", false);
+            resp.put("message", "Không tìm thấy yêu cầu.");
+            return ResponseEntity.ok(resp);
+        }
+
+        com.hottopik.dto.ApprovalRequestDTO req = reqOpt.get();
         boolean approve = "approve".equalsIgnoreCase(decision);
         if (!approve && (note == null || note.trim().length() < 5)) {
             resp.put("success", false);
@@ -93,19 +239,32 @@ public class AdminController {
         }
 
         if (success) {
+            // Nếu phê duyệt yêu cầu khóa vĩnh viễn học viên -> Thực hiện khóa vĩnh viễn ngay
+            if (approve && "PERMANENT_LOCK_USER".equalsIgnoreCase(req.getRequestType()) && req.getTargetId() != null) {
+                userService.lockUserPermanently(req.getTargetId(), "Khóa vĩnh viễn theo phê duyệt của Admin: " + (note != null ? note : req.getDescription()));
+                adminSystemService.logAction(
+                        currentUser.getFullName(),
+                        currentUser.getRole(),
+                        "LOCK_LEARNER_PERMANENT",
+                        "LEARNER",
+                        "Phê duyệt khóa vĩnh viễn tài khoản học viên ID #" + req.getTargetId() + (note != null ? " - Ghi chú: " + note : ""),
+                        "127.0.0.1"
+                );
+            }
+
             adminSystemService.logAction(
                     currentUser.getFullName(),
                     currentUser.getRole(),
                     approve ? "APPROVE_REQUEST" : "REJECT_REQUEST",
                     "APPROVAL_REQUEST",
-                    "Quyết định: " + (approve ? "PHÊ DUYỆT" : "TỪ CHỐI") + " yêu cầu #" + requestId + (note != null ? " - Ghi chú: " + note : ""),
+                    "Quyết định: " + (approve ? "PHÊ DUYỆT" : "TỪ CHỐI") + " yêu cầu #" + requestId + " (" + req.getTitle() + ")" + (note != null ? " - Ghi chú: " + note : ""),
                     "127.0.0.1"
             );
             resp.put("success", true);
             resp.put("message", approve ? "Đã phê duyệt yêu cầu thành công!" : "Đã từ chối yêu cầu.");
         } else {
             resp.put("success", false);
-            resp.put("message", "Không tìm thấy yêu cầu.");
+            resp.put("message", "Không thể xử lý yêu cầu.");
         }
         return ResponseEntity.ok(resp);
     }
