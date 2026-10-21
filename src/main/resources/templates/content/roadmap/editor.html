@@ -95,7 +95,7 @@
                                     <input type="hidden" name="track" th:value="${previewTrack}">
                                     <input type="hidden" name="days" th:value="${days}">
                                     <input type="hidden" name="perDay" th:value="${perDay}">
-                                    <button class="btn btn-sm" type="submit" style="color:#9C4A2E;" onclick="return confirm('Gỡ dạng này khỏi lộ trình?')">Gỡ</button>
+                                    <button class="btn btn-sm" type="submit" style="color:#9C4A2E;">Gỡ</button>
                                 </form>
                             </div>
                         </li>
@@ -178,6 +178,7 @@
 </div>
 <script th:if="${editable}">
 (function () {
+    document.documentElement.style.overflowAnchor = "none";
     var scrollKey = "roadmap-scroll:" + location.pathname;
     var saved = sessionStorage.getItem(scrollKey);
     if (saved !== null) {
@@ -194,11 +195,54 @@
         sessionStorage.setItem(scrollKey, String(window.scrollY));
     }
 
-    document.querySelectorAll(".rd-add form, .rd-order form").forEach(function (form) {
-        if (!form.querySelector("input[name=dir]")) {
-            form.addEventListener("submit", rememberScroll);
-        }
-    });
+    function syncAdd(card, doc) {
+        var heading = card.querySelector("h2");
+        if (!heading) return;
+        var title = heading.textContent.trim();
+        var nextCard = null;
+        doc.querySelectorAll(".cm-grid-2 > section").forEach(function (section) {
+            var nextHeading = section.querySelector("h2");
+            if (nextHeading && nextHeading.textContent.trim() === title) nextCard = section;
+        });
+        if (!nextCard) return;
+        var currentAdd = card.querySelector("form.rd-add");
+        var nextAdd = nextCard.querySelector("form.rd-add");
+        if (nextAdd && currentAdd) currentAdd.replaceWith(nextAdd);
+        else if (nextAdd) card.appendChild(nextAdd);
+        else if (currentAdd) currentAdd.remove();
+    }
+
+    function postAndRefresh(form, y, onOk) {
+        var body = new URLSearchParams(new FormData(form));
+        previewFields(body);
+        fetch(form.action, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: body,
+            credentials: "same-origin"
+        }).then(function (response) {
+            return response.text().then(function (html) {
+                return { ok: response.ok, html: html };
+            });
+        }).then(function (result) {
+            var doc = new DOMParser().parseFromString(result.html, "text/html");
+            if (!result.ok || !doc.getElementById("roadmap-preview") || doc.querySelector(".cm-flash.err")) {
+                rememberScroll();
+                location.reload();
+                return;
+            }
+            var next = doc.getElementById("roadmap-preview");
+            var current = document.getElementById("roadmap-preview");
+            if (next && current) current.replaceWith(next);
+            if (onOk) onOk(doc);
+            window.scrollTo(0, y);
+        }).catch(function () {
+            rememberScroll();
+            location.reload();
+        }).finally(function () {
+            busy = false;
+        });
+    }
 
     function renumber(list, lock) {
         var rows = list.querySelectorAll(":scope > li");
@@ -234,13 +278,26 @@
 
     var busy = false;
     document.querySelectorAll(".rd-order form").forEach(function (form) {
-        var dir = form.querySelector("input[name=dir]");
-        if (!dir) return;
         form.addEventListener("submit", function (event) {
             event.preventDefault();
             if (busy) return;
+            var dir = form.querySelector("input[name=dir]");
             var row = form.closest("li");
             var list = row.parentElement;
+            if (!dir) {
+                busy = true;
+                var box = row.getBoundingClientRect();
+                var y = window.scrollY;
+                if (box.top < 0) y = Math.max(0, y - box.height - 8);
+                var card = list.closest("section");
+                row.remove();
+                renumber(list, true);
+                postAndRefresh(form, y, function (doc) {
+                    syncAdd(card, doc);
+                    renumber(list, false);
+                });
+                return;
+            }
             var neighbor = dir.value === "up" ? row.previousElementSibling : row.nextElementSibling;
             if (!neighbor) return;
             busy = true;
@@ -253,36 +310,9 @@
             if (rect.top < 8 || rect.bottom > window.innerHeight - 8) {
                 row.scrollIntoView({ block: "nearest" });
             }
-            var y = window.scrollY;
-            var body = new URLSearchParams(new FormData(form));
-            previewFields(body);
-            fetch(form.action, {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: body,
-                credentials: "same-origin"
-            }).then(function (response) {
-                return response.text().then(function (html) {
-                    return { ok: response.ok, html: html };
-                });
-            }).then(function (result) {
-                var doc = new DOMParser().parseFromString(result.html, "text/html");
-                if (!result.ok || !doc.getElementById("roadmap-preview") || doc.querySelector(".cm-flash.err")) {
-                    rememberScroll();
-                    location.reload();
-                    return;
-                }
-                var next = doc.getElementById("roadmap-preview");
-                var current = document.getElementById("roadmap-preview");
-                if (next && current) current.replaceWith(next);
-                window.scrollTo(0, y);
+            postAndRefresh(form, window.scrollY, function () {
                 renumber(list, false);
                 row.classList.add("rd-moved");
-            }).catch(function () {
-                rememberScroll();
-                location.reload();
-            }).finally(function () {
-                busy = false;
             });
         });
     });
