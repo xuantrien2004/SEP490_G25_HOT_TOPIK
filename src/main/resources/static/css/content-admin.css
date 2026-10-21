@@ -88,7 +88,8 @@
 .cm-drop { border: 2px dashed #2E7D67; border-radius: 16px; padding: 20px; background: #F8FAF8; display: flex; flex-direction: column; gap: 10px; }
 .cm-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .rd-order { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.rd-order li { display: flex; justify-content: space-between; gap: 10px; align-items: center; border: 1.5px solid var(--ssak-border); border-radius: 12px; padding: 8px 10px; }
+.rd-order li { display: flex; justify-content: space-between; gap: 10px; align-items: center; border: 1.5px solid var(--ssak-border); border-radius: 12px; padding: 8px 10px; scroll-margin-top: 16px; }
+.rd-order li.rd-moved { border-color: #1F6B56; background: #F3FAF6; }
 .rd-actions { display: flex; gap: 4px; flex-shrink: 0; }
 .rd-add { margin-top: 12px; }
 .rd-add > div { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }

@@ -70,28 +70,40 @@
                         <h3>Chưa có dạng</h3>
                     </div>
                     <ol class="rd-order" th:unless="${#lists.isEmpty(col.items)}">
-                        <li th:each="item, stat : ${col.items}">
+                        <li th:each="item, stat : ${col.items}" th:id="${'item-' + item.id}">
                             <div>
-                                <b th:text="${stat.count + '. ' + item.template.code}">1. TPL1-LIS-01</b>
+                                <b th:data-code="${item.template.code}" th:text="${stat.count + '. ' + item.template.code}">1. TPL1-LIS-01</b>
                                 <div th:text="${item.template.name}">Nghe câu hỏi</div>
                                 <div class="cm-muted" th:text="${item.template.skill.label + ' · vùng ' + item.template.zoneMin + '–' + item.template.zoneMax}">Nghe</div>
                             </div>
                             <div class="rd-actions" th:if="${editable}">
                                 <form method="post" th:action="@{/content/roadmap/{id}/items/{itemId}/move(id=${program.id}, itemId=${item.id})}">
                                     <input type="hidden" name="dir" value="up">
+                                    <input type="hidden" name="track" th:value="${previewTrack}">
+                                    <input type="hidden" name="days" th:value="${days}">
+                                    <input type="hidden" name="perDay" th:value="${perDay}">
                                     <button class="btn btn-ssak-outline btn-sm" type="submit" th:disabled="${stat.first}">Lên</button>
                                 </form>
                                 <form method="post" th:action="@{/content/roadmap/{id}/items/{itemId}/move(id=${program.id}, itemId=${item.id})}">
                                     <input type="hidden" name="dir" value="down">
+                                    <input type="hidden" name="track" th:value="${previewTrack}">
+                                    <input type="hidden" name="days" th:value="${days}">
+                                    <input type="hidden" name="perDay" th:value="${perDay}">
                                     <button class="btn btn-ssak-outline btn-sm" type="submit" th:disabled="${stat.last}">Xuống</button>
                                 </form>
                                 <form method="post" th:action="@{/content/roadmap/{id}/items/{itemId}/remove(id=${program.id}, itemId=${item.id})}">
+                                    <input type="hidden" name="track" th:value="${previewTrack}">
+                                    <input type="hidden" name="days" th:value="${days}">
+                                    <input type="hidden" name="perDay" th:value="${perDay}">
                                     <button class="btn btn-sm" type="submit" style="color:#9C4A2E;" onclick="return confirm('Gỡ dạng này khỏi lộ trình?')">Gỡ</button>
                                 </form>
                             </div>
                         </li>
                     </ol>
                     <form th:if="${editable and !#lists.isEmpty(col.available)}" method="post" th:action="@{/content/roadmap/{id}/items(id=${program.id})}" class="rd-add">
+                        <input type="hidden" name="track" th:value="${previewTrack}">
+                        <input type="hidden" name="days" th:value="${days}">
+                        <input type="hidden" name="perDay" th:value="${perDay}">
                         <label class="cm-muted" th:for="${'add-' + col.track}">Thêm dạng</label>
                         <div>
                             <select class="form-select ssak-input" name="templateId" th:id="${'add-' + col.track}" required>
@@ -111,10 +123,10 @@
                 </form>
             </section>
 
-            <section class="cm-card">
+            <section class="cm-card" id="roadmap-preview">
                 <div class="cm-toolbar">
                     <h2 style="margin: 0;">Lịch mẫu 21 ngày đầu</h2>
-                    <form method="get" th:action="@{/content/roadmap/{id}(id=${program.id})}" class="rd-add" style="margin: 0;">
+                    <form id="preview-form" method="get" th:action="@{/content/roadmap/{id}(id=${program.id})}" class="rd-add" style="margin: 0;">
                         <div>
                             <select class="form-select ssak-input" name="track" onchange="this.form.submit()">
                                 <option value="TOPIK_I" th:selected="${previewTrack.name() == 'TOPIK_I'}">TOPIK I</option>
@@ -164,5 +176,117 @@
         </main>
     </div>
 </div>
+<script th:if="${editable}">
+(function () {
+    var scrollKey = "roadmap-scroll:" + location.pathname;
+    var saved = sessionStorage.getItem(scrollKey);
+    if (saved !== null) {
+        sessionStorage.removeItem(scrollKey);
+        var y = Number(saved);
+        if (!isNaN(y)) {
+            var restore = function () { window.scrollTo(0, y); };
+            restore();
+            window.addEventListener("load", restore);
+        }
+    }
+
+    function rememberScroll() {
+        sessionStorage.setItem(scrollKey, String(window.scrollY));
+    }
+
+    document.querySelectorAll(".rd-add form, .rd-order form").forEach(function (form) {
+        if (!form.querySelector("input[name=dir]")) {
+            form.addEventListener("submit", rememberScroll);
+        }
+    });
+
+    function renumber(list, lock) {
+        var rows = list.querySelectorAll(":scope > li");
+        rows.forEach(function (row, index) {
+            var title = row.querySelector("b");
+            if (title && title.dataset.code) {
+                title.textContent = (index + 1) + ". " + title.dataset.code;
+            }
+            row.querySelectorAll(".rd-actions form").forEach(function (action) {
+                var button = action.querySelector("button");
+                var direction = action.querySelector("input[name=dir]");
+                if (!button) return;
+                if (lock) {
+                    button.disabled = true;
+                    return;
+                }
+                if (!direction) {
+                    button.disabled = false;
+                    return;
+                }
+                button.disabled = direction.value === "up" ? index === 0 : index === rows.length - 1;
+            });
+        });
+    }
+
+    function previewFields(body) {
+        var preview = document.getElementById("preview-form");
+        if (!preview) return;
+        new FormData(preview).forEach(function (value, key) {
+            body.set(key, value);
+        });
+    }
+
+    var busy = false;
+    document.querySelectorAll(".rd-order form").forEach(function (form) {
+        var dir = form.querySelector("input[name=dir]");
+        if (!dir) return;
+        form.addEventListener("submit", function (event) {
+            event.preventDefault();
+            if (busy) return;
+            var row = form.closest("li");
+            var list = row.parentElement;
+            var neighbor = dir.value === "up" ? row.previousElementSibling : row.nextElementSibling;
+            if (!neighbor) return;
+            busy = true;
+            if (dir.value === "up") list.insertBefore(row, neighbor);
+            else list.insertBefore(neighbor, row);
+            list.querySelectorAll("li").forEach(function (item) { item.classList.remove("rd-moved"); });
+            row.classList.add("rd-moved");
+            renumber(list, true);
+            var rect = row.getBoundingClientRect();
+            if (rect.top < 8 || rect.bottom > window.innerHeight - 8) {
+                row.scrollIntoView({ block: "nearest" });
+            }
+            var y = window.scrollY;
+            var body = new URLSearchParams(new FormData(form));
+            previewFields(body);
+            fetch(form.action, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: body,
+                credentials: "same-origin"
+            }).then(function (response) {
+                return response.text().then(function (html) {
+                    return { ok: response.ok, html: html };
+                });
+            }).then(function (result) {
+                var doc = new DOMParser().parseFromString(result.html, "text/html");
+                if (!result.ok || !doc.getElementById("roadmap-preview") || doc.querySelector(".cm-flash.err")) {
+                    rememberScroll();
+                    location.reload();
+                    return;
+                }
+                var next = doc.getElementById("roadmap-preview");
+                var current = document.getElementById("roadmap-preview");
+                if (next && current) current.replaceWith(next);
+                window.scrollTo(0, y);
+                renumber(list, false);
+                row.classList.add("rd-moved");
+            }).catch(function () {
+                rememberScroll();
+                location.reload();
+            }).finally(function () {
+                busy = false;
+            });
+        });
+    });
+})();
+</script>
 </body>
 </html>

@@ -113,30 +113,39 @@ public class ContentRoadmapController {
 
     @PostMapping("/{id}/items/{itemId}/move")
     public String move(@PathVariable Long id, @PathVariable Long itemId, @RequestParam String dir,
+                       @RequestParam(required = false) String track,
+                       @RequestParam(required = false) Integer days,
+                       @RequestParam(required = false) Integer perDay,
                        HttpSession session, RedirectAttributes ra) {
-        return mutate(session, ra, "/content/roadmap/" + id, actor -> {
+        return mutate(session, ra, editorPath(id, track, days, perDay), actor -> {
             programs.move(id, itemId, "up".equals(dir) ? -1 : 1, actor);
-            return "redirect:/content/roadmap/" + id;
+            return "redirect:" + editorPath(id, track, days, perDay);
         });
     }
 
     @PostMapping("/{id}/items/{itemId}/remove")
     public String remove(@PathVariable Long id, @PathVariable Long itemId,
+                         @RequestParam(required = false) String track,
+                         @RequestParam(required = false) Integer days,
+                         @RequestParam(required = false) Integer perDay,
                          HttpSession session, RedirectAttributes ra) {
-        return mutate(session, ra, "/content/roadmap/" + id, actor -> {
+        return mutate(session, ra, editorPath(id, track, days, perDay), actor -> {
             programs.remove(id, itemId, actor);
             ra.addFlashAttribute("flashOk", "Đã gỡ dạng khỏi lộ trình.");
-            return "redirect:/content/roadmap/" + id;
+            return "redirect:" + editorPath(id, track, days, perDay);
         });
     }
 
     @PostMapping("/{id}/items")
     public String add(@PathVariable Long id, @RequestParam Long templateId,
+                      @RequestParam(required = false) String track,
+                      @RequestParam(required = false) Integer days,
+                      @RequestParam(required = false) Integer perDay,
                       HttpSession session, RedirectAttributes ra) {
-        return mutate(session, ra, "/content/roadmap/" + id, actor -> {
+        return mutate(session, ra, editorPath(id, track, days, perDay), actor -> {
             programs.add(id, templateId, actor);
             ra.addFlashAttribute("flashOk", "Đã thêm dạng vào cuối lộ trình của track đó.");
-            return "redirect:/content/roadmap/" + id;
+            return "redirect:" + editorPath(id, track, days, perDay);
         });
     }
 
@@ -164,6 +173,14 @@ public class ContentRoadmapController {
             return "redirect:/login";
         }
         return "redirect:/today";
+    }
+
+    /** Giữ bộ lọc lịch mẫu khi sắp lại thứ tự, để trang không mở lại bằng tham số mặc định. */
+    private static String editorPath(Long id, String track, Integer days, Integer perDay) {
+        String chosen = "TOPIK_II".equalsIgnoreCase(track) ? "TOPIK_II" : "TOPIK_I";
+        int safeDays = days == null ? 60 : Math.max(31, Math.min(200, days));
+        int safePerDay = perDay == null ? 2 : Math.max(1, Math.min(4, perDay));
+        return "/content/roadmap/" + id + "?track=" + chosen + "&days=" + safeDays + "&perDay=" + safePerDay;
     }
 
     private static void common(Model model, UserDTO user, String title) {
