@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<th:block th:replace="~{fragments/content-shell :: styles}"></th:block>
+<div class="cm-shell">
+    <aside th:replace="~{fragments/content-shell :: sidebar('templates')}"></aside>
+    <div class="cm-main">
+        <header class="cm-header">
+            <div>
+                <div class="cm-muted"><a th:href="@{/content/templates}">Dạng câu</a></div>
+                <h1 th:text="${template.code + ' · ' + template.name}">TPL1-LIS-01</h1>
+                <div class="sub" th:text="${template.track.label + ' · ' + template.skill.label + ' · phiên bản ' + template.version}">TOPIK I</div>
+            </div>
+            <span class="pill" th:classappend="${template.status.name() == 'ACTIVE'} ? 'pill-mint' : 'pill-gray'" th:text="${template.status.label}">Đang dùng</span>
+        </header>
+        <main class="cm-body">
+            <th:block th:replace="~{fragments/content-shell :: flash}"></th:block>
+
+            <div class="cm-grid-2">
+                <div class="cm-card">
+                    <h2>Form nhập câu khi chọn dạng này</h2>
+                    <ul class="check-list" style="margin-top: 12px;">
+                        <li th:each="line : ${fields}"><span class="ic ok">✓</span><span th:text="${line}">Trường</span></li>
+                    </ul>
+                    <p class="cm-muted" style="margin-top: 12px;" th:if="${template.rubric != null}" th:text="${'Tiêu chí chấm: ' + template.rubric}">Rubric</p>
+                </div>
+                <div class="cm-card">
+                    <h2>Cách dùng dạng này</h2>
+                    <p style="margin-top: 14px;" th:text="${template.description}">Mô tả</p>
+                    <p class="cm-muted" th:text="${template.track.label + ' · ' + template.skill.label + ' · ' + template.childLabel}">TOPIK I · Nghe · 1 câu</p>
+                    <p class="cm-muted">Luyện theo dạng, mini test và lộ trình dùng dạng này khi các ô bên dưới còn bật.</p>
+                </div>
+            </div>
+
+            <form class="cm-card" th:action="@{/content/templates/{code}(code=${template.code})}" method="post" style="max-width: 860px;">
+                <h2>Sửa thông tin dạng câu</h2>
+                <p class="cm-muted">Sửa tên hoặc tắt dùng không viết lại câu đã có và không đổi đề đã xuất bản. Lần khởi động sau không đè bản đã sửa.</p>
+                <div class="cm-form" style="margin-top: 14px;">
+                    <div class="full">
+                        <label for="name">Tên</label>
+                        <input id="name" name="name" class="form-control ssak-input" required maxlength="200" th:value="${template.name}" th:disabled="${!canEdit}">
+                    </div>
+                    <div class="full">
+                        <label for="description">Mô tả</label>
+                        <textarea id="description" name="description" class="form-control ssak-input" rows="3" required th:disabled="${!canEdit}" th:text="${template.description}"></textarea>
+                    </div>
+                    <div>
+                        <label for="status">Trạng thái</label>
+                        <select id="status" name="status" class="form-select ssak-input" th:disabled="${!canEdit}">
+                            <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.label}" th:selected="${s == template.status}">Đang dùng</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Dùng ở đâu</label>
+                        <label class="cm-check"><input type="checkbox" name="allowPractice" value="true" th:checked="${template.allowPractice}" th:disabled="${!canEdit}"> Luyện theo dạng</label>
+                        <label class="cm-check"><input type="checkbox" name="allowMiniTest" value="true" th:checked="${template.allowMiniTest}" th:disabled="${!canEdit}"> Mini test</label>
+                        <label class="cm-check"><input type="checkbox" name="allowRoadmap" value="true" th:checked="${template.allowRoadmap}" th:disabled="${!canEdit}"> Lộ trình</label>
+                    </div>
+                </div>
+                <div class="cm-toolbar" style="margin-top: 16px;" th:if="${canEdit}">
+                    <button class="btn btn-ssak-primary btn-sm" type="submit">Lưu dạng câu</button>
+                </div>
+            </form>
+        </main>
+    </div>
+</div>
+</body>
+</html>

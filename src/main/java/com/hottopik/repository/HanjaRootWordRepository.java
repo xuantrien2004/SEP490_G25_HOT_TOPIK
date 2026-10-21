@@ -18,4 +18,8 @@ public interface HanjaRootWordRepository extends JpaRepository<HanjaRootWord, Ha
     @Modifying
     @Query("DELETE FROM HanjaRootWord hrw WHERE hrw.hanjaRoot.id = :rootId")
     void deleteByRootId(@Param("rootId") Integer rootId);
+
+    @Modifying
+    @Query("DELETE FROM HanjaRootWord hrw WHERE hrw.hanjaRoot.id = :rootId AND hrw.vocabulary.id = :vocabId")
+    void deleteByRootIdAndVocabId(@Param("rootId") Integer rootId, @Param("vocabId") Long vocabId);
 }

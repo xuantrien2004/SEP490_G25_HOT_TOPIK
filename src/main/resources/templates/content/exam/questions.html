@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<th:block th:replace="~{fragments/content-shell :: styles}"></th:block>
+<div class="cm-shell">
+    <aside th:replace="~{fragments/content-shell :: sidebar('questions')}"></aside>
+    <div class="cm-main">
+        <header th:replace="~{fragments/content-shell :: header('Ngân hàng câu hỏi', 'Câu trắc nghiệm và đề Viết đã đưa vào ngân hàng từ tờ nhập đề. Lọc theo kỹ năng và dạng câu đã chốt.')}"></header>
+        <main class="cm-body">
+            <th:block th:replace="~{fragments/content-shell :: flash}"></th:block>
+
+            <div class="cm-kpis">
+                <div class="cm-kpi"><div class="label">Tổng số câu</div><div class="value" th:text="${counts['total']}">0</div></div>
+                <div class="cm-kpi ok"><div class="label">Đang dùng</div><div class="value" th:text="${counts['active']}">0</div></div>
+                <div class="cm-kpi"><div class="label">Đã ẩn</div><div class="value" th:text="${counts['hidden']}">0</div></div>
+                <div class="cm-kpi"><div class="label">Khớp bộ lọc</div><div class="value" th:text="${result.totalElements}">0</div></div>
+            </div>
+
+            <form class="cm-card" method="get" th:action="@{/content/questions}" id="filterForm" style="padding: 16px 18px;">
+                <div class="cm-filters">
+                    <div>
+                        <label for="f-track">Track</label>
+                        <select id="f-track" name="track" class="form-select ssak-input js-auto">
+                            <option value="">Tất cả</option>
+                            <option th:each="t : ${tracks}" th:value="${t}" th:text="${t.label}" th:selected="${f.track() == t}">TOPIK I</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="f-skill">Kỹ năng</label>
+                        <select id="f-skill" name="skill" class="form-select ssak-input js-auto">
+                            <option value="">Tất cả</option>
+                            <option th:each="s : ${skills}" th:value="${s}" th:text="${s.label}" th:selected="${f.skill() == s}">Nghe</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="f-type">Dạng câu</label>
+                        <select id="f-type" name="type" class="form-select ssak-input js-auto">
+                            <option value="">Tất cả</option>
+                            <option th:each="t : ${typeOptions}" th:value="${t.code}" th:selected="${f.typeCode() == t.code}"
+                                    th:text="${t.code + ' · ' + t.name}">TPL1-LIS-01</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="f-source">Nguồn đề</label>
+                        <select id="f-source" name="source" class="form-select ssak-input js-auto">
+                            <option value="">Tất cả</option>
+                            <option th:each="s : ${sources}" th:value="${s.id}" th:text="${s.name}" th:selected="${f.sourceId() == s.id}">kỳ 83</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="f-purpose">Mục đích</label>
+                        <select id="f-purpose" name="purpose" class="form-select ssak-input js-auto">
+                            <option value="">Tất cả</option>
+                            <option th:each="p : ${purposes}" th:value="${p}" th:text="${p.label}" th:selected="${f.purpose() == p}">Thi</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="f-status">Trạng thái</label>
+                        <select id="f-status" name="status" class="form-select ssak-input js-auto">
+                            <option value="">Tất cả</option>
+                            <option th:each="s : ${questionStatuses}" th:if="${s.name() != 'DRAFT'}" th:value="${s}" th:text="${s.label}" th:selected="${f.status() == s}">Đang dùng</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="cm-toolbar" style="margin-top: 12px;">
+                    <input name="q" class="form-control ssak-input grow" style="max-width: 460px;" th:value="${f.q()}"
+                           placeholder="Tìm theo mã câu (E0012), nội dung tiếng Hàn, phương án hoặc giải thích" aria-label="Tìm kiếm">
+                    <button class="btn btn-ssak-primary btn-sm" type="submit">Tìm</button>
+                    <a class="btn btn-ssak-light btn-sm" th:href="@{/content/questions}">Xoá bộ lọc</a>
+                </div>
+            </form>
+
+            <form id="bulkForm" method="post" th:action="@{/content/questions/bulk}">
+                <input type="hidden" name="back" class="js-back">
+                <div class="cm-card" th:if="${canEdit}" id="bulkBar" style="padding: 12px 18px; display: none;">
+                    <div class="cm-toolbar">
+                        <b id="bulkCount">0 câu đã chọn</b>
+                        <select name="action" id="bulkAction" class="form-select ssak-input" style="max-width: 230px;" aria-label="Thao tác hàng loạt">
+                            <option value="hide">Ẩn</option>
+                            <option value="show">Hiện lại</option>
+                            <option value="practice">Chuyển sang Luyện</option>
+                            <option value="exam">Chuyển sang Thi</option>
+                        </select>
+                        <input name="reason" id="bulkReason" class="form-control ssak-input grow" style="max-width: 360px;" placeholder="Lý do (bắt buộc khi ẩn, ít nhất 5 ký tự)">
+                        <button class="btn btn-ssak-primary btn-sm" type="submit">Áp dụng</button>
+                    </div>
+                    <div class="cm-muted" style="margin-top: 6px;">Ẩn hơn 20 câu một lần cần Admin duyệt trong Hộp duyệt.</div>
+                </div>
+
+                <div class="cm-table-wrap" style="margin-top: 20px;">
+                    <div th:if="${result.totalElements == 0 and #lists.isEmpty(writings)}" class="cm-empty">
+                        <div class="icon">📝</div>
+                        <h3 th:text="${counts['total'] == 0} ? 'Ngân hàng chưa có câu nào' : 'Không có câu khớp bộ lọc'">Trống</h3>
+                        <p th:if="${counts['total'] == 0 and #lists.isEmpty(writings)}">Câu hỏi vào ngân hàng khi bạn đưa một tờ đề đã nhập vào ngân hàng và thư viện đề.</p>
+                        <a th:if="${counts['total'] == 0 and canEdit}" th:href="@{/content/sources}" class="btn btn-ssak-primary btn-sm">Nhập đề mới</a>
+                        <a th:unless="${counts['total'] == 0}" th:href="@{/content/questions}" class="btn btn-ssak-light btn-sm">Xoá bộ lọc</a>
+                    </div>
+                    <table th:unless="${result.totalElements == 0}" class="cm-table">
+                        <thead>
+                        <tr>
+                            <th th:if="${canEdit}"><input type="checkbox" id="checkAll" aria-label="Chọn tất cả trên trang"></th>
+                            <th>Mã</th><th>Dạng</th><th>Câu hỏi</th><th>Nguồn</th><th>Mục đích</th><th>Tỉ lệ đúng</th><th>Trạng thái</th><th></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="q : ${result.content}">
+                            <td th:if="${canEdit}"><input type="checkbox" name="ids" class="js-row" th:value="${q.id}" th:attr="aria-label=${'Chọn ' + q.code}"></td>
+                            <td class="code" th:text="${q.code}">E0001</td>
+                            <td th:with="mold=${q.templateCode != null and !#strings.isEmpty(q.templateCode) ? q.templateCode : templateOfType[q.typeCode]}">
+                                <span class="pill pill-sky" th:text="${mold != null ? mold : q.typeCode}" th:title="${typeNames[mold != null ? mold : q.typeCode]}">TPL1-LIS-01</span>
+                                <div class="cm-muted" style="white-space: nowrap;" th:text="${q.skill.label + ' · câu ' + q.originalNo}">Nghe · câu 1</div>
+                            </td>
+                            <td class="ko" style="max-width: 420px;">
+                                <span th:text="${#strings.abbreviate(q.promptKo, 110)}">질문</span>
+                                <div th:if="${q.group != null and q.group.size > 1}" class="cm-muted" th:text="${'Nhóm ' + q.group.size + ' câu'}"></div>
+                            </td>
+                            <td class="cm-muted" th:text="${q.source != null ? q.source.name : 'Biên soạn'}">kỳ 83</td>
+                            <td><span class="pill" th:classappend="${q.purpose.name() == 'EXAM'} ? 'pill-mint' : (${q.purpose.name() == 'PRACTICE'} ? 'pill-honey' : 'pill-gray')" th:text="${q.purpose.label}">Thi</span></td>
+                            <td style="white-space: nowrap;">
+                                <span th:if="${q.correctRate() == null}" class="cm-muted">—</span>
+                                <th:block th:if="${q.correctRate() != null}">
+                                    <span th:text="${q.correctRate() + '%'}">60%</span>
+                                    <span class="cm-muted" th:text="${'(' + q.statsAttempts + ')'}"></span>
+                                    <span th:if="${q.abnormal}" class="pill pill-peach" title="Tỉ lệ đúng dưới 20% hoặc trên 95%: nên rà lại">Bất thường</span>
+                                </th:block>
+                            </td>
+                            <td>
+                                <span class="pill" th:classappend="${q.status.name() == 'ACTIVE'} ? 'pill-mint' : 'pill-gray'" th:text="${q.status.label}">Đang dùng</span>
+                            </td>
+                            <td><button type="button" class="btn btn-ssak-light btn-sm js-open" th:attr="data-qid=${q.id}">Chi tiết</button></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+
+            <div class="cm-card" th:if="${!#lists.isEmpty(writings)}" style="margin-top: 20px;">
+                <h2>Đề Viết</h2>
+                <div class="cm-table-wrap" style="border: none; margin-top: 10px;">
+                    <table class="cm-table">
+                        <thead>
+                        <tr><th>Mã</th><th>Dạng</th><th>Đề bài</th><th>Nguồn</th><th>Trạng thái</th></tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="w : ${writings}">
+                            <td class="code" th:text="${w.code}">W0001</td>
+                            <td>
+                                <span class="pill pill-sky" th:text="${writingMolds[w.no]}">TPL2-WRI-01</span>
+                                <div class="cm-muted" th:text="${'Viết · câu ' + w.no}">Viết · câu 51</div>
+                            </td>
+                            <td class="ko" th:text="${#strings.abbreviate(w.promptKo, 110)}">Đề viết</td>
+                            <td class="cm-muted" th:text="${w.source != null ? w.source.name : '—'}">kỳ 83</td>
+                            <td><span class="pill" th:classappend="${w.status.name() == 'ACTIVE'} ? 'pill-mint' : 'pill-gray'" th:text="${w.status.label}">Đang dùng</span></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <nav th:if="${result.totalPages > 1 and (f.skill() == null or f.skill().name() != 'WRITING')}" class="cm-toolbar" aria-label="Phân trang">
+                <span class="cm-muted grow" th:text="${'Trang ' + (result.number + 1) + ' / ' + result.totalPages + ' · 12 câu mỗi trang'}"></span>
+                <a th:each="i : ${#numbers.sequence(0, result.totalPages - 1)}"
+                   th:if="${i == 0 or i == result.totalPages - 1 or (i >= result.number - 2 and i <= result.number + 2)}"
+                   class="btn btn-sm" th:classappend="${i == result.number} ? 'btn-ssak-primary' : 'btn-ssak-light'"
+                   th:href="@{/content/questions(track=${f.track()}, skill=${f.skill()}, type=${f.typeCode()}, source=${f.sourceId()}, purpose=${f.purpose()}, status=${f.status()}, q=${f.q()}, page=${i})}"
+                   th:text="${i + 1}">1</a>
+            </nav>
+        </main>
+    </div>
+</div>
+
+<!-- Chi tiết / sửa câu -->
+<div class="modal fade" id="qModal" tabindex="-1" aria-labelledby="qTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius: 18px;">
+            <div class="modal-header"><h5 class="modal-title" id="qTitle">Câu hỏi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+            <div class="modal-body" id="qBody"></div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    (function () {
+        const base = /*[[@{/content}]]*/ '/content';
+        const canEdit = /*[[${canEdit}]]*/ false;
+        const back = location.pathname + location.search;
+        const esc = s => (s ?? '').toString().replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+        const purposeLabel = {EXAM: 'Thi', PRACTICE: 'Luyện', ASSESSMENT: 'Đánh giá đầu vào'};
+
+        document.querySelectorAll('.js-back').forEach(i => i.value = back);
+        document.querySelectorAll('.js-auto').forEach(s => s.addEventListener('change', () => document.getElementById('filterForm').submit()));
+
+        const rows = [...document.querySelectorAll('.js-row')];
+        const bar = document.getElementById('bulkBar');
+        const refresh = () => {
+            const n = rows.filter(r => r.checked).length;
+            if (bar) bar.style.display = n ? 'block' : 'none';
+            const c = document.getElementById('bulkCount');
+            if (c) c.textContent = n + ' câu đã chọn';
+        };
+        rows.forEach(r => r.addEventListener('change', refresh));
+        const all = document.getElementById('checkAll');
+        if (all) all.addEventListener('change', () => { rows.forEach(r => r.checked = all.checked); refresh(); });
+        const bulk = document.getElementById('bulkForm');
+        bulk.addEventListener('submit', ev => {
+            const action = document.getElementById('bulkAction').value;
+            const reason = document.getElementById('bulkReason').value.trim();
+            if (action === 'hide' && reason.length < 5) {
+                ev.preventDefault();
+                window.showSsakToast ? showSsakToast('Nhập lý do ẩn (ít nhất 5 ký tự).', 'error') : alert('Nhập lý do ẩn (ít nhất 5 ký tự).');
+            }
+        });
+
+        const postForm = (action, fields) => {
+            const f = document.createElement('form');
+            f.method = 'post'; f.action = action; f.style.display = 'none';
+            Object.entries({...fields, back}).forEach(([k, v]) => {
+                const i = document.createElement('input'); i.type = 'hidden'; i.name = k; i.value = v; f.appendChild(i);
+            });
+            document.body.appendChild(f); f.submit();
+        };
+
+        async function open(id) {
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('qModal'));
+            const body = document.getElementById('qBody');
+            body.innerHTML = '<div class="cm-empty">Đang tải…</div>';
+            modal.show();
+            let q;
+            try {
+                const res = await fetch(`${base}/questions/${id}/detail`);
+                q = await res.json();
+                if (!res.ok) throw new Error(q.message || 'Không tải được câu hỏi');
+            } catch (e) {
+                body.innerHTML = `<div class="cm-flash err"><span>!</span><span>${esc(e.message)}</span></div>`;
+                return;
+            }
+            document.getElementById('qTitle').textContent = `${q.code} · ${q.typeCode} · ${q.track} ${q.skill} ${q.originalNo}`;
+            const media = q.audioFile && q.sourceId ? `<audio controls preload="none" style="width:100%" src="${base}/media/${q.sourceId}/${encodeURIComponent(q.audioFile)}"></audio>` : '';
+            const img = q.imageFile && q.sourceId ? `<img alt="Hình minh hoạ" style="max-width:100%;border-radius:10px" src="${base}/media/${q.sourceId}/${encodeURIComponent(q.imageFile)}">` : '';
+            const usages = q.usages.length
+                ? q.usages.map(u => `<a href="${base}/exams/${u.examId}">${esc(u.examName)}</a> <span class="cm-muted">(${esc(u.status)})</span>`).join('<br>')
+                : '<span class="cm-muted">Chưa dùng trong đề nào</span>';
+            const ro = canEdit ? '' : 'disabled';
+            body.innerHTML = `
+                <div class="cm-grid-2">
+                    <div>
+                        <div class="cm-muted">${esc(q.typeName)} · nguồn ${esc(q.source || 'Biên soạn')}</div>
+                        <div class="cm-toolbar" style="margin:8px 0">
+                            <span class="pill ${q.status === 'ACTIVE' ? 'pill-mint' : 'pill-gray'}">${q.status === 'ACTIVE' ? 'Đang dùng' : 'Đã ẩn'}</span>
+                            <span class="pill pill-honey">${esc(purposeLabel[q.purpose] || q.purpose)}</span>
+                            ${q.groupSize > 1 ? `<span class="pill pill-sky">Nhóm: ${esc(q.groupCodes.join(', '))}</span>` : ''}
+                            ${q.correctRate != null ? `<span class="pill pill-gray">Đúng ${q.correctRate}% / ${q.attempts} lượt</span>` : ''}
+                        </div>
+                        ${q.hiddenReason && q.status !== 'ACTIVE' ? `<div class="cm-flash err" style="margin-bottom:8px"><span>!</span><span>Lý do ẩn: ${esc(q.hiddenReason)}</span></div>` : ''}
+                        <div class="q-preview">
+                            ${media}${img}
+                            ${q.passageKo ? `<div class="q-passage">${esc(q.passageKo)}</div>` : ''}
+                            ${q.scriptKo ? `<details><summary>Lời thoại</summary><div class="q-passage">${esc(q.scriptKo)}</div></details>` : ''}
+                        </div>
+                        ${q.causeHint ? `<div style="margin-top:8px" class="cm-muted">Gợi ý nguyên nhân sai: ${esc(q.causeHint)}</div>` : ''}
+                        <div style="margin-top:10px"><b>Dùng trong đề</b><div>${usages}</div></div>
+                    </div>
+                    <form method="post" action="${base}/questions/${q.id}" id="editForm">
+                        <input type="hidden" name="back" value="${esc(back)}">
+                        <label class="form-label" style="font-weight:800;font-size:13px" for="e-prompt">Câu hỏi (tiếng Hàn)</label>
+                        <textarea id="e-prompt" name="promptKo" class="form-control ssak-input ko" rows="3" required ${ro}>${esc(q.promptKo)}</textarea>
+                        ${q.options.map((o, i) => `
+                            <div class="cm-toolbar" style="margin-top:8px">
+                                <label class="cm-check" style="margin:0"><input type="radio" name="answer" value="${i + 1}" ${i + 1 === q.answer ? 'checked' : ''} ${ro} aria-label="Đáp án ${i + 1}"> ${'①②③④'[i]}</label>
+                                <input name="opt${i + 1}" class="form-control ssak-input ko grow" value="${esc(o)}" required ${ro}>
+                            </div>`).join('')}
+                        <label class="form-label" style="font-weight:800;font-size:13px;margin-top:10px" for="e-exp">Giải thích (tiếng Việt)</label>
+                        <textarea id="e-exp" name="explanationVi" class="form-control ssak-input" rows="3" ${ro}>${esc(q.explanationVi)}</textarea>
+                        <label class="form-label" style="font-weight:800;font-size:13px;margin-top:10px" for="e-reason">Lý do (bắt buộc khi đổi đáp án)</label>
+                        <input id="e-reason" name="reason" class="form-control ssak-input" ${ro}>
+                        ${canEdit ? `<div class="cm-toolbar" style="margin-top:12px">
+                            <button class="btn btn-ssak-primary btn-sm" type="submit">Lưu thay đổi</button>
+                            ${q.status === 'ACTIVE'
+                                ? '<button class="btn btn-ssak-light btn-sm" type="button" id="btnHide">Ẩn câu…</button>'
+                                : '<button class="btn btn-ssak-light btn-sm" type="button" id="btnShow">Hiện lại</button>'}
+                            ${q.purpose === 'ASSESSMENT' ? '' : `<button class="btn btn-ssak-light btn-sm" type="button" id="btnPurpose">Chuyển sang ${q.purpose === 'EXAM' ? 'Luyện' : 'Thi'}</button>`}
+                        </div>` : '<div class="cm-muted" style="margin-top:10px">Chế độ chỉ xem.</div>'}
+                    </form>
+                </div>`;
+            if (!canEdit) return;
+            const form = document.getElementById('editForm');
+            form.addEventListener('submit', ev => {
+                const changed = Number(form.answer.value) !== q.answer;
+                if (changed && form.reason.value.trim().length < 5) {
+                    ev.preventDefault();
+                    alert('Đổi đáp án cần nhập lý do (ít nhất 5 ký tự).');
+                }
+            });
+            const hide = document.getElementById('btnHide');
+            if (hide) hide.addEventListener('click', () => {
+                const reason = prompt('Lý do ẩn câu (ít nhất 5 ký tự). Câu bị ẩn không được chọn vào đề mới; kết quả cũ giữ nguyên.');
+                if (reason == null) return;
+                if (reason.trim().length < 5) { alert('Lý do cần ít nhất 5 ký tự.'); return; }
+                postForm(`${base}/questions/${q.id}/status`, {hidden: 'true', reason});
+            });
+            const show = document.getElementById('btnShow');
+            if (show) show.addEventListener('click', () => postForm(`${base}/questions/${q.id}/status`, {hidden: 'false'}));
+            const purpose = document.getElementById('btnPurpose');
+            if (purpose) purpose.addEventListener('click', () => postForm(`${base}/questions/${q.id}/purpose`, {purpose: q.purpose === 'EXAM' ? 'PRACTICE' : 'EXAM'}));
+        }
+
+        document.querySelectorAll('.js-open').forEach(b => b.addEventListener('click', () => open(b.dataset.qid)));
+    })();
+</script>
+</body>
+</html>

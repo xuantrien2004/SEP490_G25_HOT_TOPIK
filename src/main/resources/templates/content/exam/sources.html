@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<th:block th:replace="~{fragments/content-shell :: styles}"></th:block>
+<div class="cm-shell">
+    <aside th:replace="~{fragments/content-shell :: sidebar('sources')}"></aside>
+    <div class="cm-main">
+        <header th:replace="~{fragments/content-shell :: header('Nhập đề mới', 'Tạo một bộ đề, chọn Nghe, Đọc hoặc Viết, rồi chọn dạng câu và bấm số câu trên lưới.')}"></header>
+        <main class="cm-body">
+            <th:block th:replace="~{fragments/content-shell :: flash}"></th:block>
+
+            <div class="cm-steps" aria-label="Quy trình nhập đề">
+                <div class="cm-step"><span class="dot">1</span><div><div class="t">Tạo bộ đề</div><div class="s">Tên, TOPIK I hoặc II, bản quyền</div></div></div>
+                <div class="cm-step"><span class="dot">2</span><div><div class="t">Chọn dạng câu, điền câu</div><div class="s">Một file nghe hoặc một đoạn văn cho các câu dùng chung</div></div></div>
+                <div class="cm-step"><span class="dot">3</span><div><div class="t">Đưa vào ngân hàng</div><div class="s">Khi bài đã đủ. Giải thích điền sau cũng được</div></div></div>
+            </div>
+
+            <div class="cm-toolbar">
+                <div class="grow cm-muted">
+                    Mỗi dòng là một bộ đề. Mở ra, chọn dạng câu, rồi bấm số câu trên lưới. Sửa một câu không làm mất các câu khác. Bạn có thể điều chỉnh trạng thái giữa Bản nháp và Đã kích hoạt bất kỳ lúc nào.
+                </div>
+                <a th:if="${canEdit}" th:href="@{/content/sources/new}" class="btn btn-ssak-primary btn-sm">+ Tạo nguồn đề</a>
+            </div>
+
+            <div class="cm-table-wrap">
+                <div th:if="${#lists.isEmpty(sources)}" class="cm-empty">
+                    <div class="icon">📥</div>
+                    <h3>Chưa có nguồn đề nào</h3>
+                    <p>Mỗi nguồn đề là một bộ câu, ví dụ "TOPIK II kỳ 83 (2022)". Nhập trên web, không cần có sẵn file Excel.</p>
+                    <a th:if="${canEdit}" th:href="@{/content/sources/new}" class="btn btn-ssak-primary btn-sm">Tạo nguồn đề đầu tiên</a>
+                </div>
+                <table th:unless="${#lists.isEmpty(sources)}" class="cm-table">
+                    <thead>
+                    <tr>
+                        <th>Nguồn đề</th>
+                        <th>Track</th>
+                        <th>Kỳ thi</th>
+                        <th>Số câu dự kiến</th>
+                        <th>Lần tải gần nhất</th>
+                        <th>Trạng thái</th>
+                        <th>Người tạo</th>
+                        <th th:if="${canEdit}">Thao tác</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="s : ${sources}" th:with="j=${jobs[s.id]}">
+                        <td>
+                            <a class="code" th:href="@{/content/sources/{id}(id=${s.id})}" th:text="${s.name}">TOPIK II kỳ 83</a>
+                            <div th:if="${s.assessment}"><span class="pill pill-sky">Bài đánh giá đầu vào</span></div>
+                        </td>
+                        <td th:text="${s.track.label}">TOPIK II</td>
+                        <td th:text="${(s.round != null ? 'Kỳ ' + s.round : '—') + (s.year != null ? ' · ' + s.year : '')}">Kỳ 83 · 2022</td>
+                        <td>
+                            <span th:text="${s.expectedCount}">104</span>
+                            <span th:if="${s.fullExam}" class="pill pill-mint">Đề đầy đủ</span>
+                        </td>
+                        <td>
+                            <span th:if="${j == null}" class="cm-muted">Chưa mở đề</span>
+                            <th:block th:if="${j != null}">
+                                <div th:text="${j.fileName == 'Nhập trên web'} ? 'Nhập trên web' : ${j.fileName}" style="font-size: 13px;">Nhập trên web</div>
+                                <span th:if="${j.mcqRows == 0 and j.writingRows == 0 and j.fileName == 'Nhập trên web'}" class="pill pill-gray">Chưa nhập câu nào</span>
+                                <span th:if="${j.errorCount > 0 and (j.mcqRows > 0 or j.writingRows > 0 or j.fileName != 'Nhập trên web')}" class="pill pill-peach" th:text="${j.errorCount + ' lỗi'}">3 lỗi</span>
+                                <span th:if="${j.warningCount > 0 and j.errorCount == 0}" class="pill pill-honey" th:text="${j.warningCount + ' cảnh báo'}">2 cảnh báo</span>
+                                <span th:if="${j.errorCount == 0 and j.warningCount == 0}" class="pill pill-mint">Sẵn sàng</span>
+                            </th:block>
+                        </td>
+                        <td>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span th:if="${s.status.name() == 'ACTIVE'}" class="pill pill-mint">Đã kích hoạt</span>
+                                <span th:unless="${s.status.name() == 'ACTIVE'}" class="pill pill-gray">Bản nháp</span>
+                                <form th:if="${canEdit}" th:action="@{/content/sources/{id}/status(id=${s.id})}" method="post" style="display:inline; margin:0;">
+                                    <input type="hidden" name="status" th:value="${s.status.name() == 'ACTIVE' ? 'DRAFT' : 'ACTIVE'}" />
+                                    <button type="submit" class="btn btn-ssak-outline btn-xs" style="padding: 2px 7px; font-size: 11px;"
+                                            th:text="${s.status.name() == 'ACTIVE' ? 'Về Nháp' : 'Kích hoạt'}"
+                                            th:title="${s.status.name() == 'ACTIVE' ? 'Chuyển về trạng thái Bản nháp' : 'Chuyển sang trạng thái Đã kích hoạt'}">
+                                        Đổi
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                        <td>
+                            <div th:text="${s.createdBy}">Lê Thu Hà</div>
+                            <div class="cm-muted" th:text="${#temporals.format(s.createdAt, 'dd/MM/yyyy HH:mm')}">01/10/2026</div>
+                        </td>
+                        <td th:if="${canEdit}">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <a th:href="@{/content/sources/{id}(id=${s.id})}" class="btn btn-ssak-outline btn-xs" style="padding: 3px 8px; font-size: 12px;">Vào sửa</a>
+                                <form th:if="${s.status.name() != 'ACTIVE'}" th:action="@{/content/sources/{id}/delete(id=${s.id})}" method="post"
+                                      onsubmit="return confirm('Xoá nguồn đề nháp này?');" style="display:inline; margin:0;">
+                                    <button type="submit" class="btn btn-ssak-outline btn-xs" style="padding: 3px 8px; font-size: 12px; color: #ff4d4f; border-color: #ffccc7;">Xoá</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

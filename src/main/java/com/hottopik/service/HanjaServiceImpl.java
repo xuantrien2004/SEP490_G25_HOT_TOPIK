@@ -1,8 +1,11 @@
 package com.hottopik.service;
 
+import com.hottopik.dto.HanjaImportPreviewDTO;
 import com.hottopik.dto.HanjaImportResultDTO;
+import com.hottopik.dto.HanjaQuizQuestionDTO;
 import com.hottopik.dto.HanjaRootDTO;
 import com.hottopik.dto.HanjaWordDTO;
+import java.time.format.DateTimeFormatter;
 import com.hottopik.entity.HanjaRoot;
 import com.hottopik.entity.HanjaRootWord;
 import com.hottopik.entity.HanjaRootWordId;
@@ -71,26 +74,33 @@ public class HanjaServiceImpl implements HanjaService {
     @Transactional
     public HanjaRootDTO createHanjaRoot(HanjaRootDTO dto) {
         if (dto.getHanjaChar() == null || dto.getHanjaChar().trim().isEmpty()) {
-            throw new IllegalArgumentException("Chữ Hán không được để trống!");
+            throw new IllegalArgumentException("Vui lòng nhập Chữ Hán!");
+        }
+        if (dto.getKoReading() == null || dto.getKoReading().trim().isEmpty()) {
+            throw new IllegalArgumentException("Vui lòng nhập Tiếng Hàn!");
+        }
+        if (dto.getSinoVi() == null || dto.getSinoVi().trim().isEmpty()) {
+            throw new IllegalArgumentException("Vui lòng nhập Âm Hán Việt!");
         }
         String cleanChar = dto.getHanjaChar().trim();
         if (hanjaRootRepository.existsByHanjaChar(cleanChar)) {
             throw new IllegalArgumentException("Chữ Hán '" + cleanChar + "' đã tồn tại trong hệ thống!");
         }
 
+        // Mặc định trạng thái luôn là DRAFT khi tạo mới
         HanjaRoot root = HanjaRoot.builder()
                 .hanjaChar(cleanChar)
-                .sinoVi(dto.getSinoVi() != null ? dto.getSinoVi().trim() : "")
-                .koReading(dto.getKoReading() != null ? dto.getKoReading().trim() : "")
+                .sinoVi(dto.getSinoVi().trim())
+                .koReading(dto.getKoReading().trim())
                 .meaningVi(dto.getMeaningVi() != null ? dto.getMeaningVi().trim() : "")
                 .audioUrl(dto.getAudioUrl() != null ? dto.getAudioUrl().trim() : "")
                 .sortOrder(dto.getSortOrder() != null ? dto.getSortOrder() : (short) 0)
-                .status(dto.getStatus() != null && !dto.getStatus().trim().isEmpty() ? dto.getStatus().trim().toUpperCase() : "ACTIVE")
+                .status("DRAFT")
                 .build();
 
         HanjaRoot savedRoot = hanjaRootRepository.save(root);
 
-        // Save related words
+        // Save related words nếu có
         if (dto.getRelatedWords() != null && !dto.getRelatedWords().isEmpty()) {
             saveRelatedWords(savedRoot, dto.getRelatedWords());
         }
@@ -115,16 +125,32 @@ public class HanjaServiceImpl implements HanjaService {
         if (dto.getMeaningVi() != null) root.setMeaningVi(dto.getMeaningVi().trim());
         if (dto.getAudioUrl() != null) root.setAudioUrl(dto.getAudioUrl().trim());
         if (dto.getSortOrder() != null) root.setSortOrder(dto.getSortOrder());
-        if (dto.getStatus() != null) root.setStatus(dto.getStatus().trim().toUpperCase());
+        if (dto.getStatus() != null && !dto.getStatus().trim().isEmpty()) {
+            root.setStatus(dto.getStatus().trim().toUpperCase());
+        }
 
         HanjaRoot savedRoot = hanjaRootRepository.save(root);
 
-        // Update related words: delete old mappings and re-save
-        if (dto.getRelatedWords() != null) {
+        // Chỉ cập nhật từ liên quan nếu explicitly cung cấp mảng (không null)
+        if (dto.getRelatedWords() != null && !dto.getRelatedWords().isEmpty()) {
             hanjaRootWordRepository.deleteByRootId(savedRoot.getId());
             saveRelatedWords(savedRoot, dto.getRelatedWords());
         }
 
+        return convertToDTO(savedRoot);
+    }
+
+    @Override
+    @Transactional
+    public HanjaRootDTO toggleRootStatus(Integer id) {
+        HanjaRoot root = hanjaRootRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy từ Hán Việt có ID: " + id));
+        if ("ACTIVE".equalsIgnoreCase(root.getStatus())) {
+            root.setStatus("DRAFT");
+        } else {
+            root.setStatus("ACTIVE");
+        }
+        HanjaRoot savedRoot = hanjaRootRepository.save(root);
         return convertToDTO(savedRoot);
     }
 
@@ -136,6 +162,151 @@ public class HanjaServiceImpl implements HanjaService {
         }
         hanjaRootWordRepository.deleteByRootId(id);
         hanjaRootRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<HanjaWordDTO> getWordsByRootId(Integer rootId) {
+        List<HanjaWordDTO> words = new ArrayList<>();
+        List<HanjaRootWord> links = hanjaRootWordRepository.findByHanjaRootId(rootId);
+        for (HanjaRootWord link : links) {
+            Vocabulary v = link.getVocabulary();
+            if (v != null) {
+                words.add(HanjaWordDTO.builder()
+                        .vocabularyId(v.getId())
+                        .hanjaWord(link.getHanjaWord())
+                        .word(v.getWord())
+                        .sinoVi(v.getSinoVi())
+                        .meaningVi(v.getMeaningVi())
+                        .audioUrl(v.getAudioUrl())
+                        .status(v.getStatus())
+                        .build());
+            }
+        }
+        return words;
+    }
+
+    @Override
+    @Transactional
+    public HanjaWordDTO createWord(Integer rootId, HanjaWordDTO dto) {
+        HanjaRoot root = hanjaRootRepository.findById(rootId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy chữ Hán gốc có ID: " + rootId));
+        if (dto.getWord() == null || dto.getWord().trim().isEmpty()) {
+            throw new IllegalArgumentException("Vui lòng nhập Từ tiếng Hàn!");
+        }
+        if (dto.getHanjaWord() == null || dto.getHanjaWord().trim().isEmpty()) {
+            throw new IllegalArgumentException("Vui lòng nhập Chữ Hán ghép!");
+        }
+        if (dto.getSinoVi() == null || dto.getSinoVi().trim().isEmpty()) {
+            throw new IllegalArgumentException("Vui lòng nhập Âm Hán Việt!");
+        }
+        if (dto.getMeaningVi() == null || dto.getMeaningVi().trim().isEmpty()) {
+            throw new IllegalArgumentException("Vui lòng nhập Nghĩa tiếng Việt!");
+        }
+
+        String koWord = dto.getWord().trim();
+        String hanjaWord = dto.getHanjaWord().trim();
+        String rootChar = root.getHanjaChar() != null ? root.getHanjaChar().trim() : "";
+        if (!rootChar.isEmpty() && !hanjaWord.contains(rootChar)) {
+            throw new IllegalArgumentException("Chữ Hán ghép bắt buộc phải chứa chữ Hán gốc '" + rootChar + "'!");
+        }
+
+        String sinoVi = dto.getSinoVi().trim();
+        String meaningVi = dto.getMeaningVi().trim();
+        String audioUrl = dto.getAudioUrl() != null ? dto.getAudioUrl().trim() : "";
+        // Mặc định từ mới cũng luôn là DRAFT
+        String status = dto.getStatus() != null && !dto.getStatus().trim().isEmpty() ? dto.getStatus().trim().toUpperCase() : "DRAFT";
+
+        Vocabulary vocab = Vocabulary.builder()
+                .topicId(1)
+                .level((short) 1)
+                .word(koWord)
+                .hanja(hanjaWord)
+                .sinoVi(sinoVi)
+                .meaningVi(meaningVi)
+                .audioUrl(audioUrl)
+                .status(status)
+                .build();
+        vocab = vocabularyRepository.save(vocab);
+
+        HanjaRootWordId linkId = new HanjaRootWordId(root.getId(), vocab.getId());
+        HanjaRootWord link = HanjaRootWord.builder()
+                .id(linkId)
+                .hanjaRoot(root)
+                .vocabulary(vocab)
+                .hanjaWord(hanjaWord)
+                .build();
+        hanjaRootWordRepository.save(link);
+
+        return HanjaWordDTO.builder()
+                .vocabularyId(vocab.getId())
+                .word(vocab.getWord())
+                .hanjaWord(hanjaWord)
+                .sinoVi(vocab.getSinoVi())
+                .meaningVi(vocab.getMeaningVi())
+                .audioUrl(vocab.getAudioUrl())
+                .status(vocab.getStatus())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public HanjaWordDTO updateWord(Long vocabId, HanjaWordDTO dto) {
+        Vocabulary vocab = vocabularyRepository.findById(vocabId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy từ vựng có ID: " + vocabId));
+
+        if (dto.getWord() != null && !dto.getWord().trim().isEmpty()) {
+            vocab.setWord(dto.getWord().trim());
+        }
+        if (dto.getHanjaWord() != null && !dto.getHanjaWord().trim().isEmpty()) {
+            vocab.setHanja(dto.getHanjaWord().trim());
+        }
+        if (dto.getSinoVi() != null) vocab.setSinoVi(dto.getSinoVi().trim());
+        if (dto.getMeaningVi() != null) vocab.setMeaningVi(dto.getMeaningVi().trim());
+        if (dto.getAudioUrl() != null) vocab.setAudioUrl(dto.getAudioUrl().trim());
+        if (dto.getStatus() != null && !dto.getStatus().trim().isEmpty()) {
+            vocab.setStatus(dto.getStatus().trim().toUpperCase());
+        }
+        vocab = vocabularyRepository.save(vocab);
+
+        return HanjaWordDTO.builder()
+                .vocabularyId(vocab.getId())
+                .word(vocab.getWord())
+                .hanjaWord(vocab.getHanja())
+                .sinoVi(vocab.getSinoVi())
+                .meaningVi(vocab.getMeaningVi())
+                .audioUrl(vocab.getAudioUrl())
+                .status(vocab.getStatus())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void deleteWord(Integer rootId, Long vocabId) {
+        hanjaRootWordRepository.deleteByRootIdAndVocabId(rootId, vocabId);
+    }
+
+    @Override
+    @Transactional
+    public HanjaWordDTO toggleWordStatus(Long vocabId) {
+        Vocabulary vocab = vocabularyRepository.findById(vocabId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy từ vựng có ID: " + vocabId));
+        if ("ACTIVE".equalsIgnoreCase(vocab.getStatus())) {
+            vocab.setStatus("DRAFT");
+        } else {
+            vocab.setStatus("ACTIVE");
+        }
+        vocab = vocabularyRepository.save(vocab);
+
+        return HanjaWordDTO.builder()
+                .vocabularyId(vocab.getId())
+                .word(vocab.getWord())
+                .hanjaWord(vocab.getHanja())
+                .sinoVi(vocab.getSinoVi())
+                .meaningVi(vocab.getMeaningVi())
+                .audioUrl(vocab.getAudioUrl())
+                .status(vocab.getStatus())
+                .build();
     }
 
     private void saveRelatedWords(HanjaRoot root, List<HanjaWordDTO> wordDTOs) {
@@ -275,8 +446,6 @@ public class HanjaServiceImpl implements HanjaService {
                     "Chữ Hán (*)",
                     "Âm Hán Việt (*)",
                     "Tiếng Hàn (*)",
-                    "Nghĩa (*)",
-                    "Trạng thái",
                     "Âm thanh đọc",
                     "Từ liên quan (Hàn|Hán|Hán Việt|Nghĩa ; ...)"
             };
@@ -287,13 +456,13 @@ public class HanjaServiceImpl implements HanjaService {
                 cell.setCellStyle(headerStyle);
             }
 
-            // Sample data rows
+            // Sample data rows (Đã bỏ cột Nghĩa gốc và Trạng thái)
             Object[][] sampleData = {
-                    {"學", "Học", "학", "Học tập, trường học", "ACTIVE", "", "학교|學校|học hiệu|trường học; 학생|學生|học sinh|học sinh; 대학|大學|đại học|trường đại học"},
-                    {"生", "Sinh", "생", "Sự sống, sinh sôi, phát sinh", "ACTIVE", "", "학생|學生|học sinh|học sinh; 선생님|先生|tiên sinh|giáo viên; 생활|生活|sinh hoạt|cuộc sống sinh hoạt"},
-                    {"人", "Nhân", "인", "Con người, nhân cách", "ACTIVE", "", "인간|人間|nhân gian|loài người; 외국인|外國人|ngoại quốc nhân|người nước ngoài; 인기|人氣|nhân khí|sự nổi tiếng"},
-                    {"國", "Quốc", "국", "Đất nước, quốc gia", "ACTIVE", "", "한국|韓國|hàn quốc|nước Hàn Quốc; 외국|外國|ngoại quốc|nước ngoài; 국가|國家|quốc gia|đất nước"},
-                    {"會", "Hội", "회", "Hội họp, tập hợp, đoàn thể", "ACTIVE", "", "회의|會議|hội nghị|cuộc họp; 사회|社會|xã hội|xã hội; 회사|會社|hội xã|công ty"}
+                    {"學", "Học", "학", "", "학교|學校|học hiệu|trường học; 학생|學生|học sinh|học sinh; 대학|大學|đại học|trường đại học"},
+                    {"生", "Sinh", "생", "", "학생|學生|học sinh|học sinh; 선생님|先生|tiên sinh|giáo viên; 생활|生活|sinh hoạt|cuộc sống sinh hoạt"},
+                    {"人", "Nhân", "인", "", "인간|人間|nhân gian|loài người; 외국인|外國人|ngoại quốc nhân|người nước ngoài; 인기|人氣|nhân khí|sự nổi tiếng"},
+                    {"國", "Quốc", "국", "", "한국|韓國|hàn quốc|nước Hàn Quốc; 외국|外國|ngoại quốc|nước ngoài; 국가|國家|quốc gia|đất nước"},
+                    {"會", "Hội", "회", "", "회의|會議|hội nghị|cuộc họp; 사회|社會|xã hội|xã hội; 회사|會社|hội xã|công ty"}
             };
 
             CellStyle dataStyle = workbook.createCellStyle();
@@ -316,10 +485,8 @@ public class HanjaServiceImpl implements HanjaService {
             sheet.setColumnWidth(0, 15 * 256);
             sheet.setColumnWidth(1, 20 * 256);
             sheet.setColumnWidth(2, 16 * 256);
-            sheet.setColumnWidth(3, 35 * 256);
-            sheet.setColumnWidth(4, 16 * 256);
-            sheet.setColumnWidth(5, 25 * 256);
-            sheet.setColumnWidth(6, 65 * 256);
+            sheet.setColumnWidth(3, 25 * 256);
+            sheet.setColumnWidth(4, 75 * 256);
 
             workbook.write(out);
             return out.toByteArray();
@@ -367,10 +534,6 @@ public class HanjaServiceImpl implements HanjaService {
                 String hanjaChar = getCellString(row.getCell(0));
                 String sinoVi = getCellString(row.getCell(1));
                 String koReading = getCellString(row.getCell(2));
-                String meaningVi = getCellString(row.getCell(3));
-                String status = getCellString(row.getCell(4));
-                String audioUrl = getCellString(row.getCell(5));
-                String relatedRaw = getCellString(row.getCell(6));
 
                 // If empty row, skip
                 if (hanjaChar.isEmpty() && sinoVi.isEmpty() && koReading.isEmpty()) {
@@ -379,10 +542,10 @@ public class HanjaServiceImpl implements HanjaService {
 
                 totalRows++;
 
-                // Validation 1: Required fields
-                if (hanjaChar.isEmpty() || sinoVi.isEmpty() || koReading.isEmpty() || meaningVi.isEmpty()) {
+                // Validation 1: Required fields (Chữ Hán, Âm Hán Việt, Tiếng Hàn)
+                if (hanjaChar.isEmpty() || sinoVi.isEmpty() || koReading.isEmpty()) {
                     errorCount++;
-                    result.getErrorDetails().add("Dòng " + (r + 1) + ": Thiếu trường bắt buộc (Chữ Hán, Âm Hán Việt, Tiếng Hàn, Nghĩa)");
+                    result.getErrorDetails().add("Dòng " + (r + 1) + ": Thiếu trường bắt buộc (Chữ Hán, Âm Hán Việt, Tiếng Hàn)");
                     continue;
                 }
 
@@ -401,6 +564,30 @@ public class HanjaServiceImpl implements HanjaService {
                     existingInDbCount++;
                     result.getExistingInDbDetails().add("Dòng " + (r + 1) + ": Từ Hán '" + upperChar + "' (" + sinoVi + ") đã tồn tại trong hệ thống");
                     continue;
+                }
+
+                // Parse audio and related words flexibly
+                String audioUrl = "";
+                String relatedRaw = "";
+                String col3 = getCellString(row.getCell(3));
+                String col4 = getCellString(row.getCell(4));
+                String col5 = getCellString(row.getCell(5));
+                String col6 = getCellString(row.getCell(6));
+
+                if (col3.contains("|")) {
+                    // col3 is related words
+                    relatedRaw = col3;
+                } else if (col4.contains("|")) {
+                    // 5-column format: 0:char, 1:sino, 2:reading, 3:audio, 4:related
+                    audioUrl = col3;
+                    relatedRaw = col4;
+                } else if (col6.contains("|") || !col6.isEmpty()) {
+                    // 7-column format: 0:char, 1:sino, 2:reading, 3:meaning, 4:status, 5:audio, 6:related
+                    audioUrl = col5;
+                    relatedRaw = col6;
+                } else {
+                    audioUrl = col3;
+                    relatedRaw = col4;
                 }
 
                 // Parse related words: 학교|學校|học hiệu|trường học; ...
@@ -422,22 +609,18 @@ public class HanjaServiceImpl implements HanjaService {
                                     .hanjaWord(rHanja)
                                     .sinoVi(rSino)
                                     .meaningVi(rMeaning)
-                                    .status("ACTIVE")
+                                    .status("DRAFT") // Mặc định từ liên quan cũng là DRAFT
                                     .build());
                         }
                     }
-                }
-
-                if (status.isEmpty() || (!"ACTIVE".equalsIgnoreCase(status) && !"DRAFT".equalsIgnoreCase(status))) {
-                    status = "ACTIVE";
                 }
 
                 HanjaRootDTO validDTO = HanjaRootDTO.builder()
                         .hanjaChar(upperChar)
                         .sinoVi(sinoVi.trim())
                         .koReading(koReading.trim())
-                        .meaningVi(meaningVi.trim())
-                        .status(status.toUpperCase())
+                        .meaningVi("")
+                        .status("DRAFT") // Luôn là Bản nháp/Ẩn (DRAFT)
                         .audioUrl(audioUrl.trim())
                         .relatedWords(relatedWords)
                         .build();
@@ -472,6 +655,233 @@ public class HanjaServiceImpl implements HanjaService {
             result.setMessage("Lỗi xử lý file Excel: " + e.getMessage());
             return result;
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public HanjaImportPreviewDTO previewImportExcel(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return HanjaImportPreviewDTO.builder()
+                    .success(false)
+                    .message("Vui lòng chọn file Excel (.xlsx hoặc .xls) để phân tích!")
+                    .build();
+        }
+
+        HanjaImportPreviewDTO preview = HanjaImportPreviewDTO.builder()
+                .success(true)
+                .message("Phân tích file hoàn tất. Vui lòng kiểm tra đối chiếu dữ liệu trước khi xác nhận lưu.")
+                .build();
+
+        Map<String, int[]> seenInFile = new HashMap<>();
+        Map<String, String[]> seenDetails = new HashMap<>();
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+        try (InputStream is = file.getInputStream(); Workbook workbook = WorkbookFactory.create(is)) {
+            Sheet sheet = workbook.getSheetAt(0);
+            if (sheet == null) {
+                preview.setSuccess(false);
+                preview.setMessage("File Excel không có dữ liệu!");
+                return preview;
+            }
+
+            int totalRows = 0;
+            int rowCount = sheet.getLastRowNum();
+
+            for (int r = 1; r <= rowCount; r++) {
+                Row row = sheet.getRow(r);
+                if (row == null) continue;
+
+                String hanjaChar = getCellString(row.getCell(0));
+                String sinoVi = getCellString(row.getCell(1));
+                String koReading = getCellString(row.getCell(2));
+
+                // If completely empty row, skip
+                if (hanjaChar.isEmpty() && sinoVi.isEmpty() && koReading.isEmpty()) {
+                    continue;
+                }
+
+                totalRows++;
+                int displayRow = r + 1; // 1-indexed row number as seen in Excel
+
+                // Check 1: Required fields
+                if (hanjaChar.isEmpty() || sinoVi.isEmpty() || koReading.isEmpty()) {
+                    List<String> missingFields = new ArrayList<>();
+                    if (hanjaChar.isEmpty()) missingFields.add("Chữ Hán");
+                    if (sinoVi.isEmpty()) missingFields.add("Âm Hán Việt");
+                    if (koReading.isEmpty()) missingFields.add("Tiếng Hàn");
+
+                    preview.getErrorRows().add(HanjaImportPreviewDTO.ErrorRowDetail.builder()
+                            .rowIndex(displayRow)
+                            .hanjaChar(hanjaChar)
+                            .sinoVi(sinoVi)
+                            .koReading(koReading)
+                            .errorMessage("Thiếu trường bắt buộc: " + String.join(", ", missingFields))
+                            .build());
+                    continue;
+                }
+
+                String upperChar = hanjaChar.trim();
+
+                // Check 2: Duplicate in this Excel file
+                if (seenInFile.containsKey(upperChar)) {
+                    int originalRow = seenInFile.get(upperChar)[0];
+                    String[] origData = seenDetails.get(upperChar);
+                    preview.getDuplicateInFileRows().add(HanjaImportPreviewDTO.DuplicateInFileDetail.builder()
+                            .rowIndex(displayRow)
+                            .hanjaChar(upperChar)
+                            .sinoVi(sinoVi.trim())
+                            .koReading(koReading.trim())
+                            .originalRowIndex(originalRow)
+                            .originalSinoVi(origData != null && origData.length > 0 ? origData[0] : "")
+                            .originalKoReading(origData != null && origData.length > 1 ? origData[1] : "")
+                            .build());
+                    continue;
+                }
+                seenInFile.put(upperChar, new int[]{displayRow});
+                seenDetails.put(upperChar, new String[]{sinoVi.trim(), koReading.trim()});
+
+                // Check 3: Already exists in Database (Provide full source data for comparison!)
+                Optional<HanjaRoot> existingOpt = hanjaRootRepository.findByHanjaChar(upperChar);
+                if (existingOpt.isPresent()) {
+                    HanjaRoot dbRoot = existingOpt.get();
+                    String formattedDate = dbRoot.getCreatedAt() != null ? dbRoot.getCreatedAt().format(dtf) : "N/A";
+                    int countWords = hanjaRootWordRepository.findByHanjaRootId(dbRoot.getId()).size();
+
+                    preview.getExistingInDbRows().add(HanjaImportPreviewDTO.ExistingInDbDetail.builder()
+                            .rowIndex(displayRow)
+                            .fileHanjaChar(upperChar)
+                            .fileSinoVi(sinoVi.trim())
+                            .fileKoReading(koReading.trim())
+                            .dbId(dbRoot.getId())
+                            .dbHanjaChar(dbRoot.getHanjaChar())
+                            .dbSinoVi(dbRoot.getSinoVi())
+                            .dbKoReading(dbRoot.getKoReading())
+                            .dbMeaningVi(dbRoot.getMeaningVi() != null ? dbRoot.getMeaningVi() : "")
+                            .dbStatus(dbRoot.getStatus())
+                            .dbRelatedWordsCount(countWords)
+                            .dbCreatedAt(formattedDate)
+                            .build());
+                    continue;
+                }
+
+                // Parse audio and related words
+                String audioUrl = "";
+                String relatedRaw = "";
+                String col3 = getCellString(row.getCell(3));
+                String col4 = getCellString(row.getCell(4));
+                String col5 = getCellString(row.getCell(5));
+                String col6 = getCellString(row.getCell(6));
+
+                if (col3.contains("|")) {
+                    relatedRaw = col3;
+                } else if (col4.contains("|")) {
+                    audioUrl = col3;
+                    relatedRaw = col4;
+                } else if (col6.contains("|") || !col6.isEmpty()) {
+                    audioUrl = col5;
+                    relatedRaw = col6;
+                } else {
+                    audioUrl = col3;
+                    relatedRaw = col4;
+                }
+
+                List<HanjaWordDTO> relatedWords = new ArrayList<>();
+                if (!relatedRaw.isEmpty()) {
+                    String[] items = relatedRaw.split(";");
+                    for (String item : items) {
+                        String trimmed = item.trim();
+                        if (trimmed.isEmpty()) continue;
+                        String[] parts = trimmed.split("\\|");
+                        String rWord = parts.length > 0 ? parts[0].trim() : "";
+                        String rHanja = parts.length > 1 ? parts[1].trim() : upperChar;
+                        String rSino = parts.length > 2 ? parts[2].trim() : "";
+                        String rMeaning = parts.length > 3 ? parts[3].trim() : "";
+
+                        if (!rWord.isEmpty()) {
+                            relatedWords.add(HanjaWordDTO.builder()
+                                    .word(rWord)
+                                    .hanjaWord(rHanja)
+                                    .sinoVi(rSino)
+                                    .meaningVi(rMeaning)
+                                    .status("DRAFT")
+                                    .build());
+                        }
+                    }
+                }
+
+                HanjaRootDTO validDTO = HanjaRootDTO.builder()
+                        .hanjaChar(upperChar)
+                        .sinoVi(sinoVi.trim())
+                        .koReading(koReading.trim())
+                        .meaningVi("")
+                        .status("DRAFT")
+                        .audioUrl(audioUrl.trim())
+                        .relatedWords(relatedWords)
+                        .build();
+
+                preview.getValidRows().add(HanjaImportPreviewDTO.ValidRowDetail.builder()
+                        .rowIndex(displayRow)
+                        .hanjaChar(upperChar)
+                        .sinoVi(sinoVi.trim())
+                        .koReading(koReading.trim())
+                        .audioUrl(audioUrl.trim())
+                        .relatedWordsCount(relatedWords.size())
+                        .rootDto(validDTO)
+                        .build());
+            }
+
+            preview.setTotalRows(totalRows);
+            preview.setValidCount(preview.getValidRows().size());
+            preview.setDuplicateInFileCount(preview.getDuplicateInFileRows().size());
+            preview.setExistingInDbCount(preview.getExistingInDbRows().size());
+            preview.setErrorCount(preview.getErrorRows().size());
+
+            return preview;
+
+        } catch (Exception e) {
+            preview.setSuccess(false);
+            preview.setMessage("Lỗi phân tích file Excel: " + e.getMessage());
+            return preview;
+        }
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> confirmImport(List<HanjaRootDTO> rootsToSave) {
+        Map<String, Object> resp = new HashMap<>();
+        if (rootsToSave == null || rootsToSave.isEmpty()) {
+            resp.put("success", false);
+            resp.put("message", "Không có từ nào được chọn để lưu!");
+            resp.put("savedCount", 0);
+            return resp;
+        }
+
+        int savedCount = 0;
+        List<String> savedChars = new ArrayList<>();
+        List<String> skippedChars = new ArrayList<>();
+
+        for (HanjaRootDTO dto : rootsToSave) {
+            if (dto.getHanjaChar() == null || dto.getHanjaChar().trim().isEmpty()) {
+                continue;
+            }
+            String cleanChar = dto.getHanjaChar().trim();
+            if (hanjaRootRepository.existsByHanjaChar(cleanChar)) {
+                skippedChars.add(cleanChar);
+                continue;
+            }
+            // Always ensure DRAFT status
+            dto.setStatus("DRAFT");
+            createHanjaRoot(dto);
+            savedCount++;
+            savedChars.add(cleanChar);
+        }
+
+        resp.put("success", true);
+        resp.put("savedCount", savedCount);
+        resp.put("savedChars", savedChars);
+        resp.put("skippedChars", skippedChars);
+        resp.put("message", "Đã lưu thành công " + savedCount + " chữ Hán vào hệ thống ở trạng thái Bản nháp!");
+        return resp;
     }
 
     private String getCellString(Cell cell) {
@@ -655,5 +1065,110 @@ public class HanjaServiceImpl implements HanjaService {
             }
         }
         System.out.println("Seeded " + seeds.length + " initial Hanja roots successfully!");
+    }
+
+    // ==========================================
+    // LEARNER-FACING METHODS
+    // ==========================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<HanjaRootDTO> getActiveHanjaRoots(String query) {
+        // Only return ACTIVE roots for learner view
+        List<HanjaRoot> roots = hanjaRootRepository.searchRoots(query, "ACTIVE");
+        List<HanjaRootDTO> result = new ArrayList<>();
+        for (HanjaRoot root : roots) {
+            result.add(convertToDTO(root));
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<HanjaQuizQuestionDTO> getRandomQuizQuestions(int count) {
+        // Collect all active words with their roots
+        List<HanjaRoot> activeRoots = hanjaRootRepository.searchRoots(null, "ACTIVE");
+
+        // Build a flat list of (word, root) pairs for quiz
+        List<HanjaQuizQuestionDTO> allCandidates = new ArrayList<>();
+        List<String> allMeanings = new ArrayList<>();  // pool for decoys
+
+        for (HanjaRoot root : activeRoots) {
+            List<HanjaRootWord> links = hanjaRootWordRepository.findByHanjaRootId(root.getId());
+            for (HanjaRootWord link : links) {
+                Vocabulary v = link.getVocabulary();
+                if (v != null && "ACTIVE".equals(v.getStatus())
+                        && v.getWord() != null && !v.getWord().isEmpty()
+                        && v.getMeaningVi() != null && !v.getMeaningVi().isEmpty()) {
+
+                    HanjaQuizQuestionDTO q = HanjaQuizQuestionDTO.builder()
+                            .vocabularyId(v.getId())
+                            .word(v.getWord())
+                            .hanjaWord(link.getHanjaWord())
+                            .sinoVi(v.getSinoVi())
+                            .correctMeaning(v.getMeaningVi())
+                            .audioUrl(v.getAudioUrl())
+                            .rootChar(root.getHanjaChar())
+                            .rootSinoVi(root.getSinoVi())
+                            .build();
+                    allCandidates.add(q);
+                    allMeanings.add(v.getMeaningVi());
+                }
+            }
+        }
+
+        if (allCandidates.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // Shuffle and limit
+        Collections.shuffle(allCandidates);
+        int actualCount = Math.min(count, allCandidates.size());
+        List<HanjaQuizQuestionDTO> questions = new ArrayList<>(allCandidates.subList(0, actualCount));
+
+        Random rng = new Random();
+
+        for (HanjaQuizQuestionDTO q : questions) {
+            String correct = q.getCorrectMeaning();
+
+            // Pick 3 unique decoys (different from correct answer)
+            List<String> decoyPool = new ArrayList<>(allMeanings);
+            decoyPool.remove(correct);
+            Collections.shuffle(decoyPool, rng);
+
+            List<String> choices = new ArrayList<>();
+            choices.add(correct);
+            int addedDecoys = 0;
+            for (String d : decoyPool) {
+                if (!d.equals(correct)) {
+                    choices.add(d);
+                    addedDecoys++;
+                    if (addedDecoys == 3) break;
+                }
+            }
+            // Pad with generic decoys if not enough words in DB
+            while (choices.size() < 4) {
+                choices.add("—");
+            }
+
+            // Shuffle choices and record correct index
+            Collections.shuffle(choices, rng);
+            int correctIdx = choices.indexOf(correct);
+
+            q.setChoices(choices);
+            q.setCorrectChoiceIndex(correctIdx);
+        }
+
+        return questions;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> getLearnerStats() {
+        Map<String, Object> stats = new LinkedHashMap<>();
+        stats.put("totalRoots", hanjaRootRepository.count());
+        stats.put("activeRoots", hanjaRootRepository.countByStatus("ACTIVE"));
+        stats.put("totalWords", hanjaRootWordRepository.count());
+        return stats;
     }
 }

@@ -112,13 +112,32 @@ public class ApprovalService {
     }
 
     public boolean decideRequest(Long id, boolean approve, String note) {
-        ApprovalRequestDTO req = requests.get(id);
-        if (req != null) {
-            req.setStatus(approve ? "APPROVED" : "REJECTED");
-            req.setDecisionNote(note);
-            req.setDecidedAt(LocalDateTime.now().format(FORMATTER));
-            return true;
-        }
-        return false;
+        return decideRequest(id, approve, note, null);
     }
+
+    /**
+     * Không ai duyệt yêu cầu do chính mình gửi (BRD 2.2). Listener của ApprovalDecidedEvent áp dụng payload;
+     * nếu listener ném lỗi thì yêu cầu vẫn ở trạng thái PENDING.
+     */
+    public boolean decideRequest(Long id, boolean approve, String note, String deciderName) {
+        ApprovalRequestDTO req = requests.get(id);
+        if (req == null) return false;
+        if (!"PENDING".equalsIgnoreCase(req.getStatus())) {
+            throw new IllegalStateException("Yêu cầu này đã được xử lý.");
+        }
+        if (deciderName != null && deciderName.equalsIgnoreCase(req.getRequesterName())) {
+            throw new IllegalStateException("Không được duyệt yêu cầu do chính mình gửi; cần một Admin khác.");
+        }
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(new ApprovalDecidedEvent(req, approve, deciderName, note));
+        }
+        req.setStatus(approve ? "APPROVED" : "REJECTED");
+        req.setDecisionNote(note);
+        req.setDecidedBy(deciderName);
+        req.setDecidedAt(LocalDateTime.now().format(FORMATTER));
+        return true;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
 }
