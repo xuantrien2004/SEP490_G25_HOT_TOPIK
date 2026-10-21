@@ -77,6 +77,11 @@ public class ApprovalService {
 
     public ApprovalRequestDTO submitRequest(String requesterName, String requesterRole,
                                             String requestType, String title, String description) {
+        return submitRequest(requesterName, requesterRole, requestType, title, description, null);
+    }
+
+    public ApprovalRequestDTO submitRequest(String requesterName, String requesterRole,
+                                            String requestType, String title, String description, Long targetId) {
         long id = idGenerator.incrementAndGet();
         ApprovalRequestDTO req = new ApprovalRequestDTO(
                 id,
@@ -88,8 +93,22 @@ public class ApprovalService {
                 "PENDING",
                 LocalDateTime.now().format(FORMATTER)
         );
+        req.setTargetId(targetId);
         requests.put(id, req);
         return req;
+    }
+
+    public Optional<ApprovalRequestDTO> getRequestById(Long id) {
+        if (id == null) return Optional.empty();
+        return Optional.ofNullable(requests.get(id));
+    }
+
+    public boolean hasPendingPermanentLockRequest(Long userId) {
+        if (userId == null) return false;
+        return requests.values().stream()
+                .anyMatch(r -> "PENDING".equalsIgnoreCase(r.getStatus())
+                        && "PERMANENT_LOCK_USER".equalsIgnoreCase(r.getRequestType())
+                        && userId.equals(r.getTargetId()));
     }
 
     public boolean decideRequest(Long id, boolean approve, String note) {

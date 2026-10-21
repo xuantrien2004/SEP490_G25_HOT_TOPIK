@@ -17,6 +17,7 @@ public class ApprovalRequestDTO implements Serializable {
     private String decisionNote;
     private String createdAt;
     private String decidedAt;
+    private Long targetId;
 
     public ApprovalRequestDTO() {}
 
@@ -62,4 +63,7 @@ public class ApprovalRequestDTO implements Serializable {
 
     public String getDecidedAt() { return decidedAt; }
     public void setDecidedAt(String decidedAt) { this.decidedAt = decidedAt; }
+
+    public Long getTargetId() { return targetId; }
+    public void setTargetId(Long targetId) { this.targetId = targetId; }
 }

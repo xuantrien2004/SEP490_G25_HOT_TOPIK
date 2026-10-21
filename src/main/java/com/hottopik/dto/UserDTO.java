@@ -23,6 +23,9 @@ public class UserDTO implements Serializable {
     private Integer coinBalance = 0;
     private Integer studiedDays = 0;
     private LocalDateTime createdAt;
+    private LocalDateTime lockedUntil;
+    private String lockReason;
+    private boolean pendingPermanentLock = false;
 
     public Integer getCoinBalance() { return coinBalance != null ? coinBalance : 0; }
     public void setCoinBalance(Integer coinBalance) { this.coinBalance = coinBalance; }
@@ -145,4 +148,23 @@ public class UserDTO implements Serializable {
     public boolean isStudent() {
         return "STUDENT".equalsIgnoreCase(role) || "ROLE_USER".equalsIgnoreCase(role) || "ROLE_VIP".equalsIgnoreCase(role);
     }
+
+    public LocalDateTime getLockedUntil() { return lockedUntil; }
+    public void setLockedUntil(LocalDateTime lockedUntil) { this.lockedUntil = lockedUntil; }
+
+    public String getLockReason() { return lockReason; }
+    public void setLockReason(String lockReason) { this.lockReason = lockReason; }
+
+    public boolean isPermanentlyLocked() {
+        return "LOCKED".equalsIgnoreCase(status) && (lockedUntil == null || lockedUntil.isAfter(LocalDateTime.now().plusYears(1)));
+    }
+
+    public String getFormattedLockedUntil() {
+        if (lockedUntil == null) return null;
+        if (isPermanentlyLocked()) return "Vĩnh viễn";
+        return lockedUntil.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+    }
+
+    public boolean isPendingPermanentLock() { return pendingPermanentLock; }
+    public void setPendingPermanentLock(boolean pendingPermanentLock) { this.pendingPermanentLock = pendingPermanentLock; }
 }

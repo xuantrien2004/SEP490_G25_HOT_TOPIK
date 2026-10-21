@@ -218,13 +218,17 @@
                                 </td>
                                 <td style="padding: 14px 10px;">
                                     <span th:id="${'learner-status-' + u.id}" class="ssak-badge"
-                                          th:classappend="${u.status == 'ACTIVE' ? 'badge-mint' : (u.status == 'PENDING_VERIFY' ? 'badge-honey' : 'badge-terracotta')}"
-                                          th:text="${u.status == 'ACTIVE' ? 'Đang hoạt động' : (u.status == 'PENDING_VERIFY' ? 'Chờ kích hoạt' : 'Tạm khóa')}">
+                                          th:classappend="${u.pendingPermanentLock ? 'badge-honey' : (u.status == 'ACTIVE' ? 'badge-mint' : (u.status == 'PENDING_VERIFY' ? 'badge-honey' : 'badge-terracotta'))}"
+                                          th:text="${u.pendingPermanentLock ? '⏳ Chờ Admin duyệt khóa' : (u.status == 'ACTIVE' ? 'Đang hoạt động' : (u.status == 'PENDING_VERIFY' ? 'Chờ kích hoạt' : (u.permanentlyLocked ? 'Khóa vĩnh viễn' : 'Tạm khóa')))}">
                                         Hoạt động
                                     </span>
+                                    <div th:if="${!u.pendingPermanentLock && u.status == 'LOCKED' && u.formattedLockedUntil != null && !u.permanentlyLocked}" style="font-size: 11px; color: #9C4A2E; margin-top: 3px;" th:text="${'Đến: ' + u.formattedLockedUntil}"></div>
                                 </td>
-                                <td style="padding: 14px 10px; text-align: right;">
-                                    <button type="button" class="btn-ssak-light" style="height: 34px; padding: 0 14px; font-size: 12.5px; font-weight: 800; border-radius: 10px; cursor: pointer; transition: all 0.15s ease;"
+                                <td style="padding: 14px 10px; text-align: right;" th:id="${'learner-action-cell-' + u.id}">
+                                    <span th:if="${u.pendingPermanentLock}" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 10px; background: #FFFBE6; border: 1px solid #FFE58F; font-size: 12px; font-weight: 700; color: #D48806;">
+                                        ⏳ Đang chờ duyệt
+                                    </span>
+                                    <button th:if="${!u.pendingPermanentLock}" type="button" class="btn-ssak-light" style="height: 34px; padding: 0 14px; font-size: 12.5px; font-weight: 800; border-radius: 10px; cursor: pointer; transition: all 0.15s ease;"
                                             th:id="${'btn-toggle-learner-' + u.id}"
                                             th:data-id="${u.id}"
                                             th:data-name="${u.fullName}"
@@ -590,6 +594,8 @@
 
     let currentTargetUserId = null;
     let currentTargetUserStatus = null;
+    let currentLockType = 'TEMPORARY'; // 'TEMPORARY' or 'PERMANENT'
+    let selectedTempDays = 7;
 
     function openLearnerModal(id, name, email, currentStatus) {
         currentTargetUserId = id;
@@ -599,8 +605,6 @@
         const iconBox = document.getElementById('modalIconBox');
         const title = document.getElementById('modalTitle');
         const subtitle = document.getElementById('modalSubtitle');
-        const desc = document.getElementById('modalDescription');
-        const confirmBtn = document.getElementById('modalConfirmBtn');
         const userName = document.getElementById('modalUserName');
         const userEmail = document.getElementById('modalUserEmail');
         const userAvatar = document.getElementById('modalUserAvatar');
@@ -611,26 +615,37 @@
         userAvatar.textContent = (name && name.length > 0) ? name.charAt(0) : 'U';
 
         const isLocked = (currentStatus === 'LOCKED');
+        const unlockPane = document.getElementById('modalUnlockPane');
+        const lockPane = document.getElementById('modalLockPane');
+
         if (isLocked) {
+            unlockPane.style.display = 'block';
+            lockPane.style.display = 'none';
             iconBox.style.background = '#E8F5E9';
             iconBox.style.color = '#1F6B56';
             iconBox.innerHTML = '🔓';
             title.textContent = 'Mở khóa tài khoản học viên';
             subtitle.textContent = 'Khôi phục toàn bộ quyền truy cập và làm bài thi';
-            desc.innerHTML = `Bạn có chắc chắn muốn <strong>mở khóa</strong> tài khoản của <strong>${name}</strong>? Học viên sẽ có thể đăng nhập và tiếp tục lộ trình học ngay lập tức.`;
+            userBadge.innerHTML = '<span class="ssak-badge badge-terracotta">Đang bị khóa</span>';
+            const confirmBtn = document.getElementById('modalConfirmBtn');
             confirmBtn.style.background = '#1F6B56';
             confirmBtn.innerHTML = '🔓 Xác nhận mở khóa';
-            userBadge.innerHTML = '<span class="ssak-badge badge-terracotta">Đang bị khóa</span>';
         } else {
+            unlockPane.style.display = 'none';
+            lockPane.style.display = 'block';
             iconBox.style.background = '#FFF1F0';
             iconBox.style.color = '#CF1322';
             iconBox.innerHTML = '🔒';
-            title.textContent = 'Tạm khóa tài khoản học viên';
-            subtitle.textContent = 'Đình chỉ quyền truy cập hệ thống do vi phạm chính sách';
-            desc.innerHTML = `Bạn có chắc chắn muốn <strong>tạm khóa</strong> tài khoản của <strong>${name}</strong>? Học viên sẽ <strong>không thể đăng nhập</strong> hoặc làm bài thi cho đến khi được mở khóa.`;
-            confirmBtn.style.background = '#CF1322';
-            confirmBtn.innerHTML = '🔒 Xác nhận khóa tài khoản';
+            title.textContent = 'Khóa tài khoản học viên';
+            subtitle.textContent = 'Lựa chọn hình thức tạm khóa hoặc đề xuất khóa vĩnh viễn';
             userBadge.innerHTML = '<span class="ssak-badge badge-mint">Đang hoạt động</span>';
+
+            // Reset form
+            document.getElementById('tempLockReason').value = '';
+            document.getElementById('permLockReason').value = '';
+            document.getElementById('customDaysInput').value = '';
+            selectDays(7);
+            switchLockType('TEMPORARY');
         }
 
         modal.style.display = 'flex';
@@ -638,6 +653,80 @@
             const card = document.getElementById('modalCard');
             if (card) card.style.transform = 'scale(1)';
         }, 10);
+    }
+
+    function switchLockType(type) {
+        currentLockType = type;
+        const tabTemp = document.getElementById('tabLockTemp');
+        const tabPerm = document.getElementById('tabLockPerm');
+        const paneTemp = document.getElementById('paneLockTemp');
+        const panePerm = document.getElementById('paneLockPerm');
+        const confirmBtn = document.getElementById('modalConfirmBtn');
+
+        if (type === 'TEMPORARY') {
+            tabTemp.style.background = '#FFFFFF';
+            tabTemp.style.borderColor = '#C25E3E';
+            tabTemp.style.color = '#9C4A2E';
+            tabTemp.style.boxShadow = '0 2px 8px rgba(194, 94, 62, 0.12)';
+
+            tabPerm.style.background = '#F8FAFC';
+            tabPerm.style.borderColor = '#E2E8F0';
+            tabPerm.style.color = '#64748B';
+            tabPerm.style.boxShadow = 'none';
+
+            paneTemp.style.display = 'block';
+            panePerm.style.display = 'none';
+
+            confirmBtn.style.background = '#C25E3E';
+            confirmBtn.innerHTML = '🔒 Xác nhận tạm khóa';
+        } else {
+            tabPerm.style.background = '#FFFFFF';
+            tabPerm.style.borderColor = '#8C3B1E';
+            tabPerm.style.color = '#8C3B1E';
+            tabPerm.style.boxShadow = '0 2px 8px rgba(140, 59, 30, 0.12)';
+
+            tabTemp.style.background = '#F8FAFC';
+            tabTemp.style.borderColor = '#E2E8F0';
+            tabTemp.style.color = '#64748B';
+            tabTemp.style.boxShadow = 'none';
+
+            paneTemp.style.display = 'none';
+            panePerm.style.display = 'block';
+
+            confirmBtn.style.background = '#8C3B1E';
+            confirmBtn.innerHTML = '📨 Gửi yêu cầu Admin duyệt';
+        }
+    }
+
+    function selectDays(days) {
+        selectedTempDays = days;
+        const chips = document.querySelectorAll('.day-chip');
+        chips.forEach(c => {
+            if (parseInt(c.getAttribute('data-days')) === days) {
+                c.style.background = '#1F6B56';
+                c.style.color = '#FFFFFF';
+                c.style.borderColor = '#1F6B56';
+            } else {
+                c.style.background = '#F8FAFC';
+                c.style.color = '#334155';
+                c.style.borderColor = '#CBD5E1';
+            }
+        });
+        const customWrapper = document.getElementById('customDaysWrapper');
+        if (days === 0) {
+            customWrapper.style.display = 'block';
+            const val = parseInt(document.getElementById('customDaysInput').value);
+            selectedTempDays = (val > 0) ? val : 7;
+        } else {
+            customWrapper.style.display = 'none';
+        }
+    }
+
+    function onCustomDaysChange() {
+        const val = parseInt(document.getElementById('customDaysInput').value);
+        if (val > 0) {
+            selectedTempDays = val;
+        }
     }
 
     function closeLearnerModal() {
@@ -649,48 +738,126 @@
         }, 150);
     }
 
-    function executeToggleLock() {
+    function executeLearnerAction() {
         if (!currentTargetUserId) return;
         const confirmBtn = document.getElementById('modalConfirmBtn');
-        confirmBtn.disabled = true;
-        confirmBtn.innerHTML = '⏳ Đang xử lý...';
 
-        const formData = new FormData();
-        formData.append('userId', currentTargetUserId);
+        const isLocked = (currentTargetUserStatus === 'LOCKED');
 
-        fetch('/operation/users/toggle-lock', {
-            method: 'POST',
-            body: formData
-        })
-        .then(r => r.json())
-        .then(data => {
-            confirmBtn.disabled = false;
-            closeLearnerModal();
-            if (data.success) {
-                showSsakToast(data.message);
-                const newStatus = data.status;
-                const statusBadge = document.getElementById('learner-status-' + currentTargetUserId);
-                const toggleBtn = document.getElementById('btn-toggle-learner-' + currentTargetUserId);
-                if (statusBadge) {
-                    statusBadge.className = 'ssak-badge ' + (newStatus === 'ACTIVE' ? 'badge-mint' : 'badge-terracotta');
-                    statusBadge.textContent = (newStatus === 'ACTIVE' ? 'Đang hoạt động' : 'Tạm khóa');
+        if (isLocked) {
+            // Mở khóa
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '⏳ Đang xử lý...';
+            const formData = new FormData();
+            formData.append('userId', currentTargetUserId);
+
+            fetch('/operation/users/unlock', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                confirmBtn.disabled = false;
+                closeLearnerModal();
+                if (data.success) {
+                    showSsakToast(data.message);
+                    setTimeout(() => window.location.reload(), 700);
+                } else {
+                    showSsakToast('Lỗi: ' + data.message);
                 }
-                if (toggleBtn) {
-                    toggleBtn.setAttribute('data-status', newStatus);
-                    if (newStatus === 'LOCKED') {
-                        toggleBtn.innerHTML = '<span style="color: #1F6B56;">🔓 Mở khóa</span>';
+            })
+            .catch(e => {
+                confirmBtn.disabled = false;
+                showSsakToast('Có lỗi: ' + e);
+            });
+        } else {
+            // Khóa
+            if (currentLockType === 'TEMPORARY') {
+                const reason = document.getElementById('tempLockReason').value.trim();
+                if (!reason) {
+                    alert('Vui lòng nhập lý do tạm khóa để ghi nhận vào nhật ký hoạt động hệ thống gửi Admin!');
+                    document.getElementById('tempLockReason').focus();
+                    return;
+                }
+                const days = selectedTempDays > 0 ? selectedTempDays : 7;
+
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '⏳ Đang xử lý...';
+
+                const formData = new FormData();
+                formData.append('userId', currentTargetUserId);
+                formData.append('lockType', 'TEMPORARY');
+                formData.append('days', days);
+                formData.append('reason', reason);
+
+                fetch('/operation/users/lock', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(r => r.json())
+                .then(data => {
+                    confirmBtn.disabled = false;
+                    closeLearnerModal();
+                    if (data.success) {
+                        showSsakToast(data.message);
+                        setTimeout(() => window.location.reload(), 700);
                     } else {
-                        toggleBtn.innerHTML = '<span style="color: #9C4A2E;">🔒 Khóa tài khoản</span>';
+                        showSsakToast('Lỗi: ' + data.message);
                     }
-                }
+                })
+                .catch(e => {
+                    confirmBtn.disabled = false;
+                    showSsakToast('Có lỗi: ' + e);
+                });
             } else {
-                showSsakToast('Lỗi: ' + data.message);
+                // PERMANENT: Gửi yêu cầu Admin duyệt
+                const reason = document.getElementById('permLockReason').value.trim();
+                if (!reason) {
+                    alert('Vui lòng nêu rõ lý do đề xuất khóa vĩnh viễn để gửi Admin xem xét và phê duyệt!');
+                    document.getElementById('permLockReason').focus();
+                    return;
+                }
+
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '⏳ Đang gửi yêu cầu...';
+
+                const formData = new FormData();
+                formData.append('userId', currentTargetUserId);
+                formData.append('lockType', 'PERMANENT');
+                formData.append('reason', reason);
+
+                fetch('/operation/users/lock', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(r => r.json())
+                .then(data => {
+                    confirmBtn.disabled = false;
+                    closeLearnerModal();
+                    if (data.success) {
+                        showSsakToast(data.message);
+                        if (data.pendingApproval) {
+                            const statusBadge = document.getElementById('learner-status-' + currentTargetUserId);
+                            if (statusBadge) {
+                                statusBadge.className = 'ssak-badge badge-honey';
+                                statusBadge.innerText = '⏳ Chờ Admin duyệt khóa';
+                            }
+                            const actionCell = document.getElementById('learner-action-cell-' + currentTargetUserId);
+                            if (actionCell) {
+                                actionCell.innerHTML = '<span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 10px; background: #FFFBE6; border: 1px solid #FFE58F; font-size: 12px; font-weight: 700; color: #D48806;">⏳ Đang chờ duyệt</span>';
+                            }
+                        }
+                        setTimeout(() => window.location.reload(), 900);
+                    } else {
+                        showSsakToast('Lỗi: ' + data.message);
+                    }
+                })
+                .catch(e => {
+                    confirmBtn.disabled = false;
+                    showSsakToast('Có lỗi: ' + e);
+                });
             }
-        })
-        .catch(e => {
-            confirmBtn.disabled = false;
-            showSsakToast('Có lỗi: ' + e);
-        });
+        }
     }
 
     function requestRefund(id) {
@@ -804,45 +971,134 @@
 
 <!-- Sleek Confirmation Modal for Locking/Unlocking Users -->
 <div id="userActionModal" onclick="if(event.target === this) closeLearnerModal()" style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(6px); transition: all 0.2s ease;">
-    <div id="modalCard" style="background: #FFFFFF; width: 100%; max-width: 480px; border-radius: 24px; border: 1.5px solid #E8E5DC; box-shadow: 0 24px 48px -12px rgba(0,0,0,0.25); overflow: hidden; transform: scale(0.96); transition: transform 0.2s ease; margin: 16px;">
+    <div id="modalCard" style="background: #FFFFFF; width: 100%; max-width: 520px; border-radius: 24px; border: 1.5px solid #E8E5DC; box-shadow: 0 24px 48px -12px rgba(0,0,0,0.25); overflow: hidden; transform: scale(0.96); transition: transform 0.2s ease; margin: 16px;">
         <!-- Header Banner -->
-        <div id="modalHeaderBg" style="padding: 24px 28px 18px; border-bottom: 1px solid #F1EEE6; display: flex; align-items: center; gap: 16px;">
-            <div id="modalIconBox" style="width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; background: #FFF1F0;">
+        <div id="modalHeaderBg" style="padding: 22px 28px 16px; border-bottom: 1px solid #F1EEE6; display: flex; align-items: center; gap: 14px;">
+            <div id="modalIconBox" style="width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; background: #FFF1F0;">
                 🔒
             </div>
             <div>
-                <h4 id="modalTitle" style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">Xác nhận thao tác</h4>
-                <p id="modalSubtitle" style="margin: 4px 0 0; font-size: 13px; color: #64748B;">Cập nhật quyền hạn truy cập của học viên</p>
+                <h4 id="modalTitle" style="margin: 0; font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: #24363D;">Khóa tài khoản học viên</h4>
+                <p id="modalSubtitle" style="margin: 3px 0 0; font-size: 13px; color: #64748B;">Cập nhật quyền hạn truy cập của học viên</p>
             </div>
         </div>
 
         <!-- Body with User Card -->
-        <div style="padding: 22px 28px; display: flex; flex-direction: column; gap: 16px;">
-            <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 16px; padding: 14px 18px; display: flex; align-items: center; gap: 14px;">
-                <div id="modalUserAvatar" style="width: 44px; height: 44px; border-radius: 50%; background: #E2E8F0; color: #334155; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; flex-shrink: 0;">
+        <div style="padding: 20px 28px; display: flex; flex-direction: column; gap: 16px; max-height: 75vh; overflow-y: auto;">
+            <!-- User Summary -->
+            <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 14px; padding: 12px 16px; display: flex; align-items: center; gap: 12px;">
+                <div id="modalUserAvatar" style="width: 40px; height: 40px; border-radius: 50%; background: #E2E8F0; color: #334155; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; flex-shrink: 0;">
                     U
                 </div>
                 <div style="flex-grow: 1; min-width: 0;">
-                    <div id="modalUserName" style="font-weight: 800; font-size: 15px; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Học viên</div>
-                    <div id="modalUserEmail" style="font-size: 12.5px; color: #64748B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">email@example.com</div>
+                    <div id="modalUserName" style="font-weight: 800; font-size: 14.5px; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Học viên</div>
+                    <div id="modalUserEmail" style="font-size: 12px; color: #64748B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">email@example.com</div>
                 </div>
                 <div id="modalUserBadge">
                     <span class="ssak-badge badge-mint">Đang hoạt động</span>
                 </div>
             </div>
 
-            <p id="modalDescription" style="margin: 0; font-size: 13.5px; line-height: 1.6; color: #475569;">
-                Bạn có chắc chắn muốn thực hiện thao tác này?
-            </p>
+            <!-- UNLOCK PANE (Shown when current user is LOCKED) -->
+            <div id="modalUnlockPane" style="display: none;">
+                <div style="padding: 16px; border-radius: 14px; background: #E8F5E9; border: 1.5px solid #C8E6C9; display: flex; gap: 12px; align-items: flex-start;">
+                    <span style="font-size: 22px;">🔓</span>
+                    <div style="font-size: 13.5px; color: #1F6B56; line-height: 1.6;">
+                        Tài khoản hiện đang bị đình chỉ. Khi <strong>Mở khóa</strong>, học viên sẽ ngay lập tức được khôi phục toàn bộ quyền đăng nhập, làm bài thi thử và học tập trên hệ thống.
+                    </div>
+                </div>
+            </div>
+
+            <!-- LOCK PANE (Shown when current user is ACTIVE) -->
+            <div id="modalLockPane" style="display: block;">
+                <!-- Lock Type Tabs -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                    <button type="button" id="tabLockTemp" onclick="switchLockType('TEMPORARY')"
+                            style="padding: 10px 12px; border-radius: 12px; border: 1.5px solid #C25E3E; background: #FFFFFF; color: #9C4A2E; font-size: 13px; font-weight: 800; cursor: pointer; transition: all 0.15s ease; text-align: center;">
+                        ⏱️ Tạm khóa tài khoản
+                    </button>
+                    <button type="button" id="tabLockPerm" onclick="switchLockType('PERMANENT')"
+                            style="padding: 10px 12px; border-radius: 12px; border: 1.5px solid #E2E8F0; background: #F8FAFC; color: #64748B; font-size: 13px; font-weight: 800; cursor: pointer; transition: all 0.15s ease; text-align: center;">
+                        🚫 Đề xuất khóa vĩnh viễn
+                    </button>
+                </div>
+
+                <!-- Subpane: Temporary Lock -->
+                <div id="paneLockTemp" style="display: block;">
+                    <!-- Days Selector -->
+                    <div style="margin-bottom: 14px;">
+                        <label style="display: block; font-size: 12.5px; font-weight: 800; color: #24363D; margin-bottom: 6px;">
+                            Thời hạn tạm khóa:
+                        </label>
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <button type="button" class="day-chip" data-days="3" onclick="selectDays(3)"
+                                    style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #CBD5E1; background: #F8FAFC; font-size: 12px; font-weight: 700; cursor: pointer;">
+                                3 ngày
+                            </button>
+                            <button type="button" class="day-chip" data-days="7" onclick="selectDays(7)"
+                                    style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #1F6B56; background: #1F6B56; color: #FFFFFF; font-size: 12px; font-weight: 700; cursor: pointer;">
+                                7 ngày (Chuẩn)
+                            </button>
+                            <button type="button" class="day-chip" data-days="14" onclick="selectDays(14)"
+                                    style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #CBD5E1; background: #F8FAFC; font-size: 12px; font-weight: 700; cursor: pointer;">
+                                14 ngày
+                            </button>
+                            <button type="button" class="day-chip" data-days="30" onclick="selectDays(30)"
+                                    style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #CBD5E1; background: #F8FAFC; font-size: 12px; font-weight: 700; cursor: pointer;">
+                                30 ngày
+                            </button>
+                            <button type="button" class="day-chip" data-days="0" onclick="selectDays(0)"
+                                    style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #CBD5E1; background: #F8FAFC; font-size: 12px; font-weight: 700; cursor: pointer;">
+                                Tùy chỉnh...
+                            </button>
+                        </div>
+                        <div id="customDaysWrapper" style="display: none; margin-top: 8px;">
+                            <input type="number" id="customDaysInput" class="ssak-input" min="1" max="365" placeholder="Nhập số ngày tạm khóa (vd: 45)" oninput="onCustomDaysChange()" style="height: 38px; font-size: 13px;">
+                        </div>
+                    </div>
+
+                    <!-- Temporary Reason -->
+                    <div>
+                        <label style="display: block; font-size: 12.5px; font-weight: 800; color: #24363D; margin-bottom: 6px;">
+                            Lý do tạm khóa <span style="color: #CF1322;">(*)</span>:
+                        </label>
+                        <textarea id="tempLockReason" class="ssak-input" rows="3" style="width: 100%; font-size: 13px; line-height: 1.5; padding: 10px 12px; resize: vertical;"
+                                  placeholder="Ghi rõ lý do tạm khóa (vd: Nghi vấn chia sẻ tài khoản cho bên thứ ba, tạm ngưng 7 ngày để xác minh)..."></textarea>
+                        <div style="margin-top: 6px; font-size: 11.5px; color: #64748B; display: flex; align-items: center; gap: 5px;">
+                            <span>ℹ️</span> Lý do này sẽ được ghi vào <strong>Nhật ký hoạt động (Audit Log)</strong> để Admin theo dõi.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subpane: Permanent Lock Proposal -->
+                <div id="paneLockPerm" style="display: none;">
+                    <div style="padding: 12px 14px; border-radius: 12px; background: #FFF1F0; border: 1.5px solid #FFA39E; margin-bottom: 12px;">
+                        <div style="font-weight: 800; font-size: 12.5px; color: #CF1322; margin-bottom: 4px;">
+                            ⚠️ YÊU CẦU PHÊ DUYỆT TỪ ADMIN
+                        </div>
+                        <div style="font-size: 12px; color: #5C1D11; line-height: 1.5;">
+                            Khóa vĩnh viễn là thao tác chấm dứt vĩnh viễn quyền học tập của học viên. Yêu cầu này sẽ được tạo thành <strong>Phiếu duyệt (Approval Request)</strong> gửi lên <strong>Quản trị viên (Admin)</strong> xem xét và phê duyệt trước khi có hiệu lực.
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 12.5px; font-weight: 800; color: #24363D; margin-bottom: 6px;">
+                            Lý do đề xuất khóa vĩnh viễn <span style="color: #CF1322;">(*)</span>:
+                        </label>
+                        <textarea id="permLockReason" class="ssak-input" rows="3" style="width: 100%; font-size: 13px; line-height: 1.5; padding: 10px 12px; resize: vertical;"
+                                  placeholder="Mô tả hành vi vi phạm nghiêm trọng (gian lận có tổ chức, cố ý hack đề thi, chia sẻ bán lại tài khoản)..."></textarea>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Footer Actions -->
-        <div style="padding: 16px 28px 22px; display: flex; justify-content: flex-end; gap: 12px; background: #FAFAFA; border-top: 1px solid #F1EEE6;">
+        <div style="padding: 16px 28px 20px; display: flex; justify-content: flex-end; gap: 12px; background: #FAFAFA; border-top: 1px solid #F1EEE6;">
             <button type="button" onclick="closeLearnerModal()" style="height: 42px; padding: 0 18px; border-radius: 12px; border: 1.5px solid #CBD5E1; background: #FFFFFF; font-size: 13.5px; font-weight: 700; color: #475569; cursor: pointer; transition: all 0.15s ease;">
                 Hủy bỏ
             </button>
-            <button type="button" id="modalConfirmBtn" onclick="executeToggleLock()" style="height: 42px; padding: 0 22px; border-radius: 12px; border: none; font-size: 13.5px; font-weight: 800; color: #FFFFFF; background: #CF1322; cursor: pointer; transition: all 0.15s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.12);">
-                Xác nhận
+            <button type="button" id="modalConfirmBtn" onclick="executeLearnerAction()" style="height: 42px; padding: 0 22px; border-radius: 12px; border: none; font-size: 13.5px; font-weight: 800; color: #FFFFFF; background: #C25E3E; cursor: pointer; transition: all 0.15s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.12);">
+                🔒 Xác nhận tạm khóa
             </button>
         </div>
     </div>
