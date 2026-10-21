@@ -195,21 +195,44 @@
         sessionStorage.setItem(scrollKey, String(window.scrollY));
     }
 
-    function syncAdd(card, doc) {
+    function matchCard(card, doc) {
         var heading = card.querySelector("h2");
-        if (!heading) return;
+        if (!heading) return null;
         var title = heading.textContent.trim();
-        var nextCard = null;
+        var found = null;
         doc.querySelectorAll(".cm-grid-2 > section").forEach(function (section) {
             var nextHeading = section.querySelector("h2");
-            if (nextHeading && nextHeading.textContent.trim() === title) nextCard = section;
+            if (nextHeading && nextHeading.textContent.trim() === title) found = section;
         });
+        return found;
+    }
+
+    function syncAdd(card, doc) {
+        var nextCard = matchCard(card, doc);
         if (!nextCard) return;
         var currentAdd = card.querySelector("form.rd-add");
         var nextAdd = nextCard.querySelector("form.rd-add");
         if (nextAdd && currentAdd) currentAdd.replaceWith(nextAdd);
         else if (nextAdd) card.appendChild(nextAdd);
         else if (currentAdd) currentAdd.remove();
+    }
+
+    function syncList(card, doc) {
+        var nextCard = matchCard(card, doc);
+        if (!nextCard) return;
+        var currentList = card.querySelector("ol.rd-order");
+        var nextList = nextCard.querySelector("ol.rd-order");
+        var empty = card.querySelector(".cm-empty");
+        if (nextList) {
+            if (currentList) currentList.replaceWith(nextList);
+            else if (empty) empty.replaceWith(nextList);
+            else {
+                var add = card.querySelector("form.rd-add");
+                if (add) card.insertBefore(nextList, add);
+                else card.appendChild(nextList);
+            }
+        }
+        syncAdd(card, doc);
     }
 
     function postAndRefresh(form, y, onOk) {
@@ -277,14 +300,30 @@
     }
 
     var busy = false;
-    document.querySelectorAll(".rd-order form").forEach(function (form) {
-        form.addEventListener("submit", function (event) {
+    var grid = document.querySelector(".cm-grid-2");
+    if (grid) grid.addEventListener("submit", function (event) {
+        var form = event.target.closest("form");
+        if (!form || !grid.contains(form)) return;
+        if (form.querySelector("[name=templateId]")) {
             event.preventDefault();
             if (busy) return;
-            var dir = form.querySelector("input[name=dir]");
-            var row = form.closest("li");
-            var list = row.parentElement;
-            if (!dir) {
+            busy = true;
+            var kept = window.scrollY;
+            var card = form.closest("section");
+            postAndRefresh(form, kept, function (doc) {
+                syncList(card, doc);
+                var added = card.querySelector("ol.rd-order li:last-child");
+                if (added) added.classList.add("rd-moved");
+            });
+            return;
+        }
+        if (!form.closest(".rd-order")) return;
+        event.preventDefault();
+        if (busy) return;
+        var dir = form.querySelector("input[name=dir]");
+        var row = form.closest("li");
+        var list = row.parentElement;
+        if (!dir) {
                 busy = true;
                 var box = row.getBoundingClientRect();
                 var y = window.scrollY;
@@ -314,7 +353,6 @@
                 renumber(list, false);
                 row.classList.add("rd-moved");
             });
-        });
     });
 })();
 </script>
