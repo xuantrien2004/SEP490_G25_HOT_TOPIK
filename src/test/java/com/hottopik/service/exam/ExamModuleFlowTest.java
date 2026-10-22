@@ -6,12 +6,14 @@ import com.hottopik.repository.exam.QuestionRepository;
 import com.hottopik.repository.exam.QuestionTemplateRepository;
 import com.hottopik.repository.exam.QuestionTypeRepository;
 import com.hottopik.service.ApprovalService;
+import com.hottopik.service.PracticeService;
 import com.hottopik.util.AuthHelper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +47,8 @@ class ExamModuleFlowTest {
     @Autowired QuestionTemplateRepository templates;
     @Autowired QuestionTemplateSeeder templateSeeder;
     @Autowired QuestionTypeRepository typeRepo;
+    @Autowired PracticeService practice;
+    @Autowired com.hottopik.repository.exam.WritingPromptRepository writingPrompts;
 
     private ExamImportService.ActivationResult importFull(Track track, int variant) throws Exception {
         ExamSource src = importService.createSource(new ExamImportService.SourceForm(
@@ -58,6 +62,66 @@ class ExamModuleFlowTest {
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", s.excel()), CM);
         assertEquals(0, job.getErrorCount(), () -> importService.issues(job).toString());
         return importService.activate(src.getId(), CM);
+    }
+
+    @Test
+    void writingPageRendersWithAndWithoutBankPrompt() throws Exception {
+        writingPrompts.findByNoAndStatusOrderByIdDesc(51, QuestionStatus.ACTIVE).forEach(prompt -> {
+            prompt.setStatus(QuestionStatus.DRAFT);
+            writingPrompts.save(prompt);
+        });
+        mvc.perform(get("/writing").param("question", "51"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("hiện chưa có đề luyện Viết")));
+        importFull(Track.TOPIK_II, 32);
+        mvc.perform(get("/writing").param("question", "51"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"promptText\"")));
+    }
+
+    @Test
+    void learnerPracticeUsesExactTypeCountAndKeepsAttemptHistoryForRetry() throws Exception {
+        importFull(Track.TOPIK_I, 31);
+
+        PracticeAttempt attempt = practice.start(902L, "practice@example.com", "I-N1");
+        List<PracticeService.QuestionView> questions = practice.questions(attempt);
+        assertEquals(4, questions.size());
+        assertEquals(Set.of(1, 2, 3, 4), questions.stream().map(PracticeService.QuestionView::no).collect(java.util.stream.Collectors.toSet()));
+
+        Map<String, String> correctAnswers = questions.stream().collect(java.util.stream.Collectors.toMap(
+                q -> q.id().toString(), q -> String.valueOf(q.answer())));
+        PracticeAttempt completed = practice.submit(902L, attempt.getId(), correctAnswers);
+        assertEquals(4, completed.getScore());
+        assertEquals(4, practice.result(902L, completed.getId()).answers().size());
+        assertEquals(1, practice.historyOfType(902L, "I-N1").size());
+
+        PracticeAttempt retry = practice.retry(902L, "practice@example.com", completed.getId());
+        assertEquals(completed.getQuestionIds(), retry.getQuestionIds());
+
+        UserDTO learner = new UserDTO();
+        learner.setId(902L);
+        learner.setEmail("practice@example.com");
+        learner.setRole("STUDENT");
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(AuthHelper.SESSION_KEY, learner);
+
+        mvc.perform(get("/practice/prepare").param("typeCode", "I-N1").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Lịch sử rèn luyện dạng này")))
+                .andExpect(content().string(not(containsString("Câu trong ngân hàng"))));
+        mvc.perform(get("/practice/play/{id}", retry.getId()).session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("I-N1")));
+        mvc.perform(get("/practice/result/{id}", completed.getId()).session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Đáp án dựa vào chi tiết")))
+                .andExpect(content().string(containsString("Lịch sử các lần luyện dạng này")));
+
+        mvc.perform(get("/practice"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Kỹ năng Đọc")))
+                .andExpect(content().string(containsString("Kỹ năng Viết")))
+                .andExpect(content().string(containsString("I-N1")));
     }
 
     @Test

@@ -13,7 +13,7 @@
         <!-- Header & Action Links -->
         <div style="display: flex; justify-content: space-between; align-items: flex-end;">
             <div>
-                <a th:href="@{/practice}" style="display: inline-flex; align-items: center; gap: 4px; color: #5C6E72; font-size: 14px; font-weight: 700; text-decoration: none; margin-bottom: 6px;">
+                <a th:href="@{/practice(skill='writing',track='TOPIK_II')}" style="display: inline-flex; align-items: center; gap: 4px; color: #5C6E72; font-size: 14px; font-weight: 700; text-decoration: none; margin-bottom: 6px;">
                     ‹ Luyện tập · Viết từng câu (51–54)
                 </a>
                 <h1 style="margin: 0; font-family: var(--font-heading); font-size: 32px; font-weight: 800;">
@@ -41,53 +41,71 @@
 
         <!-- 4 Question Tabs (51, 52, 53, 54) -->
         <div style="display: flex; gap: 12px;">
-            <button type="button" onclick="selectQuestion(51)" id="tabQ51" 
-                    th:style="${currentQuestion == 51 ? 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #24363D; background: #24363D; color: #FFFFFF;' : 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #E6E1D3; background: #FFFFFF; color: #24363D;'}">
+            <a th:href="@{/writing(question=51)}" id="tabQ51" 
+               th:style="${currentQuestion == 51 ? 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #24363D; background: #24363D; color: #FFFFFF; text-decoration: none;' : 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #E6E1D3; background: #FFFFFF; color: #24363D; text-decoration: none;'}">
                 <span style="font-weight: 800; font-size: 14px;">Câu 51</span>
                 <span style="font-size: 11px; opacity: 0.85;">Văn bản thực dụng (10đ)</span>
-            </button>
+            </a>
 
-            <button type="button" onclick="selectQuestion(52)" id="tabQ52" 
-                    th:style="${currentQuestion == 52 ? 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #24363D; background: #24363D; color: #FFFFFF;' : 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #E6E1D3; background: #FFFFFF; color: #24363D;'}">
+            <a th:href="@{/writing(question=52)}" id="tabQ52" 
+               th:style="${currentQuestion == 52 ? 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #24363D; background: #24363D; color: #FFFFFF; text-decoration: none;' : 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #E6E1D3; background: #FFFFFF; color: #24363D; text-decoration: none;'}">
                 <span style="font-weight: 800; font-size: 14px;">Câu 52</span>
                 <span style="font-size: 11px; opacity: 0.85;">Đoạn giải thích (10đ)</span>
-            </button>
+            </a>
 
-            <button type="button" onclick="selectQuestion(53)" id="tabQ53" 
-                    th:style="${currentQuestion == 53 ? 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #24363D; background: #24363D; color: #FFFFFF;' : 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #E6E1D3; background: #FFFFFF; color: #24363D;'}">
+            <a th:href="@{/writing(question=53)}" id="tabQ53" 
+               th:style="${currentQuestion == 53 ? 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #24363D; background: #24363D; color: #FFFFFF; text-decoration: none;' : 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #E6E1D3; background: #FFFFFF; color: #24363D; text-decoration: none;'}">
                 <span style="font-weight: 800; font-size: 14px;">Câu 53</span>
                 <span style="font-size: 11px; opacity: 0.85;">Mô tả biểu đồ (30đ)</span>
-            </button>
+            </a>
 
-            <button type="button" onclick="selectQuestion(54)" id="tabQ54" 
-                    th:style="${currentQuestion == 54 ? 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #24363D; background: #24363D; color: #FFFFFF;' : 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #E6E1D3; background: #FFFFFF; color: #24363D;'}">
+            <a th:href="@{/writing(question=54)}" id="tabQ54" 
+               th:style="${currentQuestion == 54 ? 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #24363D; background: #24363D; color: #FFFFFF; text-decoration: none;' : 'height: 52px; padding: 0 22px; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 2px solid #E6E1D3; background: #FFFFFF; color: #24363D; text-decoration: none;'}">
                 <span style="font-weight: 800; font-size: 14px;">Câu 54</span>
                 <span style="font-size: 11px; opacity: 0.85;">Nghị luận 700 chữ (50đ)</span>
-            </button>
+            </a>
         </div>
 
+        <div th:if="${currentPrompt == null}" class="alert alert-warning" role="status">Dạng câu này hiện chưa có đề luyện Viết. Bạn có thể chọn dạng câu khác hoặc quay lại sau.</div>
         <!-- MAIN WRITING WORKSPACE GRID -->
-        <div style="display: flex; gap: 20px; align-items: flex-start;">
+        <div th:if="${currentPrompt != null}" style="display: flex; gap: 20px; align-items: flex-start;">
             
             <!-- LEFT SECTION: QUESTION PROMPT & EDITOR -->
             <section style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
                 
                 <!-- PROMPT CARD -->
                 <div style="padding: 24px; border-radius: 24px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 12px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span id="promptHeader" style="font-size: 12px; font-weight: 800; color: #1F6B56; letter-spacing: .5px; text-transform: uppercase;">
-                            CÂU 53 · MÔ TẢ BIỂU ĐỒ
-                        </span>
-                        <span id="promptPoints" style="font-size: 12px; font-weight: 800; color: #5C6E72;">
-                            30 điểm
-                        </span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span id="promptHeader" style="font-size: 12px; font-weight: 800; color: #1F6B56; letter-spacing: .5px; text-transform: uppercase;">
+                                CÂU 53 · MÔ TẢ BIỂU ĐỒ
+                            </span>
+                            <span th:if="${currentPrompt != null}"
+                                  style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: #E8F5E9; color: #1F6B56; font-weight: 700; border: 1px solid #A9D9C0;"
+                                  th:text="'📚 ' + (${currentPrompt.code != null ? currentPrompt.code : 'Ngân hàng đề'})">
+                                📚 W0001
+                            </span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <a th:if="${bankPrompts != null && bankPrompts.size() > 1}"
+                               th:href="@{/writing(question=${currentQuestion}, random='true')}"
+                               style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: #1F6B56; text-decoration: none; padding: 4px 10px; border-radius: 8px; background: #F0FDF4; border: 1px solid #86EFAC;"
+                               title="Lấy ngẫu nhiên một đề khác trong Ngân hàng câu hỏi">
+                                <span>🎲 Đổi đề khác</span>
+                                <span style="font-size: 11px; color: #5C6E72;" th:text="'(' + ${bankPrompts.size()} + ' đề)'">(2 đề)</span>
+                            </a>
+                            <span id="promptPoints" style="font-size: 12px; font-weight: 800; color: #5C6E72;">
+                                30 điểm
+                            </span>
+                        </div>
                     </div>
 
                     <span id="promptInstr" style="font-size: 14px; color: #4A5B60;">
                         Dựa vào số liệu khảo sát, viết đoạn văn 200–300 ký tự. Không viết tiêu đề.
                     </span>
 
-                    <div id="promptText" lang="ko" style="padding: 16px 18px; border-radius: 16px; background: #F8F6EF; font-family: 'Noto Sans KR',sans-serif; font-size: 16px; line-height: 1.85;">
+                    <div id="promptText" lang="ko" style="padding: 16px 18px; border-radius: 16px; background: #F8F6EF; font-family: 'Noto Sans KR',sans-serif; font-size: 16px; line-height: 1.85;"
+                         th:text="${currentPrompt.promptKo}">
                         다음은 '20대의 여가 활동'에 대한 조사 결과이다. 이 내용을 200~300자의 글로 쓰시오.
                     </div>
 
@@ -301,7 +319,7 @@
     </div>
 </div>
 
-<script>
+<script th:if="${currentPrompt != null}" th:inline="javascript">
     const QUESTIONS_DATA = {
         51: {
             title: 'CÂU 51 · VĂN BẢN THỰC DỤNG',
@@ -462,7 +480,8 @@
         }
 
         document.getElementById('formQNo').value = currentQ;
-        document.getElementById('formPrompt').value = q.prompt;
+        const promptEl = document.getElementById('promptText');
+        document.getElementById('formPrompt').value = promptEl ? promptEl.innerText.trim() : q.prompt;
         document.getElementById('formAnswer').value = answerText;
         document.getElementById('modalQNum').textContent = currentQ;
         document.getElementById('modalWordCount').textContent = answerText.length;
@@ -480,6 +499,23 @@
     document.addEventListener('DOMContentLoaded', function() {
         const initQ = /*[[${currentQuestion}]]*/ 53;
         selectQuestion(initQ);
+        /*[# th:if="${currentPrompt != null}"]*/
+        const curPromptText = /*[[${currentPrompt.promptKo}]]*/ '';
+        if (curPromptText && QUESTIONS_DATA[initQ]) {
+            QUESTIONS_DATA[initQ].prompt = curPromptText;
+            document.getElementById('promptText').textContent = curPromptText;
+        }
+        const curModel = /*[[${currentPrompt.modelAnswer}]]*/ '';
+        if (curModel && QUESTIONS_DATA[initQ]) {
+            QUESTIONS_DATA[initQ].model = curModel;
+            document.getElementById('aiModelAnswerText').textContent = curModel;
+        }
+        const curNote = /*[[${currentPrompt.rubricNote}]]*/ '';
+        if (curNote && QUESTIONS_DATA[initQ]) {
+            QUESTIONS_DATA[initQ].comment = curNote;
+            document.getElementById('aiCommentText').textContent = curNote;
+        }
+        /*[/]*/
     });
 </script>
 

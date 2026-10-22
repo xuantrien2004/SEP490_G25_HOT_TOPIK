@@ -1,5 +1,8 @@
 package com.hottopik.controller;
 
+import com.hottopik.entity.exam.QuestionStatus;
+import com.hottopik.entity.exam.WritingPrompt;
+import com.hottopik.repository.exam.WritingPromptRepository;
 import com.hottopik.dto.UserDTO;
 import com.hottopik.dto.WritingSubmissionDTO;
 import com.hottopik.dto.WritingSubmissionDTO.ChartItem;
@@ -20,11 +23,15 @@ public class WritingController {
 
     private final WritingSubmissionService writingSubmissionService;
     private final UserService userService;
+    private final WritingPromptRepository writingPromptRepository;
 
     @Autowired
-    public WritingController(WritingSubmissionService writingSubmissionService, UserService userService) {
+    public WritingController(WritingSubmissionService writingSubmissionService,
+                             UserService userService,
+                             WritingPromptRepository writingPromptRepository) {
         this.writingSubmissionService = writingSubmissionService;
         this.userService = userService;
+        this.writingPromptRepository = writingPromptRepository;
     }
 
     /**
@@ -32,6 +39,8 @@ public class WritingController {
      */
     @GetMapping("/writing")
     public String writing(@RequestParam(value = "question", defaultValue = "53") int question,
+                          @RequestParam(value = "promptId", required = false) Long promptId,
+                          @RequestParam(value = "random", required = false, defaultValue = "false") boolean random,
                           Model model,
                           HttpSession session) {
 
@@ -40,6 +49,24 @@ public class WritingController {
         model.addAttribute("pageTitle", "Luyện Viết TOPIK II · Câu " + question);
         model.addAttribute("activePage", "writing");
         model.addAttribute("currentQuestion", question);
+
+        // Lấy đề từ ngân hàng câu hỏi do Content Manager tạo
+        List<WritingPrompt> bankPrompts = writingPromptRepository.findByNoAndStatusOrderByIdDesc(question, QuestionStatus.ACTIVE);
+        WritingPrompt currentPrompt = null;
+        if (!bankPrompts.isEmpty()) {
+            if (promptId != null) {
+                currentPrompt = bankPrompts.stream().filter(p -> p.getId().equals(promptId)).findFirst().orElse(null);
+            }
+            if (currentPrompt == null) {
+                if (random && bankPrompts.size() > 1) {
+                    currentPrompt = bankPrompts.get(new Random().nextInt(bankPrompts.size()));
+                } else {
+                    currentPrompt = bankPrompts.get(0);
+                }
+            }
+        }
+        model.addAttribute("bankPrompts", bankPrompts);
+        model.addAttribute("currentPrompt", currentPrompt);
 
         // Submissions count for current user
         String email = currentUser != null ? currentUser.getEmail() : "learner@hottopik.com";
