@@ -139,18 +139,22 @@
                     <!-- Lối tắt vào các Cổng nghiệp vụ theo Role -->
                     <th:block th:if="${session.LOGGED_IN_USER.admin}">
                         <a class="ssak-user-drop-item text-danger fw-bold" th:href="@{/admin}"><i class="bi bi-shield-check me-2"></i>Cổng Quản trị (Admin)</a>
+                        <a class="ssak-user-drop-item" th:href="@{/admin/profile}"><i class="bi bi-person-badge me-2 text-danger"></i>Hồ sơ Quản trị viên</a>
                     </th:block>
                     <th:block th:if="${session.LOGGED_IN_USER.contentManager}">
                         <a class="ssak-user-drop-item text-primary fw-bold" th:href="@{/content}"><i class="bi bi-file-earmark-ruled me-2"></i>Cổng Nội dung (Content)</a>
+                        <a class="ssak-user-drop-item" th:href="@{/content/profile}"><i class="bi bi-person-badge me-2 text-primary"></i>Hồ sơ Content Manager</a>
                     </th:block>
                     <th:block th:if="${session.LOGGED_IN_USER.operationManager}">
                         <a class="ssak-user-drop-item text-warning fw-bold" th:href="@{/operation}"><i class="bi bi-kanban me-2"></i>Cổng Vận hành (Operation)</a>
+                        <a class="ssak-user-drop-item" th:href="@{/operation/profile}"><i class="bi bi-person-badge me-2 text-warning"></i>Hồ sơ Operation Manager</a>
                     </th:block>
                     <th:block th:if="${session.LOGGED_IN_USER.mentor}">
                         <a class="ssak-user-drop-item text-success fw-bold" th:href="@{/teacher}"><i class="bi bi-mortarboard me-2"></i>Cổng Giảng viên (Mentor)</a>
+                        <a class="ssak-user-drop-item" th:href="@{/teacher/profile}"><i class="bi bi-person-badge me-2 text-success"></i>Hồ sơ Giáo viên</a>
                     </th:block>
 
-                    <a class="ssak-user-drop-item" th:href="@{/ho-so}"><i class="bi bi-person me-2 text-primary"></i>Hồ sơ cá nhân</a>
+                    <a class="ssak-user-drop-item" th:href="@{/ho-so}"><i class="bi bi-person me-2 text-primary"></i>Hồ sơ Học viên</a>
                     <a class="ssak-user-drop-item" th:href="@{/xu}"><i class="bi bi-coin me-2 text-warning"></i>Kho Xu của bạn</a>
                     <a class="ssak-user-drop-item" th:href="@{/bai-cham}"><i class="bi bi-journal-check me-2 text-success"></i>Bài Viết gửi Mentor</a>
                     <a class="ssak-user-drop-item" th:href="@{/goi-cua-toi}"><i class="bi bi-gem me-2 text-danger"></i>Gói VIP của tôi</a>

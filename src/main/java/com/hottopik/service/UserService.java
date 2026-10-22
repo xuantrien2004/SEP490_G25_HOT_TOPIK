@@ -62,76 +62,122 @@ public class UserService {
     public void initSeedAccounts() {
         // Tài khoản mẫu tương thích cả seed SEP490 cũ và HotTopik_2 mới
         // 1. Administrator
-        users.put(9001L, new UserDTO(
+        UserDTO u9001 = new UserDTO(
                 9001L, "admin", "admin@hottopik.vn", "admin@123",
                 "Quân (Admin)", "ADMIN", "Quản trị viên (Admin)",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=admin",
                 "0912345678", "TOPIK_6", "TOPIK_6", false, null
-        ));
-        users.put(9101L, new UserDTO(
+        );
+        u9001.setSpecialty("Quản trị hệ thống, Phân quyền & Giám sát bảo mật");
+        u9001.setBio("Quản trị viên cấp cao của hệ thống HOT TOPIK, phụ trách điều hành kiến trúc và an toàn bảo mật.");
+        u9001.setTimezone("Asia/Ho_Chi_Minh");
+        users.put(9001L, u9001);
+
+        UserDTO u9101 = new UserDTO(
                 9101L, "admin_com", "admin@hottopik.com", "admin@123",
                 "Vũ Minh Quân", "ADMIN", "Quản trị viên (Admin)",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=admin",
                 "0912345678", "TOPIK_6", "TOPIK_6", false, null
-        ));
+        );
+        u9101.setSpecialty("Quản trị hệ thống, Phân quyền & Giám sát bảo mật");
+        u9101.setBio("Quản trị viên cấp cao của hệ thống HOT TOPIK, phụ trách điều hành kiến trúc và an toàn bảo mật.");
+        u9101.setTimezone("Asia/Ho_Chi_Minh");
+        users.put(9101L, u9101);
 
         // 2. Content Manager
-        users.put(9002L, new UserDTO(
+        UserDTO u9002 = new UserDTO(
                 9002L, "content_manager", "content@hottopik.vn", "content@123",
                 "Hà (Content)", "CONTENT_MANAGER", "Content Manager",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=content",
                 "0923456789", "TOPIK_6", "TOPIK_5", false, null
-        ));
-        users.put(9102L, new UserDTO(
+        );
+        u9002.setSpecialty("Biên tập Lý thuyết Ngữ pháp, Từ vựng & Thẩm định đề thi TOPIK II");
+        u9002.setBio("Chuyên gia Ngôn ngữ Hàn, TOPIK cấp 6. Phụ trách nội dung học liệu và kiểm duyệt ngân hàng đề thi.");
+        u9002.setTimezone("Asia/Ho_Chi_Minh");
+        users.put(9002L, u9002);
+
+        UserDTO u9102 = new UserDTO(
                 9102L, "content_com", "content@hottopik.com", "content@123",
                 "Lê Thu Hà", "CONTENT_MANAGER", "Content Manager",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=content",
                 "0923456789", "TOPIK_6", "TOPIK_5", false, null
-        ));
+        );
+        u9102.setSpecialty("Biên tập Lý thuyết Ngữ pháp, Từ vựng & Thẩm định đề thi TOPIK II");
+        u9102.setBio("Chuyên gia Ngôn ngữ Hàn, TOPIK cấp 6. Phụ trách nội dung học liệu và kiểm duyệt ngân hàng đề thi.");
+        u9102.setTimezone("Asia/Ho_Chi_Minh");
+        users.put(9102L, u9102);
 
         // 3. Operation Manager
-        users.put(9003L, new UserDTO(
+        UserDTO u9003 = new UserDTO(
                 9003L, "operation_manager", "operation@hottopik.vn", "operation@123",
                 "Tuấn (Operation)", "OPERATION_MANAGER", "Operation Manager",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=operation",
                 "0934567890", "TOPIK_4", "TOPIK_3", false, null
-        ));
-        users.put(9103L, new UserDTO(
+        );
+        u9003.setSpecialty("Vận hành hệ thống học viên, Gói VIP, Xử lý giao dịch & Khiếu nại");
+        u9003.setBio("Trưởng ban Vận hành dịch vụ khách hàng và chăm sóc trải nghiệm người dùng HOT TOPIK.");
+        u9003.setTimezone("Asia/Ho_Chi_Minh");
+        users.put(9003L, u9003);
+
+        UserDTO u9103 = new UserDTO(
                 9103L, "operation_com", "operation@hottopik.com", "operation@123",
                 "Trần Quốc Tuấn", "OPERATION_MANAGER", "Operation Manager",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=operation",
                 "0934567890", "TOPIK_4", "TOPIK_3", false, null
-        ));
+        );
+        u9103.setSpecialty("Vận hành hệ thống học viên, Gói VIP, Xử lý giao dịch & Khiếu nại");
+        u9103.setBio("Trưởng ban Vận hành dịch vụ khách hàng và chăm sóc trải nghiệm người dùng HOT TOPIK.");
+        u9103.setTimezone("Asia/Ho_Chi_Minh");
+        users.put(9103L, u9103);
 
         // 4. Mentor / Teacher
-        users.put(9004L, new UserDTO(
+        UserDTO u9004 = new UserDTO(
                 9004L, "mentor", "mai.mentor@hottopik.vn", "teacher@123",
                 "Cô Mai (Mentor)", "MENTOR", "Giáo viên (Mentor)",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=teacher",
                 "0967890123", "TOPIK_6", "TOPIK_6", false, null
-        ));
-        users.put(9104L, new UserDTO(
+        );
+        u9004.setSpecialty("Chuyên gia chấm thi Viết TOPIK II (Câu 51, 52, 53, 54)");
+        u9004.setBio("Thạc sĩ Sư phạm tiếng Hàn Quốc, 8 năm kinh nghiệm luyện thi TOPIK II và chấm thi chuyên sâu.");
+        u9004.setTimezone("Asia/Ho_Chi_Minh");
+        users.put(9004L, u9004);
+
+        UserDTO u9104 = new UserDTO(
                 9104L, "teacher_com", "teacher@hottopik.com", "teacher@123",
                 "Cô Mai (Giáo viên)", "MENTOR", "Giáo viên (Mentor)",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=teacher",
                 "0967890123", "TOPIK_6", "TOPIK_6", false, null
-        ));
+        );
+        u9104.setSpecialty("Chuyên gia chấm thi Viết TOPIK II (Câu 51, 52, 53, 54)");
+        u9104.setBio("Thạc sĩ Sư phạm tiếng Hàn Quốc, 8 năm kinh nghiệm luyện thi TOPIK II và chấm thi chuyên sâu.");
+        u9104.setTimezone("Asia/Ho_Chi_Minh");
+        users.put(9104L, u9104);
 
         // 5. Learner (Student)
-        users.put(9005L, new UserDTO(
+        UserDTO u9005 = new UserDTO(
                 9005L, "learner", "learner@hottopik.com", "user@123",
                 "Phạm Minh Anh", "STUDENT", "Học viên",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=learner",
                 "0956789012", "TOPIK_2", "TOPIK_1", false, null
-        ));
+        );
+        u9005.setSpecialty("Mục tiêu TOPIK cấp 2 trong 3 tháng tới");
+        u9005.setBio("Học viên sơ cấp yêu thích tiếng Hàn, đang nỗ lực học từ vựng và luyện đề mỗi ngày.");
+        u9005.setDailyGoalMinutes(25);
+        u9005.setTimezone("Asia/Ho_Chi_Minh");
+        users.put(9005L, u9005);
 
         // 6. VIP Learner
-        users.put(9006L, new UserDTO(
+        UserDTO u9006 = new UserDTO(
                 9006L, "vip_learner", "viplearner@hottopik.com", "vip@123",
                 "Nguyễn Hoàng Nam", "STUDENT", "Học viên VIP",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=viplearner",
                 "0945678901", "TOPIK_5", "TOPIK_3", true, "VIP Trọn đời (Lifetime VIP)"
-        ));
+        );
+        u9006.setSpecialty("Mục tiêu TOPIK cấp 5 để du học Hàn Quốc");
+        u9006.setBio("Học viên VIP đang ôn thi nâng cao kỹ năng Viết & Đọc để đạt học bổng GKS.");
+        u9006.setDailyGoalMinutes(45);
+        u9006.setTimezone("Asia/Ho_Chi_Minh");
+        users.put(9006L, u9006);
     }
 
     /**
@@ -607,6 +653,17 @@ public class UserService {
         dto.setStudiedDays(u.getStudiedDays() != null ? u.getStudiedDays() : 0);
         dto.setLockedUntil(u.getLockedUntil());
         dto.setLockReason(u.getLockReason());
+        dto.setTimezone(u.getTimezone() != null ? u.getTimezone() : "Asia/Ho_Chi_Minh");
+        dto.setDailyGoalMinutes(u.getDailyGoalMinutes() != null ? u.getDailyGoalMinutes().intValue() : 20);
+        if (u.getCreatedAt() != null) {
+            dto.setCreatedAt(u.getCreatedAt());
+        }
+        UserDTO mem = users.get(u.getId());
+        if (mem != null) {
+            if (mem.getPhone() != null && !mem.getPhone().isEmpty()) dto.setPhone(mem.getPhone());
+            if (mem.getBio() != null) dto.setBio(mem.getBio());
+            if (mem.getSpecialty() != null) dto.setSpecialty(mem.getSpecialty());
+        }
         return dto;
     }
 
@@ -890,6 +947,110 @@ public class UserService {
         UserDTO mem = users.get(userId);
         if (mem != null) {
             mem.setDisplayName(cleanName);
+        }
+        return true;
+    }
+
+    /**
+     * Cập nhật thông tin hồ sơ cho cán bộ / quản trị viên / giáo viên
+     */
+    @Transactional
+    public boolean updateUserProfile(Long userId, String fullName, String phone, String avatarUrl, String bio, String specialty, String timezone) {
+        if (userId == null) return false;
+        try {
+            Optional<User> uOpt = userRepository.findById(userId);
+            if (uOpt.isPresent()) {
+                User u = uOpt.get();
+                if (fullName != null && !fullName.trim().isEmpty()) {
+                    u.setDisplayName(fullName.trim());
+                }
+                if (avatarUrl != null) {
+                    u.setAvatarUrl(avatarUrl.trim().isEmpty() ? null : avatarUrl.trim());
+                }
+                if (timezone != null && !timezone.trim().isEmpty()) {
+                    u.setTimezone(timezone.trim());
+                }
+                userRepository.save(u);
+            }
+        } catch (Exception ex) {
+            log.warn("Lỗi lưu user profile vào DB: {}", ex.getMessage());
+        }
+
+        UserDTO mem = users.get(userId);
+        if (mem != null) {
+            if (fullName != null && !fullName.trim().isEmpty()) {
+                mem.setFullName(fullName.trim());
+            }
+            if (phone != null) {
+                mem.setPhone(phone.trim().isEmpty() ? null : phone.trim());
+            }
+            if (avatarUrl != null) {
+                mem.setAvatar(avatarUrl.trim().isEmpty() ? null : avatarUrl.trim());
+            }
+            if (bio != null) {
+                mem.setBio(bio.trim().isEmpty() ? null : bio.trim());
+            }
+            if (specialty != null) {
+                mem.setSpecialty(specialty.trim().isEmpty() ? null : specialty.trim());
+            }
+            if (timezone != null && !timezone.trim().isEmpty()) {
+                mem.setTimezone(timezone.trim());
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Cập nhật hồ sơ toàn diện cho học viên
+     */
+    @Transactional
+    public boolean updateLearnerProfile(Long userId, String displayName, String phone, String avatarUrl, String currentLevel, String targetLevel, Integer dailyGoalMinutes) {
+        if (userId == null) return false;
+        try {
+            Optional<User> uOpt = userRepository.findById(userId);
+            if (uOpt.isPresent()) {
+                User u = uOpt.get();
+                if (displayName != null && !displayName.trim().isEmpty()) {
+                    u.setDisplayName(displayName.trim());
+                }
+                if (avatarUrl != null) {
+                    u.setAvatarUrl(avatarUrl.trim().isEmpty() ? null : avatarUrl.trim());
+                }
+                if (currentLevel != null) {
+                    u.setCurrentLevel(parseLevelToShort(currentLevel, (short) 1));
+                }
+                if (targetLevel != null) {
+                    u.setTargetLevel(parseLevelToShort(targetLevel, (short) 2));
+                }
+                if (dailyGoalMinutes != null && dailyGoalMinutes > 0) {
+                    u.setDailyGoalMinutes(dailyGoalMinutes.shortValue());
+                }
+                userRepository.save(u);
+            }
+        } catch (Exception ex) {
+            log.warn("Lỗi lưu learner profile vào DB: {}", ex.getMessage());
+        }
+
+        UserDTO mem = users.get(userId);
+        if (mem != null) {
+            if (displayName != null && !displayName.trim().isEmpty()) {
+                mem.setFullName(displayName.trim());
+            }
+            if (phone != null) {
+                mem.setPhone(phone.trim().isEmpty() ? null : phone.trim());
+            }
+            if (avatarUrl != null) {
+                mem.setAvatar(avatarUrl.trim().isEmpty() ? null : avatarUrl.trim());
+            }
+            if (currentLevel != null) {
+                mem.setCurrentLevel(currentLevel.startsWith("TOPIK_") ? currentLevel : "TOPIK_" + currentLevel);
+            }
+            if (targetLevel != null) {
+                mem.setTargetLevel(targetLevel.startsWith("TOPIK_") ? targetLevel : "TOPIK_" + targetLevel);
+            }
+            if (dailyGoalMinutes != null && dailyGoalMinutes > 0) {
+                mem.setDailyGoalMinutes(dailyGoalMinutes);
+            }
         }
         return true;
     }

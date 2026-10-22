@@ -7,6 +7,7 @@ import com.hottopik.service.UserService;
 import com.hottopik.service.WritingSubmissionService;
 import com.hottopik.util.AuthHelper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -188,5 +189,150 @@ public class TeacherPortalController {
             redirectAttributes.addFlashAttribute("errorMessage", "Không thể gửi câu trả lời.");
         }
         return "redirect:/teacher?tab=done&sel=" + id;
+    }
+
+    // ==========================================
+    // TEACHER / MENTOR PROFILE ENDPOINTS
+    // ==========================================
+
+    @GetMapping("/teacher/profile")
+    public String teacherProfile(HttpSession session, Model model) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        if (currentUser == null) return "redirect:/login";
+        if (!currentUser.isMentor() && !currentUser.isAdmin()) {
+            return "redirect:/today";
+        }
+
+        model.addAttribute("currentUser", currentUser);
+        model.addAttribute("pageTitle", "Hồ sơ Giáo viên (Mentor Profile) · HOT TOPIK");
+
+        // Compute teacher stats
+        List<WritingSubmissionDTO> all = writingSubmissionService.getAllSubmissions();
+        long queueCount = all.stream().filter(s -> "waiting".equalsIgnoreCase(s.getStatus())).count();
+        long mineCount = all.stream().filter(s -> "claimed".equalsIgnoreCase(s.getStatus())).count();
+        long doneCount = all.stream().filter(s -> "graded".equalsIgnoreCase(s.getStatus())).count();
+
+        model.addAttribute("queueCount", queueCount);
+        model.addAttribute("mineCount", mineCount);
+        model.addAttribute("doneCount", doneCount);
+
+        return "teacher/profile";
+    }
+
+    @PostMapping("/teacher/profile/update")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateTeacherProfile(
+            @RequestBody Map<String, Object> payload,
+            HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+
+        if (currentUser == null || (!currentUser.isMentor() && !currentUser.isAdmin())) {
+            resp.put("success", false);
+            resp.put("message", "Từ chối quyền truy cập.");
+            return ResponseEntity.status(403).body(resp);
+        }
+
+        String fullName = (String) payload.get("fullName");
+        String phone = (String) payload.get("phone");
+        String avatar = (String) payload.get("avatar");
+        String bio = (String) payload.get("bio");
+        String specialty = (String) payload.get("specialty");
+        String timezone = (String) payload.get("timezone");
+
+        if (fullName == null || fullName.trim().length() < 2 || fullName.trim().length() > 40) {
+            resp.put("success", false);
+            resp.put("message", "Họ và tên phải từ 2 đến 40 ký tự!");
+            return ResponseEntity.badRequest().body(resp);
+        }
+
+        boolean ok = userService.updateUserProfile(currentUser.getId(), fullName, phone, avatar, bio, specialty, timezone);
+        if (ok) {
+            currentUser.setFullName(fullName.trim());
+            currentUser.setDisplayName(fullName.trim());
+            if (phone != null) currentUser.setPhone(phone.trim().isEmpty() ? null : phone.trim());
+            if (avatar != null) currentUser.setAvatar(avatar.trim().isEmpty() ? null : avatar.trim());
+            if (bio != null) currentUser.setBio(bio.trim().isEmpty() ? null : bio.trim());
+            if (specialty != null) currentUser.setSpecialty(specialty.trim().isEmpty() ? null : specialty.trim());
+            if (timezone != null) currentUser.setTimezone(timezone.trim().isEmpty() ? null : timezone.trim());
+
+            session.setAttribute("LOGGED_IN_USER", currentUser);
+
+            resp.put("success", true);
+            resp.put("user", currentUser);
+            resp.put("message", "Đã cập nhật hồ sơ Giáo viên thành công!");
+            return ResponseEntity.ok(resp);
+        } else {
+            resp.put("success", false);
+            resp.put("message", "Không thể cập nhật hồ sơ lúc này!");
+            return ResponseEntity.badRequest().body(resp);
+        }
+    }
+
+    @PostMapping("/teacher/profile/clear-field")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> clearTeacherField(
+            @RequestParam("field") String field,
+            HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+        if (currentUser == null || (!currentUser.isMentor() && !currentUser.isAdmin())) {
+            resp.put("success", false);
+            resp.put("message", "Từ chối quyền truy cập.");
+            return ResponseEntity.status(403).body(resp);
+        }
+        if ("phone".equalsIgnoreCase(field)) {
+            userService.updateUserProfile(currentUser.getId(), null, "", null, null, null, null);
+            currentUser.setPhone(null);
+            session.setAttribute("LOGGED_IN_USER", currentUser);
+            resp.put("success", true);
+            resp.put("message", "Đã xóa số điện thoại khỏi hồ sơ!");
+            return ResponseEntity.ok(resp);
+        } else if ("avatar".equalsIgnoreCase(field)) {
+            String defaultAvatar = "https://api.dicebear.com/7.x/bottts/svg?seed=" + currentUser.getEmail();
+            userService.updateUserProfile(currentUser.getId(), null, null, defaultAvatar, null, null, null);
+            currentUser.setAvatar(defaultAvatar);
+            session.setAttribute("LOGGED_IN_USER", currentUser);
+            resp.put("success", true);
+            resp.put("avatar", defaultAvatar);
+            resp.put("message", "Đã khôi phục ảnh đại diện mặc định!");
+            return ResponseEntity.ok(resp);
+        }
+        resp.put("success", false);
+        resp.put("message", "Trường thông tin không hợp lệ.");
+        return ResponseEntity.badRequest().body(resp);
+    }
+
+    @PostMapping("/teacher/profile/change-password")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> changeTeacherPassword(
+            @RequestBody Map<String, Object> payload,
+            HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+        if (currentUser == null || (!currentUser.isMentor() && !currentUser.isAdmin())) {
+            resp.put("success", false);
+            resp.put("message", "Từ chối quyền truy cập.");
+            return ResponseEntity.status(403).body(resp);
+        }
+
+        String oldPass = (String) payload.get("oldPassword");
+        String newPass = (String) payload.get("newPassword");
+        if (newPass == null || newPass.trim().length() < 6) {
+            resp.put("success", false);
+            resp.put("message", "Mật khẩu mới phải từ 6 ký tự trở lên!");
+            return ResponseEntity.badRequest().body(resp);
+        }
+
+        boolean ok = userService.changePassword(currentUser.getId(), oldPass, newPass);
+        if (ok) {
+            resp.put("success", true);
+            resp.put("message", "Đã đổi mật khẩu Giáo viên thành công!");
+            return ResponseEntity.ok(resp);
+        } else {
+            resp.put("success", false);
+            resp.put("message", "Mật khẩu hiện tại không đúng. Vui lòng thử lại!");
+            return ResponseEntity.badRequest().body(resp);
+        }
     }
 }

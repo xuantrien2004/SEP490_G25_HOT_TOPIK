@@ -164,14 +164,22 @@
                 </div>
 
                 <!-- Info Grid -->
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding-top: 16px; border-top: 1px solid var(--ssak-border);">
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding-top: 16px; border-top: 1px solid var(--ssak-border);">
                     <div style="padding: 14px 18px; background: #F8FAFC; border-radius: 14px; border: 1px solid var(--ssak-border);">
-                        <div style="font-size: 12px; color: var(--ssak-text-muted); font-weight: 700; text-transform: uppercase;">Mã tài khoản</div>
+                        <div style="font-size: 11px; color: var(--ssak-text-muted); font-weight: 800; text-transform: uppercase;">Mã tài khoản</div>
                         <div style="font-size: 15px; font-weight: 800; color: #24363D; margin-top: 4px;" th:text="${'#UID-' + currentUser.id}">#UID-2</div>
                     </div>
                     <div style="padding: 14px 18px; background: #F8FAFC; border-radius: 14px; border: 1px solid var(--ssak-border);">
-                        <div style="font-size: 12px; color: var(--ssak-text-muted); font-weight: 700; text-transform: uppercase;">Tên đăng nhập</div>
-                        <div style="font-size: 15px; font-weight: 800; color: #24363D; margin-top: 4px;" th:text="${currentUser.username}">content_manager</div>
+                        <div style="font-size: 11px; color: var(--ssak-text-muted); font-weight: 800; text-transform: uppercase;">Số điện thoại</div>
+                        <div id="contentDisplayPhone" style="font-size: 15px; font-weight: 800; color: #2E7D67; margin-top: 4px;" th:text="${currentUser.phone != null && !currentUser.phone.isEmpty() ? currentUser.phone : 'Chưa thiết lập'}">0923456789</div>
+                    </div>
+                    <div style="padding: 14px 18px; background: #F8FAFC; border-radius: 14px; border: 1px solid var(--ssak-border);">
+                        <div style="font-size: 11px; color: var(--ssak-text-muted); font-weight: 800; text-transform: uppercase;">Trình độ TOPIK thẩm định</div>
+                        <div style="font-size: 15px; font-weight: 800; color: #1F6B56; margin-top: 4px;">TOPIK II · Cấp 6 (Master)</div>
+                    </div>
+                    <div style="padding: 14px 18px; background: #F8FAFC; border-radius: 14px; border: 1px solid var(--ssak-border);">
+                        <div style="font-size: 11px; color: var(--ssak-text-muted); font-weight: 800; text-transform: uppercase;">Múi giờ làm việc</div>
+                        <div style="font-size: 15px; font-weight: 800; color: #24363D; margin-top: 4px;" th:text="${currentUser.timezone}">Asia/Ho_Chi_Minh</div>
                     </div>
                 </div>
             </div>
@@ -197,11 +205,11 @@
                         </div>
                         <div>
                             <label class="form-label" style="font-size: 13px; font-weight: 700;">Mật khẩu mới <span style="color:red">*</span></label>
-                            <input type="password" id="newPassword" class="form-control ssak-input" required placeholder="Tối thiểu 8 ký tự" />
+                            <input type="password" id="newPassword" class="form-control ssak-input" required minlength="6" placeholder="Tối thiểu 6 ký tự" />
                         </div>
                         <div>
                             <label class="form-label" style="font-size: 13px; font-weight: 700;">Xác nhận mật khẩu mới <span style="color:red">*</span></label>
-                            <input type="password" id="confirmPassword" class="form-control ssak-input" required placeholder="Nhập lại mật khẩu mới" />
+                            <input type="password" id="confirmPassword" class="form-control ssak-input" required minlength="6" placeholder="Nhập lại mật khẩu mới" />
                         </div>
                         <button type="submit" class="btn-ssak-primary" style="height: 42px; font-weight: 800; margin-top: 6px;">
                             💾 Cập nhật mật khẩu
@@ -253,12 +261,38 @@
             <form onsubmit="handleUpdateProfile(event)">
                 <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
                     <div>
-                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Họ và tên</label>
-                        <input type="text" id="editFullName" class="form-control ssak-input" th:value="${currentUser.fullName}" required />
+                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Họ và tên <span style="color:red">*</span></label>
+                        <input type="text" id="editFullName" class="form-control ssak-input" th:value="${currentUser.fullName}" required minlength="2" maxlength="40" />
                     </div>
                     <div>
-                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Email (Không thể thay đổi)</label>
-                        <input type="email" class="form-control ssak-input" th:value="${currentUser.email}" disabled />
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <label class="form-label" style="font-size: 13px; font-weight: 700; margin: 0;">Số điện thoại</label>
+                            <button type="button" class="btn-link" style="border: 0; background: transparent; color: #CF1322; font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: underline; padding: 0;" onclick="clearPhone()">Xóa số điện thoại</button>
+                        </div>
+                        <input type="text" id="editPhone" class="form-control ssak-input" th:value="${currentUser.phone}" placeholder="VD: 0923456789" />
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Chuyên môn phụ trách</label>
+                        <input type="text" id="editSpecialty" class="form-control ssak-input" th:value="${currentUser.specialty}" placeholder="VD: Lý thuyết Ngữ pháp, Từ vựng & Thẩm định đề thi" />
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Tiểu sử / Ghi chú</label>
+                        <textarea id="editBio" class="form-control ssak-input" rows="2" style="resize: vertical;" th:text="${currentUser.bio}" placeholder="Ghi chú về kinh nghiệm ngôn ngữ"></textarea>
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Múi giờ</label>
+                        <select id="editTimezone" class="form-select ssak-input">
+                            <option value="Asia/Ho_Chi_Minh" th:selected="${currentUser.timezone == 'Asia/Ho_Chi_Minh'}">Asia/Ho_Chi_Minh (GMT+7)</option>
+                            <option value="Asia/Seoul" th:selected="${currentUser.timezone == 'Asia/Seoul'}">Asia/Seoul (GMT+9)</option>
+                            <option value="UTC" th:selected="${currentUser.timezone == 'UTC'}">UTC (GMT+0)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <label class="form-label" style="font-size: 13px; font-weight: 700; margin: 0;">Avatar URL</label>
+                            <button type="button" class="btn-link" style="border: 0; background: transparent; color: #8C6114; font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: underline; padding: 0;" onclick="resetAvatar()">Khôi phục mặc định</button>
+                        </div>
+                        <input type="url" id="editAvatar" class="form-control ssak-input" th:value="${currentUser.avatar}" placeholder="https://api.dicebear.com/7.x/bottts/svg?seed=..." />
                     </div>
                 </div>
                 <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px;">
@@ -344,15 +378,55 @@
     function handleUpdateProfile(e) {
         e.preventDefault();
         const fullName = document.getElementById('editFullName').value.trim();
+        const phone = document.getElementById('editPhone').value.trim();
+        const specialty = document.getElementById('editSpecialty').value.trim();
+        const bio = document.getElementById('editBio').value.trim();
+        const timezone = document.getElementById('editTimezone').value;
+        const avatar = document.getElementById('editAvatar').value.trim();
+
         fetch('/content/profile/update', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fullName: fullName })
+            body: JSON.stringify({ fullName, phone, specialty, bio, timezone, avatar })
         })
         .then(res => res.json())
         .then(resp => {
-            showSsakToast(resp.message || "Đã cập nhật thông tin!");
-            setTimeout(() => window.location.reload(), 600);
+            if (resp.success) {
+                alert(resp.message || "Đã cập nhật thông tin thành công!");
+                window.location.reload();
+            } else {
+                alert(resp.message || "Không thể cập nhật hồ sơ!");
+            }
+        })
+        .catch(() => alert('Lỗi kết nối máy chủ!'));
+    }
+
+    function clearPhone() {
+        if (!confirm('Bạn có chắc muốn xóa số điện thoại khỏi hồ sơ?')) return;
+        fetch('/content/profile/clear-field?field=phone', { method: 'POST' })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                alert(res.message);
+                document.getElementById('editPhone').value = '';
+                document.getElementById('contentDisplayPhone').innerText = 'Chưa thiết lập';
+            } else {
+                alert(res.message);
+            }
+        });
+    }
+
+    function resetAvatar() {
+        if (!confirm('Bạn có muốn khôi phục ảnh đại diện mặc định?')) return;
+        fetch('/content/profile/clear-field?field=avatar', { method: 'POST' })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                alert(res.message);
+                document.getElementById('editAvatar').value = res.avatar || '';
+            } else {
+                alert(res.message);
+            }
         });
     }
 
@@ -372,9 +446,12 @@
         })
         .then(res => res.json())
         .then(resp => {
-            showSsakToast(resp.message || "Đã đổi mật khẩu thành công!");
-            document.getElementById('formChangePassword').reset();
-        });
+            alert(resp.message || (resp.success ? "Đã đổi mật khẩu thành công!" : "Đổi mật khẩu thất bại!"));
+            if (resp.success) {
+                document.getElementById('formChangePassword').reset();
+            }
+        })
+        .catch(() => alert('Lỗi kết nối máy chủ!'));
     }
 </script>
 </body>

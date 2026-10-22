@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body style="min-height: 100vh; background: #F4F3EF; font-family: var(--font-body); color: var(--ssak-text-main); display: flex; flex-direction: column;">
+
+    <!-- TOP HEADER -->
+    <header style="height: 64px; background: #24363D; color: #FFFFFF; display: flex; align-items: center; padding: 0 28px; gap: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); position: sticky; top: 0; z-index: 100;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 21V11" stroke="#6CC49F" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M12 12C12 7 8 4 3.5 4.5C3.5 9 7 12.5 12 12Z" fill="#6CC49F"/>
+                <path d="M12 10C12 6 15.5 3 20.5 3.5C20.5 8 17 11 12 10Z" fill="#A9D9C0"/>
+            </svg>
+            <a th:href="@{/teacher}" style="text-decoration: none; color: #FFFFFF;">
+                <h1 style="margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.3px;">HOT TOPIK · Khu Giáo viên</h1>
+            </a>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav aria-label="Các mục của Giáo viên" style="display: flex; gap: 8px;">
+            <a th:href="@{/teacher(tab='queue')}" style="height: 38px; padding: 0 16px; border-radius: 10px; font-size: 13.5px; font-weight: 700; background: #3A4D55; color: #FFFFFF; display: inline-flex; align-items: center; text-decoration: none;">
+                Hàng chờ · <span th:text="${queueCount}">2</span>
+            </a>
+            <a th:href="@{/teacher(tab='mine')}" style="height: 38px; padding: 0 16px; border-radius: 10px; font-size: 13.5px; font-weight: 700; background: #3A4D55; color: #FFFFFF; display: inline-flex; align-items: center; text-decoration: none;">
+                Đang chấm · <span th:text="${mineCount}">1</span>
+            </a>
+            <a th:href="@{/teacher(tab='done')}" style="height: 38px; padding: 0 16px; border-radius: 10px; font-size: 13.5px; font-weight: 700; background: #3A4D55; color: #FFFFFF; display: inline-flex; align-items: center; text-decoration: none;">
+                Đã chấm · <span th:text="${doneCount}">2</span>
+            </a>
+            <a th:href="@{/teacher/profile}" style="height: 38px; padding: 0 16px; border-radius: 10px; font-size: 13.5px; font-weight: 800; background: #F2C14E; color: #3A2B00; display: inline-flex; align-items: center; text-decoration: none;">
+                👤 Hồ sơ Giáo viên
+            </a>
+        </nav>
+
+        <div style="flex-grow: 1;"></div>
+
+        <!-- Actions -->
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <a th:href="@{/teacher}" class="btn-ssak-light" style="color: #6CC49F; font-size: 13px; font-weight: 700; text-decoration: none; border: 1px solid #3A4D55; padding: 6px 14px; border-radius: 8px;">
+                ← Về Bàn Chấm thi
+            </a>
+            <a th:href="@{/today}" style="color: #FFFFFF; font-size: 13px; font-weight: 700; text-decoration: none; border: 1px solid #3A4D55; padding: 6px 12px; border-radius: 8px;">
+                Cổng Học viên
+            </a>
+            <a th:href="@{/logout}" style="color: #FFFFFF; font-size: 13.5px; font-weight: 800; text-decoration: none; background: #3A4D55; padding: 6px 14px; border-radius: 8px;">
+                Đăng xuất
+            </a>
+        </div>
+    </header>
+
+    <!-- MAIN BODY -->
+    <main style="max-width: 1200px; width: 100%; margin: 0 auto; padding: 32px 24px; display: flex; flex-direction: column; gap: 24px; flex-grow: 1;">
+        
+        <!-- TOAST MESSAGE -->
+        <div id="teacherToast" style="display: none; padding: 14px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; transition: all 0.3s ease;"></div>
+
+        <!-- OVERVIEW CARD -->
+        <div class="ssak-card" style="padding: 28px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div id="profileAvatarDisplay" style="width: 84px; height: 84px; border-radius: 42px; background: #2E7D67; color: #FFFFFF; font-family: var(--font-heading); font-size: 36px; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(46, 125, 103, 0.3); overflow: hidden; position: relative;">
+                        <span id="profileAvatarChar" th:text="${#strings.substring(currentUser.fullName, 0, 1)}">M</span>
+                    </div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <h3 id="displayFullName" style="margin: 0; font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #24363D;" th:text="${currentUser.fullName}">Cô Mai (Mentor)</h3>
+                            <span class="ssak-badge badge-mint" style="font-size: 12px; padding: 3px 10px;">🟢 Đang nhận bài</span>
+                            <span class="ssak-badge badge-honey" style="font-size: 12px; padding: 3px 10px;">🎓 Giáo viên Chuyên môn</span>
+                        </div>
+                        <div style="font-size: 14px; color: var(--ssak-text-muted); margin-top: 4px;" th:text="${currentUser.email}">mai.mentor@hottopik.vn</div>
+                        <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+                            <span class="ssak-badge badge-mint" style="font-size: 11px;">Chứng chỉ: TOPIK II Cấp 6 Master</span>
+                            <span class="ssak-badge badge-sky" style="font-size: 11px;">Chuyên ngành: Sư phạm Tiếng Hàn</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="btn-ssak-primary" style="height: 40px; padding: 0 18px; font-weight: 800; font-size: 13px;" onclick="focusEditSection()">
+                        ✏️ Chỉnh sửa hồ sơ
+                    </button>
+                    <button type="button" class="btn-ssak-outline" style="height: 40px; padding: 0 14px; font-weight: 700; font-size: 13px; color: #8C6114; border-color: #F4C45A;" onclick="resetAvatar()">
+                        🔄 Đặt lại Avatar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding-top: 16px; border-top: 1px solid var(--ssak-border);">
+                <div style="padding: 14px 18px; background: #F8FAFC; border-radius: 14px; border: 1px solid var(--ssak-border);">
+                    <div style="font-size: 11px; color: var(--ssak-text-muted); font-weight: 800; text-transform: uppercase;">Số điện thoại</div>
+                    <div id="displayPhone" style="font-size: 15px; font-weight: 800; color: #2E7D67; margin-top: 4px;" th:text="${currentUser.phone != null && !currentUser.phone.isEmpty() ? currentUser.phone : 'Chưa thiết lập'}">0967890123</div>
+                </div>
+                <div style="padding: 14px 18px; background: #F8FAFC; border-radius: 14px; border: 1px solid var(--ssak-border);">
+                    <div style="font-size: 11px; color: var(--ssak-text-muted); font-weight: 800; text-transform: uppercase;">Bài đã chấm hoàn tất</div>
+                    <div style="font-size: 15px; font-weight: 800; color: #24363D; margin-top: 4px;" th:text="${doneCount + ' bài viết'}">2 bài viết</div>
+                </div>
+                <div style="padding: 14px 18px; background: #F8FAFC; border-radius: 14px; border: 1px solid var(--ssak-border);">
+                    <div style="font-size: 11px; color: var(--ssak-text-muted); font-weight: 800; text-transform: uppercase;">Hàng chờ hiện tại</div>
+                    <div style="font-size: 15px; font-weight: 800; color: #E08700; margin-top: 4px;" th:text="${queueCount + ' bài đang đợi'}">2 bài đang đợi</div>
+                </div>
+                <div style="padding: 14px 18px; background: #F8FAFC; border-radius: 14px; border: 1px solid var(--ssak-border);">
+                    <div style="font-size: 11px; color: var(--ssak-text-muted); font-weight: 800; text-transform: uppercase;">Đánh giá học viên</div>
+                    <div style="font-size: 15px; font-weight: 800; color: #D48806; margin-top: 4px;">4.9 / 5.0 ⭐ (Xuất sắc)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2 COLUMNS -->
+        <div style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 24px;">
+            
+            <!-- LEFT COLUMN: FORM EDIT & CHANGE PASSWORD -->
+            <div style="display: flex; flex-direction: column; gap: 24px;">
+                
+                <!-- EDIT PROFILE FORM -->
+                <div id="editSection" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 18px;">
+                    <div>
+                        <h4 style="margin: 0; font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: #24363D;">
+                            📝 Cập nhật thông tin Giáo viên
+                        </h4>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
+                            Học viên sẽ nhìn thấy tên giảng viên và lời nhận xét trong phiếu chấm bài viết.
+                        </p>
+                    </div>
+
+                    <form id="formTeacherProfile" onsubmit="handleUpdateTeacherProfile(event)" style="display: flex; flex-direction: column; gap: 16px;">
+                        <div>
+                            <label class="form-label" style="font-size: 13px; font-weight: 700;">Họ và tên hiển thị <span style="color:red">*</span></label>
+                            <input type="text" id="teacherFullName" class="form-control ssak-input" th:value="${currentUser.fullName}" required minlength="2" maxlength="40" placeholder="VD: Cô Mai (Mentor)" />
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                            <div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <label class="form-label" style="font-size: 13px; font-weight: 700; margin: 0;">Số điện thoại</label>
+                                    <button type="button" class="btn-link" style="border: 0; background: transparent; color: #CF1322; font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: underline; padding: 0;" onclick="clearPhone()">Xóa số điện thoại</button>
+                                </div>
+                                <input type="text" id="teacherPhone" class="form-control ssak-input" th:value="${currentUser.phone}" placeholder="VD: 0967890123" />
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 13px; font-weight: 700;">Múi giờ</label>
+                                <select id="teacherTimezone" class="form-select ssak-input">
+                                    <option value="Asia/Ho_Chi_Minh" th:selected="${currentUser.timezone == 'Asia/Ho_Chi_Minh'}">Asia/Ho_Chi_Minh (GMT+7)</option>
+                                    <option value="Asia/Seoul" th:selected="${currentUser.timezone == 'Asia/Seoul'}">Asia/Seoul (GMT+9)</option>
+                                    <option value="UTC" th:selected="${currentUser.timezone == 'UTC'}">UTC (GMT+0)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="form-label" style="font-size: 13px; font-weight: 700;">Chuyên môn & Lĩnh vực phụ trách</label>
+                            <input type="text" id="teacherSpecialty" class="form-control ssak-input" th:value="${currentUser.specialty}" placeholder="VD: Chuyên gia chấm thi Viết TOPIK II (Câu 51, 52, 53, 54)" />
+                        </div>
+
+                        <div>
+                            <label class="form-label" style="font-size: 13px; font-weight: 700;">Tiểu sử & Kinh nghiệm giảng dạy</label>
+                            <textarea id="teacherBio" class="form-control ssak-input" rows="3" style="resize: vertical;" placeholder="Giới thiệu về học vấn, kinh nghiệm luyện thi TOPIK" th:text="${currentUser.bio}"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="form-label" style="font-size: 13px; font-weight: 700;">Đường dẫn ảnh đại diện (Avatar URL tuỳ chỉnh)</label>
+                            <input type="url" id="teacherAvatar" class="form-control ssak-input" th:value="${currentUser.avatar}" placeholder="https://api.dicebear.com/7.x/bottts/svg?seed=..." />
+                        </div>
+
+                        <button type="submit" class="btn-ssak-primary" style="height: 42px; font-weight: 800; font-size: 14px; margin-top: 6px;">
+                            💾 Lưu thay đổi hồ sơ
+                        </button>
+                    </form>
+                </div>
+
+                <!-- CHANGE PASSWORD FORM -->
+                <div class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 16px;">
+                    <div>
+                        <h4 style="margin: 0; font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: #24363D;">
+                            🔒 Đổi mật khẩu Giáo viên
+                        </h4>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
+                            Bảo mật tài khoản giáo viên để đảm bảo an toàn kết quả chấm thi và tương tác học viên.
+                        </p>
+                    </div>
+
+                    <form id="formTeacherPassword" onsubmit="handleChangeTeacherPassword(event)" style="display: flex; flex-direction: column; gap: 14px;">
+                        <div>
+                            <label class="form-label" style="font-size: 13px; font-weight: 700;">Mật khẩu hiện tại <span style="color:red">*</span></label>
+                            <input type="password" id="teacherOldPassword" class="form-control ssak-input" required placeholder="Nhập mật khẩu đang dùng" />
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                            <div>
+                                <label class="form-label" style="font-size: 13px; font-weight: 700;">Mật khẩu mới <span style="color:red">*</span></label>
+                                <input type="password" id="teacherNewPassword" class="form-control ssak-input" required minlength="6" placeholder="Tối thiểu 6 ký tự" />
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 13px; font-weight: 700;">Xác nhận mật khẩu mới <span style="color:red">*</span></label>
+                                <input type="password" id="teacherConfirmPassword" class="form-control ssak-input" required minlength="6" placeholder="Nhập lại mật khẩu mới" />
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-ssak-primary" style="height: 42px; font-weight: 800; margin-top: 4px;">
+                            🔑 Cập nhật mật khẩu mới
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN: RUBRIC & RECENT REVIEWS -->
+            <div style="display: flex; flex-direction: column; gap: 24px;">
+                
+                <!-- BAREM CHẤM BÀI VIẾT -->
+                <div class="ssak-card" style="padding: 24px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 14px;">
+                    <h4 style="margin: 0; font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #24363D;">
+                        📏 Tiêu chuẩn Barem Chấm thi Viết (TOPIK II)
+                    </h4>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div style="padding: 12px 14px; background: #F8FAFC; border-radius: 12px; border: 1px solid var(--ssak-border);">
+                            <div style="font-weight: 800; font-size: 13.5px; color: #24363D;">1. Nội dung & Mục đích (내용 및 과제 수행)</div>
+                            <div style="font-size: 12px; color: var(--ssak-text-muted); margin-top: 2px;">Đáp ứng đúng đề bài, lập luận mạch lạc, không lạc đề.</div>
+                        </div>
+
+                        <div style="padding: 12px 14px; background: #F8FAFC; border-radius: 12px; border: 1px solid var(--ssak-border);">
+                            <div style="font-weight: 800; font-size: 13.5px; color: #24363D;">2. Cấu trúc & Bố cục (글의 전개 구조)</div>
+                            <div style="font-size: 12px; color: var(--ssak-text-muted); margin-top: 2px;">Phân bổ mở - thân - kết rõ ràng, sử dụng liên từ tự nhiên.</div>
+                        </div>
+
+                        <div style="padding: 12px 14px; background: #F8FAFC; border-radius: 12px; border: 1px solid var(--ssak-border);">
+                            <div style="font-weight: 800; font-size: 13.5px; color: #24363D;">3. Từ vựng & Ngữ pháp (어휘 및 문법)</div>
+                            <div style="font-size: 12px; color: var(--ssak-text-muted); margin-top: 2px;">Đa dạng cấu trúc trung - cao cấp, tránh lặp từ và diễn đạt lủng củng.</div>
+                        </div>
+
+                        <div style="padding: 12px 14px; background: #F8FAFC; border-radius: 12px; border: 1px solid var(--ssak-border);">
+                            <div style="font-weight: 800; font-size: 13.5px; color: #24363D;">4. Chính tả & Quy cách trình bày (맞춤법 및 원고지 사용법)</div>
+                            <div style="font-size: 12px; color: var(--ssak-text-muted); margin-top: 2px;">Đúng quy tắc ô vuông bản thảo (Won-go-ji), viết hoa số và ngắt câu.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STUDENT REVIEWS -->
+                <div class="ssak-card" style="padding: 24px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="margin: 0; font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #24363D;">
+                            💬 Phản hồi gần đây từ Học viên
+                        </h4>
+                        <span class="ssak-badge badge-honey" style="font-size: 11px;">4.9 ⭐</span>
+                    </div>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div style="padding: 12px 14px; background: #F8FAFC; border-radius: 12px; border: 1px solid var(--ssak-border); display: flex; flex-direction: column; gap: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 12.5px; font-weight: 800; color: #24363D;">Phạm Minh Anh</span>
+                                <span style="font-size: 11px; color: #D48806;">⭐⭐⭐⭐⭐ 5/5</span>
+                            </div>
+                            <div style="font-size: 12.5px; color: #53646C;">"Cô Mai sửa Câu 53 siêu có tâm! Chỉ cho em cách thay thế cụm từ sơ cấp bằng mẫu viết biểu đồ chuẩn TOPIK II."</div>
+                        </div>
+
+                        <div style="padding: 12px 14px; background: #F8FAFC; border-radius: 12px; border: 1px solid var(--ssak-border); display: flex; flex-direction: column; gap: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 12.5px; font-weight: 800; color: #24363D;">Nguyễn Hoàng Nam (VIP)</span>
+                                <span style="font-size: 11px; color: #D48806;">⭐⭐⭐⭐⭐ 5/5</span>
+                            </div>
+                            <div style="font-size: 12.5px; color: #53646C;">"Bài viết Câu 54 được cô hướng dẫn lập dàn ý phản biện rất sắc bén. Nhờ vậy em tự tin hẳn khi thi thật!"</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+<script>
+function showTeacherToast(msg, isSuccess) {
+    let t = document.getElementById('teacherToast');
+    t.style.display = 'block';
+    t.innerText = msg;
+    if (isSuccess) {
+        t.style.background = '#E8F5E9';
+        t.style.color = '#1E4620';
+        t.style.border = '1.5px solid #96D3B6';
+    } else {
+        t.style.background = '#FFEBEE';
+        t.style.color = '#B71C1C';
+        t.style.border = '1.5px solid #FFCDD2';
+    }
+    setTimeout(() => { t.style.display = 'none'; }, 4000);
+}
+
+function focusEditSection() {
+    let el = document.getElementById('editSection');
+    el.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('teacherFullName').focus();
+}
+
+function handleUpdateTeacherProfile(e) {
+    e.preventDefault();
+    const fullName = document.getElementById('teacherFullName').value.trim();
+    const phone = document.getElementById('teacherPhone').value.trim();
+    const timezone = document.getElementById('teacherTimezone').value;
+    const specialty = document.getElementById('teacherSpecialty').value.trim();
+    const bio = document.getElementById('teacherBio').value.trim();
+    const avatar = document.getElementById('teacherAvatar').value.trim();
+
+    fetch('/teacher/profile/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName, phone, timezone, specialty, bio, avatar })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            showTeacherToast(res.message, true);
+            document.getElementById('displayFullName').innerText = fullName;
+            document.getElementById('displayPhone').innerText = phone || 'Chưa thiết lập';
+            if (fullName.length > 0) {
+                let initial = fullName.substring(0, 1).toUpperCase();
+                document.getElementById('profileAvatarChar').innerText = initial;
+            }
+        } else {
+            showTeacherToast(res.message, false);
+        }
+    })
+    .catch(() => showTeacherToast('Lỗi kết nối máy chủ!', false));
+}
+
+function clearPhone() {
+    if (!confirm('Bạn có chắc muốn xóa số điện thoại khỏi hồ sơ giáo viên?')) return;
+    fetch('/teacher/profile/clear-field?field=phone', { method: 'POST' })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            showTeacherToast(res.message, true);
+            document.getElementById('teacherPhone').value = '';
+            document.getElementById('displayPhone').innerText = 'Chưa thiết lập';
+        } else {
+            showTeacherToast(res.message, false);
+        }
+    });
+}
+
+function resetAvatar() {
+    if (!confirm('Bạn có muốn khôi phục ảnh đại diện mặc định?')) return;
+    fetch('/teacher/profile/clear-field?field=avatar', { method: 'POST' })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            showTeacherToast(res.message, true);
+            document.getElementById('teacherAvatar').value = res.avatar || '';
+        } else {
+            showTeacherToast(res.message, false);
+        }
+    });
+}
+
+function handleChangeTeacherPassword(e) {
+    e.preventDefault();
+    const oldPassword = document.getElementById('teacherOldPassword').value;
+    const newPassword = document.getElementById('teacherNewPassword').value;
+    const confirmPassword = document.getElementById('teacherConfirmPassword').value;
+
+    if (newPassword !== confirmPassword) {
+        showTeacherToast('Mật khẩu xác nhận không khớp!', false);
+        return;
+    }
+
+    fetch('/teacher/profile/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldPassword, newPassword })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            showTeacherToast(res.message, true);
+            document.getElementById('formTeacherPassword').reset();
+        } else {
+            showTeacherToast(res.message, false);
+        }
+    })
+    .catch(() => showTeacherToast('Lỗi kết nối máy chủ!', false));
+}
+</script>
+</body>
+</html>

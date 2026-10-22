@@ -26,19 +26,15 @@
         </div>
 
         <!-- User Profile Card -->
-        <div style="padding: 16px 20px; margin: 12px 14px; background: rgba(0,0,0,0.22); border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
+        <a th:href="@{/admin/profile}" style="padding: 16px 20px; margin: 12px 14px; background: rgba(0,0,0,0.22); border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px; text-decoration: none; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='rgba(46, 125, 103, 0.35)'; this.style.borderColor='#6CC49F';" onmouseout="this.style.background='rgba(0,0,0,0.22)'; this.style.borderColor='rgba(255,255,255,0.06)';">
             <div style="width: 44px; height: 44px; border-radius: 22px; background: #2E7D67; color: #FFFFFF; font-family: var(--font-heading); font-size: 20px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
                 <span th:text="${#strings.substring(currentUser.fullName, 0, 1)}">Q</span>
             </div>
-            <div style="display: flex; flex-direction: column; overflow: hidden; min-width: 0;">
+            <div style="display: flex; flex-direction: column; overflow: hidden; min-width: 0; flex-grow: 1;">
                 <span style="font-weight: 800; font-size: 14px; color: #FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" th:text="${currentUser.fullName}">Vũ Minh Quân</span>
-                <span style="font-size: 12px; color: #A9D9C0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" th:text="${currentUser.email}">admin@hottopik.com</span>
-                <div style="display: flex; align-items: center; gap: 5px; margin-top: 2px;">
-                    <span style="width: 7px; height: 7px; border-radius: 50%; background: #6CC49F;"></span>
-                    <span style="font-size: 11px; color: #6CC49F; font-weight: 700;">Trực tuyến</span>
-                </div>
+                <span style="font-size: 11px; color: #6CC49F; font-weight: 700;">Hồ sơ Quản trị viên →</span>
             </div>
-        </div>
+        </a>
 
         <!-- Sidebar Navigation Menu Items -->
         <div style="padding: 6px 14px; display: flex; flex-direction: column; gap: 4px; flex-grow: 1;">

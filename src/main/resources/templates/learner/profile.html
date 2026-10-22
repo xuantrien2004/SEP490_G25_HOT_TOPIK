@@ -81,6 +81,20 @@
                         </span>
                     </div>
 
+                    <!-- Số điện thoại -->
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <label style="font-size: 12px; font-weight: 800; color: #53646C; margin: 0;">
+                                SỐ ĐIỆN THOẠI
+                            </label>
+                            <button type="button" onclick="clearLearnerPhone()" style="border: 0; background: transparent; color: #CF1322; font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: underline; padding: 0;">
+                                Xóa số điện thoại
+                            </button>
+                        </div>
+                        <input type="tel" id="inputPhone" th:value="${user != null ? user.phone : ''}" placeholder="VD: 0956789012"
+                               style="width: 100%; height: 46px; border-radius: 12px; border: 1.5px solid #E8E5DC; padding: 0 16px; font-size: 15px; outline: none; font-family: inherit; box-sizing: border-box;">
+                    </div>
+
                     <!-- Email (readonly) -->
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #F1EEE6; border-top: 1px solid #F1EEE6;">
                         <span style="font-size: 14px; font-weight: 800; color: #24363D;">Email</span>
@@ -90,10 +104,15 @@
                     <!-- Avatar -->
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-size: 14px; font-weight: 800; color: #24363D;">Ảnh đại diện</span>
-                        <span onclick="document.getElementById('avatarFileInput').click()"
-                              style="font-size: 13.5px; font-weight: 800; color: #2E7D67; cursor: pointer; text-decoration: underline;">
-                            Đổi ảnh · JPG/PNG ≤ 2 MB
-                        </span>
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <span onclick="resetLearnerAvatar()" style="font-size: 12.5px; font-weight: 700; color: #8C6114; cursor: pointer; text-decoration: underline;">
+                                Đặt lại mặc định
+                            </span>
+                            <span onclick="document.getElementById('avatarFileInput').click()"
+                                  style="font-size: 13.5px; font-weight: 800; color: #2E7D67; cursor: pointer; text-decoration: underline;">
+                                Đổi ảnh · JPG/PNG ≤ 2 MB
+                            </span>
+                        </div>
                         <input type="file" id="avatarFileInput" accept="image/*" style="display: none;" onchange="handleAvatar(this)">
                     </div>
 
@@ -343,9 +362,11 @@ function onNameInput() {
 function saveProfile() {
     const name = document.getElementById('inputName').value.trim();
     if (name.length < 2 || name.length > 40) return;
+    const phone = document.getElementById('inputPhone').value.trim();
 
     const formData = new URLSearchParams();
     formData.append('displayName', name);
+    formData.append('phone', phone);
 
     fetch('/api/user/update-profile', {
         method: 'POST',
@@ -367,6 +388,45 @@ function saveProfile() {
     })
     .catch(err => {
         alert('Có lỗi xảy ra khi lưu thông tin, vui lòng thử lại!');
+    });
+}
+
+function clearLearnerPhone() {
+    if (!confirm('Bạn có chắc muốn xóa số điện thoại khỏi hồ sơ học viên?')) return;
+    const formData = new URLSearchParams();
+    formData.append('field', 'phone');
+    fetch('/api/user/clear-field', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData.toString()
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('inputPhone').value = '';
+            showToast('✅ ' + data.message);
+        } else {
+            alert('⚠️ ' + data.message);
+        }
+    });
+}
+
+function resetLearnerAvatar() {
+    if (!confirm('Bạn có muốn khôi phục ảnh đại diện mặc định?')) return;
+    const formData = new URLSearchParams();
+    formData.append('field', 'avatar');
+    fetch('/api/user/clear-field', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData.toString()
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ ' + data.message);
+        } else {
+            alert('⚠️ ' + data.message);
+        }
     });
 }
 
