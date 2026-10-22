@@ -72,7 +72,12 @@ public class LearnerController {
     @PostMapping("/api/user/update-profile")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> handleUpdateProfile(
-            @RequestParam("displayName") String displayName,
+            @RequestParam(value = "displayName", required = false) String displayName,
+            @RequestParam(value = "phone", required = false) String phone,
+            @RequestParam(value = "avatar", required = false) String avatar,
+            @RequestParam(value = "currentLevel", required = false) String currentLevel,
+            @RequestParam(value = "targetLevel", required = false) String targetLevel,
+            @RequestParam(value = "dailyGoalMinutes", required = false) Integer dailyGoalMinutes,
             HttpSession session) {
         Map<String, Object> resp = new HashMap<>();
         UserDTO user = AuthHelper.getLoggedInUser(session);
@@ -81,24 +86,75 @@ public class LearnerController {
             resp.put("message", "Vui lòng đăng nhập lại để thực hiện!");
             return ResponseEntity.status(401).body(resp);
         }
-        if (displayName == null || displayName.trim().length() < 2 || displayName.trim().length() > 40) {
+
+        String name = displayName != null && !displayName.trim().isEmpty() ? displayName.trim() : user.getDisplayName();
+        if (name.length() < 2 || name.length() > 40) {
             resp.put("success", false);
             resp.put("message", "Tên hiển thị phải từ 2 đến 40 ký tự!");
             return ResponseEntity.badRequest().body(resp);
         }
-        boolean ok = userService.updateDisplayName(user.getId(), displayName.trim());
+
+        String phoneVal = phone != null ? phone.trim() : user.getPhone();
+        String avatarVal = avatar != null ? avatar.trim() : user.getAvatar();
+        String curLvl = currentLevel != null ? currentLevel.trim() : user.getCurrentLevel();
+        String tgtLvl = targetLevel != null ? targetLevel.trim() : user.getTargetLevel();
+        Integer minutes = (dailyGoalMinutes != null && dailyGoalMinutes > 0) ? dailyGoalMinutes : user.getDailyGoalMinutes();
+
+        boolean ok = userService.updateLearnerProfile(user.getId(), name, phoneVal, avatarVal, curLvl, tgtLvl, minutes);
         if (ok) {
-            user.setDisplayName(displayName.trim());
+            user.setDisplayName(name);
+            user.setFullName(name);
+            user.setPhone(phoneVal);
+            if (avatar != null) user.setAvatar(avatarVal);
+            if (curLvl != null) user.setCurrentLevel(curLvl);
+            if (tgtLvl != null) user.setTargetLevel(tgtLvl);
+            if (minutes != null) user.setDailyGoalMinutes(minutes);
+
             session.setAttribute("LOGGED_IN_USER", user);
             resp.put("success", true);
-            resp.put("displayName", displayName.trim());
-            resp.put("message", "Cập nhật tên hiển thị thành công!");
+            resp.put("user", user);
+            resp.put("displayName", name);
+            resp.put("message", "Cập nhật hồ sơ học viên thành công!");
             return ResponseEntity.ok(resp);
         } else {
             resp.put("success", false);
             resp.put("message", "Không thể cập nhật thông tin lúc này!");
             return ResponseEntity.badRequest().body(resp);
         }
+    }
+
+    @PostMapping("/api/user/clear-field")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> handleClearField(
+            @RequestParam("field") String field,
+            HttpSession session) {
+        Map<String, Object> resp = new HashMap<>();
+        UserDTO user = AuthHelper.getLoggedInUser(session);
+        if (user == null) {
+            resp.put("success", false);
+            resp.put("message", "Vui lòng đăng nhập lại!");
+            return ResponseEntity.status(401).body(resp);
+        }
+        if ("phone".equalsIgnoreCase(field)) {
+            userService.updateUserProfile(user.getId(), null, "", null, null, null, null);
+            user.setPhone(null);
+            session.setAttribute("LOGGED_IN_USER", user);
+            resp.put("success", true);
+            resp.put("message", "Đã xóa số điện thoại khỏi hồ sơ!");
+            return ResponseEntity.ok(resp);
+        } else if ("avatar".equalsIgnoreCase(field)) {
+            String defaultAvatar = "https://api.dicebear.com/7.x/bottts/svg?seed=" + user.getEmail();
+            userService.updateUserProfile(user.getId(), null, null, defaultAvatar, null, null, null);
+            user.setAvatar(defaultAvatar);
+            session.setAttribute("LOGGED_IN_USER", user);
+            resp.put("success", true);
+            resp.put("avatar", defaultAvatar);
+            resp.put("message", "Đã khôi phục ảnh đại diện mặc định!");
+            return ResponseEntity.ok(resp);
+        }
+        resp.put("success", false);
+        resp.put("message", "Trường thông tin không hợp lệ.");
+        return ResponseEntity.badRequest().body(resp);
     }
 
     @PostMapping("/api/user/change-password")

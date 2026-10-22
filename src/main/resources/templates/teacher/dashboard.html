@@ -43,10 +43,11 @@
         <div style="flex-grow: 1;"></div>
 
         <!-- User Info & Logout -->
-        <div style="display: flex; align-items: center; gap: 14px;">
-            <span style="font-size: 14px; color: #B9C6C2; font-weight: 700;">
-                Giáo viên: <b style="color: #FFFFFF;" th:text="${currentUser != null ? currentUser.fullName : 'Cô Mai'}">Cô Mai</b>
-            </span>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <a th:href="@{/teacher/profile}" style="display: inline-flex; align-items: center; gap: 8px; color: #FFFFFF; font-size: 13.5px; font-weight: 700; text-decoration: none; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); padding: 6px 14px; border-radius: 8px; transition: all 0.2s;" onmouseover="this.style.background='rgba(242,193,78,0.2)'; this.style.borderColor='#F2C14E';" onmouseout="this.style.background='rgba(255,255,255,0.08)'; this.style.borderColor='rgba(255,255,255,0.18)';">
+                <span style="width: 22px; height: 22px; border-radius: 11px; background: #F2C14E; color: #3A2B00; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;" th:text="${currentUser != null ? #strings.substring(currentUser.fullName, 0, 1) : 'M'}">M</span>
+                <span>Hồ sơ: <b style="color: #F2C14E;" th:text="${currentUser != null ? currentUser.fullName : 'Cô Mai'}">Cô Mai</b></span>
+            </a>
             <a th:href="@{/today}" style="color: #6CC49F; font-size: 13px; font-weight: 700; text-decoration: none; border: 1px solid #3A4D55; padding: 6px 12px; border-radius: 8px;">
                 Cổng Học viên
             </a>

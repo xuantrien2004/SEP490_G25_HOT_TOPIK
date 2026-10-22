@@ -318,10 +318,91 @@ public class ContentPortalController {
     public ResponseEntity<Map<String, Object>> updateProfile(
             @RequestBody Map<String, Object> payload,
             HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
         Map<String, Object> resp = new HashMap<>();
-        resp.put("success", true);
-        resp.put("message", "Đã cập nhật thông tin hồ sơ!");
-        return ResponseEntity.ok(resp);
+        if (currentUser == null) {
+            resp.put("success", false);
+            resp.put("message", "Vui lòng đăng nhập lại!");
+            return ResponseEntity.status(401).body(resp);
+        }
+
+        String fullName = (String) payload.get("fullName");
+        String phone = (String) payload.get("phone");
+        String avatar = (String) payload.get("avatar");
+        String bio = (String) payload.get("bio");
+        String specialty = (String) payload.get("specialty");
+        String timezone = (String) payload.get("timezone");
+
+        if (fullName == null || fullName.trim().length() < 2 || fullName.trim().length() > 40) {
+            resp.put("success", false);
+            resp.put("message", "Họ và tên phải từ 2 đến 40 ký tự!");
+            return ResponseEntity.badRequest().body(resp);
+        }
+
+        boolean ok = userService.updateUserProfile(currentUser.getId(), fullName, phone, avatar, bio, specialty, timezone);
+        if (ok) {
+            currentUser.setFullName(fullName.trim());
+            currentUser.setDisplayName(fullName.trim());
+            if (phone != null) currentUser.setPhone(phone.trim().isEmpty() ? null : phone.trim());
+            if (avatar != null) currentUser.setAvatar(avatar.trim().isEmpty() ? null : avatar.trim());
+            if (bio != null) currentUser.setBio(bio.trim().isEmpty() ? null : bio.trim());
+            if (specialty != null) currentUser.setSpecialty(specialty.trim().isEmpty() ? null : specialty.trim());
+            if (timezone != null) currentUser.setTimezone(timezone.trim().isEmpty() ? null : timezone.trim());
+
+            session.setAttribute("LOGGED_IN_USER", currentUser);
+
+            adminSystemService.logAction(
+                    currentUser.getFullName(),
+                    currentUser.getRole(),
+                    "UPDATE_PROFILE",
+                    "USER_PROFILE",
+                    "Cập nhật thông tin hồ sơ Content Manager cá nhân",
+                    "127.0.0.1"
+            );
+
+            resp.put("success", true);
+            resp.put("user", currentUser);
+            resp.put("message", "Đã cập nhật thông tin hồ sơ thành công!");
+            return ResponseEntity.ok(resp);
+        } else {
+            resp.put("success", false);
+            resp.put("message", "Không thể cập nhật hồ sơ lúc này!");
+            return ResponseEntity.badRequest().body(resp);
+        }
+    }
+
+    @PostMapping("/profile/clear-field")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> clearField(
+            @RequestParam("field") String field,
+            HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+        if (currentUser == null) {
+            resp.put("success", false);
+            resp.put("message", "Vui lòng đăng nhập lại!");
+            return ResponseEntity.status(401).body(resp);
+        }
+        if ("phone".equalsIgnoreCase(field)) {
+            userService.updateUserProfile(currentUser.getId(), null, "", null, null, null, null);
+            currentUser.setPhone(null);
+            session.setAttribute("LOGGED_IN_USER", currentUser);
+            resp.put("success", true);
+            resp.put("message", "Đã xóa số điện thoại khỏi hồ sơ!");
+            return ResponseEntity.ok(resp);
+        } else if ("avatar".equalsIgnoreCase(field)) {
+            String defaultAvatar = "https://api.dicebear.com/7.x/bottts/svg?seed=" + currentUser.getEmail();
+            userService.updateUserProfile(currentUser.getId(), null, null, defaultAvatar, null, null, null);
+            currentUser.setAvatar(defaultAvatar);
+            session.setAttribute("LOGGED_IN_USER", currentUser);
+            resp.put("success", true);
+            resp.put("avatar", defaultAvatar);
+            resp.put("message", "Đã khôi phục ảnh đại diện mặc định!");
+            return ResponseEntity.ok(resp);
+        }
+        resp.put("success", false);
+        resp.put("message", "Trường thông tin không hợp lệ.");
+        return ResponseEntity.badRequest().body(resp);
     }
 
     @PostMapping("/profile/change-password")

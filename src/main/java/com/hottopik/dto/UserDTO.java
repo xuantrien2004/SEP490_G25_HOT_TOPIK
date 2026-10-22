@@ -26,6 +26,22 @@ public class UserDTO implements Serializable {
     private LocalDateTime lockedUntil;
     private String lockReason;
     private boolean pendingPermanentLock = false;
+    private String bio;
+    private String specialty;
+    private String timezone = "Asia/Ho_Chi_Minh";
+    private Integer dailyGoalMinutes = 20;
+
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
+
+    public String getSpecialty() { return specialty; }
+    public void setSpecialty(String specialty) { this.specialty = specialty; }
+
+    public String getTimezone() { return timezone != null ? timezone : "Asia/Ho_Chi_Minh"; }
+    public void setTimezone(String timezone) { this.timezone = timezone; }
+
+    public Integer getDailyGoalMinutes() { return dailyGoalMinutes != null ? dailyGoalMinutes : 20; }
+    public void setDailyGoalMinutes(Integer dailyGoalMinutes) { this.dailyGoalMinutes = dailyGoalMinutes; }
 
     public Integer getCoinBalance() { return coinBalance != null ? coinBalance : 0; }
     public void setCoinBalance(Integer coinBalance) { this.coinBalance = coinBalance; }
@@ -167,4 +183,7 @@ public class UserDTO implements Serializable {
 
     public boolean isPendingPermanentLock() { return pendingPermanentLock; }
     public void setPendingPermanentLock(boolean pendingPermanentLock) { this.pendingPermanentLock = pendingPermanentLock; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
