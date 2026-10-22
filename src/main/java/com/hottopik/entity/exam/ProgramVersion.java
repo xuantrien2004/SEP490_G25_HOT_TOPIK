@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -49,9 +50,11 @@ public class ProgramVersion {
     private String phaseSplit = "40,40,20";
 
     @Column(name = "sessions_per_type", nullable = false)
+    @ColumnDefault("4")
     private int sessionsPerType = 4;
 
     @Column(name = "questions_per_session", nullable = false)
+    @ColumnDefault("8")
     private int questionsPerSession = 8;
 
     @Column(name = "pending_action", length = 10)

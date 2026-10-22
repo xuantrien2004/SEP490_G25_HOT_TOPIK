@@ -275,8 +275,8 @@ CREATE TABLE dbo.program_versions (
     review_offsets           varchar(30)   NOT NULL,
     weekly_review_questions  int           NOT NULL,
     phase_split              varchar(20)   NOT NULL,
-    sessions_per_type        int           NOT NULL,
-    questions_per_session    int           NOT NULL,
+    sessions_per_type        int           NOT NULL DEFAULT (4),
+    questions_per_session    int           NOT NULL DEFAULT (8),
     pending_action           varchar(10)   NULL,
     approval_request_id      bigint        NULL,
     created_by               nvarchar(120) NULL,
@@ -285,6 +285,18 @@ CREATE TABLE dbo.program_versions (
     updated_at               datetime2(6)  NOT NULL,
     CONSTRAINT uq_program_versions_code UNIQUE (version_code)
 );
+GO
+
+/* Upgrade existing installations without discarding published programs. */
+IF OBJECT_ID('dbo.program_versions', 'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.program_versions', 'sessions_per_type') IS NULL
+        ALTER TABLE dbo.program_versions ADD sessions_per_type int NOT NULL
+            CONSTRAINT DF_program_versions_sessions_per_type DEFAULT (4) WITH VALUES;
+    IF COL_LENGTH('dbo.program_versions', 'questions_per_session') IS NULL
+        ALTER TABLE dbo.program_versions ADD questions_per_session int NOT NULL
+            CONSTRAINT DF_program_versions_questions_per_session DEFAULT (8) WITH VALUES;
+END;
 GO
 
 IF OBJECT_ID('dbo.program_version_items', 'U') IS NULL
