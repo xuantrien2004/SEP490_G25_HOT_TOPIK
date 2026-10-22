@@ -5,6 +5,7 @@ import com.hottopik.entity.exam.QuestionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.EntityGraph;
 
 import java.util.Collection;
 import java.util.List;
@@ -12,6 +13,13 @@ import java.util.List;
 public interface QuestionRepository extends JpaRepository<Question, Long>, JpaSpecificationExecutor<Question> {
 
     List<Question> findByTypeCodeAndStatus(String typeCode, QuestionStatus status);
+
+    List<Question> findByTemplateCodeAndStatus(String templateCode, QuestionStatus status);
+
+    @EntityGraph(attributePaths = "group")
+    List<Question> findByTrackAndSkillAndTypeCodeAndStatus(com.hottopik.entity.exam.Track track,
+                                                           com.hottopik.entity.exam.Skill skill,
+                                                           String typeCode, QuestionStatus status);
 
     List<Question> findBySourceIdOrderBySkillAscOriginalNoAsc(Long sourceId);
 

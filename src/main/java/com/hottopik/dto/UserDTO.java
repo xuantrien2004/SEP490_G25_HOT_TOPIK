@@ -1,7 +1,7 @@
 package com.hottopik.dto;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.util.List;
 
 public class UserDTO implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -11,31 +11,24 @@ public class UserDTO implements Serializable {
     private String email;
     private String password;
     private String fullName;
-    private String role; // ROLE_ADMIN, ROLE_CONTENT_MANAGER, ROLE_OPERATION_MANAGER, ROLE_VIP, ROLE_USER
-    private String roleName; // Quản trị viên, Content Manager, Operation Manager, VIP Learner, Học viên
-    private String status; // ACTIVE, LOCKED
-    private String avatar;
+    private String role;
+    private String roleName;
+    private String status;
     private String phone;
+    private String avatar;
     private String targetLevel;
     private String currentLevel;
     private boolean isVip;
-    private String vipPackage;
-    private Integer coinBalance = 0;
-    private Integer studiedDays = 0;
-    private LocalDateTime createdAt;
+    private Integer streakDays;
+    private Integer leafCount;
+    private Integer coinBalance;
+    private List<String> permissions;
 
-    public Integer getCoinBalance() { return coinBalance != null ? coinBalance : 0; }
-    public void setCoinBalance(Integer coinBalance) { this.coinBalance = coinBalance; }
-
-    public Integer getStudiedDays() { return studiedDays != null ? studiedDays : 0; }
-    public void setStudiedDays(Integer studiedDays) { this.studiedDays = studiedDays; }
-
-    public UserDTO() {
-    }
+    public UserDTO() {}
 
     public UserDTO(Long id, String username, String email, String password, String fullName,
-                   String role, String roleName, String status, String avatar, String phone,
-                   String targetLevel, String currentLevel, boolean isVip, String vipPackage) {
+                   String role, String roleName, String status, String phone, String avatar,
+                   String targetLevel, String currentLevel, boolean isVip, List<String> permissions) {
         this.id = id;
         this.username = username;
         this.email = email;
@@ -44,13 +37,12 @@ public class UserDTO implements Serializable {
         this.role = role;
         this.roleName = roleName;
         this.status = status;
-        this.avatar = avatar;
         this.phone = phone;
+        this.avatar = avatar;
         this.targetLevel = targetLevel;
         this.currentLevel = currentLevel;
         this.isVip = isVip;
-        this.vipPackage = vipPackage;
-        this.createdAt = LocalDateTime.now();
+        this.permissions = permissions;
     }
 
     public Long getId() { return id; }
@@ -71,26 +63,23 @@ public class UserDTO implements Serializable {
     public String getRole() {
         if (role == null) return "ROLE_USER";
         if (role.startsWith("ROLE_")) return role;
-        switch (role.toUpperCase()) {
-            case "ADMIN": return "ROLE_ADMIN";
-            case "CONTENT_MANAGER": return "ROLE_CONTENT_MANAGER";
-            case "OPERATION_MANAGER": return "ROLE_OPERATION_MANAGER";
-            case "MENTOR": return "ROLE_TEACHER";
-            case "STUDENT": return isVip ? "ROLE_VIP" : "ROLE_USER";
-            default: return "ROLE_" + role.toUpperCase();
-        }
+        return "ROLE_" + role.toUpperCase();
     }
 
-    public String getRawRole() {
-        if (role == null) return "STUDENT";
-        if (role.startsWith("ROLE_")) {
-            String r = role.substring(5);
-            if ("TEACHER".equals(r)) return "MENTOR";
-            if ("USER".equals(r) || "VIP".equals(r)) return "STUDENT";
-            return r;
-        }
-        return role;
+    public boolean isVip() {
+        return isVip || "ROLE_VIP".equalsIgnoreCase(role) || "VIP".equalsIgnoreCase(role);
     }
+
+    public void setVip(boolean vip) { isVip = vip; }
+
+    public Integer getStreakDays() { return streakDays != null ? streakDays : 0; }
+    public void setStreakDays(Integer streakDays) { this.streakDays = streakDays; }
+
+    public Integer getLeafCount() { return leafCount != null ? leafCount : 0; }
+    public void setLeafCount(Integer leafCount) { this.leafCount = leafCount; }
+
+    public Integer getCoinBalance() { return coinBalance != null ? coinBalance : 0; }
+    public void setCoinBalance(Integer coinBalance) { this.coinBalance = coinBalance; }
 
     public void setRole(String role) { this.role = role; }
 
@@ -100,11 +89,11 @@ public class UserDTO implements Serializable {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
-    public String getAvatar() { return avatar; }
-    public void setAvatar(String avatar) { this.avatar = avatar; }
-
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
+
+    public String getAvatar() { return avatar; }
+    public void setAvatar(String avatar) { this.avatar = avatar; }
 
     public String getTargetLevel() { return targetLevel; }
     public void setTargetLevel(String targetLevel) { this.targetLevel = targetLevel; }
@@ -112,26 +101,28 @@ public class UserDTO implements Serializable {
     public String getCurrentLevel() { return currentLevel; }
     public void setCurrentLevel(String currentLevel) { this.currentLevel = currentLevel; }
 
-    public boolean isVip() { return isVip; }
-    public void setVip(boolean vip) { isVip = vip; }
+    public List<String> getPermissions() { return permissions; }
+    public void setPermissions(List<String> permissions) { this.permissions = permissions; }
 
-    public String getVipPackage() { return vipPackage; }
-    public void setVipPackage(String vipPackage) { this.vipPackage = vipPackage; }
+    /** Alias for getFullName() – used in legacy code for display purposes */
+    public String getDisplayName() { return fullName; }
+    public void setDisplayName(String displayName) { this.fullName = displayName; }
 
-    public String getDisplayName() {
-        return fullName != null ? fullName : username;
-    }
-
-    public void setDisplayName(String displayName) {
-        this.fullName = displayName;
-    }
+    /** Alias for streakDays – alias used in legacy service code */
+    public Integer getStudiedDays() { return streakDays != null ? streakDays : 0; }
+    public void setStudiedDays(int studiedDays) { this.streakDays = studiedDays; }
 
     public boolean isAdmin() {
         return "ADMIN".equalsIgnoreCase(role) || "ROLE_ADMIN".equalsIgnoreCase(role);
     }
 
+    public boolean isTeacher() {
+        return "TEACHER".equalsIgnoreCase(role) || "ROLE_TEACHER".equalsIgnoreCase(role)
+                || "MENTOR".equalsIgnoreCase(role) || "ROLE_MENTOR".equalsIgnoreCase(role);
+    }
+
     public boolean isMentor() {
-        return "MENTOR".equalsIgnoreCase(role) || "ROLE_TEACHER".equalsIgnoreCase(role);
+        return isTeacher();
     }
 
     public boolean isContentManager() {
@@ -143,6 +134,10 @@ public class UserDTO implements Serializable {
     }
 
     public boolean isStudent() {
-        return "STUDENT".equalsIgnoreCase(role) || "ROLE_USER".equalsIgnoreCase(role) || "ROLE_VIP".equalsIgnoreCase(role);
+        if (role == null) return true;
+        return "STUDENT".equalsIgnoreCase(role) || "ROLE_USER".equalsIgnoreCase(role)
+                || "ROLE_VIP".equalsIgnoreCase(role) || "ROLE_LEARNER".equalsIgnoreCase(role)
+                || "LEARNER".equalsIgnoreCase(role) || "VIP".equalsIgnoreCase(role)
+                || "USER".equalsIgnoreCase(role) || "ROLE_STUDENT".equalsIgnoreCase(role);
     }
 }

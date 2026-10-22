@@ -244,3 +244,23 @@ CREATE TABLE dbo.exam_items (
     CONSTRAINT uq_exam_item_slot UNIQUE (exam_id, section, item_no)
 );
 GO
+
+IF OBJECT_ID('dbo.practice_attempts', 'U') IS NULL
+CREATE TABLE dbo.practice_attempts (
+    id              bigint IDENTITY NOT NULL PRIMARY KEY,
+    user_id         bigint        NOT NULL,
+    user_email      nvarchar(255) NOT NULL,
+    track           varchar(10)   NOT NULL CHECK (track IN ('TOPIK_I','TOPIK_II')),
+    skill           varchar(10)   NOT NULL CHECK (skill IN ('LISTENING','READING')),
+    type_code       varchar(10)   NOT NULL,
+    question_ids    nvarchar(4000) NOT NULL,
+    answers_json    nvarchar(4000) NOT NULL,
+    score           int           NOT NULL,
+    total           int           NOT NULL,
+    started_at      datetime2(6)  NOT NULL,
+    completed_at    datetime2(6)  NULL
+);
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'ix_practice_user_type')
+    CREATE INDEX ix_practice_user_type ON dbo.practice_attempts (user_id, type_code, completed_at);
+GO

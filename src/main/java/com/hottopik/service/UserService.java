@@ -130,7 +130,7 @@ public class UserService {
                 6L, "vip_learner", "viplearner@hottopik.com", "vip@123",
                 "Nguyễn Hoàng Nam", "STUDENT", "Học viên VIP",
                 "ACTIVE", "https://api.dicebear.com/7.x/bottts/svg?seed=viplearner",
-                "0945678901", "TOPIK_5", "TOPIK_3", true, "VIP Trọn đời (Lifetime VIP)"
+                "0945678901", "TOPIK_5", "TOPIK_3", true, java.util.List.of("VIP Trọn đời (Lifetime VIP)")
         ));
     }
 

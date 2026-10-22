@@ -147,6 +147,7 @@ public class WritingSubmissionDTO implements Serializable {
     public void setMaxScore(int maxScore) { this.maxScore = maxScore; }
     public Integer getTotalScore() { return totalScore; }
     public void setTotalScore(Integer totalScore) { this.totalScore = totalScore; }
+    public Integer getFinalScore() { return totalScore != null ? totalScore : aiScore; }
     public List<CriterionScore> getCriteriaScores() { return criteriaScores; }
     public void setCriteriaScores(List<CriterionScore> criteriaScores) { this.criteriaScores = criteriaScores; }
     public String getOverallFeedback() { return overallFeedback; }

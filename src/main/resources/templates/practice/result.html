@@ -1,149 +1,293 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/head :: head('Kết quả bài làm · HOT TOPIK')}"></head>
-<body>
-<div style="min-width: 1280px; max-width: 1440px; min-height: 100vh; margin: 0 auto; background: var(--ssak-bg); display: flex; flex-direction: column;">
-    <div th:replace="~{fragments/navbar :: navbar('practice')}"></div>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body style="background: var(--ssak-bg, #F4F3EF); color: var(--ssak-text-main, #24363D); font-family: var(--font-body, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);">
 
-    <main style="flex-grow: 1; padding: 36px 48px; display: flex; flex-direction: column; gap: 24px;">
-        
-        <!-- Congratulatory Card -->
-        <div style="position: relative; padding: 32px 240px 32px 40px; border-radius: 32px; background: linear-gradient(120deg, #E3F2EA, #F3FAF6); border: 2px solid var(--ssak-border); overflow: hidden;">
-            <span class="ssak-badge badge-mint" style="margin-bottom: 8px;">
+<div th:replace="~{fragments/navbar :: navbar('practice')}"></div>
+
+<main class="container py-4" style="max-width: 1080px; min-height: 85vh;">
+
+    <!-- Banner Kết quả tổng kết -->
+    <div class="position-relative p-4 p-md-5 rounded-4 mb-4 border shadow-sm overflow-hidden"
+         style="background: linear-gradient(135deg, #E8F5E9 0%, #F1F8E9 100%); border-color: #A9D9C0 !important;">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="badge" style="background: #1F6B56; color: #FFFFFF; font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 20px;">
                 🎉 Hoàn thành bài luyện
             </span>
-            <h1 style="margin: 0; font-family: var(--font-heading); font-size: 34px; font-weight: 800;">
-                Giỏi lắm Minh Anh! Ssak đã mọc thêm một chiếc lá mới.
-            </h1>
-            <p style="margin: 6px 0 16px; font-size: 16px; color: #4A5B60;">
-                Bạn đã hoàn thành dạng <b>Đọc 13–15 (Sắp xếp câu)</b> lần ôn thứ 2. Tiếp tục giữ vững phong độ nhé!
-            </p>
-            <div style="display: flex; gap: 24px; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-family: var(--font-heading); font-size: 36px; font-weight: 800; color: var(--ssak-primary-dark);">5/6</span>
-                    <span style="font-size: 14px; font-weight: 700; color: var(--ssak-text-muted);">câu đúng (83%)</span>
-                </div>
-                <div style="width: 1px; height: 32px; background: var(--ssak-border);"></div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-family: var(--font-heading); font-size: 36px; font-weight: 800; color: var(--ssak-honey-text);">+3</span>
-                    <span style="font-size: 14px; font-weight: 700; color: var(--ssak-text-muted);">Xu thưởng</span>
-                </div>
-                <div style="width: 1px; height: 32px; background: var(--ssak-border);"></div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-family: var(--font-heading); font-size: 36px; font-weight: 800; color: var(--ssak-sky-text);">08:12</span>
-                    <span style="font-size: 14px; font-weight: 700; color: var(--ssak-text-muted);">thời gian làm</span>
+            <span class="badge bg-white text-dark border fw-bold" th:text="${result.type.code} + ' · ' + ${result.type.rangeLabel()}">I-N1 · Câu 1–4</span>
+            <span class="badge bg-light text-muted border" th:text="${result.type.track.label}">TOPIK I</span>
+        </div>
+
+        <h1 class="h3 fw-bold mb-2" style="font-family: var(--font-heading, sans-serif); color: #164E40;"
+            th:text="'Kết quả: ' + ${result.type.name}">Kết quả luyện tập</h1>
+
+        <p class="mb-4 text-muted" style="font-size: 15px;">
+            Kết quả của bạn đã được ghi lại vào lịch sử rèn luyện. Xem chi tiết giải thích bên dưới hoặc luyện tập tiếp để củng cố phản xạ!
+        </p>
+
+        <!-- Thẻ điểm số & thời gian -->
+        <div class="d-flex flex-wrap align-items-center gap-4 bg-white p-3 p-md-4 rounded-3 border" style="max-width: 600px;">
+            <div>
+                <div class="small text-muted mb-1">Số câu đúng</div>
+                <div class="d-flex align-items-baseline gap-1">
+                    <span class="display-6 fw-bold text-success" th:text="${result.attempt.score} + '/' + ${result.attempt.total}">8/10</span>
+                    <span class="fw-bold text-muted" th:text="'(' + ${result.attempt.total == 0 ? 0 : (result.attempt.score * 100 / result.attempt.total)} + '%)'">(80%)</span>
                 </div>
             </div>
-            <!-- Mascot cheer bloom -->
-            <div style="position: absolute; right: 36px; bottom: -10px;">
-                <div th:replace="~{fragments/ssak :: mascot('cheer', 'sprout', 170, 'Bé Ssak reo mừng')}"></div>
+            <div class="vr my-1"></div>
+            <div>
+                <div class="small text-muted mb-1">Thời gian làm</div>
+                <div class="fs-4 fw-bold text-dark font-monospace" th:text="${result.duration}">05:32</div>
+            </div>
+            <div class="vr my-1"></div>
+            <div>
+                <div class="small text-muted mb-1">Thưởng chuyên cần</div>
+                <div class="fs-4 fw-bold text-warning-emphasis">+5 Xu</div>
             </div>
         </div>
 
-        <!-- Answers Review Section -->
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h2 style="margin: 0; font-family: var(--font-heading); font-size: 24px; font-weight: 800;">Chi tiết bài làm</h2>
-            <div style="display: flex; gap: 8px;">
-                <button type="button" class="ssak-badge badge-mint" style="cursor: pointer; border: 0;">Tất cả (6)</button>
-                <button type="button" class="ssak-badge" style="cursor: pointer; border: 1px solid var(--ssak-border); background: #FFFFFF;">Cần ôn lại (1)</button>
-                <button type="button" class="ssak-badge" style="cursor: pointer; border: 1px solid var(--ssak-border); background: #FFFFFF;">Chưa chắc (1)</button>
-            </div>
+        <!-- Mascot Ssak biểu cảm -->
+        <div class="position-absolute end-0 bottom-0 d-none d-md-block pe-4 pb-2" style="opacity: 0.9;">
+            <div th:replace="~{fragments/ssak :: mascot('cheer', 'sprout', 160, 'Bé Ssak reo mừng')}"></div>
         </div>
+    </div>
 
-        <!-- Question List Review -->
-        <div style="display: flex; flex-direction: column; gap: 14px;">
-            
-            <!-- Question 1: Correct -->
-            <div class="ssak-card" style="padding: 20px 24px; display: flex; align-items: center; gap: 20px;">
-                <span style="width: 44px; height: 44px; border-radius: 14px; background: var(--ssak-primary-light); color: var(--ssak-primary-dark); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px;">
-                    ✓
-                </span>
-                <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="font-weight: 800; font-size: 16px;">Câu 1 · Sắp xếp thứ tự</span>
-                        <span class="ssak-badge badge-mint" style="height: 24px; font-size: 11px;">Đúng</span>
+    <!-- 3 Nút Hành động chiến lược -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 bg-white p-3 rounded-4 border shadow-sm mb-4">
+        <a th:href="@{/practice(skill=${result.type.skill.name()},track=${result.type.track.name()})}" class="btn btn-outline-secondary fw-bold px-3 py-2 rounded-3">
+            ← Danh sách dạng câu
+        </a>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <!-- Nút Làm lại bài này -->
+            <a th:href="@{/practice/retry/{id}(id=${result.attempt.id})}"
+               class="btn btn-outline-success fw-bold px-4 py-2 rounded-3 d-flex align-items-center gap-2"
+               title="Làm lại đúng các câu hỏi này để kiểm tra xem đã hiểu bài chưa">
+                <span>🔄</span>
+                <span>Làm lại bài này</span>
+            </a>
+
+            <!-- Nút Luyện tập tiếp dạng này -->
+            <a th:href="@{/practice/next(typeCode=${result.type.code})}"
+               class="btn btn-success fw-bold px-4 py-2 rounded-3 d-flex align-items-center gap-2 shadow-sm"
+               title="Hệ thống sẽ lấy các câu hỏi ngẫu nhiên khác trong ngân hàng để luyện tiếp">
+                <span>🚀</span>
+                <span>Luyện tiếp dạng này →</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Tabs chuyển đổi giữa Chi tiết bài làm và Lịch sử -->
+    <ul class="nav nav-tabs nav-fill mb-4 fw-bold" id="resultTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active py-3 text-dark d-flex align-items-center justify-content-center gap-2"
+                    id="tab-answers" data-bs-toggle="tab" data-bs-target="#content-answers" type="button" role="tab">
+                <span>📝 Chi tiết từng câu hỏi</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link py-3 text-dark d-flex align-items-center justify-content-center gap-2"
+                    id="tab-history" data-bs-toggle="tab" data-bs-target="#content-history" type="button" role="tab">
+                <span>📜 Lịch sử các lần luyện dạng này</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="resultTabsContent">
+
+        <!-- ========================================== -->
+        <!-- TAB 1: CHI TIẾT TỪNG CÂU HỎI & GIẢI THÍCH -->
+        <!-- ========================================== -->
+        <div class="tab-pane fade show active" id="content-answers" role="tabpanel">
+
+            <!-- Bộ lọc câu hỏi Đúng / Sai -->
+            <div class="d-flex align-items-center justify-content-between mb-3 bg-white p-3 rounded-3 border">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="small fw-bold text-muted text-uppercase">Bộ lọc:</span>
+                    <button type="button" class="btn btn-sm btn-outline-success active" onclick="filterReview('ALL', this)">Tất cả</button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="filterReview('WRONG', this)">Câu sai</button>
+                    <button type="button" class="btn btn-sm btn-outline-success" onclick="filterReview('CORRECT', this)">Câu đúng</button>
+                </div>
+                <div class="small text-muted">
+                    Bấm vào từng câu để xem lời giải thích chi tiết tiếng Việt và đáp án đúng.
+                </div>
+            </div>
+
+            <div class="d-flex flex-column gap-4">
+                <div th:each="a, iter : ${result.answers}"
+                     class="bg-white border rounded-4 p-4 shadow-sm answer-review-card"
+                     th:attr="data-correct=${a.correct}">
+
+                    <!-- Câu Header -->
+                    <div class="d-flex justify-content-between align-items-center pb-3 mb-3 border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge rounded-circle d-flex align-items-center justify-content-center"
+                                  style="width: 32px; height: 32px; font-size: 15px; font-weight: 700;"
+                                  th:classappend="${a.correct} ? 'bg-success text-white' : 'bg-danger text-white'"
+                                  th:text="${iter.count}">1</span>
+                            <span class="fw-bold text-dark" style="font-size: 16px;" th:text="'Câu hỏi ' + ${iter.count}">Câu hỏi 1</span>
+                            <span th:if="${a.correct}" class="badge bg-success-subtle text-success-emphasis border border-success">✓ Đúng</span>
+                            <span th:unless="${a.correct}" class="badge bg-danger-subtle text-danger-emphasis border border-danger">✕ Chưa đúng</span>
+                        </div>
+                        <span class="badge bg-light text-muted border" th:text="'Câu gốc #' + ${a.question.no}">Câu gốc #1</span>
                     </div>
-                    <span style="font-size: 14px; color: var(--ssak-text-muted);">
-                        Đáp án chọn: <b>(나) — (라) — (가) — (다)</b> · Chính xác
-                    </span>
-                </div>
-                <a th:href="@{/theory/grammar(id='1')}" class="btn-ssak-light" style="font-size: 13px;">Xem ngữ pháp</a>
-            </div>
 
-            <!-- Question 2: Correct (Flagged) -->
-            <div class="ssak-card" style="padding: 20px 24px; display: flex; align-items: center; gap: 20px;">
-                <span style="width: 44px; height: 44px; border-radius: 14px; background: var(--ssak-primary-light); color: var(--ssak-primary-dark); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px;">
-                    ✓
-                </span>
-                <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="font-weight: 800; font-size: 16px;">Câu 2 · Sắp xếp thứ tự</span>
-                        <span class="ssak-badge badge-mint" style="height: 24px; font-size: 11px;">Đúng</span>
-                        <span class="ssak-badge badge-honey" style="height: 24px; font-size: 11px;">Đã đánh dấu chưa chắc</span>
+                    <!-- File Audio nếu có -->
+                    <div th:if="${a.question.audio != null}" class="p-3 mb-3 rounded-3 border bg-light d-flex align-items-center gap-3">
+                        <span style="font-size: 24px;">🎧</span>
+                        <div class="flex-grow-1">
+                            <div class="small fw-bold text-muted mb-1">File âm thanh câu hỏi:</div>
+                            <audio controls class="w-100" preload="metadata">
+                                <source th:src="${a.question.audio}" type="audio/mpeg">
+                            </audio>
+                        </div>
                     </div>
-                    <span style="font-size: 14px; color: var(--ssak-text-muted);">
-                        Đáp án chọn: <b>(다) — (가) — (라) — (나)</b> · Cần lưu ý liên từ "따라서"
-                    </span>
-                </div>
-                <a th:href="@{/theory/grammar(id='2')}" class="btn-ssak-light" style="font-size: 13px;">Xem giải thích</a>
-            </div>
 
-            <!-- Question 3: Wrong (Học thêm) -->
-            <div class="ssak-card" style="padding: 20px 24px; display: flex; align-items: center; gap: 20px; border-color: var(--ssak-peach);">
-                <span style="width: 44px; height: 44px; border-radius: 14px; background: var(--ssak-peach); color: var(--ssak-terracotta); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px;">
-                    ✕
-                </span>
-                <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="font-weight: 800; font-size: 16px;">Câu 3 · Sắp xếp thứ tự</span>
-                        <span class="ssak-badge badge-peach" style="height: 24px; font-size: 11px;">Cần học thêm</span>
+                    <!-- Lời thoại Script (nếu là bài nghe có script) -->
+                    <div th:if="${a.question.script != null and !a.question.script.isBlank()}"
+                         class="p-3 mb-3 rounded-3 border"
+                         style="background: #F8FAFC; border-color: #E2E8F0; font-size: 15px;">
+                        <div class="small fw-bold text-muted mb-1">🗣️ LỜI THOẠI BÀI NGHE (SCRIPT):</div>
+                        <div style="white-space: pre-line;" th:text="${a.question.script}"></div>
                     </div>
-                    <span style="font-size: 14px; color: var(--ssak-terracotta);">
-                        Bạn chọn: <b>(가) — (다) — (라) — (나)</b> · Đáp án đúng là: <b>(라) — (가) — (다) — (나)</b>
-                    </span>
-                </div>
-                <a th:href="@{/practice/play(mode='practice')}" class="btn-ssak-primary" style="height: 38px; padding: 0 16px; font-size: 13px;">Làm lại câu này</a>
-            </div>
 
-            <!-- Questions 4, 5, 6 -->
-            <div class="ssak-card" style="padding: 20px 24px; display: flex; align-items: center; gap: 20px;">
-                <span style="width: 44px; height: 44px; border-radius: 14px; background: var(--ssak-primary-light); color: var(--ssak-primary-dark); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px;">✓</span>
-                <div style="flex-grow: 1;">
-                    <span style="font-weight: 800; font-size: 16px;">Câu 4 · Sắp xếp thứ tự</span>
-                    <div style="font-size: 14px; color: var(--ssak-text-muted);">Đáp án đúng · Nắm chắc mẹo câu chủ đề</div>
-                </div>
-                <span class="ssak-badge badge-mint">Đúng</span>
-            </div>
+                    <!-- Đoạn văn Passage nếu có -->
+                    <div th:if="${a.question.passage != null and !a.question.passage.isBlank()}"
+                         class="p-4 mb-3 rounded-3 border"
+                         style="background: #F8FAFC; border-color: #CBD5E1; line-height: 1.8; font-size: 16px;">
+                        <div class="small fw-bold text-primary-emphasis mb-2">📄 ĐOẠN VĂN:</div>
+                        <div style="white-space: pre-line;" th:text="${a.question.passage}"></div>
+                    </div>
 
-            <div class="ssak-card" style="padding: 20px 24px; display: flex; align-items: center; gap: 20px;">
-                <span style="width: 44px; height: 44px; border-radius: 14px; background: var(--ssak-primary-light); color: var(--ssak-primary-dark); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px;">✓</span>
-                <div style="flex-grow: 1;">
-                    <span style="font-weight: 800; font-size: 16px;">Câu 5 · Sắp xếp thứ tự</span>
-                    <div style="font-size: 14px; color: var(--ssak-text-muted);">Đáp án đúng · Phân biệt liên từ 반면에 (trái lại)</div>
-                </div>
-                <span class="ssak-badge badge-mint">Đúng</span>
-            </div>
+                    <!-- Hình ảnh nếu có -->
+                    <div th:if="${a.question.image != null}" class="mb-3 text-center">
+                        <img th:src="${a.question.image}" alt="Hình ảnh câu hỏi" class="img-fluid rounded-3 border" style="max-height: 260px;">
+                    </div>
 
-            <div class="ssak-card" style="padding: 20px 24px; display: flex; align-items: center; gap: 20px;">
-                <span style="width: 44px; height: 44px; border-radius: 14px; background: var(--ssak-primary-light); color: var(--ssak-primary-dark); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px;">✓</span>
-                <div style="flex-grow: 1;">
-                    <span style="font-weight: 800; font-size: 16px;">Câu 6 · Sắp xếp thứ tự</span>
-                    <div style="font-size: 14px; color: var(--ssak-text-muted);">Đáp án đúng · Hoàn tất bài luyện</div>
+                    <!-- Đề bài câu hỏi tiếng Hàn -->
+                    <div class="mb-3" style="font-size: 17px; font-weight: 600; line-height: 1.6;" th:text="${a.question.prompt}">
+                        여기는 어디입니까?
+                    </div>
+
+                    <p th:if="${a.selected == null}" class="text-muted">Bạn chưa chọn đáp án cho câu này.</p>
+                    <!-- 4 Lựa chọn kèm đánh dấu đáp án -->
+                    <div class="d-flex flex-column gap-2 mb-3">
+                        <div th:each="opt, oIter : ${a.question.options}"
+                             class="p-3 rounded-3 border d-flex align-items-center justify-content-between"
+                             th:classappend="${oIter.count == a.question.answer} ? 'bg-success-subtle border-success' : (${oIter.count == a.selected and !a.correct} ? 'bg-danger-subtle border-danger' : 'bg-white')">
+
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="fw-bold d-flex align-items-center justify-content-center rounded-circle border"
+                                      style="width: 28px; height: 28px; font-size: 13px;"
+                                      th:classappend="${oIter.count == a.question.answer} ? 'bg-success text-white border-success' : (${oIter.count == a.selected and !a.correct} ? 'bg-danger text-white border-danger' : 'bg-light text-dark')"
+                                      th:text="${oIter.count == 1 ? '①' : (oIter.count == 2 ? '②' : (oIter.count == 3 ? '③' : '④'))}">①</span>
+                                <span class="fw-medium" style="font-size: 15px;" th:text="${opt}">Đáp án</span>
+                            </div>
+
+                            <div>
+                                <span th:if="${oIter.count == a.question.answer}" class="badge bg-success text-white">✓ Đáp án đúng</span>
+                                <span th:if="${oIter.count == a.selected and !a.correct}" class="badge bg-danger text-white">✕ Bạn đã chọn</span>
+                                <span th:if="${oIter.count == a.selected and a.correct}" class="badge bg-success text-white">✓ Bạn đã chọn đúng</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Khung Giải thích chi tiết tiếng Việt -->
+                    <div class="p-3 rounded-3 border"
+                         style="background: #FFFDF0; border-color: #FDE68A !important;">
+                        <div class="d-flex align-items-center gap-2 fw-bold text-warning-emphasis mb-1" style="font-size: 13px;">
+                            <span>💡 LỜI GIẢI THÍCH CHI TIẾT:</span>
+                        </div>
+                        <div class="text-dark" style="font-size: 15px; line-height: 1.6;"
+                             th:text="${a.question.explanation != null and !a.question.explanation.isBlank()} ? ${a.question.explanation} : 'Đáp án chính xác là phương án ' + ${a.question.answer} + '.'">
+                            Giải thích câu hỏi...
+                        </div>
+                    </div>
+
                 </div>
-                <span class="ssak-badge badge-mint">Đúng</span>
             </div>
 
         </div>
 
-        <!-- Next Actions -->
-        <div style="display: flex; justify-content: flex-end; gap: 14px; margin-top: 10px;">
-            <a th:href="@{/today}" class="btn-ssak-outline" style="height: 52px; padding: 0 24px;">Về trang Hôm nay</a>
-            <a th:href="@{/practice/play(mode='practice', qType='listening')}" class="btn-ssak-primary" style="height: 52px; padding: 0 28px;">Làm bài tiếp theo (Nghe 9-12) →</a>
+        <!-- ========================================== -->
+        <!-- TAB 2: LỊCH SỬ CÁC LẦN LUYỆN DẠNG NÀY -->
+        <!-- ========================================== -->
+        <div class="tab-pane fade" id="content-history" role="tabpanel">
+            <div class="bg-white border rounded-4 p-4 shadow-sm">
+            <div class="d-flex align-items-center mb-3 border-bottom pb-3">
+                    <div>
+                        <h2 class="h5 fw-bold mb-1">Lịch sử làm bài: <span th:text="${result.type.name}"></span></h2>
+                        <p class="small text-muted mb-0">Chọn một lượt để xem lại câu trả lời và lời giải.</p>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Thời gian nộp</th>
+                            <th>Số câu đúng</th>
+                            <th>Tỉ lệ đúng</th>
+                            <th>Trạng thái</th>
+                            <th style="width: 140px;" class="text-end">Thao tác</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="h, hIter : ${result.history}" th:classappend="${h.id == result.attempt.id} ? 'table-success' : ''">
+                            <td>
+                                <div class="fw-medium text-dark" th:text="${#temporals.format(h.completedAt, 'dd/MM/yyyy HH:mm')}">21/10/2026 17:00</div>
+                            </td>
+                            <td>
+                                <strong th:text="${h.score} + '/' + ${h.total}">8/10</strong>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2" style="max-width: 140px;">
+                                    <div class="progress flex-grow-1" style="height: 8px;">
+                                        <div class="progress-bar bg-success" role="progressbar"
+                                             th:style="'width: ' + (${h.total == 0 ? 0 : (h.score * 100 / h.total)}) + '%;'"></div>
+                                    </div>
+                                    <span class="small fw-bold" th:text="${h.total == 0 ? 0 : (h.score * 100 / h.total)} + '%'">80%</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span th:if="${h.total > 0 and (h.score * 100 / h.total) >= 80}" class="badge bg-success-subtle text-success-emphasis border border-success">Rất tốt</span>
+                                <span th:if="${h.total > 0 and (h.score * 100 / h.total) >= 50 and (h.score * 100 / h.total) < 80}" class="badge bg-warning-subtle text-warning-emphasis border border-warning">Đạt</span>
+                                <span th:if="${h.total > 0 and (h.score * 100 / h.total) < 50}" class="badge bg-danger-subtle text-danger-emphasis border border-danger">Cần ôn lại</span>
+                            </td>
+                            <td class="text-end">
+                                <a th:href="@{/practice/result/{id}(id=${h.id})}" class="btn btn-sm btn-outline-secondary px-3 rounded-3">
+                                    Xem lại →
+                                </a>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
-    </main>
+    </div>
 
-    <div th:replace="~{fragments/footer :: footer}"></div>
-</div>
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<script>
+    function filterReview(mode, btn) {
+        const parent = btn.parentElement;
+        parent.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        document.querySelectorAll('.answer-review-card').forEach(card => {
+            const isCorrect = card.getAttribute('data-correct') === 'true';
+            if (mode === 'ALL') {
+                card.style.display = 'block';
+            } else if (mode === 'CORRECT') {
+                card.style.display = isCorrect ? 'block' : 'none';
+            } else if (mode === 'WRONG') {
+                card.style.display = !isCorrect ? 'block' : 'none';
+            }
+        });
+    }
+</script>
 </body>
 </html>
