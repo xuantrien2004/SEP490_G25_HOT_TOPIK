@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body style="background: #F8F6EF; color: #24363D; font-family: var(--font-body); margin: 0;">
+<div th:replace="~{fragments/navbar :: navbar('today')}"></div>
+<link rel="stylesheet" th:href="@{/css/learner-today.css}">
+
+<main class="td-wrap">
+    <section th:if="${loadError != null}" class="td-empty">
+        <h1>Chưa mở được ngày học</h1>
+        <p th:text="${loadError}">Chưa có lộ trình đã phát hành.</p>
+        <a class="td-link" th:href="@{/lo-trinh/tao}">Tạo lộ trình</a>
+    </section>
+
+    <div class="td-grid" th:if="${board != null}">
+        <div class="td-main">
+            <section class="td-hero">
+                <div>
+                    <span class="td-kicker">
+                        Ngày <span th:text="${board.day}">1</span> của lộ trình
+                        · <span th:text="${board.date}">01/01</span>
+                        · Tuần <span th:text="${board.week}">1</span>
+                    </span>
+                    <h1>
+                        Chào <span th:text="${board.name}">bạn</span>,
+                        <th:block th:if="${board.totalToday == 0}">hôm nay lịch chưa xếp bài.</th:block>
+                        <th:block th:if="${board.totalToday > 0 and board.doneToday >= board.totalToday}">hôm nay mình đã xong hết bài.</th:block>
+                        <th:block th:if="${board.totalToday > 0 and board.doneToday < board.totalToday}">
+                            hôm nay mình học nhẹ nhàng
+                            <span th:text="${board.totalToday - board.doneToday}">2</span> bài nhé.
+                        </th:block>
+                    </h1>
+                    <div class="td-meta">
+                        <span style="display:flex; align-items:center; gap:8px;">
+                            <span class="td-track">
+                                <i th:style="'width:' + (${board.totalToday == 0 ? 0 : board.doneToday * 100 / board.totalToday}) + '%'"></i>
+                            </span>
+                            <span th:text="${board.doneToday} + '/' + ${board.totalToday} + ' bài'">0/2 bài</span>
+                        </span>
+                        <span class="td-goal" th:text="'Mục tiêu ' + ${board.minutes} + ' phút hôm nay'">Mục tiêu 20 phút hôm nay</span>
+                    </div>
+                </div>
+                <div th:replace="~{fragments/ssak :: mascot('cheer', 'sprout', 150, 'Bé Ssak')}"></div>
+            </section>
+
+            <div class="td-head">
+                <h2>Bài hôm nay</h2>
+                <a class="td-link" th:href="@{/lo-trinh}">Xem cả tuần trong Lộ trình →</a>
+            </div>
+
+            <p th:if="${#lists.isEmpty(board.lessons)}" class="td-note" style="margin:0;">Hôm nay không có bài trong lịch.</p>
+
+            <article th:each="lesson, stat : ${board.lessons}" class="td-lesson" th:classappend="${lesson.done} ? 'done' : ''">
+                <div class="td-num" th:text="${lesson.done ? '✓' : stat.count}">1</div>
+                <div class="td-copy">
+                    <div class="label" th:text="${lesson.label}">Lần 1 · mới</div>
+                    <h3>
+                        <span th:text="${lesson.title}">Nghe 1–3</span>
+                        <span th:if="${lesson.name != null and lesson.name != lesson.title}" th:text="' · ' + ${lesson.name}"> · tên đầy đủ</span>
+                    </h3>
+                </div>
+                <a class="td-go" th:classappend="${lesson.done} ? 'ghost' : ''" th:href="${lesson.href}"
+                   th:text="${lesson.done} ? 'Làm lại' : 'Bắt đầu'">Bắt đầu</a>
+            </article>
+
+            <article class="td-lesson makeup" th:if="${board.makeup != null}">
+                <div class="td-num">!</div>
+                <div class="td-copy">
+                    <h3>
+                        Còn <span th:text="${board.makeupCount}">1</span> bài làm bù:
+                        <span th:text="${board.makeup.title}">Nghe 1–3</span>
+                        <span th:if="${board.makeup.name != null and board.makeup.name != board.makeup.title}"
+                              th:text="' · ' + ${board.makeup.name}"></span>
+                    </h3>
+                </div>
+                <a class="td-go ghost" th:href="${board.makeup.href}">Làm bù</a>
+            </article>
+
+            <article class="td-lesson" th:if="${board.weekly != null}">
+                <div class="td-num">ôn</div>
+                <div class="td-copy">
+                    <h3>
+                        Ngày <span th:text="${board.weekly.day}">7</span>
+                        · <span th:text="${board.weekly.title}">Ôn tuần 1</span>
+                    </h3>
+                </div>
+                <a class="td-go text" th:href="${board.weekly.href}" th:text="${board.weekly.action}">Làm trước</a>
+            </article>
+        </div>
+
+        <aside class="td-side">
+            <section class="td-card">
+                <div class="td-card-top">
+                    <h2>Tuần <span th:text="${board.week}">1</span> của bạn</h2>
+                    <span th:if="${!#lists.isEmpty(board.weekCells)}">
+                        Ngày <span th:text="${board.weekCells[0].day}">1</span>–<span th:text="${board.weekCells[#lists.size(board.weekCells) - 1].day}">7</span>
+                    </span>
+                </div>
+                <div class="td-week">
+                    <div th:each="cell : ${board.weekCells}" class="td-cell" th:classappend="${cell.state}">
+                        <span class="mark" th:if="${cell.state == 'done'}">✓</span>
+                        <span class="mark" th:if="${cell.state == 'weekly'}">ôn</span>
+                        <span class="mark" th:if="${cell.state != 'done' and cell.state != 'weekly'}"
+                              th:text="${cell.total == 0 ? '' : cell.done + '/' + cell.total}">0/2</span>
+                        <span th:text="${cell.label}">N1</span>
+                    </div>
+                </div>
+                <div class="td-legend">
+                    <span class="ok">✓ <span th:text="${board.weekDone}">0</span> xong</span>
+                    <span class="late"><span th:text="${board.weekLate}">0</span> làm bù</span>
+                    <span><span th:text="${board.weekAhead}">0</span> chưa tới</span>
+                </div>
+                <div class="td-bar">
+                    <i th:style="'width:' + (${board.weekTotal == 0 ? 0 : board.weekDone * 100 / board.weekTotal}) + '%'"></i>
+                </div>
+            </section>
+
+            <section class="td-card">
+                <div class="td-goal-row">
+                    <div class="td-ring" th:style="'--p:' + ${board.percent}">
+                        <span th:text="${board.percent} + '%'">0%</span>
+                    </div>
+                    <div>
+                        <strong>Còn <span th:text="${board.daysLeft}">59</span> ngày</strong>
+                        <p>Mục tiêu <span th:text="${board.track}">TOPIK II</span></p>
+                    </div>
+                </div>
+                <div class="td-studied">Đã học <span th:text="${board.studiedDays}">0</span> ngày</div>
+                <div class="td-bar gold">
+                    <i th:style="'width:' + (${board.totalDays == 0 ? 0 : board.studiedDays * 100 / board.totalDays}) + '%'"></i>
+                </div>
+                <p class="td-note" th:text="${board.doneToday} + '/' + ${board.totalToday} + ' bài hôm nay · mục tiêu ' + ${board.minutes} + ' phút'">0/2 bài hôm nay</p>
+            </section>
+
+            <section class="td-card td-weak" th:if="${board.weak != null}">
+                <h2>Nên luyện thêm</h2>
+                <h3 th:text="${board.weak.title}">Nghe 1–3</h3>
+                <p class="td-note" style="margin:0;">
+                    Đã làm <span th:text="${board.weak.done}">0</span>/<span th:text="${board.weak.seen}">1</span> lần
+                    · <span th:text="${board.weak.percent}">0</span>%
+                </p>
+                <div class="td-weak-actions">
+                    <a class="td-go" th:href="${board.weak.href}">Luyện thử</a>
+                    <a class="td-link" th:href="@{/lo-trinh}">Xem trong lộ trình →</a>
+                </div>
+            </section>
+        </aside>
+    </div>
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

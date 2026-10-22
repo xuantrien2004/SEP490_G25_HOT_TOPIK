@@ -98,6 +98,26 @@ public class ApprovalService {
         return req;
     }
 
+    public ApprovalRequestDTO submitTargetedRequest(String requesterName, String requesterRole,
+                                                    String requestType, String title, String description,
+                                                    String targetType, Long targetId, String payload) {
+        boolean duplicate = requests.values().stream().anyMatch(r -> "PENDING".equalsIgnoreCase(r.getStatus())
+                && targetType.equals(r.getTargetType()) && Objects.equals(targetId, r.getTargetId())
+                && requestType.equals(r.getRequestType()));
+        if (duplicate) {
+            throw new IllegalStateException("Đối tượng này đang chờ duyệt, không gửi trùng được.");
+        }
+        ApprovalRequestDTO req = submitRequest(requesterName, requesterRole, requestType, title, description);
+        req.setTargetType(targetType);
+        req.setTargetId(targetId);
+        req.setPayload(payload);
+        return req;
+    }
+
+    public Optional<ApprovalRequestDTO> findById(Long id) {
+        return Optional.ofNullable(requests.get(id));
+    }
+
     public Optional<ApprovalRequestDTO> getRequestById(Long id) {
         if (id == null) return Optional.empty();
         return Optional.ofNullable(requests.get(id));

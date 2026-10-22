@@ -87,6 +87,24 @@
 
 .cm-drop { border: 2px dashed #2E7D67; border-radius: 16px; padding: 20px; background: #F8FAF8; display: flex; flex-direction: column; gap: 10px; }
 .cm-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.rd-order { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.rd-order li { display: flex; justify-content: space-between; gap: 10px; align-items: center; border: 1.5px solid var(--ssak-border); border-radius: 12px; padding: 8px 10px; scroll-margin-top: 16px; }
+.rd-order li.rd-moved { border-color: #1F6B56; background: #F3FAF6; }
+.rd-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.rd-add { margin-top: 12px; }
+.rd-add > div { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.rd-phases { display: flex; gap: 8px; margin-top: 14px; }
+.rd-phase { min-height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 12px; font-weight: 800; color: #24363D; padding: 6px; }
+.rd-phase:nth-child(1) { background: #96D3B6; }
+.rd-phase:nth-child(2) { background: #BEE3D3; }
+.rd-phase:nth-child(3) { background: #1F6B56; color: #fff; }
+.rd-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.rd-day { border: 1.5px solid var(--ssak-border); border-radius: 12px; padding: 8px; background: #FAFAF9; min-height: 96px; }
+.rd-day .n { font-size: 12px; font-weight: 800; color: #24363D; }
+.rd-slot { font-size: 12px; margin-top: 4px; line-height: 1.35; }
+.rd-slot.new { color: #1F6B56; font-weight: 800; }
+.rd-slot.review { color: #2F5F7D; }
+.rd-slot.weekly { color: #7A5A12; font-weight: 800; }
 
 .paper-bar { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
 .paper-meter { flex: 1 1 180px; height: 10px; background: #F1EEE6; border-radius: 8px; overflow: hidden; min-width: 140px; }
@@ -178,6 +196,8 @@
     .cm-header, .cm-body { padding-left: 16px; padding-right: 16px; }
     .cm-steps { grid-template-columns: repeat(2, 1fr); }
     .cm-form, .cm-grid-2, .q-opts, .paper { grid-template-columns: 1fr; }
+    .rd-days { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .rd-order li { flex-direction: column; align-items: flex-start; }
     .num-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
     .paper-rail { position: static; max-height: 280px; }
 }

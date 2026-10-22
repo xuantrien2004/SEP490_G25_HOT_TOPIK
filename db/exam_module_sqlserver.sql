@@ -264,3 +264,35 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'ix_practice_user_type')
     CREATE INDEX ix_practice_user_type ON dbo.practice_attempts (user_id, type_code, completed_at);
 GO
+
+/* Bản lộ trình Content Manager phát hành. Học viên tạo lịch cá nhân từ bản PUBLISHED. */
+IF OBJECT_ID('dbo.program_versions', 'U') IS NULL
+CREATE TABLE dbo.program_versions (
+    id                       bigint IDENTITY NOT NULL PRIMARY KEY,
+    version_code             varchar(20)   NOT NULL,
+    note                     nvarchar(500) NULL,
+    status                   varchar(20)   NOT NULL CHECK (status IN ('DRAFT','PENDING_APPROVAL','PUBLISHED','ARCHIVED')),
+    review_offsets           varchar(30)   NOT NULL,
+    weekly_review_questions  int           NOT NULL,
+    phase_split              varchar(20)   NOT NULL,
+    sessions_per_type        int           NOT NULL,
+    questions_per_session    int           NOT NULL,
+    pending_action           varchar(10)   NULL,
+    approval_request_id      bigint        NULL,
+    created_by               nvarchar(120) NULL,
+    published_at             datetime2(6)  NULL,
+    created_at               datetime2(6)  NOT NULL,
+    updated_at               datetime2(6)  NOT NULL,
+    CONSTRAINT uq_program_versions_code UNIQUE (version_code)
+);
+GO
+
+IF OBJECT_ID('dbo.program_version_items', 'U') IS NULL
+CREATE TABLE dbo.program_version_items (
+    id          bigint IDENTITY NOT NULL PRIMARY KEY,
+    program_id  bigint NOT NULL REFERENCES dbo.program_versions(id),
+    template_id bigint NOT NULL REFERENCES dbo.question_templates(id),
+    order_no    int    NOT NULL,
+    CONSTRAINT uq_program_item_template UNIQUE (program_id, template_id)
+);
+GO

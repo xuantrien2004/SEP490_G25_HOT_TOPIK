@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<th:block th:replace="~{fragments/content-shell :: styles}"></th:block>
+<div class="cm-shell">
+    <aside th:replace="~{fragments/content-shell :: sidebar('roadmap')}"></aside>
+    <div class="cm-main">
+        <header th:replace="~{fragments/content-shell :: header('Lộ trình học', 'Thứ tự dạng Nghe và Đọc mà học viên sẽ gặp. Viết không nằm trong lịch theo ngày.')}"></header>
+        <main class="cm-body">
+            <th:block th:replace="~{fragments/content-shell :: flash}"></th:block>
+
+            <section class="cm-card">
+                <h2>Học viên đi theo bản đang phát hành</h2>
+                <p class="cm-muted" style="margin: 8px 0 0;">Sau bài xếp cấp, hệ thống lấy bản này để xếp lịch. Mỗi dạng học 4 lần: lần đầu là bài mới, các lần sau ôn vào ngày +2, +7 và +14. Cuối mỗi tuần có một bài ôn tuần. Số ngày học chia ba chặng Làm quen, Tăng tốc và Nước rút. Bốn dạng Viết luyện ở mục riêng, không chen vào lịch này.</p>
+            </section>
+
+            <div class="cm-toolbar" th:if="${canEdit}">
+                <form th:if="${openCopy == null and published != null}" th:action="@{/content/roadmap}" method="post">
+                    <button class="btn btn-ssak-primary btn-sm" type="submit">Tạo bản nháp từ bản đang phát hành</button>
+                </form>
+                <a th:if="${openCopy != null}" class="btn btn-ssak-primary btn-sm" th:href="@{/content/roadmap/{id}(id=${openCopy.id})}"
+                   th:text="${openCopy.status.name() == 'PENDING_APPROVAL'} ? 'Xem bản đang chờ duyệt' : 'Sửa bản nháp'">Sửa bản nháp</a>
+            </div>
+
+            <div class="cm-table-wrap">
+                <div th:if="${#lists.isEmpty(versions)}" class="cm-empty">
+                    <div class="icon">🗺</div>
+                    <h3>Chưa có bản lộ trình</h3>
+                    <p>Khởi động lại ứng dụng để tạo bản v1 từ các dạng Nghe và Đọc.</p>
+                </div>
+                <table th:unless="${#lists.isEmpty(versions)}" class="cm-table">
+                    <thead>
+                    <tr><th>Mã</th><th>Quy tắc</th><th>Số dạng</th><th>Trạng thái</th><th>Người tạo</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="v : ${versions}">
+                        <td>
+                            <a class="code" th:href="@{/content/roadmap/{id}(id=${v.id})}" th:text="${v.versionCode}">v1</a>
+                            <div class="cm-muted" th:if="${v.note != null}" th:text="${v.note}">Ghi chú</div>
+                        </td>
+                        <td>
+                            <div th:text="${v.sessionsPerType + ' lần/dạng · ' + v.questionsPerSession + ' câu/bài'}">4 lần</div>
+                            <div class="cm-muted" th:text="${'Ôn sau ' + v.reviewOffsets + ' ngày · chặng ' + v.phaseSplit}">mốc</div>
+                        </td>
+                        <td th:text="${itemCounts[v.id] != null ? itemCounts[v.id] : 0}">0</td>
+                        <td>
+                            <span class="pill"
+                                  th:classappend="${v.status.name() == 'PUBLISHED'} ? 'pill-mint' : (${v.status.name() == 'PENDING_APPROVAL'} ? 'pill-honey' : (${v.status.name() == 'ARCHIVED'} ? 'pill-gray' : 'pill-sky'))"
+                                  th:text="${v.status.label}">Đã phát hành</span>
+                        </td>
+                        <td class="cm-muted" th:text="${v.createdBy}">Hệ thống</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>
