@@ -23,6 +23,14 @@ public class RoleSecurityInterceptor implements HandlerInterceptor {
                 response.sendRedirect("/login?unauthorized=1");
                 return false;
             }
+            // Cho phép Content Manager truy cập kho từ vựng nếu vào bằng URL /admin/vocabulary
+            if (uri.startsWith("/admin/vocabulary")) {
+                if (!user.isContentManager() && !user.isAdmin()) {
+                    response.sendRedirect("/login?unauthorized=1");
+                    return false;
+                }
+                return true;
+            }
             if (!user.isAdmin()) {
                 response.sendRedirect("/login?unauthorized=1");
                 return false;

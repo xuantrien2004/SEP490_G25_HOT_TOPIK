@@ -218,6 +218,9 @@
                                     <span class="ssak-badge badge-honey" th:if="${req.requestType == 'VIP_COMPENSATION'}">Cấp bù VIP</span>
                                     <span class="ssak-badge badge-sky" th:if="${req.requestType == 'PRICE_UPDATE'}">Điều chỉnh giá</span>
                                     <span class="ssak-badge badge-terracotta" th:if="${req.requestType == 'PERMANENT_LOCK_USER'}">🔒 Khóa vĩnh viễn</span>
+                                    <span class="ssak-badge badge-peach" th:if="${req.requestType == 'ARCHIVE_EXAM'}">Lưu trữ đề thi</span>
+                                    <span class="ssak-badge badge-peach" th:if="${req.requestType == 'BULK_HIDE_QUESTIONS'}">Ẩn hàng loạt câu hỏi</span>
+                                    <span class="ssak-badge badge-mint" th:if="${req.requestType == 'PUBLISH_PROGRAM'}">Phát hành lộ trình</span>
                                 </td>
                                 <td style="padding: 14px 10px; max-width: 400px;">
                                     <div style="font-weight: 800; color: #24363D;" th:text="${req.title}">Tiêu đề yêu cầu</div>

@@ -1,19 +1,79 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${pageTitle}">Quản lý Kho Ngữ pháp - HotTOPIK</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --font-body: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            --font-heading: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            --font-korean: 'Malgun Gothic', dotum, sans-serif;
+            --ssak-text-main: #24363D;
+            --ssak-text-muted: #64748B;
+            --ssak-border: #E2E8F0;
+        }
+        body { margin: 0; padding: 0; }
+        .sidebar-item {
+            display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+            border-radius: 12px; color: #CFE9DC; text-decoration: none; font-size: 14px; font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .sidebar-item:hover { background: rgba(255, 255, 255, 0.08); color: #FFFFFF; transform: translateX(3px); }
+        .sidebar-sub-item {
+            display: flex; align-items: center; gap: 10px; padding: 8px 14px 8px 32px;
+            border-radius: 10px; color: #A9D9C0; text-decoration: none; font-size: 13px; font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .sidebar-sub-item:hover { background: rgba(255, 255, 255, 0.08); color: #FFFFFF; }
+        .sidebar-sub-item.active-sub {
+            background: rgba(46, 125, 103, 0.55); color: #FFFFFF; font-weight: 800; border-left: 3px solid #6CC49F;
+        }
+        .sidebar-bottom-link {
+            display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+            border-radius: 10px; color: #A9D9C0; text-decoration: none; font-size: 13px; font-weight: 700; transition: all 0.2s;
+        }
+        .sidebar-bottom-link:hover { background: rgba(255, 255, 255, 0.08); color: #FFFFFF; }
+        .sidebar-bottom-link.logout { color: #FFA39E; }
+        .sidebar-bottom-link.logout:hover { background: rgba(207, 19, 34, 0.15); color: #FF7875; }
+        .ssak-badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 20px; font-weight: 700; }
+        .badge-mint { background: #E6F7F0; color: #1F6B56; }
+        .badge-sky { background: #E6F4F8; color: #2F5F7D; }
+        .badge-honey { background: #FFF9E6; color: #D48806; }
+        .badge-terracotta { background: #FFF1F0; color: #CF1322; }
+        .btn-ssak-primary {
+            background: #2E7D67; color: #FFFFFF; border: none; border-radius: 10px;
+            display: inline-flex; align-items: center; justify-content: center; transition: background 0.2s;
+        }
+        .btn-ssak-primary:hover { background: #246553; color: #FFFFFF; }
+        .btn-ssak-outline {
+            background: transparent; border: 1.5px solid var(--ssak-border); color: var(--ssak-text-main);
+            border-radius: 10px; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .btn-ssak-outline:hover { background: #F8FAFC; }
+        .btn-ssak-light {
+            background: #F4F3EF; border: none; color: var(--ssak-text-main); border-radius: 10px;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .btn-ssak-light:hover { background: #E2E8F0; }
+        .ssak-input { border: 1.5px solid var(--ssak-border); border-radius: 10px; padding: 8px 12px; }
+        .ssak-input:focus { border-color: #2E7D67; box-shadow: 0 0 0 3px rgba(46, 125, 103, 0.15); }
+    </style>
+</head>
 <body>
 <div style="min-height: 100vh; background: #F4F3EF; font-family: var(--font-body); color: var(--ssak-text-main); display: flex;">
 
-    <!-- Hidden State Anchors for JS -->
-    <input type="hidden" id="currentViewLevel" th:value="${currentLevel}" />
-    <input type="hidden" id="currentViewType" th:value="${currentGrammarType}" />
+    <!-- Hidden State Anchors for JS (Lấy động từ Model) -->
+    <input type="hidden" id="currentViewLevel" th:value="${selectedLevel}" />
+    <input type="hidden" id="currentGroupId" th:value="${selectedGroupId}" />
 
-    <!-- ==================== LEFT SIDEBAR (THANH TÁC VỤ BÊN TRÁI) ==================== -->
+    <!-- ==================== LEFT SIDEBAR ==================== -->
     <aside style="width: 275px; background: #24363D; color: #FFFFFF; display: flex; flex-direction: column; flex-shrink: 0; min-height: 100vh; position: sticky; top: 0; z-index: 100; box-shadow: 4px 0 16px rgba(0,0,0,0.08);">
-        
+
         <!-- Sidebar Brand / Logo -->
         <div style="padding: 24px 24px 18px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;">
-            <a th:href="@{/content}" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #FFFFFF;">
+            <a th:href="@{/content/grammar}" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #FFFFFF;">
                 <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M12 21V11" stroke="#6CC49F" stroke-width="2.5" stroke-linecap="round"/>
                     <path d="M12 12C12 7 8 4 3.5 4.5C3.5 9 7 12.5 12 12Z" fill="#6CC49F"/>
@@ -28,16 +88,16 @@
             </div>
         </div>
 
-        <!-- User Profile Card (click → /content/profile) -->
-        <a th:href="@{/content/profile}" style="padding: 14px 20px; margin: 12px 14px; background: rgba(0,0,0,0.22); border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px; text-decoration: none;">
+        <!-- User Profile Card (Động theo currentUser) -->
+        <div style="padding: 14px 20px; margin: 12px 14px; background: rgba(0,0,0,0.22); border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
             <div style="width: 40px; height: 40px; border-radius: 20px; background: #1F6B56; color: #FFFFFF; font-family: var(--font-heading); font-size: 18px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                <span th:text="${#strings.substring(userName, 0, 1)}">H</span>
+                <span th:text="${userName != null && userName.length() > 0 ? #strings.substring(userName, 0, 1) : 'H'}">H</span>
             </div>
             <div style="display: flex; flex-direction: column; overflow: hidden; min-width: 0; flex-grow: 1;">
-                <span style="font-weight: 800; font-size: 14px; color: #FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" th:text="${userName}">Lê Thu Hà</span>
-                <span style="font-size: 11px; color: #6CC49F; font-weight: 600;">Xem hồ sơ →</span>
+                <span style="font-weight: 800; font-size: 14px; color: #FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" th:text="${userName != null ? userName : 'Quản trị viên'}">Lê Thu Hà</span>
+                <span style="font-size: 11px; color: #6CC49F; font-weight: 600;" th:text="${userEmail != null ? userEmail : 'content@hottopik.com'}">content@hottopik.com</span>
             </div>
-        </a>
+        </div>
 
         <!-- Sidebar Navigation Menu Items -->
         <div style="padding: 6px 14px; display: flex; flex-direction: column; gap: 2px; flex-grow: 1; overflow-y: auto;">
@@ -51,53 +111,72 @@
                 <span style="flex-grow: 1;">Tổng quan</span>
             </a>
 
-            <!-- Quản lý Lý thuyết (expanded) -->
-            <a th:href="@{/content}" class="sidebar-item" style="background: rgba(255,255,255,0.06);">
-                <span style="font-size: 17px;">📖</span>
-                <span style="flex-grow: 1;">Quản lý Lý thuyết</span>
-                <span style="font-size: 12px; color: #A9D9C0;">▾</span>
+            <!-- Quản lý Lý thuyết -->
+            <div style="display: flex; flex-direction: column;">
+                <span class="sidebar-item" style="cursor: default; background: rgba(255,255,255,0.06);">
+                    <span style="font-size: 17px;">📖</span>
+                    <span style="flex-grow: 1; font-weight: 700;">Quản lý Lý thuyết</span>
+                </span>
+                <!-- Sub-item: Kho Từ vựng -->
+                <a th:href="@{/content/vocabulary}" class="sidebar-sub-item">
+                    <span style="font-size: 14px;">↳</span>
+                    <span style="flex-grow: 1;">Kho Từ vựng TOPIK 1-6</span>
+                </a>
+                <!-- Sub-item: Kho Ngữ pháp (Active) -->
+                <a th:href="@{/content/grammar}" class="sidebar-sub-item active-sub">
+                    <span style="font-size: 14px;">↳</span>
+                    <span style="flex-grow: 1;">Kho Ngữ pháp TOPIK 1-6</span>
+                    <span class="ssak-badge badge-mint" style="font-size: 10px; padding: 1px 6px;" th:text="${totalCount}">0</span>
+                </a>
+                <!-- Sub-item: Kho từ Hán Việt -->
+                <a th:href="@{/content/hanja}" class="sidebar-sub-item">
+                    <span style="font-size: 14px;">↳</span>
+                    <span style="flex-grow: 1;">Kho từ Hán Việt</span>
+                </a>
+            </div>
+
+            <!-- Thư viện đề -->
+            <a th:href="@{/content/exams}" class="sidebar-item">
+                <span style="font-size: 17px;">📚</span>
+                <span style="flex-grow: 1;">Thư viện đề</span>
             </a>
 
-            <!-- Sub-item: Kho Từ vựng -->
-            <a th:href="@{/content/vocabulary}" class="sidebar-sub-item">
-                <span style="font-size: 14px;">↳</span>
-                <span style="flex-grow: 1;">Kho Từ vựng TOPIK 1-6</span>
-            </a>
-
-            <!-- Sub-item: Kho Ngữ pháp (ACTIVE) -->
-            <a th:href="@{/content/grammar}" class="sidebar-sub-item active-sub">
-                <span style="font-size: 14px;">↳</span>
-                <span style="flex-grow: 1;">Kho Ngữ pháp TOPIK 1-6</span>
-                <span class="ssak-badge badge-mint" style="font-size: 10px; padding: 1px 6px;" th:text="${totalCount}">12</span>
-            </a>
-
-            <!-- Sub-item: Kho từ Hán Việt -->
-            <a th:href="@{/content/hanja}" class="sidebar-sub-item">
-                <span style="font-size: 14px;">↳</span>
-                <span style="flex-grow: 1;">Kho từ Hán Việt</span>
-                <span class="ssak-badge badge-honey" style="font-size: 10px; padding: 1px 6px;">Mới</span>
-            </a>
-
-            <!-- Quản lý Đề -->
-            <a th:href="@{/content?tab=exams}" class="sidebar-item">
-                <span style="font-size: 17px;">📋</span>
-                <span style="flex-grow: 1;">Quản lý Đề</span>
+            <!-- Nhập đề mới -->
+            <a th:href="@{/content/sources}" class="sidebar-item">
+                <span style="font-size: 17px;">📥</span>
+                <span style="flex-grow: 1;">Nhập đề mới</span>
             </a>
 
             <!-- Ngân hàng câu hỏi -->
-            <a th:href="@{/content?tab=questions}" class="sidebar-item">
+            <a th:href="@{/content/questions}" class="sidebar-item">
                 <span style="font-size: 17px;">📝</span>
                 <span style="flex-grow: 1;">Ngân hàng câu hỏi</span>
             </a>
 
+            <!-- Dạng câu -->
+            <a th:href="@{/content/templates}" class="sidebar-item">
+                <span style="font-size: 17px;">🧩</span>
+                <span style="flex-grow: 1;">Dạng câu</span>
+            </a>
+
+            <!-- Vị trí trong đề chuẩn -->
+            <a th:href="@{/content/question-types}" class="sidebar-item">
+                <span style="font-size: 17px;">🗂</span>
+                <span style="flex-grow: 1;">Vị trí trong đề chuẩn</span>
+            </a>
+
+            <div style="font-size: 11px; font-weight: 800; color: #8ECDB0; padding: 12px 12px 4px 12px; text-transform: uppercase; letter-spacing: 0.8px;">
+                Chất lượng
+            </div>
+
             <!-- Xử lý Báo lỗi -->
-            <a th:href="@{/content?tab=reports}" class="sidebar-item">
+            <a th:href="@{/content(tab='reports')}" class="sidebar-item">
                 <span style="font-size: 17px;">⚠️</span>
                 <span style="flex-grow: 1;">Xử lý Báo lỗi</span>
             </a>
 
             <!-- Nhật ký Thao tác -->
-            <a th:href="@{/content?tab=audit}" class="sidebar-item">
+            <a th:href="@{/content(tab='audit')}" class="sidebar-item">
                 <span style="font-size: 17px;">📜</span>
                 <span style="flex-grow: 1;">Nhật ký Thao tác</span>
             </a>
@@ -105,10 +184,6 @@
 
         <!-- Sidebar Bottom Footer -->
         <div style="padding: 16px 14px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;">
-            <a th:href="@{/content}" class="sidebar-bottom-link">
-                <span>←</span>
-                <span>Về Bàn làm việc Content</span>
-            </a>
             <a th:href="@{/logout}" class="sidebar-bottom-link logout">
                 <span>🚪</span>
                 <span>Đăng xuất hệ thống</span>
@@ -118,8 +193,8 @@
 
     <!-- ==================== RIGHT MAIN CONTENT AREA ==================== -->
     <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0;">
-        
-        <!-- Top Header Bar inside Content -->
+
+        <!-- Top Header Bar -->
         <header style="height: 68px; padding: 0 40px; background: #FFFFFF; border-bottom: 2px solid var(--ssak-border); display: flex; align-items: center; justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 12px;">
                 <span style="font-size: 24px;">📚</span>
@@ -128,52 +203,49 @@
                         Kho Ngữ pháp TOPIK 1–6 (Grammar Management)
                     </h2>
                     <span style="font-size: 12px; color: var(--ssak-text-muted);">
-                        Phân cấp theo 6 cấp TOPIK và các dạng ngữ pháp chuyên biệt · Thêm, sửa, xóa, nhập Excel bản nháp
+                        Phân cấp theo 6 cấp TOPIK và các dạng nhóm chuyên biệt · Thêm, sửa, xóa, nhập Excel bản nháp
                     </span>
                 </div>
             </div>
-            
+
             <div style="display: flex; align-items: center; gap: 12px;">
                 <span class="ssak-badge badge-mint" style="font-size: 12px; padding: 6px 12px;">
-                    Tổng ngữ pháp: <strong th:text="${totalCount}">12</strong>
+                    Tổng ngữ pháp: <strong th:text="${totalCount}">0</strong>
                 </span>
                 <span class="ssak-badge badge-sky" style="font-size: 12px; padding: 6px 12px;">
-                    Dạng ngữ pháp: <strong th:text="${grammarTypeCount}">9</strong>
+                    Tổng nhóm dạng: <strong th:text="${grammarTypeCount}">0</strong>
                 </span>
-                <a th:href="@{/logout}" class="btn-ssak-outline" style="height: 36px; padding: 0 12px; font-size: 12px; text-decoration: none; display: inline-flex; align-items: center; color: #CF1322; border-color: #FFA39E;">
-                    Đăng xuất
-                </a>
             </div>
         </header>
 
         <!-- Main Workspace -->
         <main style="flex-grow: 1; padding: 24px 40px; display: flex; flex-direction: column; gap: 20px;">
-            
-            <!-- BREADCRUMB NAVIGATION -->
+
+            <!-- BREADCRUMB NAVIGATION (Động hoàn toàn theo View Mode) -->
             <nav style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700;">
                 <a th:href="@{/content/grammar}" style="color: #2E7D67; text-decoration: none;">
                     🏠 Cấp độ TOPIK (1–6)
                 </a>
-                
+
                 <th:block th:if="${viewMode == 'GRAMMAR_TYPE_LIST' or viewMode == 'GRAMMAR_LIST'}">
                     <span style="color: var(--ssak-text-muted);">›</span>
-                    <a th:href="@{/content/grammar(level=${currentLevel})}" 
+                    <a th:href="@{/content/grammar(level=${selectedLevel})}"
                        th:style="${viewMode == 'GRAMMAR_TYPE_LIST' ? 'color: var(--ssak-text-main); font-weight: 800;' : 'color: #2E7D67;'}"
                        style="text-decoration: none;" th:text="${currentLevelName}">
-                        TOPIK I · Cấp 1
+                        Cấp độ
                     </a>
                 </th:block>
 
                 <th:block th:if="${viewMode == 'GRAMMAR_LIST'}">
                     <span style="color: var(--ssak-text-muted);">›</span>
-                    <span style="color: var(--ssak-text-main); font-weight: 800;" th:text="${'Dạng: ' + currentGrammarType}">
-                        Dạng: Nối mệnh đề chỉ nguyên nhân
+                    <span style="color: var(--ssak-text-main); font-weight: 800;" th:text="${'Dạng/Nhóm: ' + currentGrammarType}">
+                        Nhóm ngữ pháp
                     </span>
                 </th:block>
             </nav>
 
             <!-- ============================================================== -->
-            <!-- VIEW MODE 1: LEVEL_LIST (6 CẤP TOPIK VỚI SỐ LƯỢNG DẠNG NGỮ PHÁP) -->
+            <!-- VIEW MODE 1: LEVEL_LIST (6 CẤP TOPIK - Đọc động từ danh sách levels) -->
             <!-- ============================================================== -->
             <th:block th:if="${viewMode == 'LEVEL_LIST'}">
                 <div style="background: linear-gradient(135deg, #24363D 0%, #1F6B56 100%); border-radius: 20px; padding: 28px 32px; color: #FFFFFF; display: flex; justify-content: space-between; align-items: center;">
@@ -183,22 +255,18 @@
                             Chọn cấp TOPIK để quản lý Dạng ngữ pháp
                         </h2>
                         <span style="font-size: 14px; color: #CFE9DC;">
-                            Khác với Từ vựng được gom theo Chủ đề, Ngữ pháp được chuẩn hóa theo từng Dạng câu (nguyên nhân, tương phản, bổ ngữ, trích dẫn...).
+                            Ngữ pháp được hệ thống hóa chuẩn hóa theo từng Cấp độ và Dạng nhóm chuyên biệt.
                         </span>
                     </div>
                 </div>
 
-                <!-- 6 TOPIK Level Cards -->
+                <!-- 6 TOPIK Level Cards (Dùng th:each lặp dữ liệu mềm từ Controller) -->
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
-                    <div th:each="item : ${levels}" class="ssak-card" 
-                         style="background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); padding: 24px; display: flex; flex-direction: column; gap: 16px; transition: transform 0.2s, box-shadow 0.2s;"
-                         onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 24px rgba(0,0,0,0.06)';"
-                         onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                        
+                    <div th:each="item : ${levels}" style="background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); padding: 24px; display: flex; flex-direction: column; gap: 16px;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div>
-                                <span class="ssak-badge badge-mint" style="font-size: 12px; font-weight: 800;" th:text="${item.level <= 2 ? 'Sơ cấp · TOPIK I' : (item.level <= 4 ? 'Trung cấp · TOPIK II' : 'Cao cấp · TOPIK II')}">Sơ cấp</span>
-                                <h3 style="margin: 8px 0 0 0; font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #24363D;" th:text="${item.levelName}">TOPIK I · Cấp 1</h3>
+                                <span class="ssak-badge badge-mint" style="font-size: 12px; font-weight: 800;" th:text="${item.level <= 2 ? 'Sơ cấp · TOPIK I' : (item.level <= 4 ? 'Trung cấp · TOPIK II' : 'Cao cấp · TOPIK II')}">Cấp độ</span>
+                                <h3 style="margin: 8px 0 0 0; font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #24363D;" th:text="${item.levelName}">TOPIK cấp</h3>
                             </div>
                             <div style="width: 44px; height: 44px; border-radius: 22px; background: #F4F3EF; display: flex; align-items: center; justify-content: center; font-size: 20px;">
                                 📖
@@ -207,12 +275,12 @@
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; background: #F8FAFC; border-radius: 12px;">
                             <div>
-                                <div style="font-size: 11px; color: var(--ssak-text-muted); font-weight: 700;">DẠNG NGỮ PHÁP</div>
-                                <div style="font-size: 20px; font-weight: 800; color: #1F6B56;" th:text="${item.typeCount + ' dạng'}">2 dạng</div>
+                                <div style="font-size: 11px; color: var(--ssak-text-muted); font-weight: 700;">DẠNG NHÓM</div>
+                                <div style="font-size: 20px; font-weight: 800; color: #1F6B56;" th:text="${item.typeCount + ' dạng'}">0 dạng</div>
                             </div>
                             <div>
                                 <div style="font-size: 11px; color: var(--ssak-text-muted); font-weight: 700;">MẪU CÂU</div>
-                                <div style="font-size: 20px; font-weight: 800; color: #2F5F7D;" th:text="${item.grammarCount + ' mẫu'}">6 mẫu</div>
+                                <div style="font-size: 20px; font-weight: 800; color: #2F5F7D;" th:text="${item.grammarCount + ' mẫu'}">0 mẫu</div>
                             </div>
                         </div>
 
@@ -224,43 +292,43 @@
             </th:block>
 
             <!-- ============================================================== -->
-            <!-- VIEW MODE 2: GRAMMAR_TYPE_LIST (DANH SÁCH DẠNG TRONG 1 CẤP) -->
+            <!-- VIEW MODE 2: GRAMMAR_TYPE_LIST (DANH SÁCH NHÓM ĐỘNG TRONG 1 CẤP) -->
             <!-- ============================================================== -->
             <th:block th:if="${viewMode == 'GRAMMAR_TYPE_LIST'}">
                 <div style="display: flex; justify-content: space-between; align-items: center; background: #FFFFFF; padding: 20px 24px; border-radius: 18px; border: 2px solid var(--ssak-border);">
                     <div>
-                        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D;" th:text="${'Các Dạng Ngữ pháp thuộc ' + currentLevelName}">
-                            Các Dạng Ngữ pháp thuộc TOPIK 1
+                        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D;" th:text="${'Các Dạng/Nhóm Ngữ pháp thuộc ' + currentLevelName}">
+                            Danh sách nhóm
                         </h3>
                         <span style="font-size: 13px; color: var(--ssak-text-muted);">
-                            Chọn dạng ngữ pháp để quản lý chi tiết các mẫu câu, ví dụ và cấu trúc đính kèm.
+                            Chọn nhóm ngữ pháp để quản lý chi tiết các mẫu câu và ví dụ minh họa.
                         </span>
                     </div>
 
                     <div style="display: flex; gap: 10px;">
                         <button type="button" class="btn-ssak-primary" style="height: 40px; padding: 0 18px; font-weight: 800; font-size: 13px;" data-bs-toggle="modal" data-bs-target="#modalCreateGrammarType">
-                            + Tạo Dạng ngữ pháp mới
+                            + Tạo Dạng/Nhóm mới
                         </button>
                     </div>
                 </div>
 
+                <!-- Danh sách nhóm render động hoàn toàn qua th:each -->
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;">
-                    <div th:each="t : ${grammarTypes}" class="ssak-card" style="background: #FFFFFF; border-radius: 18px; border: 2px solid var(--ssak-border); padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                    <div th:each="t : ${grammarTypes}" style="background: #FFFFFF; border-radius: 18px; border: 2px solid var(--ssak-border); padding: 20px; display: flex; flex-direction: column; gap: 14px;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div>
-                                <h4 style="margin: 0; font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #1F6B56;" th:text="${t.name}">Nối mệnh đề chỉ nguyên nhân</h4>
-                                <span style="font-size: 12px; color: var(--ssak-text-muted); margin-top: 4px; display: block;" th:text="${t.description}">Cấu trúc liên từ</span>
+                                <h4 style="margin: 0; font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #1F6B56;" th:text="${t.name}">Tên nhóm</h4>
+                                <span style="font-size: 12px; color: var(--ssak-text-muted); margin-top: 4px; display: block;" th:text="${t.description}">Mô tả</span>
                             </div>
-                            <span class="ssak-badge badge-mint" style="font-size: 12px;" th:text="${t.grammarCount + ' mẫu câu'}">3 mẫu câu</span>
+                            <!-- Số lượng mẫu câu lấy động từ thuộc tính t.grammarCount -->
+                            <span class="ssak-badge badge-mint" style="font-size: 12px;" th:text="${t.grammarCount + ' mẫu câu'}">0 mẫu câu</span>
                         </div>
 
                         <div style="display: flex; gap: 8px; margin-top: auto;">
-                            <a th:href="@{/content/grammar(level=${currentLevel}, grammarType=${t.name})}" class="btn-ssak-primary" style="flex-grow: 1; height: 36px; text-decoration: none; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800;">
+                            <!-- Link truyền động groupId (thay vì cố định groupId=1) -->
+                            <a th:href="@{/content/grammar(level=${currentLevel}, groupId=${t.id})}" class="btn-ssak-primary" style="flex-grow: 1; height: 36px; text-decoration: none; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800;">
                                 Mở mẫu câu →
                             </a>
-                            <button type="button" class="btn-ssak-light" style="height: 36px; padding: 0 12px; font-size: 12px;" th:data-name="${t.name}" onclick="openEditTypeModal(this.getAttribute('data-name'))">
-                                Sửa
-                            </button>
                             <button type="button" class="btn-ssak-outline" style="height: 36px; padding: 0 10px; font-size: 12px; color: red; border-color: #FFA39E;" th:data-name="${t.name}" th:data-count="${t.grammarCount}" onclick="openDeleteTypeModal(this.getAttribute('data-name'), this.getAttribute('data-count'))">
                                 Xóa
                             </button>
@@ -270,18 +338,18 @@
             </th:block>
 
             <!-- ============================================================== -->
-            <!-- VIEW MODE 3: GRAMMAR_LIST (DANH SÁCH MẪU NGỮ PHÁP TRONG DẠNG) -->
+            <!-- VIEW MODE 3: GRAMMAR_LIST (DANH SÁCH MẪU NGỮ PHÁP TRONG NHÓM) -->
             <!-- ============================================================== -->
             <th:block th:if="${viewMode == 'GRAMMAR_LIST'}">
-                
+
                 <!-- Action Header Bar -->
                 <div style="background: #FFFFFF; padding: 18px 24px; border-radius: 18px; border: 2px solid var(--ssak-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
                     <div>
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <h3 style="margin: 0; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D;" th:text="${currentGrammarType}">
-                                Nối mệnh đề chỉ nguyên nhân
+                                Tên nhóm ngữ pháp
                             </h3>
-                            <span class="ssak-badge badge-sky" th:text="${currentLevelName}">TOPIK I · Cấp 1</span>
+                            <span class="ssak-badge badge-sky" th:text="${currentLevelName}">Cấp</span>
                         </div>
                         <span style="font-size: 12px; color: var(--ssak-text-muted);">
                             Quản lý các mẫu câu ngữ pháp, công thức kết hợp, ví dụ và mức độ quan trọng
@@ -301,15 +369,15 @@
                     </div>
                 </div>
 
-                <!-- Instant Filter & Live Search Toolbar (LỌC TỨC THÌ, KHÔNG CẦN BẤM NÚT) -->
+                <!-- Instant Filter & Live Search Toolbar -->
                 <div style="background: #FFFFFF; padding: 16px 20px; border-radius: 16px; border: 2px solid var(--ssak-border); display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
                     <div style="flex-grow: 1; min-width: 250px;">
-                        <input type="text" id="liveGrammarSearch" class="form-control ssak-input" placeholder="🔍 Nhập tìm kiếm tên ngữ pháp (-아서/어서), nghĩa hoặc ví dụ..." oninput="performGrammarInstantFilter()" />
+                        <input type="text" id="liveGrammarSearch" class="form-control ssak-input" placeholder="🔍 Nhập tìm kiếm tên ngữ pháp, nghĩa..." oninput="performGrammarInstantFilter()" />
                     </div>
 
                     <div style="width: 170px;">
                         <select id="liveImportanceSelect" class="form-select ssak-input" onchange="performGrammarInstantFilter()">
-                            <option value="ALL">Mọi mức quan trọng</option>
+                            <option value="ALL">Mọi mức độ</option>
                             <option value="IMPORTANT">⭐ Quan trọng</option>
                             <option value="NORMAL">Thường gặp</option>
                         </select>
@@ -319,7 +387,8 @@
                         <select id="liveStatusSelect" class="form-select ssak-input" onchange="performGrammarInstantFilter()">
                             <option value="ALL">Mọi trạng thái</option>
                             <option value="ACTIVE">Hoạt động</option>
-                            <option value="INACTIVE">Đang ẩn</option>
+                            <option value="DRAFT">Bản nháp</option>
+                            <option value="HIDDEN">Đã ẩn</option>
                         </select>
                     </div>
 
@@ -328,75 +397,82 @@
                     </div>
                 </div>
 
-                <!-- Grammar Table -->
-                <div class="ssak-card" style="background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); overflow: hidden;">
+                <!-- Grammar Table (Đọc động qua th:each danh sách grammars) -->
+                <div style="background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); overflow: hidden;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                         <thead>
-                            <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase; background: #FAFAF9;">
-                                <th style="padding: 14px 16px;">Tên ngữ pháp (Hangul)</th>
-                                <th style="padding: 14px 14px;">Nghĩa & Công dụng</th>
-                                <th style="padding: 14px 14px;">Cấu trúc kết hợp</th>
-                                <th style="padding: 14px 10px;">Cấp</th>
-                                <th style="padding: 14px 10px;">Mức độ</th>
-                                <th style="padding: 14px 10px;">Trạng thái</th>
-                                <th style="padding: 14px 16px; text-align: right;">Thao tác</th>
-                            </tr>
+                        <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase; background: #FAFAF9;">
+                            <th style="padding: 14px 16px;">Tên ngữ pháp (Pattern)</th>
+                            <th style="padding: 14px 14px;">Bản dịch & Ý nghĩa</th>
+                            <th style="padding: 14px 14px;">Giải thích / Cấu trúc</th>
+                            <th style="padding: 14px 10px;">Cấp</th>
+                            <th style="padding: 14px 10px;">Trạng thái</th>
+                            <th style="padding: 14px 16px; text-align: right;">Thao tác</th>
+                        </tr>
                         </thead>
                         <tbody id="grammarTableBody">
-                            <tr th:each="g : ${grammars}" class="grammar-data-row"
-                                th:data-pattern="${g.patternName}"
-                                th:data-meaning="${g.meaning}"
-                                th:data-importance="${g.importance}"
-                                th:data-status="${g.status}"
-                                style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;"
-                                onmouseover="this.style.background='#F8FAFC'"
-                                onmouseout="this.style.background='transparent'">
-                                
-                                <td style="padding: 14px 16px;">
-                                    <div style="font-family: var(--font-korean); font-size: 16px; font-weight: 800; color: #1F6B56;" th:text="${g.patternName}">-아서/어서</div>
-                                    <div style="font-size: 12px; color: var(--ssak-text-muted); font-family: var(--font-korean);" th:text="${g.exampleKr}">배가 아파서...</div>
-                                </td>
+                        <tr th:each="g : ${grammars}" class="grammar-data-row"
+                            th:data-pattern="${g.pattern}"
+                            th:data-meaning="${g.meaning}"
+                            th:data-importance="${g.isFrequent ? 'IMPORTANT' : 'NORMAL'}"
+                            th:data-status="${g.status}"
+                            style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;">
 
-                                <td style="padding: 14px 14px;">
-                                    <div style="font-weight: 700; color: #24363D;" th:text="${g.meaning}">Vì... nên...</div>
-                                    <div style="font-size: 12px; color: var(--ssak-text-muted);" th:text="${g.exampleVi}">Vì đau bụng...</div>
-                                </td>
+                            <td style="padding: 14px 16px;">
+                                <div style="font-family: var(--font-korean); font-size: 16px; font-weight: 800; color: #1F6B56;" th:text="${g.pattern}">Pattern</div>
+                                <div style="font-size: 12px; color: var(--ssak-text-muted);" th:text="${g.translation}">Translation</div>
+                            </td>
 
-                                <td style="padding: 14px 14px;">
-                                    <code style="background: #F4F3EF; padding: 3px 8px; border-radius: 6px; font-size: 12px; color: #2E7D67; font-weight: 700;" th:text="${g.attachmentRule}">V/A + -아/어서</code>
-                                </td>
+                            <td style="padding: 14px 14px;">
+                                <div style="font-weight: 700; color: #24363D;" th:text="${g.meaning}">Meaning</div>
+                            </td>
 
-                                <td style="padding: 14px 10px;">
-                                    <span class="ssak-badge badge-mint" th:text="${'TOPIK ' + g.topikLevel}">TOPIK 1</span>
-                                </td>
+                            <td style="padding: 14px 14px;">
+                                <!-- Đã sửa để ưu tiên hiển thị explanation, nếu trống sẽ hiển thị notes hoặc ý nghĩa -->
+                                <code style="background: #F4F3EF; padding: 3px 8px; border-radius: 6px; font-size: 12px; color: #2E7D67; font-weight: 700;"
+                                      th:text="${g.explanation != null && g.explanation != '' ? g.explanation : (g.notes != null ? g.notes : 'Chưa có cấu trúc')}">
+                                    Explanation
+                                </code>
+                            </td>
 
-                                <td style="padding: 14px 10px;">
-                                    <span th:if="${g.importance == 'IMPORTANT'}" class="ssak-badge badge-honey" style="font-size: 11px;">⭐ Quan trọng</span>
-                                    <span th:if="${g.importance != 'IMPORTANT'}" class="ssak-badge badge-sky" style="font-size: 11px;">Thường gặp</span>
-                                </td>
+                            <td style="padding: 14px 10px;">
+                                <span class="ssak-badge badge-mint" th:text="${'TOPIK ' + g.level}">Level</span>
+                            </td>
 
-                                <td style="padding: 14px 10px;">
-                                    <span th:if="${g.status == 'ACTIVE'}" class="ssak-badge badge-mint" style="font-size: 11px;">Bật</span>
-                                    <span th:if="${g.status == 'INACTIVE'}" class="ssak-badge badge-terracotta" style="font-size: 11px;">Ẩn</span>
-                                    <span th:if="${g.status == 'DRAFT'}" class="ssak-badge badge-honey" style="font-size: 11px;">Nháp</span>
-                                </td>
+                            <td style="padding: 14px 10px;">
+                                <span th:if="${g.status == 'ACTIVE'}" class="ssak-badge badge-mint" style="font-size: 11px;">Hoạt động</span>
+                                <span th:if="${g.status == 'HIDDEN'}" class="ssak-badge badge-terracotta" style="font-size: 11px;">Đã ẩn</span>
+                                <span th:if="${g.status == 'DRAFT'}" class="ssak-badge badge-honey" style="font-size: 11px;">Bản nháp</span>
+                            </td>
 
-                                <td style="padding: 14px 16px; text-align: right;">
-                                    <div style="display: inline-flex; gap: 6px;">
-                                        <button type="button" class="btn-ssak-light" style="height: 32px; padding: 0 10px; font-size: 12px;"
-                                                th:data-pattern="${g.patternName}" th:data-meaning="${g.meaning}" th:data-rule="${g.attachmentRule}" th:data-exkr="${g.exampleKr}" th:data-exvi="${g.exampleVi}"
-                                                onclick="viewGrammarDetail(this)">
-                                            Chi tiết
-                                        </button>
-                                        <button type="button" class="btn-ssak-outline" style="height: 32px; padding: 0 10px; font-size: 12px;"
-                                                th:data-id="${g.id}" th:data-active="${g.status == 'ACTIVE'}"
-                                                onclick="toggleGrammarStatus(this.getAttribute('data-id'))"
-                                                th:text="${g.status == 'ACTIVE' ? 'Ẩn' : 'Bật'}">
-                                            Ẩn
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
+                            <td style="padding: 14px 16px; text-align: right;">
+                                <div style="display: inline-flex; gap: 6px;">
+                                    <!-- Nút Sửa bổ sung -->
+                                    <button type="button" class="btn-ssak-primary" style="height: 32px; padding: 0 10px; font-size: 12px;"
+                                            th:data-id="${g.id}"
+                                            th:data-pattern="${g.pattern}"
+                                            th:data-translation="${g.translation}"
+                                            th:data-meaning="${g.meaning}"
+                                            th:data-explanation="${g.explanation}"
+                                            th:data-status="${g.status}"
+                                            th:data-frequent="${g.isFrequent}"
+                                            onclick="openEditGrammarModal(this)">
+                                        Sửa
+                                    </button>
+                                    <button type="button" class="btn-ssak-light" style="height: 32px; padding: 0 10px; font-size: 12px;"
+                                            th:data-pattern="${g.pattern}" th:data-meaning="${g.meaning}" th:data-rule="${g.explanation}"
+                                            onclick="viewGrammarDetail(this)">
+                                        Chi tiết
+                                    </button>
+                                    <button type="button" class="btn-ssak-outline" style="height: 32px; padding: 0 10px; font-size: 12px;"
+                                            th:data-id="${g.id}"
+                                            onclick="toggleGrammarStatus(this.getAttribute('data-id'))"
+                                            th:text="${g.status == 'ACTIVE' ? 'Ẩn' : 'Bật'}">
+                                        Ẩn
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
                         </tbody>
                     </table>
 
@@ -406,9 +482,6 @@
                         <h4 style="margin: 10px 0 4px 0; font-family: var(--font-heading); font-size: 16px; font-weight: 800; color: #24363D;">
                             Không tìm thấy ngữ pháp phù hợp
                         </h4>
-                        <span style="font-size: 13px; color: var(--ssak-text-muted);">
-                            Vui lòng thử từ khóa khác hoặc điều chỉnh lại bộ lọc mức độ/trạng thái.
-                        </span>
                     </div>
                 </div>
 
@@ -417,44 +490,97 @@
         </main>
     </div>
 </div>
-
-<!-- ============================================================== -->
-<!-- MODAL: TẠO DẠNG NGỮ PHÁP MỚI -->
-<!-- ============================================================== -->
-<div class="modal fade" id="modalCreateGrammarType" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+<!-- MODAL: SỬA NGỮ PHÁP -->
+<div class="modal fade" id="modalEditGrammar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="border-radius: 20px; border: 2px solid var(--ssak-border); padding: 8px;">
             <div class="modal-header" style="border-bottom: 2px solid var(--ssak-border); padding: 16px 20px;">
                 <h5 class="modal-title" style="font-family: var(--font-heading); font-weight: 800; color: #1F6B56; margin: 0;">
-                    + Thêm Dạng Ngữ pháp mới
+                    ✏️ Chỉnh sửa Mẫu Ngữ pháp
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form onsubmit="handleCreateGrammarType(event)">
+            <form onsubmit="handleUpdateGrammar(event)">
+                <!-- Input ẩn chứa ID của ngữ pháp đang sửa -->
+                <input type="hidden" id="editGrammarId" />
+
                 <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
-                    <div>
-                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Tên dạng ngữ pháp <span style="color:red">*</span></label>
-                        <input type="text" id="newGrammarTypeName" class="form-control ssak-input" required placeholder="Ví dụ: Nối mệnh đề chỉ mục đích, Thể giả định..." />
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div>
+                            <label class="form-label" style="font-size: 13px; font-weight: 700;">Tên ngữ pháp (Pattern) <span style="color:red">*</span></label>
+                            <input type="text" id="editGPattern" class="form-control ssak-input" required style="font-family: var(--font-korean); font-weight: 800;" />
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 13px; font-weight: 700;">Bản dịch ngắn <span style="color:red">*</span></label>
+                            <input type="text" id="editGTranslation" class="form-control ssak-input" required />
+                        </div>
                     </div>
+
                     <div>
-                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Mô tả chi tiết</label>
-                        <textarea id="newGrammarTypeDesc" class="form-control ssak-input" rows="2" placeholder="Giải thích phạm vi của dạng ngữ pháp này..."></textarea>
+                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Giải thích / Cấu trúc (Explanation)</label>
+                        <input type="text" id="editGExplanation" class="form-control ssak-input" style="font-family: var(--font-korean);" />
+                    </div>
+
+                    <div>
+                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Ý nghĩa chi tiết</label>
+                        <textarea id="editGMeaning" class="form-control ssak-input" rows="2"></textarea>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div>
+                            <label class="form-label" style="font-size: 13px; font-weight: 700;">Mức độ quan trọng</label>
+                            <select id="editGImportance" class="form-select ssak-input">
+                                <option value="IMPORTANT">⭐ Quan trọng</option>
+                                <option value="NORMAL">Thường gặp</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 13px; font-weight: 700;">Trạng thái</label>
+                            <select id="editGStatus" class="form-select ssak-input">
+                                <option value="ACTIVE">Hoạt động</option>
+                                <option value="DRAFT">Bản nháp</option>
+                                <option value="HIDDEN">Tạm ẩn</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px;">
                     <button type="button" class="btn-ssak-outline" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn-ssak-primary" style="height: 40px; padding: 0 20px; font-weight: 800;">
-                        Tạo Dạng mới
-                    </button>
+                    <button type="submit" class="btn-ssak-primary" style="height: 40px; padding: 0 20px; font-weight: 800;">💾 Cập nhật Ngữ pháp</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- ============================================================== -->
-<!-- MODAL: CẢNH BÁO XÓA DẠNG NGỮ PHÁP -->
-<!-- ============================================================== -->
+<!-- ==================== MODALS ==================== -->
+<!-- MODAL: TẠO DẠNG/NHÓM MỚI -->
+<div class="modal fade" id="modalCreateGrammarType" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; border: 2px solid var(--ssak-border); padding: 8px;">
+            <div class="modal-header" style="border-bottom: 2px solid var(--ssak-border); padding: 16px 20px;">
+                <h5 class="modal-title" style="font-family: var(--font-heading); font-weight: 800; color: #1F6B56; margin: 0;">
+                    + Thêm Dạng/Nhóm Ngữ pháp mới
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form onsubmit="handleCreateGrammarType(event)">
+                <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                    <div>
+                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Tên nhóm tiếng Việt <span style="color:red">*</span></label>
+                        <input type="text" id="newGrammarTypeName" class="form-control ssak-input" required placeholder="Ví dụ: Nối mệnh đề chỉ mục đích..." />
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px;">
+                    <button type="button" class="btn-ssak-outline" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-ssak-primary" style="height: 40px; padding: 0 20px; font-weight: 800;">Tạo mới</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CẢNH BÁO XÓA DẠNG -->
 <div class="modal fade" id="modalDeleteGrammarType" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 20px; border: 2px solid #CF1322; padding: 8px;">
@@ -465,26 +591,17 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
-                <p style="margin: 0; font-size: 14px; line-height: 1.5;">
-                    Bạn đang chuẩn bị xóa dạng: <strong id="deleteGrammarTypeNameDisplay" style="color: #1F6B56;"></strong>.
-                </p>
-                <div style="background: #FFF5F5; border: 1.5px solid #FFA39E; border-radius: 12px; padding: 14px; color: #CF1322; font-size: 13px; font-weight: 700;">
-                    ❗ Chú ý: Thao tác này sẽ đồng thời xóa vĩnh viễn toàn bộ <span id="deleteGrammarCountDisplay" style="font-size: 16px;">0</span> mẫu ngữ pháp thuộc dạng này!
-                </div>
+                <p style="margin: 0; font-size: 14px;">Bạn đang chuẩn bị xóa nhóm: <strong id="deleteGrammarTypeNameDisplay" style="color: #1F6B56;"></strong>.</p>
             </div>
             <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px;">
                 <button type="button" class="btn-ssak-outline" data-bs-dismiss="modal">Hủy bỏ</button>
-                <button type="button" class="btn-ssak-primary" style="background: #CF1322; border-color: #CF1322; height: 40px; padding: 0 20px; font-weight: 800;" onclick="confirmDeleteGrammarType()">
-                    Xác nhận Xóa vĩnh viễn
-                </button>
+                <button type="button" class="btn-ssak-primary" style="background: #CF1322; border-color: #CF1322; height: 40px; padding: 0 20px; font-weight: 800;" onclick="confirmDeleteGrammarType()">Xác nhận Xóa</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ============================================================== -->
-<!-- MODAL: THÊM / SỬA NGỮ PHÁP -->
-<!-- ============================================================== -->
+<!-- MODAL: THÊM NGỮ PHÁP -->
 <div class="modal fade" id="modalAddGrammar" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="border-radius: 20px; border: 2px solid var(--ssak-border); padding: 8px;">
@@ -498,34 +615,38 @@
                 <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div>
-                            <label class="form-label" style="font-size: 13px; font-weight: 700;">Tên ngữ pháp (Hangul) <span style="color:red">*</span></label>
-                            <input type="text" id="gPattern" class="form-control ssak-input" required placeholder="Ví dụ: -아서/어서, -(으)ㄹ 때" style="font-family: var(--font-korean); font-weight: 800;" />
+                            <label class="form-label" style="font-size: 13px; font-weight: 700;">Tên ngữ pháp (Pattern) <span style="color:red">*</span></label>
+                            <input type="text" id="gPattern" class="form-control ssak-input" required placeholder="Ví dụ: -아서/어서" style="font-family: var(--font-korean); font-weight: 800;" />
                         </div>
                         <div>
-                            <label class="form-label" style="font-size: 13px; font-weight: 700;">Cấu trúc kết hợp <span style="color:red">*</span></label>
-                            <input type="text" id="gRule" class="form-control ssak-input" required placeholder="Ví dụ: V/A + -아/어서" />
+                            <label class="form-label" style="font-size: 13px; font-weight: 700;">Bản dịch ngắn <span style="color:red">*</span></label>
+                            <input type="text" id="gTranslation" class="form-control ssak-input" required placeholder="Ví dụ: Vì... nên..." />
                         </div>
                     </div>
 
                     <div>
-                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Nghĩa & Công dụng tiếng Việt <span style="color:red">*</span></label>
-                        <input type="text" id="gMeaning" class="form-control ssak-input" required placeholder="Ví dụ: Vì... nên... (chỉ nguyên nhân trực tiếp)" />
+                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Ý nghĩa chi tiết</label>
+                        <textarea id="gMeaning" class="form-control ssak-input" rows="2" placeholder="Giải thích ý nghĩa..."></textarea>
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Giải thích / Cấu trúc (Explanation)</label>
+                        <input type="text" id="gExplanation" class="form-control ssak-input" placeholder="Ví dụ: V/A + -아/어서" style="font-family: var(--font-korean);" />
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div>
                             <label class="form-label" style="font-size: 13px; font-weight: 700;">Mức độ quan trọng</label>
                             <select id="gImportance" class="form-select ssak-input">
-                                <option value="IMPORTANT">⭐ Quan trọng (Trọng tâm đề thi)</option>
+                                <option value="IMPORTANT">⭐ Quan trọng</option>
                                 <option value="NORMAL">Thường gặp</option>
                             </select>
                         </div>
                         <div>
-                            <label class="form-label" style="font-size: 13px; font-weight: 700;">Trạng thái ban đầu</label>
+                            <label class="form-label" style="font-size: 13px; font-weight: 700;">Trạng thái</label>
                             <select id="gStatus" class="form-select ssak-input">
-                                <option value="ACTIVE">Kích hoạt (Hiển thị ngay)</option>
-                                <option value="DRAFT">Bản nháp (Cần rà soát thêm)</option>
-                                <option value="INACTIVE">Tạm ẩn</option>
+                                <option value="ACTIVE">Hoạt động</option>
+                                <option value="DRAFT">Bản nháp</option>
+                                <option value="HIDDEN">Tạm ẩn</option>
                             </select>
                         </div>
                     </div>
@@ -542,18 +663,14 @@
                 </div>
                 <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px;">
                     <button type="button" class="btn-ssak-outline" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn-ssak-primary" style="height: 40px; padding: 0 20px; font-weight: 800;">
-                        💾 Lưu Ngữ pháp
-                    </button>
+                    <button type="submit" class="btn-ssak-primary" style="height: 40px; padding: 0 20px; font-weight: 800;">💾 Lưu Ngữ pháp</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- ============================================================== -->
-<!-- MODAL: XEM CHI TIẾT NGỮ PHÁP -->
-<!-- ============================================================== -->
+<!-- MODAL: XEM CHI TIẾT -->
 <div class="modal fade" id="modalViewGrammarDetail" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 20px; border: 2px solid var(--ssak-border); padding: 8px;">
@@ -569,17 +686,8 @@
                     <div id="detailPattern" style="font-family: var(--font-korean); font-size: 22px; font-weight: 800; color: #1F6B56;"></div>
                 </div>
                 <div>
-                    <div style="font-size: 12px; color: var(--ssak-text-muted); font-weight: 700;">CẤU TRÚC KẾT HỢP</div>
-                    <code id="detailRule" style="background: #F4F3EF; padding: 4px 10px; border-radius: 6px; font-size: 13px; color: #2E7D67; font-weight: 700;"></code>
-                </div>
-                <div>
                     <div style="font-size: 12px; color: var(--ssak-text-muted); font-weight: 700;">NGHĨA TIẾNG VIỆT</div>
                     <div id="detailMeaning" style="font-size: 15px; font-weight: 700; color: #24363D;"></div>
-                </div>
-                <div style="background: #F8FAFC; border-radius: 12px; padding: 14px; border: 1px solid var(--ssak-border);">
-                    <div style="font-size: 12px; color: var(--ssak-text-muted); font-weight: 700;">VÍ DỤ MINH HỌA</div>
-                    <div id="detailExKr" style="font-family: var(--font-korean); font-size: 15px; font-weight: 700; color: #1F6B56; margin-top: 4px;"></div>
-                    <div id="detailExVi" style="font-size: 13px; color: var(--ssak-text-muted); margin-top: 2px;"></div>
                 </div>
             </div>
             <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px;">
@@ -589,171 +697,59 @@
     </div>
 </div>
 
-<!-- ============================================================== -->
-<!-- MODAL: IMPORT EXCEL (BẢN NHÁP + BÁO CÁO TRÙNG LẶP / ĐÃ TỒN TẠI) -->
-<!-- ============================================================== -->
+<!-- MODAL: IMPORT EXCEL -->
 <div class="modal fade" id="modalImportGrammarExcel" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl">
         <div class="modal-content" style="border-radius: 20px; border: 2px solid var(--ssak-border); padding: 8px;">
             <div class="modal-header" style="border-bottom: 2px solid var(--ssak-border); padding: 16px 20px;">
                 <div>
                     <h5 class="modal-title" style="font-family: var(--font-heading); font-weight: 800; color: #1F6B56; margin: 0;">
-                        📂 Nhập Ngữ pháp từ Excel (Quy trình chuẩn hóa Bản nháp)
+                        📂 Nhập Ngữ pháp từ Excel (Bản nháp)
                     </h5>
-                    <span style="font-size: 12px; color: var(--ssak-text-muted);">
-                        Upload → Parse → Validate (Phát hiện Trùng lặp & Đã tồn tại) → Lưu Bản nháp
-                    </span>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
-                
-                <!-- Step 1: Upload Zone -->
                 <div id="grammarUploadZone" style="border: 2px dashed #6CC49F; border-radius: 18px; padding: 32px; text-align: center; background: #F8FAFC; display: flex; flex-direction: column; align-items: center; gap: 12px;">
                     <span style="font-size: 40px;">📊</span>
-                    <div>
-                        <div style="font-weight: 800; font-size: 15px; color: #24363D;">Kéo thả file Excel hoặc chọn từ máy</div>
-                        <div style="font-size: 12px; color: var(--ssak-text-muted);">Định dạng chuẩn: .xlsx (Theo cấu trúc cột trong file mẫu)</div>
-                    </div>
                     <input type="file" id="grammarExcelFileInput" accept=".xlsx, .xls" style="display: none;" onchange="handleGrammarExcelFile(this)" />
                     <button type="button" class="btn-ssak-primary" style="height: 38px; padding: 0 20px; font-size: 13px; font-weight: 800;" onclick="document.getElementById('grammarExcelFileInput').click()">
                         Chọn file Excel từ máy
                     </button>
                 </div>
 
-                <!-- Step 2: KPI Results (Appears after parse) -->
                 <div id="grammarImportReportBox" style="display: none; flex-direction: column; gap: 14px;">
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
-                        <div style="padding: 12px; background: #F8FAFC; border-radius: 12px; border: 1px solid var(--ssak-border); text-align: center;">
-                            <div style="font-size: 11px; color: var(--ssak-text-muted); font-weight: 700;">TỔNG DÒNG ĐỌC ĐƯỢC</div>
-                            <div id="kpiTotalGrammarParsed" style="font-size: 20px; font-weight: 800; color: #24363D;">0</div>
-                        </div>
-                        <div style="padding: 12px; background: #E6F7F0; border-radius: 12px; border: 1px solid #B5E8D5; text-align: center;">
-                            <div style="font-size: 11px; color: #1F6B56; font-weight: 700;">✅ HỢP LỆ (IMPORT ĐƯỢC)</div>
-                            <div id="kpiValidGrammar" style="font-size: 20px; font-weight: 800; color: #1F6B56;">0</div>
-                        </div>
-                        <div style="padding: 12px; background: #FFF9E6; border-radius: 12px; border: 1px solid #FFE58F; text-align: center;">
-                            <div style="font-size: 11px; color: #D48806; font-weight: 700;">⚠️ TRÙNG LẶP TRONG FILE</div>
-                            <div id="kpiDuplicateGrammar" style="font-size: 20px; font-weight: 800; color: #D48806;">0</div>
-                        </div>
-                        <div style="padding: 12px; background: #FFF1F0; border-radius: 12px; border: 1px solid #FFA39E; text-align: center;">
-                            <div style="font-size: 11px; color: #CF1322; font-weight: 700;">❌ ĐÃ TỒN TẠI TRONG HỆ THỐNG</div>
-                            <div id="kpiExistedGrammar" style="font-size: 20px; font-weight: 800; color: #CF1322;">0</div>
-                        </div>
-                    </div>
-
-                    <!-- Table Preview with Visual Distinction -->
                     <div style="max-height: 280px; overflow-y: auto; border: 1px solid var(--ssak-border); border-radius: 12px;">
                         <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                             <thead>
-                                <tr style="background: #FAFAF9; border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 11px; text-transform: uppercase;">
-                                    <th style="padding: 8px 10px;">Dòng</th>
-                                    <th style="padding: 8px 10px;">Tên ngữ pháp</th>
-                                    <th style="padding: 8px 10px;">Nghĩa</th>
-                                    <th style="padding: 8px 10px;">Cấu trúc</th>
-                                    <th style="padding: 8px 10px;">Dạng bài</th>
-                                    <th style="padding: 8px 10px;">Trạng thái phân tích</th>
-                                </tr>
+                            <tr style="background: #FAFAF9; border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 11px; text-transform: uppercase;">
+                                <th style="padding: 8px 10px;">Dòng</th>
+                                <th style="padding: 8px 10px;">Tên ngữ pháp</th>
+                                <th style="padding: 8px 10px;">Nghĩa</th>
+                            </tr>
                             </thead>
                             <tbody id="grammarImportPreviewTbody"></tbody>
                         </table>
                     </div>
                 </div>
-
             </div>
             <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px; justify-content: space-between;">
                 <button type="button" class="btn-ssak-outline" data-bs-dismiss="modal">Hủy bỏ</button>
                 <button type="button" id="btnConfirmImportGrammar" class="btn-ssak-primary" style="height: 40px; padding: 0 20px; font-weight: 800; display: none;" onclick="executeBulkGrammarImport()">
-                    🚀 Xác nhận Lưu Bản nháp vào hệ thống
+                    🚀 Xác nhận Lưu Bản nháp
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-.sidebar-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    border-radius: 12px;
-    color: #CFE9DC;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 600;
-    transition: all 0.2s ease;
-}
-.sidebar-item:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #FFFFFF;
-    transform: translateX(3px);
-}
-.sidebar-item.active {
-    background: #2E7D67;
-    color: #FFFFFF;
-    font-weight: 800;
-    box-shadow: 0 4px 14px rgba(46, 125, 103, 0.35);
-}
-.sidebar-sub-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 14px 8px 32px;
-    border-radius: 10px;
-    color: #A9D9C0;
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.2s ease;
-}
-.sidebar-sub-item:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #FFFFFF;
-}
-.sidebar-sub-item.active-sub {
-    background: rgba(46, 125, 103, 0.55);
-    color: #FFFFFF;
-    font-weight: 800;
-    border-left: 3px solid #6CC49F;
-}
-.sidebar-bottom-link {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    border-radius: 10px;
-    color: #A9D9C0;
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 700;
-    transition: all 0.2s;
-}
-.sidebar-bottom-link:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #FFFFFF;
-}
-.sidebar-bottom-link.logout {
-    color: #FFA39E;
-}
-.sidebar-bottom-link.logout:hover {
-    background: rgba(207, 19, 34, 0.15);
-    color: #FF7875;
-}
-</style>
-
-<!-- Bootstrap 5 Bundle JS -->
+<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<!-- SheetJS for Excel Parse/Download -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
 <script>
     let deleteTargetTypeName = "";
     let validatedGrammarRows = [];
 
-    // ==========================================
-    // 1. INSTANT FILTER & LIVE SEARCH
-    // ==========================================
     function performGrammarInstantFilter() {
         const query = (document.getElementById('liveGrammarSearch')?.value || '').trim().toLowerCase();
         const importance = document.getElementById('liveImportanceSelect')?.value || 'ALL';
@@ -768,10 +764,7 @@
             const rowImp = row.getAttribute('data-importance') || '';
             const rowStatus = row.getAttribute('data-status') || '';
 
-            let matchText = true;
-            if (query.length > 0) {
-                matchText = pattern.includes(query) || meaning.includes(query);
-            }
+            let matchText = (query.length === 0 || pattern.includes(query) || meaning.includes(query));
             let matchImp = (importance === 'ALL' || rowImp === importance);
             let matchStatus = (status === 'ALL' || rowStatus === status);
 
@@ -785,29 +778,18 @@
 
         const countEl = document.getElementById('grammarFilterCount');
         if (countEl) countEl.innerText = visibleCount;
-
         const emptyEl = document.getElementById('grammarEmptyState');
-        if (emptyEl) {
-            emptyEl.style.display = (visibleCount === 0) ? 'block' : 'none';
-        }
+        if (emptyEl) emptyEl.style.display = (visibleCount === 0) ? 'block' : 'none';
     }
 
-    // ==========================================
-    // 2. MODAL & ACTIONS
-    // ==========================================
     function openAddGrammarModal() {
-        const modal = new bootstrap.Modal(document.getElementById('modalAddGrammar'));
-        modal.show();
+        new bootstrap.Modal(document.getElementById('modalAddGrammar')).show();
     }
 
     function viewGrammarDetail(btn) {
         document.getElementById('detailPattern').innerText = btn.getAttribute('data-pattern') || '';
-        document.getElementById('detailRule').innerText = btn.getAttribute('data-rule') || '';
         document.getElementById('detailMeaning').innerText = btn.getAttribute('data-meaning') || '';
-        document.getElementById('detailExKr').innerText = btn.getAttribute('data-exkr') || 'Không có ví dụ';
-        document.getElementById('detailExVi').innerText = btn.getAttribute('data-exvi') || '';
-        const modal = new bootstrap.Modal(document.getElementById('modalViewGrammarDetail'));
-        modal.show();
+        new bootstrap.Modal(document.getElementById('modalViewGrammarDetail')).show();
     }
 
     function toggleGrammarStatus(id) {
@@ -816,25 +798,33 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: id })
         })
-        .then(res => res.json())
-        .then(data => {
-            showSsakToast(data.message || 'Đã cập nhật trạng thái!');
-            setTimeout(() => window.location.reload(), 600);
-        });
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message || 'Đã cập nhật trạng thái!');
+                setTimeout(() => window.location.reload(), 400);
+            });
     }
 
     function handleSaveGrammar(e) {
         e.preventDefault();
+        const groupIdVal = document.getElementById('currentGroupId')?.value;
+        const levelVal = document.getElementById('currentViewLevel')?.value;
+
         const payload = {
-            patternName: document.getElementById('gPattern').value.trim(),
+            groupId: groupIdVal ? parseInt(groupIdVal) : 1,
+            level: levelVal ? parseInt(levelVal) : 1,
+            pattern: document.getElementById('gPattern').value.trim(),
+            translation: document.getElementById('gTranslation').value.trim(),
             meaning: document.getElementById('gMeaning').value.trim(),
-            attachmentRule: document.getElementById('gRule').value.trim(),
-            importance: document.getElementById('gImportance').value,
+            explanation: document.getElementById('gExplanation').value.trim(), // <-- Thêm trường này vào payload
             status: document.getElementById('gStatus').value,
-            exampleKr: document.getElementById('gExKr').value.trim(),
-            exampleVi: document.getElementById('gExVi').value.trim(),
-            topikLevel: parseInt(document.getElementById('currentViewLevel')?.value || '1'),
-            grammarType: document.getElementById('currentViewType')?.value || 'Nối mệnh đề chỉ nguyên nhân'
+            isFrequent: document.getElementById('gImportance').value === 'IMPORTANT',
+            examples: [
+                {
+                    sentenceKo: document.getElementById('gExKr').value.trim(),
+                    sentenceVi: document.getElementById('gExVi').value.trim()
+                }
+            ]
         };
 
         fetch('/content/grammar/save', {
@@ -842,21 +832,17 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         })
-        .then(res => res.json())
-        .then(data => {
-            showSsakToast(data.message || 'Đã lưu ngữ pháp!');
-            const modal = bootstrap.Modal.getInstance(document.getElementById('modalAddGrammar'));
-            if (modal) modal.hide();
-            setTimeout(() => window.location.reload(), 600);
-        });
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message || 'Đã lưu ngữ pháp!');
+                window.location.reload();
+            });
     }
 
     function openDeleteTypeModal(name, count) {
         deleteTargetTypeName = name;
         document.getElementById('deleteGrammarTypeNameDisplay').innerText = name;
-        document.getElementById('deleteGrammarCountDisplay').innerText = count || '0';
-        const modal = new bootstrap.Modal(document.getElementById('modalDeleteGrammarType'));
-        modal.show();
+        new bootstrap.Modal(document.getElementById('modalDeleteGrammarType')).show();
     }
 
     function confirmDeleteGrammarType() {
@@ -865,45 +851,62 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: deleteTargetTypeName })
         })
-        .then(res => res.json())
-        .then(data => {
-            showSsakToast(data.message || 'Đã xóa dạng ngữ pháp!');
-            setTimeout(() => window.location.reload(), 600);
-        });
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message || 'Đã xóa dạng ngữ pháp!');
+                window.location.reload();
+            });
     }
 
     function handleCreateGrammarType(e) {
         e.preventDefault();
-        showSsakToast('Đã tạo dạng ngữ pháp mới thành công!');
-        setTimeout(() => window.location.reload(), 600);
+        const currentLevel = parseInt(document.getElementById('currentViewLevel')?.value || '1');
+        const typeName = document.getElementById('newGrammarTypeName').value.trim();
+
+        if (!typeName) {
+            alert('Vui lòng nhập tên dạng/nhóm ngữ pháp!');
+            return;
+        }
+
+        const payload = {
+            level: currentLevel,
+            groupNo: 1,
+            nameVi: typeName
+        };
+
+        fetch('/content/grammar/group/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message || 'Đã tạo dạng ngữ pháp thành công!');
+                const modalEl = document.getElementById('modalCreateGrammarType');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+                window.location.reload();
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Có lỗi xảy ra khi tạo dạng ngữ pháp.');
+            });
     }
 
-    // ==========================================
-    // 3. EXCEL IMPORT & SAMPLE DOWNLOAD
-    // ==========================================
     function downloadSampleGrammarExcel() {
-        const curLvl = parseInt(document.getElementById('currentViewLevel')?.value || '1');
-        const curType = document.getElementById('currentViewType')?.value || 'Nối mệnh đề chỉ nguyên nhân';
-
         const sample = [
-            ["Tên ngữ pháp", "Nghĩa tiếng Việt", "Cấu trúc kết hợp", "Cấp TOPIK", "Dạng ngữ pháp", "Ví dụ tiếng Hàn", "Ví dụ tiếng Việt", "Mức quan trọng"],
-            ["-아서/어서", "Vì... nên...", "V/A + -아/어서", curLvl, curType, "배가 아파서 병원에 갔어요.", "Vì đau bụng nên tôi đã đến bệnh viện.", "IMPORTANT"],
-            ["-(으)니까", "Vì... nên... (chủ quan)", "V/A + -(으)니까", curLvl, curType, "날씨가 좋으니까 나갑시다.", "Vì thời tiết đẹp nên hãy ra ngoài đi.", "IMPORTANT"],
-            ["-기 때문에", "Bởi vì...", "V/A + -기 때문에", curLvl, curType, "비가 오기 때문에 늦었어요.", "Bởi vì trời mưa nên tôi đã đến muộn.", "NORMAL"]
+            ["Tên ngữ pháp", "Bản dịch", "Ý nghĩa", "Cấp TOPIK", "Ví dụ tiếng Hàn", "Ví dụ tiếng Việt"],
+            ["-아서/어서", "Vì... nên...", "Chỉ nguyên nhân", 1, "배가 아파서 병원에 갔어요.", "Vì đau bụng nên tôi đã đến bệnh viện."]
         ];
-
         const ws = XLSX.utils.aoa_to_sheet(sample);
-        ws['!cols'] = [{ wch: 16 }, { wch: 24 }, { wch: 18 }, { wch: 12 }, { wch: 26 }, { wch: 32 }, { wch: 32 }, { wch: 16 }];
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "MauNguPhap");
         XLSX.writeFile(wb, "HotTopik_Mau_Nhap_Ngu_Phap.xlsx");
-        showSsakToast("Đã tải xuống file mẫu HotTopik_Mau_Nhap_Ngu_Phap.xlsx!");
     }
 
     function handleGrammarExcelFile(input) {
         const file = input.files[0];
         if (!file) return;
-
         const reader = new FileReader();
         reader.onload = function(e) {
             const data = new Uint8Array(e.target.result);
@@ -916,117 +919,86 @@
     }
 
     function parseGrammarRows(rows) {
-        if (!rows || rows.length <= 1) {
-            alert('File rỗng hoặc không có dữ liệu!');
-            return;
-        }
-
-        const existingPatternsInSystem = ["-아서/어서", "-(으)니까", "-기 때문에", "-(으)ㄹ 때", "-지만"];
-        const seenInFile = new Set();
+        if (!rows || rows.length <= 1) return;
         let parsedList = [];
-        let validCount = 0;
-        let dupInFileCount = 0;
-        let existedSystemCount = 0;
+        const groupIdVal = document.getElementById('currentGroupId')?.value;
+        const levelVal = document.getElementById('currentViewLevel')?.value;
 
         for (let i = 1; i < rows.length; i++) {
             const r = rows[i];
             if (!r || r.length === 0) continue;
-
-            const pattern = (r[0] || '').toString().trim();
-            const meaning = (r[1] || '').toString().trim();
-            const rule = (r[2] || '').toString().trim();
-            const level = parseInt(r[3]) || 1;
-            const type = (r[4] || '').toString().trim() || 'Nối mệnh đề chỉ nguyên nhân';
-
-            let statusType = "VALID";
-            let statusText = "✅ Hợp lệ";
-
-            if (!pattern) {
-                statusType = "ERROR";
-                statusText = "❌ Thiếu tên ngữ pháp";
-            } else if (seenInFile.has(pattern)) {
-                statusType = "DUPLICATE_FILE";
-                statusText = "⚠️ Trùng lặp trong file này";
-                dupInFileCount++;
-            } else if (existingPatternsInSystem.includes(pattern)) {
-                statusType = "EXISTED_SYSTEM";
-                statusText = "❌ Đã tồn tại trong hệ thống";
-                existedSystemCount++;
-            } else {
-                seenInFile.add(pattern);
-                validCount++;
-            }
-
             parsedList.push({
-                rowIndex: i + 1,
-                patternName: pattern,
-                meaning: meaning,
-                attachmentRule: rule,
-                topikLevel: level,
-                grammarType: type,
-                statusType: statusType,
-                statusText: statusText
+                groupId: groupIdVal ? parseInt(groupIdVal) : 1,
+                level: levelVal ? parseInt(levelVal) : 1,
+                pattern: (r[0] || '').toString().trim(),
+                translation: (r[1] || '').toString().trim(),
+                meaning: (r[2] || '').toString().trim(),
+                status: 'DRAFT'
             });
         }
-
-        validatedGrammarRows = parsedList.filter(p => p.statusType === 'VALID');
-
+        validatedGrammarRows = parsedList;
         document.getElementById('grammarUploadZone').style.display = 'none';
         document.getElementById('grammarImportReportBox').style.display = 'flex';
-        document.getElementById('kpiTotalGrammarParsed').innerText = parsedList.length;
-        document.getElementById('kpiValidGrammar').innerText = validCount;
-        document.getElementById('kpiDuplicateGrammar').innerText = dupInFileCount;
-        document.getElementById('kpiExistedGrammar').innerText = existedSystemCount;
-
-        const tbody = document.getElementById('grammarImportPreviewTbody');
-        tbody.innerHTML = '';
-
-        parsedList.forEach(item => {
-            const tr = document.createElement('tr');
-            tr.style.borderBottom = '1px solid var(--ssak-border)';
-            if (item.statusType === 'DUPLICATE_FILE') tr.style.background = '#FFFBE6';
-            else if (item.statusType === 'EXISTED_SYSTEM') tr.style.background = '#FFF1F0';
-
-            tr.innerHTML = `
-                <td style="padding: 8px 10px; font-weight: 700; color: var(--ssak-text-muted);">${item.rowIndex}</td>
-                <td style="padding: 8px 10px; font-family: var(--font-korean); font-weight: 800; color: #1F6B56;">${item.patternName || '-'}</td>
-                <td style="padding: 8px 10px; font-weight: 700;">${item.meaning || '-'}</td>
-                <td style="padding: 8px 10px;"><code>${item.attachmentRule || '-'}</code></td>
-                <td style="padding: 8px 10px; font-size: 12px;">${item.grammarType}</td>
-                <td style="padding: 8px 10px; font-weight: 700;">
-                    ${item.statusType === 'VALID' ? '<span class="ssak-badge badge-mint">' + item.statusText + '</span>' :
-                      (item.statusType === 'DUPLICATE_FILE' ? '<span class="ssak-badge badge-honey">' + item.statusText + '</span>' :
-                      '<span class="ssak-badge badge-terracotta">' + item.statusText + '</span>')}
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
-
-        if (validCount > 0) {
-            const btn = document.getElementById('btnConfirmImportGrammar');
-            btn.style.display = 'block';
-            btn.innerText = "🚀 Xác nhận Lưu " + validCount + " Ngữ pháp dạng Bản nháp";
-        }
+        document.getElementById('btnConfirmImportGrammar').style.display = 'block';
     }
 
     function executeBulkGrammarImport() {
         if (!validatedGrammarRows || validatedGrammarRows.length === 0) return;
-        const btn = document.getElementById('btnConfirmImportGrammar');
-        btn.disabled = true;
-        btn.innerText = "⏳ Đang lưu dữ liệu...";
-
         fetch('/content/grammar/bulk-create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(validatedGrammarRows)
         })
-        .then(res => res.json())
-        .then(data => {
-            showSsakToast(data.message || 'Đã import ngữ pháp dạng Bản nháp thành công!');
-            const modal = bootstrap.Modal.getInstance(document.getElementById('modalImportGrammarExcel'));
-            if (modal) modal.hide();
-            setTimeout(() => window.location.reload(), 700);
-        });
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message || 'Đã import thành công!');
+                window.location.reload();
+            });
+    }
+    // Mở Modal Sửa và đổ dữ liệu cũ vào form
+    function openEditGrammarModal(btn) {
+        document.getElementById('editGrammarId').value = btn.getAttribute('data-id') || '';
+        document.getElementById('editGPattern').value = btn.getAttribute('data-pattern') || '';
+        document.getElementById('editGTranslation').value = btn.getAttribute('data-translation') || '';
+        document.getElementById('editGMeaning').value = btn.getAttribute('data-meaning') || '';
+        document.getElementById('editGExplanation').value = btn.getAttribute('data-explanation') || '';
+        document.getElementById('editGStatus').value = btn.getAttribute('data-status') || 'ACTIVE';
+
+        const isFreq = btn.getAttribute('data-frequent') === 'true';
+        document.getElementById('editGImportance').value = isFreq ? 'IMPORTANT' : 'NORMAL';
+
+        new bootstrap.Modal(document.getElementById('modalEditGrammar')).show();
+    }
+
+    // Gửi request cập nhật dữ liệu lên Backend khi bấm Lưu trong modal sửa
+    function handleUpdateGrammar(e) {
+        e.preventDefault();
+        const id = document.getElementById('editGrammarId').value;
+
+        const payload = {
+            id: parseInt(id),
+            pattern: document.getElementById('editGPattern').value.trim(),
+            translation: document.getElementById('editGTranslation').value.trim(),
+            meaning: document.getElementById('editGMeaning').value.trim(),
+            explanation: document.getElementById('editGExplanation').value.trim(),
+            status: document.getElementById('editGStatus').value,
+            isFrequent: document.getElementById('editGImportance').value === 'IMPORTANT'
+        };
+
+        fetch('/content/grammar/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message || 'Đã cập nhật ngữ pháp thành công!');
+                window.location.reload();
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Có lỗi xảy ra khi cập nhật ngữ pháp.');
+            });
     }
 </script>
 </body>

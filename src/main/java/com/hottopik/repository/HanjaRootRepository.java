@@ -24,7 +24,7 @@ public interface HanjaRootRepository extends JpaRepository<HanjaRoot, Integer> {
            " LOWER(r.hanjaChar) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            " LOWER(r.sinoVi) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            " LOWER(r.koReading) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           " LOWER(r.meaningVi) LIKE LOWER(CONCAT('%', :query, '%'))) " +
+           " (r.meaningVi IS NOT NULL AND LOWER(r.meaningVi) LIKE LOWER(CONCAT('%', :query, '%')))) " +
            "ORDER BY r.sortOrder ASC, r.id ASC")
     List<HanjaRoot> searchRoots(@Param("query") String query, @Param("status") String status);
 

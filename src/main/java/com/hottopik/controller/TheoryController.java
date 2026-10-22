@@ -1,17 +1,34 @@
 package com.hottopik.controller;
 
+import com.hottopik.service.HanjaService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 @Controller
 public class TheoryController {
 
-    @GetMapping({"/ly-thuyet", "/theory"})
-    public String theory(Model model) {
+    private final HanjaService hanjaService;
+
+    @Autowired
+    public TheoryController(HanjaService hanjaService) {
+        this.hanjaService = hanjaService;
+    }
+
+    @GetMapping({"/ly-thuyet", "/theory", "/ly-thuyet/ngu-phap"})
+    public String theory(@RequestParam(value = "tab", required = false) String tab,
+                         HttpServletRequest request,
+                         Model model) {
+        if (tab == null && request != null && request.getRequestURI() != null && request.getRequestURI().endsWith("/ngu-phap")) {
+            tab = "grammar";
+        }
         model.addAttribute("pageTitle", "Lý thuyết · Từ vựng, Ngữ pháp, Hán Việt, Đặc thù");
         model.addAttribute("activePage", "theory");
+        model.addAttribute("currentTab", tab != null ? tab : "vocab");
         return "theory/index";
     }
 
@@ -48,6 +65,14 @@ public class TheoryController {
     public String hanja(Model model) {
         model.addAttribute("pageTitle", "Cầu nối Hán Việt · 32 gốc từ");
         model.addAttribute("activePage", "theory");
+        // Pass initial data so the page renders without a separate AJAX call
+        try {
+            model.addAttribute("hanjaRoots", hanjaService.getActiveHanjaRoots(null));
+            model.addAttribute("hanjaStats", hanjaService.getLearnerStats());
+        } catch (Exception e) {
+            model.addAttribute("hanjaRoots", java.util.Collections.emptyList());
+            model.addAttribute("hanjaStats", java.util.Collections.emptyMap());
+        }
         return "theory/hanja";
     }
 

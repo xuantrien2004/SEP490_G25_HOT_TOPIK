@@ -35,3 +35,6 @@ build/
 Thumbs.db
 *.log
 scratch/
+
+### Dữ liệu chạy local (H2 + file upload) ###
+data/

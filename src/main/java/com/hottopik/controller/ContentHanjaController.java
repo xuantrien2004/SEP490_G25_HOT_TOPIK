@@ -168,6 +168,158 @@ public class ContentHanjaController {
     }
 
     /**
+     * View Trang Từ Liên Quan của một Chữ Hán
+     */
+    @GetMapping("/{id}/words")
+    public String viewHanjaWords(
+            @PathVariable("id") Integer id,
+            HttpSession session,
+            Model model) {
+
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        if (currentUser == null) {
+            currentUser = new UserDTO(2L, "content_manager", "content@hottopik.com", "", "Lê Thu Hà", "ROLE_CONTENT_MANAGER", "Content Manager", "ACTIVE", "", "", "TOPIK_6", "TOPIK_5", false, null);
+        }
+
+        HanjaRootDTO root = hanjaService.getHanjaRootById(id);
+        if (root == null) {
+            return "redirect:/content/hanja";
+        }
+
+        model.addAttribute("currentUser", currentUser);
+        model.addAttribute("currentRole", "content");
+        model.addAttribute("roleTitle", currentUser.getRoleName() != null ? currentUser.getRoleName() : "Content Manager");
+        model.addAttribute("userName", currentUser.getFullName());
+        model.addAttribute("userEmail", currentUser.getEmail());
+        model.addAttribute("pageTitle", "Từ liên quan: " + root.getHanjaChar() + " (" + root.getSinoVi() + ") · HOT TOPIK");
+
+        model.addAttribute("root", root);
+        model.addAttribute("words", hanjaService.getWordsByRootId(id));
+
+        return "content/hanja-words";
+    }
+
+    /**
+     * REST API: Chuyển đổi trạng thái chữ Hán (ACTIVE <-> DRAFT) trực tiếp
+     */
+    @PostMapping("/api/{id}/toggle")
+    @ResponseBody
+    public ResponseEntity<?> toggleRootStatus(@PathVariable("id") Integer id) {
+        try {
+            HanjaRootDTO updated = hanjaService.toggleRootStatus(id);
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("success", true);
+            resp.put("message", "Đã cập nhật trạng thái thành công!");
+            resp.put("data", updated);
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            Map<String, Object> err = new HashMap<>();
+            err.put("success", false);
+            err.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(err);
+        }
+    }
+
+    /**
+     * REST API: Danh sách từ liên quan của 1 chữ Hán
+     */
+    @GetMapping("/api/{id}/words")
+    @ResponseBody
+    public ResponseEntity<List<com.hottopik.dto.HanjaWordDTO>> getWordsForRoot(@PathVariable("id") Integer id) {
+        return ResponseEntity.ok(hanjaService.getWordsByRootId(id));
+    }
+
+    /**
+     * REST API: Thêm từ liên quan mới cho chữ Hán
+     */
+    @PostMapping("/api/{id}/words")
+    @ResponseBody
+    public ResponseEntity<?> createWord(@PathVariable("id") Integer id, @RequestBody com.hottopik.dto.HanjaWordDTO dto) {
+        try {
+            com.hottopik.dto.HanjaWordDTO created = hanjaService.createWord(id, dto);
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("success", true);
+            resp.put("message", "Thêm từ liên quan thành công!");
+            resp.put("data", created);
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            Map<String, Object> err = new HashMap<>();
+            err.put("success", false);
+            err.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(err);
+        }
+    }
+
+    /**
+     * REST API: Cập nhật từ liên quan
+     */
+    @PutMapping("/api/{id}/words/{vocabId}")
+    @ResponseBody
+    public ResponseEntity<?> updateWord(
+            @PathVariable("id") Integer id,
+            @PathVariable("vocabId") Long vocabId,
+            @RequestBody com.hottopik.dto.HanjaWordDTO dto) {
+        try {
+            com.hottopik.dto.HanjaWordDTO updated = hanjaService.updateWord(vocabId, dto);
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("success", true);
+            resp.put("message", "Cập nhật từ liên quan thành công!");
+            resp.put("data", updated);
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            Map<String, Object> err = new HashMap<>();
+            err.put("success", false);
+            err.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(err);
+        }
+    }
+
+    /**
+     * REST API: Xóa từ liên quan khỏi chữ Hán
+     */
+    @DeleteMapping("/api/{id}/words/{vocabId}")
+    @ResponseBody
+    public ResponseEntity<?> deleteWord(
+            @PathVariable("id") Integer id,
+            @PathVariable("vocabId") Long vocabId) {
+        try {
+            hanjaService.deleteWord(id, vocabId);
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("success", true);
+            resp.put("message", "Đã xóa từ liên quan thành công!");
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            Map<String, Object> err = new HashMap<>();
+            err.put("success", false);
+            err.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(err);
+        }
+    }
+
+    /**
+     * REST API: Chuyển đổi trạng thái từ liên quan (ACTIVE <-> DRAFT)
+     */
+    @PostMapping("/api/{id}/words/{vocabId}/toggle")
+    @ResponseBody
+    public ResponseEntity<?> toggleWordStatus(
+            @PathVariable("id") Integer id,
+            @PathVariable("vocabId") Long vocabId) {
+        try {
+            com.hottopik.dto.HanjaWordDTO updated = hanjaService.toggleWordStatus(vocabId);
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("success", true);
+            resp.put("message", "Đã đổi trạng thái từ liên quan thành công!");
+            resp.put("data", updated);
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            Map<String, Object> err = new HashMap<>();
+            err.put("success", false);
+            err.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(err);
+        }
+    }
+
+    /**
      * Download sample Excel template (.xlsx)
      */
     @GetMapping("/template")
@@ -181,12 +333,32 @@ public class ContentHanjaController {
     }
 
     /**
-     * Import Excel file with duplicate and existing checks
+     * Import Excel file with duplicate and existing checks (Legacy 1-step)
      */
     @PostMapping("/import")
     @ResponseBody
     public ResponseEntity<HanjaImportResultDTO> importExcel(@RequestParam("file") MultipartFile file) {
         HanjaImportResultDTO result = hanjaService.importExcel(file);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Phase 1: Preview & analyze Excel file without saving
+     */
+    @PostMapping("/import/preview")
+    @ResponseBody
+    public ResponseEntity<com.hottopik.dto.HanjaImportPreviewDTO> previewImport(@RequestParam("file") MultipartFile file) {
+        com.hottopik.dto.HanjaImportPreviewDTO preview = hanjaService.previewImportExcel(file);
+        return ResponseEntity.ok(preview);
+    }
+
+    /**
+     * Phase 2: Confirm and save selected valid roots to Database
+     */
+    @PostMapping("/import/confirm")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> confirmImport(@RequestBody List<HanjaRootDTO> rootsToSave) {
+        Map<String, Object> result = hanjaService.confirmImport(rootsToSave);
         return ResponseEntity.ok(result);
     }
 }

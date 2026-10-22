@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/head :: head('Thiết lập lộ trình học cá nhân · HOT TOPIK')}"></head>
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
 <body style="background: var(--ssak-bg); color: var(--ssak-text-main); font-family: var(--font-body); min-height: 100vh;">
 
 <header class="py-3 px-4 bg-white border-bottom shadow-sm">
@@ -9,172 +9,123 @@
             <div th:replace="~{fragments/ssak :: mascot('happy', 'sprout', 36, 'Bé Ssak')}"></div>
             <span style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: var(--ssak-primary);">HOT TOPIK</span>
         </a>
-        <span class="badge rounded-pill bg-light text-muted border px-3 py-2">Bước 3 / 3 · Tạo lộ trình cá nhân hóa</span>
+        <a th:href="@{/lo-trinh}" class="badge rounded-pill bg-light text-muted border px-3 py-2 text-decoration-none">Về lộ trình</a>
     </div>
 </header>
 
 <main class="container my-5" style="max-width: 860px;">
-    <!-- Tiêu đề -->
     <div class="text-center mb-4">
-        <h1 style="font-family: var(--font-heading); font-size: 34px; font-weight: 800; margin: 0;">
-            Thiết lập Lộ trình học TOPIK
-        </h1>
-        <p class="text-muted mt-2">
-            Hệ thống sinh lịch cố định 4 lần ôn ngắt quãng cho từng dạng bài Nghe và Đọc.
-        </p>
+        <h1 style="font-family: var(--font-heading); font-size: 34px; font-weight: 800; margin: 0;">Thiết lập lộ trình học</h1>
+        <p class="text-muted mt-2">Lịch lấy thứ tự dạng Nghe và Đọc từ bản đang phát hành. Viết luyện ở mục riêng.</p>
     </div>
 
-    <form th:action="@{/lo-trinh/tao}" method="POST" class="p-4 p-md-5 rounded-5 bg-white border shadow-sm">
-        <input type="hidden" name="startLevel" id="startLevelInput" th:value="${startLevel != null ? startLevel : 'TOPIK_3'}">
-        <input type="hidden" name="levelSource" th:value="${entryMode != null ? entryMode : 'SELF'}">
-        <input type="hidden" name="durationDays" id="durationDaysInput" value="60">
-        
-        <!-- 1. Trình độ hiện tại (Chỉ xem, kèm nguồn và link đổi theo mục 5.2) -->
-        <div class="mb-4 pb-4 border-bottom">
-            <label class="form-label fw-bold text-muted small">1. TRÌNH ĐỘ HIỆN TẠI</label>
-            <div class="p-3 rounded-4 border d-flex justify-content-between align-items-center" style="background: var(--ssak-bg);">
-                <div class="d-flex align-items-center gap-3">
-                    <span class="badge rounded-pill bg-success px-3 py-2 fs-6" style="background: var(--ssak-primary) !important;"
-                          th:text="${startLevel != null ? startLevel.replace('_', ' ') : 'TOPIK 3'}">
-                        TOPIK Cấp 3
-                    </span>
-                    <span class="small text-muted">
-                        Nguồn: <strong th:text="${entryMode == 'PLACEMENT' || entryMode == 'adaptive_full' || entryMode == 'adaptive_topik2' ? 'Bài kiểm tra thích ứng 15 phút (PLACEMENT)' : 'Tự khai cấp độ xuất phát (SELF)'}">Tự khai (SELF)</strong>
-                    </span>
-                </div>
-                <a th:href="@{/onboarding}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
-                    Đổi cấp độ
-                </a>
-            </div>
-        </div>
+    <div th:if="${missing}" class="p-4 p-md-5 rounded-5 bg-white border shadow-sm">
+        <h2 style="font-family: var(--font-heading); font-weight: 800;">Chưa có lộ trình để học</h2>
+        <p>Content Manager chưa phát hành bản nào. Khi bản được duyệt, bạn quay lại đây để tạo lịch.</p>
+    </div>
 
-        <!-- 2. Mục tiêu (Cấp cao hơn hiện tại theo mục 5.2) -->
+    <form th:unless="${missing}" method="get" th:action="@{/lo-trinh/tao}" class="p-4 p-md-5 rounded-5 bg-white border shadow-sm">
+        <p th:if="${current != null}" class="alert alert-warning">
+            Bạn đang có lộ trình <strong th:text="${current}">TOPIK II · 60 ngày</strong>.
+            Tạo mới sẽ thay lịch này và xóa các bài đã đánh dấu xong.
+        </p>
+        <p th:if="${error != null}" class="alert alert-danger" th:text="${error}">Lỗi</p>
+
         <div class="mb-4 pb-4 border-bottom">
-            <label class="form-label fw-bold text-muted small">2. MỤC TIÊU HƯỚNG TỚI</label>
+            <label class="form-label fw-bold text-muted small">1. ĐỀ THI ĐANG ÔN</label>
             <div class="row g-2">
-                <div class="col-sm-4">
-                    <label class="p-3 rounded-4 border w-100 cursor-pointer d-flex align-items-center gap-2" style="background: var(--ssak-primary-light); border-color: var(--ssak-primary) !important;">
-                        <input type="radio" name="targetLevel" value="TOPIK_4" checked class="form-check-input mt-0">
+                <div class="col-sm-6">
+                    <label class="p-3 rounded-4 border w-100 d-flex align-items-center gap-2" th:style="${track.name() == 'TOPIK_I'} ? 'background: var(--ssak-primary-light); border-color: var(--ssak-primary) !important;' : ''">
+                        <input type="radio" name="track" value="TOPIK_I" th:checked="${track.name() == 'TOPIK_I'}" class="form-check-input mt-0">
                         <div>
-                            <strong class="d-block text-success" style="color: var(--ssak-primary) !important;">TOPIK Cấp 4</strong>
-                            <small class="text-muted">Mục tiêu khuyến nghị</small>
+                            <strong class="d-block">TOPIK I</strong>
+                            <small class="text-muted">Dạng nghe và đọc cấp I</small>
                         </div>
                     </label>
                 </div>
-                <div class="col-sm-4">
-                    <label class="p-3 rounded-4 border w-100 cursor-pointer d-flex align-items-center gap-2">
-                        <input type="radio" name="targetLevel" value="TOPIK_5" class="form-check-input mt-0">
+                <div class="col-sm-6">
+                    <label class="p-3 rounded-4 border w-100 d-flex align-items-center gap-2" th:style="${track.name() == 'TOPIK_II'} ? 'background: var(--ssak-primary-light); border-color: var(--ssak-primary) !important;' : ''">
+                        <input type="radio" name="track" value="TOPIK_II" th:checked="${track.name() == 'TOPIK_II'}" class="form-check-input mt-0">
                         <div>
-                            <strong class="d-block">TOPIK Cấp 5</strong>
-                            <small class="text-muted">Chuyên sâu</small>
-                        </div>
-                    </label>
-                </div>
-                <div class="col-sm-4">
-                    <label class="p-3 rounded-4 border w-100 cursor-pointer d-flex align-items-center gap-2">
-                        <input type="radio" name="targetLevel" value="TOPIK_6" class="form-check-input mt-0">
-                        <div>
-                            <strong class="d-block">TOPIK Cấp 6</strong>
-                            <small class="text-muted">Cao cấp nhất</small>
+                            <strong class="d-block">TOPIK II</strong>
+                            <small class="text-muted">Dạng nghe và đọc cấp II</small>
                         </div>
                     </label>
                 </div>
             </div>
         </div>
 
-        <!-- 3. Thời lượng (Lối tắt 1/2/3/4 tháng hoặc slider 30-200 ngày, mặc định 60 theo mục 5.2) -->
         <div class="mb-4 pb-4 border-bottom">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <label class="form-label fw-bold text-muted small mb-0">3. THỜI LƯỢNG ÔN THI (NGÀY)</label>
-                <span class="badge bg-light text-dark border px-3 py-1 fs-6 fw-bold" id="durationDisplay">60 ngày (~ 2 tháng)</span>
+                <label class="form-label fw-bold text-muted small mb-0" for="days">2. SỐ NGÀY ÔN</label>
+                <span class="badge bg-light text-dark border px-3 py-1" th:text="${days} + ' ngày'">60 ngày</span>
             </div>
-            
-            <!-- Lối tắt 1, 2, 3, 4 tháng (1 tháng = 31 ngày) -->
-            <div class="d-flex gap-2 mb-3">
-                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="setDuration(31)">1 tháng (31 ngày)</button>
-                <button type="button" class="btn btn-sm btn-success rounded-pill px-3" style="background: var(--ssak-primary) !important;" onclick="setDuration(60)">2 tháng (60 ngày)</button>
-                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="setDuration(93)">3 tháng (93 ngày)</button>
-                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="setDuration(124)">4 tháng (124 ngày)</button>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="setDays(31)">1 tháng · 31 ngày</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="setDays(60)">2 tháng · 60 ngày</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="setDays(93)">3 tháng · 93 ngày</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="setDays(124)">4 tháng · 124 ngày</button>
             </div>
-
-            <!-- Slider 30 - 200 ngày -->
-            <input type="range" class="form-range" min="30" max="200" value="60" id="durationSlider" oninput="updateDuration(this.value)">
-            <div class="d-flex justify-content-between text-muted" style="font-size: 11px;">
-                <span>30 ngày (làm tròn 31)</span>
-                <span>60 ngày</span>
-                <span>120 ngày</span>
+            <input id="days" class="form-range" type="range" name="days" min="31" max="200" th:value="${days}" oninput="document.getElementById('dayLive').textContent = this.value + ' ngày'">
+            <div class="d-flex justify-content-between text-muted" style="font-size: 12px;">
+                <span>31 ngày</span>
+                <span id="dayLive" th:text="${days} + ' ngày'">60 ngày</span>
                 <span>200 ngày</span>
             </div>
         </div>
 
-        <!-- 4. Mục tiêu phút học mỗi ngày (10, 15, 20, 30, 45, 60 - mặc định 20) -->
         <div class="mb-4 pb-4 border-bottom">
-            <label class="form-label fw-bold text-muted small">4. MỤC TIÊU PHÚT HỌC MỖI NGÀY</label>
-            <div class="d-flex flex-wrap gap-2">
-                <label class="btn btn-outline-secondary rounded-pill px-3 py-2">
-                    <input type="radio" name="minutesPerDay" value="10" class="d-none"> 10 phút
-                </label>
-                <label class="btn btn-outline-secondary rounded-pill px-3 py-2">
-                    <input type="radio" name="minutesPerDay" value="15" class="d-none"> 15 phút
-                </label>
-                <label class="btn btn-success rounded-pill px-3 py-2 fw-bold" style="background: var(--ssak-primary) !important;">
-                    <input type="radio" name="minutesPerDay" value="20" checked class="d-none"> 20 phút (Chuẩn)
-                </label>
-                <label class="btn btn-outline-secondary rounded-pill px-3 py-2">
-                    <input type="radio" name="minutesPerDay" value="30" class="d-none"> 30 phút
-                </label>
-                <label class="btn btn-outline-secondary rounded-pill px-3 py-2">
-                    <input type="radio" name="minutesPerDay" value="45" class="d-none"> 45 phút
-                </label>
-                <label class="btn btn-outline-secondary rounded-pill px-3 py-2">
-                    <input type="radio" name="minutesPerDay" value="60" class="d-none"> 60 phút
-                </label>
-            </div>
-            <small class="text-muted d-block mt-2">
-                * Chỉ dùng để tính chuỗi ngày học thật (Streak), không làm thay đổi số bài trong lịch trình.
-            </small>
+            <label class="form-label fw-bold text-muted small" for="minutes">3. PHÚT HỌC MỖI NGÀY</label>
+            <select id="minutes" class="form-select" name="minutes" style="max-width: 280px;">
+                <option value="10" th:selected="${minutes == 10}">10 phút</option>
+                <option value="15" th:selected="${minutes == 15}">15 phút</option>
+                <option value="20" th:selected="${minutes == 20}">20 phút</option>
+                <option value="30" th:selected="${minutes == 30}">30 phút</option>
+                <option value="45" th:selected="${minutes == 45}">45 phút</option>
+                <option value="60" th:selected="${minutes == 60}">60 phút</option>
+            </select>
+            <small class="text-muted d-block mt-2">Mốc phút là mục tiêu trong ngày. Số bài trên mỗi ngày tự tăng khi lộ trình ngắn lại, tối đa 4 bài.</small>
         </div>
 
-        <!-- Khung Xem trước theo mục 5.2 -->
-        <div class="p-4 rounded-4 mb-4" style="background: var(--ssak-bg); border: 1px dashed var(--ssak-border);">
-            <h5 class="fw-bold mb-3" style="font-family: var(--font-heading); font-size: 18px; color: var(--ssak-primary-dark);">
-                <i class="bi bi-calendar2-range me-2"></i>Khung xem trước Lộ trình
-            </h5>
-            <div class="row g-3 small">
-                <div class="col-sm-6">
-                    <div>Ngày hoàn thành dự kiến: <strong id="previewEndDate">16/12/2026</strong></div>
-                    <div class="mt-1">Tổng số bài luyện: <strong>64 bài</strong> (Nghe & Đọc)</div>
-                    <div class="mt-1">Số bài mỗi ngày: <strong>Khoảng 1–2 bài/ngày</strong></div>
-                </div>
-                <div class="col-sm-6">
-                    <div>3 Giai đoạn: <strong>Làm quen (40%) · Tăng tốc (40%) · Nước rút (20%)</strong></div>
-                    <div class="mt-1">Ngày 7 mỗi tuần: <strong>Bài Ôn tuần củng cố</strong></div>
-                    <div class="mt-1 text-muted"><em>* Lưu ý: Kỹ năng Viết 51–54 luyện riêng tại tab Viết.</em></div>
-                </div>
+        <div class="p-4 rounded-4 mb-4" style="background: var(--ssak-bg); border: 1px dashed var(--ssak-border);" th:if="${preview != null}">
+            <h2 class="fw-bold mb-3" style="font-family: var(--font-heading); font-size: 18px;">Xem trước bản <span th:text="${version}">v1</span></h2>
+            <div>Ngày kết thúc: <strong th:text="${endDate}">16/12/2026</strong></div>
+            <div class="mt-1">Tổng bài trên lịch: <strong th:text="${lessonCount}">0</strong>
+                (<span th:text="${preview.newCount}">0</span> bài mới,
+                <span th:text="${preview.reviewCount}">0</span> bài ôn,
+                <span th:text="${preview.weeklyCount}">0</span> buổi ôn tuần,
+                <span th:text="${preview.miniCount}">0</span> mini test,
+                <span th:text="${preview.fullCount}">0</span> full test)</div>
+            <div class="mt-1">Mỗi bài <strong th:text="${questions} + ' câu'">8 câu</strong>, ôn tuần <strong th:text="${weeklyQuestions} + ' câu'">20 câu</strong>.</div>
+            <div class="mt-1">Ba chặng: <strong th:text="${preview.phases[0].name + ' ' + preview.phases[0].fromDay + '–' + preview.phases[0].toDay
+                + ' · ' + preview.phases[1].name + ' ' + preview.phases[1].fromDay + '–' + preview.phases[1].toDay
+                + ' · ' + preview.phases[2].name + ' ' + preview.phases[2].fromDay + '–' + preview.phases[2].toDay}">Làm quen</strong></div>
+            <div class="mt-1" th:if="${!#lists.isEmpty(preview.days[0].slots)}">
+                Ngày 1 bắt đầu bằng <strong th:text="${preview.days[0].slots[0].name}">dạng đầu</strong>.
+            </div>
+            <div class="mt-2 text-warning" th:if="${shortfalls != null and !#lists.isEmpty(shortfalls)}">
+                Lịch này chưa bao hết dạng hoặc chưa đủ lần học.
+                Cần ít nhất <strong th:text="${minimumDays}">60</strong> ngày.
             </div>
         </div>
 
-        <button type="submit" class="btn-ssak-primary w-100 py-3 rounded-pill fw-bold" style="font-size: 18px;">
-            Tạo lộ trình & Khởi động Ngày 1 cùng Bé Ssak →
-        </button>
+        <div class="d-flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-outline-secondary rounded-pill px-4">Cập nhật xem trước</button>
+            <button type="submit" formmethod="post" th:formaction="@{/lo-trinh}" class="btn-ssak-primary rounded-pill px-4 py-2 fw-bold">
+                Tạo lộ trình và bắt đầu ngày 1
+            </button>
+        </div>
     </form>
 </main>
 
+<div th:replace="~{fragments/footer :: footer}"></div>
 <script>
-    function updateDuration(val) {
-        if(val == 30) val = 31;
-        document.getElementById('durationDaysInput').value = val;
-        document.getElementById('durationDisplay').innerText = val + ' ngày (~ ' + (val/30).toFixed(1) + ' tháng)';
-        const d = new Date();
-        d.setDate(d.getDate() + parseInt(val));
-        document.getElementById('previewEndDate').innerText = d.toLocaleDateString('vi-VN');
-    }
-    function setDuration(val) {
-        document.getElementById('durationSlider').value = val;
-        updateDuration(val);
+    function setDays(value) {
+        var input = document.getElementById("days");
+        input.value = value;
+        document.getElementById("dayLive").textContent = value + " ngày";
+        input.form.submit();
     }
 </script>
-
-<div th:replace="~{fragments/footer :: footer}"></div>
 </body>
 </html>

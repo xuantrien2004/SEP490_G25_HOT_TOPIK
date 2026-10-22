@@ -98,6 +98,26 @@ public class ApprovalService {
         return req;
     }
 
+    public ApprovalRequestDTO submitTargetedRequest(String requesterName, String requesterRole,
+                                                    String requestType, String title, String description,
+                                                    String targetType, Long targetId, String payload) {
+        boolean duplicate = requests.values().stream().anyMatch(r -> "PENDING".equalsIgnoreCase(r.getStatus())
+                && targetType.equals(r.getTargetType()) && Objects.equals(targetId, r.getTargetId())
+                && requestType.equals(r.getRequestType()));
+        if (duplicate) {
+            throw new IllegalStateException("Đối tượng này đang chờ duyệt, không gửi trùng được.");
+        }
+        ApprovalRequestDTO req = submitRequest(requesterName, requesterRole, requestType, title, description);
+        req.setTargetType(targetType);
+        req.setTargetId(targetId);
+        req.setPayload(payload);
+        return req;
+    }
+
+    public Optional<ApprovalRequestDTO> findById(Long id) {
+        return Optional.ofNullable(requests.get(id));
+    }
+
     public Optional<ApprovalRequestDTO> getRequestById(Long id) {
         if (id == null) return Optional.empty();
         return Optional.ofNullable(requests.get(id));
@@ -112,13 +132,32 @@ public class ApprovalService {
     }
 
     public boolean decideRequest(Long id, boolean approve, String note) {
-        ApprovalRequestDTO req = requests.get(id);
-        if (req != null) {
-            req.setStatus(approve ? "APPROVED" : "REJECTED");
-            req.setDecisionNote(note);
-            req.setDecidedAt(LocalDateTime.now().format(FORMATTER));
-            return true;
-        }
-        return false;
+        return decideRequest(id, approve, note, null);
     }
+
+    /**
+     * Không ai duyệt yêu cầu do chính mình gửi (BRD 2.2). Listener của ApprovalDecidedEvent áp dụng payload;
+     * nếu listener ném lỗi thì yêu cầu vẫn ở trạng thái PENDING.
+     */
+    public boolean decideRequest(Long id, boolean approve, String note, String deciderName) {
+        ApprovalRequestDTO req = requests.get(id);
+        if (req == null) return false;
+        if (!"PENDING".equalsIgnoreCase(req.getStatus())) {
+            throw new IllegalStateException("Yêu cầu này đã được xử lý.");
+        }
+        if (deciderName != null && deciderName.equalsIgnoreCase(req.getRequesterName())) {
+            throw new IllegalStateException("Không được duyệt yêu cầu do chính mình gửi; cần một Admin khác.");
+        }
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(new ApprovalDecidedEvent(req, approve, deciderName, note));
+        }
+        req.setStatus(approve ? "APPROVED" : "REJECTED");
+        req.setDecisionNote(note);
+        req.setDecidedBy(deciderName);
+        req.setDecidedAt(LocalDateTime.now().format(FORMATTER));
+        return true;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
 }

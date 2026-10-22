@@ -115,7 +115,7 @@ public class AuthController {
         if (user.isAdmin()) {
             return "redirect:/admin";
         } else if (user.isContentManager()) {
-            return "redirect:/content";
+            return redirectContent(session);
         } else if (user.isOperationManager()) {
             return "redirect:/operation";
         } else if (user.isMentor()) {
@@ -130,6 +130,15 @@ public class AuthController {
     }
 
     // ================= 3. ĐIỀU HƯỚNG TAB ĐĂNG KÝ =================
+    private String redirectContent(HttpSession session) {
+        Object back = session.getAttribute("RETURN_AFTER_LOGIN");
+        session.removeAttribute("RETURN_AFTER_LOGIN");
+        if (back instanceof String path && path.startsWith("/content/") && !path.contains("://") && !path.startsWith("//")) {
+            return "redirect:" + path;
+        }
+        return "redirect:/content";
+    }
+
     @GetMapping("/register")
     public String register(Model model) {
         model.addAttribute("pageTitle", "Đăng ký tài khoản · HOT TOPIK");

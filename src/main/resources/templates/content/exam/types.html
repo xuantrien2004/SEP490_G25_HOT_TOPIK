@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<th:block th:replace="~{fragments/content-shell :: styles}"></th:block>
+<div class="cm-shell">
+    <aside th:replace="~{fragments/content-shell :: sidebar('types')}"></aside>
+    <div class="cm-main">
+        <header th:replace="~{fragments/content-shell :: header('Vị trí trong đề chuẩn', 'Dạng câu đã chốt theo từng phần Nghe, Đọc, Viết. Mỗi mã là một cách nhập, không gắn khoảng câu cố định.')}"></header>
+        <main class="cm-body">
+            <th:block th:replace="~{fragments/content-shell :: flash}"></th:block>
+
+            <div class="cm-grid-2">
+                <div class="cm-card">
+                    <h3>Cấu trúc TOPIK I</h3>
+                    <div class="cm-muted" style="margin-bottom: 10px;">70 câu · 100 phút · tối đa 200 điểm</div>
+                    <table class="cm-table">
+                        <tr th:each="s : ${sectionsI}">
+                            <td th:text="${s.skill().label}">Nghe</td>
+                            <td th:text="${s.count() + ' câu'}">30 câu</td>
+                            <td th:text="${s.minutes() + ' phút'}">40 phút</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="cm-card">
+                    <h3>Cấu trúc TOPIK II</h3>
+                    <div class="cm-muted" style="margin-bottom: 10px;">104 câu · 180 phút · tối đa 300 điểm · thứ tự Nghe → Viết → Đọc</div>
+                    <table class="cm-table">
+                        <tr th:each="s : ${sectionsII}">
+                            <td th:text="${s.skill().label}">Nghe</td>
+                            <td th:text="${s.count() + ' câu'}">50 câu</td>
+                            <td th:text="${s.minutes() + ' phút'}">60 phút</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="cm-card" th:each="g : ${templateGroups}">
+                <h2 th:text="${g.key}">TOPIK I · Nghe</h2>
+                <div class="cm-table-wrap" style="border: none; margin-top: 10px;">
+                    <table class="cm-table">
+                        <thead>
+                        <tr>
+                            <th>Mã dạng</th>
+                            <th>Tên dạng</th>
+                            <th>Chia bài</th>
+                            <th>Trong ngân hàng</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="t : ${g.value}">
+                            <td><a class="code" th:href="@{/content/templates/{code}(code=${t.code})}" th:text="${t.code}">TPL1-LIS-01</a></td>
+                            <td th:text="${t.name}">Nghe câu hỏi, chọn câu trả lời</td>
+                            <td><span class="pill" th:classappend="${t.childMax > 1} ? 'pill-sky' : 'pill-gray'" th:text="${t.childLabel}">1 câu</span></td>
+                            <td>
+                                <a th:href="@{/content/questions(track=${t.track}, skill=${t.skill}, type=${t.code})}"
+                                   class="pill" th:classappend="${(bankByTemplate[t.code] ?: 0) > 0} ? 'pill-mint' : 'pill-honey'"
+                                   th:text="${(bankByTemplate[t.code] ?: 0) + ' câu'}">0 câu</a>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

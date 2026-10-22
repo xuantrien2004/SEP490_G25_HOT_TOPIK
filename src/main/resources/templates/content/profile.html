@@ -61,28 +61,44 @@
                     <span style="font-size: 14px;">↳</span>
                     <span style="flex-grow: 1;">Kho Ngữ pháp TOPIK 1-6</span>
                 </a>
+                <a th:href="@{/content/hanja}" class="sidebar-sub-item">
+                    <span style="font-size: 14px;">↳</span>
+                    <span style="flex-grow: 1;">Kho từ Hán Việt</span>
+                </a>
             </div>
 
-            <!-- Quản lý Đề -->
-            <a th:href="@{/content?tab=exams}" class="sidebar-item">
-                <span style="font-size: 17px;">📋</span>
-                <span style="flex-grow: 1;">Quản lý Đề</span>
+            <!-- Thư viện đề -->
+            <a th:href="@{/content/exams}" class="sidebar-item">
+                <span style="font-size: 17px;">📚</span>
+                <span style="flex-grow: 1;">Thư viện đề</span>
+            </a>
+
+            <!-- Nhập đề mới -->
+            <a th:href="@{/content/sources}" class="sidebar-item">
+                <span style="font-size: 17px;">📥</span>
+                <span style="flex-grow: 1;">Nhập đề mới</span>
             </a>
 
             <!-- Ngân hàng câu hỏi -->
-            <a th:href="@{/content?tab=questions}" class="sidebar-item">
+            <a th:href="@{/content/questions}" class="sidebar-item">
                 <span style="font-size: 17px;">📝</span>
                 <span style="flex-grow: 1;">Ngân hàng câu hỏi</span>
             </a>
 
+            <!-- Dạng câu -->
+            <a th:href="@{/content/templates}" class="sidebar-item">
+                <span style="font-size: 17px;">🧩</span>
+                <span style="flex-grow: 1;">Dạng câu</span>
+            </a>
+
             <!-- Xử lý Báo lỗi -->
-            <a th:href="@{/content?tab=reports}" class="sidebar-item">
+            <a th:href="@{/content(tab='reports')}" class="sidebar-item">
                 <span style="font-size: 17px;">⚠️</span>
                 <span style="flex-grow: 1;">Xử lý Báo lỗi</span>
             </a>
 
             <!-- Nhật ký Thao tác -->
-            <a th:href="@{/content?tab=audit}" class="sidebar-item">
+            <a th:href="@{/content(tab='audit')}" class="sidebar-item">
                 <span style="font-size: 17px;">📜</span>
                 <span style="flex-grow: 1;">Nhật ký Thao tác</span>
             </a>
@@ -106,7 +122,7 @@
                 <span style="font-size: 24px;">👤</span>
                 <div>
                     <h2 style="margin: 0; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D;">
-                        Hồ sơ Quản lý Chuyên môn (Content Manager Profile)
+                        Hồ sơ Quản lý Nội dung (Content Manager Profile)
                     </h2>
                     <span style="font-size: 12px; color: var(--ssak-text-muted);">
                         Xem và chỉnh sửa thông tin tài khoản, quản lý bảo mật và xem lịch sử hoạt động
@@ -117,9 +133,6 @@
             <div style="display: flex; align-items: center; gap: 12px;">
                 <a th:href="@{/content}" class="btn-ssak-light" style="height: 38px; padding: 0 16px; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
                     ← Về Trang Tổng quan
-                </a>
-                <a th:href="@{/logout}" class="btn-ssak-outline" style="height: 38px; padding: 0 14px; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; color: #CF1322; border-color: #FFA39E;">
-                    🚪 Đăng xuất
                 </a>
             </div>
         </header>
@@ -137,12 +150,10 @@
                         <div>
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <h3 style="margin: 0; font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #24363D;" th:text="${currentUser.fullName}">Lê Thu Hà</h3>
-                                <span class="ssak-badge badge-mint" style="font-size: 12px; padding: 3px 10px;">🟢 Đang hoạt động</span>
                             </div>
                             <div style="font-size: 14px; color: var(--ssak-text-muted); margin-top: 4px;" th:text="${currentUser.email}">content@hottopik.com</div>
                             <div style="display: flex; gap: 8px; margin-top: 8px;">
-                                <span class="ssak-badge badge-sky" style="font-size: 11px;">Vai trò: Quản lý Chuyên môn</span>
-                                <span class="ssak-badge badge-honey" style="font-size: 11px;">Quyền hạn: Lý thuyết & Đề thi</span>
+                                <span class="ssak-badge badge-sky" style="font-size: 11px;">Vai trò: Quản lý Nội dung</span>
                             </div>
                         </div>
                     </div>

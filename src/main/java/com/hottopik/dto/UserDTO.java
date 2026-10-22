@@ -6,6 +6,16 @@ import java.time.LocalDateTime;
 public class UserDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
+    private Integer leafCount;
+    private java.util.List<String> permissions;
+    public Integer getLeafCount() { return leafCount != null ? leafCount : 0; }
+    public void setLeafCount(Integer value) { leafCount = value; }
+    public Integer getStreakDays() { return getStudiedDays(); }
+    public void setStreakDays(Integer value) { setStudiedDays(value); }
+    public java.util.List<String> getPermissions() { return permissions; }
+    public void setPermissions(java.util.List<String> value) { permissions = value; }
+    public boolean isTeacher() { return isMentor(); }
+
     private Long id;
     private String username;
     private String email;

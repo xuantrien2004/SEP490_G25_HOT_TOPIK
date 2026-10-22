@@ -1,20 +1,28 @@
 package com.hottopik.controller;
 
+import com.hottopik.dto.GrammarTypeDTO;
 import com.hottopik.dto.UserDTO;
+import com.hottopik.entity.Grammar;
+import com.hottopik.entity.GrammarGroup;
 import com.hottopik.service.AdminSystemService;
 import com.hottopik.service.ContentManagementService;
+import com.hottopik.service.GrammarGroupService;
+import com.hottopik.service.GrammarService;
 import com.hottopik.service.VocabularyService;
-import com.hottopik.util.AuthHelper;
+import com.hottopik.service.exam.ExamComposerService;
+import com.hottopik.service.exam.QuestionBankService;
 import com.hottopik.service.UserService;
+import com.hottopik.util.AuthHelper;
+import com.hottopik.util.GrammarStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpSession;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Controller
@@ -24,24 +32,35 @@ public class ContentPortalController {
     private final ContentManagementService contentService;
     private final VocabularyService vocabularyService;
     private final AdminSystemService adminSystemService;
+    private final QuestionBankService questionBank;
+    private final ExamComposerService examComposer;
     private final UserService userService;
+    private final GrammarService grammarService;
+    private final GrammarGroupService grammarGroupService;
 
     @Autowired
     public ContentPortalController(ContentManagementService contentService,
                                    VocabularyService vocabularyService,
                                    AdminSystemService adminSystemService,
-                                   UserService userService) {
+                                   QuestionBankService questionBank,
+                                   ExamComposerService examComposer,
+                                   UserService userService,
+                                   GrammarService grammarService,
+                                   GrammarGroupService grammarGroupService) {
         this.contentService = contentService;
         this.vocabularyService = vocabularyService;
         this.adminSystemService = adminSystemService;
+        this.questionBank = questionBank;
+        this.examComposer = examComposer;
         this.userService = userService;
+        this.grammarService = grammarService;
+        this.grammarGroupService = grammarGroupService;
     }
 
     @GetMapping
     public String dashboard(HttpSession session, Model model) {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
 
-        // Security check: Only Content Manager (or Admin supervising)
         if (currentUser == null) {
             return "redirect:/login";
         }
@@ -56,18 +75,16 @@ public class ContentPortalController {
         model.addAttribute("pageTitle", "Cổng Content Manager · HOT TOPIK");
         model.addAttribute("totalVocabCount", vocabularyService.getTotalCount());
         model.addAttribute("totalTopicCount", vocabularyService.getTotalTopicsCount());
-        model.addAttribute("totalGrammarCount", contentService.getTotalGrammarCount());
+        model.addAttribute("totalGrammarCount", grammarService.getAllGrammars().size());
         model.addAttribute("totalQuestionCount", contentService.getTotalQuestionCount());
         model.addAttribute("pendingReportCount", contentService.getPendingReportCount());
-        model.addAttribute("totalExamCount", contentService.getTotalExamCount());
-        model.addAttribute("questions", contentService.getQuestions());
-        model.addAttribute("mockTests", contentService.getMockTests());
-        model.addAttribute("mockExams", contentService.getMockTests());
+        model.addAttribute("totalExamCount", examComposer.libraryCounts().values().stream().mapToLong(Long::longValue).sum());
         model.addAttribute("reports", contentService.getReports());
         model.addAttribute("auditLogs", adminSystemService.getAuditLogsForRole("ROLE_CONTENT_MANAGER"));
 
         return "content/dashboard";
     }
+
 
     @PostMapping("/exam/toggle-status")
     @ResponseBody
@@ -153,10 +170,11 @@ public class ContentPortalController {
         return ResponseEntity.ok(resp);
     }
 
+
     @PostMapping("/exam/import")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> importExam(
-            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "file", required = false) org.springframework.web.multipart.MultipartFile file,
             @RequestParam(value = "examName", defaultValue = "Đề thi thử mới") String examName,
             @RequestParam(value = "questionCount", defaultValue = "50") int questionCount,
             HttpSession session) {
@@ -188,13 +206,15 @@ public class ContentPortalController {
     }
 
     // ==========================================
-    // GRAMMAR MANAGEMENT
+    // GRAMMAR MANAGEMENT (TÍCH HỢP 3 VIEW MODE & API GIAO DIỆN)
     // ==========================================
 
     @GetMapping("/grammar")
     public String grammarPage(
             @RequestParam(value = "level", required = false) Integer level,
-            @RequestParam(value = "grammarType", required = false) String grammarType,
+            @RequestParam(value = "groupId", required = false) Integer groupId,
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "keyword", required = false) String keyword,
             HttpSession session,
             Model model) {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
@@ -204,29 +224,56 @@ public class ContentPortalController {
         }
 
         model.addAttribute("currentUser", currentUser);
-        model.addAttribute("pageTitle", "Quản lý Ngữ pháp · Content Manager · HOT TOPIK");
+        model.addAttribute("pageTitle", "Quản lý Kho Ngữ pháp · Content Manager · HOT TOPIK");
         model.addAttribute("userName", currentUser.getFullName());
         model.addAttribute("userEmail", currentUser.getEmail());
-        model.addAttribute("currentLevel", level);
-        model.addAttribute("currentGrammarType", grammarType);
-        model.addAttribute("totalCount", contentService.getTotalGrammarCount());
-        model.addAttribute("activeCount", contentService.getActiveGrammarCount());
-        model.addAttribute("inactiveCount", contentService.getInactiveGrammarCount());
-        model.addAttribute("grammarTypeCount", contentService.getTotalGrammarTypeCount());
+        model.addAttribute("totalCount", grammarService.getAllGrammars().size());
+        model.addAttribute("grammarTypeCount", grammarGroupService.getAllGroups().size());
 
-        // Determine view mode
+        // Determine view mode matching the UI
         if (level == null) {
             model.addAttribute("viewMode", "LEVEL_LIST");
             model.addAttribute("levels", contentService.getGrammarLevelSummaries());
-        } else if (grammarType == null) {
+        } else if (groupId == null) {
             model.addAttribute("viewMode", "GRAMMAR_TYPE_LIST");
-            model.addAttribute("currentLevelName", "TOPIK " + level);
-            model.addAttribute("grammarTypes", contentService.getGrammarTypesForLevel(level));
+            model.addAttribute("currentLevel", level);
+            model.addAttribute("currentLevelName", "TOPIK " + (level <= 2 ? "I · Cấp " + level : "II · Cấp " + level));
+
+            // ==========================================
+            // ĐẶT ĐOẠN CODE CỦA BẠN VÀO ĐÂY:
+            // ==========================================
+            List<GrammarTypeDTO> grammarTypes = grammarGroupService.getGroupsByLevel(level.shortValue()).stream().map(g ->
+                    new GrammarTypeDTO(
+                            g.getId(),
+                            g.getNameVi(),
+                            (int) g.getLevel(),
+                            grammarService.getGrammarsByGroup(g.getId()).size(),
+                            "Nhóm ngữ pháp số " + g.getGroupNo(),
+                            true
+                    )
+            ).collect(java.util.stream.Collectors.toList());
+
+            model.addAttribute("grammarTypes", grammarTypes);
+            // ==========================================
+
         } else {
             model.addAttribute("viewMode", "GRAMMAR_LIST");
+            model.addAttribute("currentLevel", level);
+            model.addAttribute("selectedGroupId", groupId);
+
+            GrammarGroup group = grammarGroupService.getAllGroups().stream()
+                    .filter(g -> g.getId().equals(groupId))
+                    .findFirst().orElse(null);
+
+            model.addAttribute("currentGrammarType", group != null ? group.getNameVi() : "Chi tiết nhóm");
             model.addAttribute("currentLevelName", "TOPIK " + level);
-            model.addAttribute("grammars", contentService.getGrammarsForTypeAndLevel(level, grammarType));
+            model.addAttribute("grammars", grammarService.filterGrammars(level.shortValue(), groupId, status, keyword));
         }
+
+        model.addAttribute("selectedLevel", level);
+        model.addAttribute("selectedStatus", status);
+        model.addAttribute("keyword", keyword);
+        model.addAttribute("statuses", GrammarStatus.values());
 
         return "content/grammar";
     }
@@ -234,7 +281,7 @@ public class ContentPortalController {
     @PostMapping("/grammar/save")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> saveGrammar(
-            @RequestBody Map<String, Object> payload,
+            @RequestBody com.hottopik.dto.GrammarForm form,
             HttpSession session) {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
         Map<String, Object> resp = new HashMap<>();
@@ -243,9 +290,16 @@ public class ContentPortalController {
             resp.put("message", "Chưa đăng nhập.");
             return ResponseEntity.status(401).body(resp);
         }
-        resp.put("success", true);
-        resp.put("message", "Đã lưu ngữ pháp thành công!");
-        return ResponseEntity.ok(resp);
+        try {
+            grammarService.saveGrammar(form);
+            resp.put("success", true);
+            resp.put("message", "Đã lưu mẫu ngữ pháp thành công!");
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(resp);
+        }
     }
 
     @PostMapping("/grammar/toggle")
@@ -254,9 +308,19 @@ public class ContentPortalController {
             @RequestBody Map<String, Object> payload,
             HttpSession session) {
         Map<String, Object> resp = new HashMap<>();
-        resp.put("success", true);
-        resp.put("message", "Đã cập nhật trạng thái ngữ pháp!");
-        return ResponseEntity.ok(resp);
+        try {
+            Long id = Long.valueOf(payload.get("id").toString());
+            Grammar grammar = grammarService.getGrammarById(id);
+            String newStatus = "ACTIVE".equals(grammar.getStatus()) ? "HIDDEN" : "ACTIVE";
+            grammarService.updateStatus(id, newStatus);
+            resp.put("success", true);
+            resp.put("message", "Đã chuyển trạng thái thành " + newStatus);
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(resp);
+        }
     }
 
     @PostMapping("/grammar/delete-type")
@@ -265,20 +329,49 @@ public class ContentPortalController {
             @RequestBody Map<String, Object> payload,
             HttpSession session) {
         Map<String, Object> resp = new HashMap<>();
-        resp.put("success", true);
-        resp.put("message", "Đã xóa dạng ngữ pháp!");
-        return ResponseEntity.ok(resp);
+        try {
+            String name = (String) payload.get("name");
+            GrammarGroup group = grammarGroupService.getAllGroups().stream()
+                    .filter(g -> g.getNameVi().equals(name))
+                    .findFirst().orElse(null);
+
+            if (group != null) {
+                grammarGroupService.deleteGroup(group.getId());
+                resp.put("success", true);
+                resp.put("message", "Đã xóa dạng ngữ pháp thành công!");
+                return ResponseEntity.ok(resp);
+            }
+            resp.put("success", false);
+            resp.put("message", "Không tìm thấy dạng ngữ pháp.");
+            return ResponseEntity.status(404).body(resp);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", e.getMessage());
+            return ResponseEntity.status(409).body(resp);
+        }
     }
 
     @PostMapping("/grammar/bulk-create")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> bulkCreateGrammar(
-            @RequestBody java.util.List<Map<String, Object>> payload,
+            @RequestBody List<com.hottopik.dto.GrammarForm> forms,
             HttpSession session) {
         Map<String, Object> resp = new HashMap<>();
+        int count = 0;
+        if (forms != null) {
+            for (com.hottopik.dto.GrammarForm form : forms) {
+                try {
+                    if (form.getStatus() == null) {
+                        form.setStatus("DRAFT");
+                    }
+                    grammarService.saveGrammar(form);
+                    count++;
+                } catch (Exception ignored) {}
+            }
+        }
         resp.put("success", true);
-        resp.put("created", payload != null ? payload.size() : 0);
-        resp.put("message", "Đã tạo " + (payload != null ? payload.size() : 0) + " ngữ pháp thành công (trạng thái: Nháp)!");
+        resp.put("created", count);
+        resp.put("message", "Đã nhập thành công " + count + " mẫu ngữ pháp dạng Bản nháp!");
         return ResponseEntity.ok(resp);
     }
 
@@ -468,5 +561,55 @@ public class ContentPortalController {
         resp.put("success", true);
         resp.put("message", "Đã từ chối báo lỗi và thông báo học viên!");
         return ResponseEntity.ok(resp);
+    }
+    // Thêm API này vào ContentPortalController.java
+    @PostMapping("/grammar/group/save")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> saveGrammarGroup(
+            @RequestBody com.hottopik.dto.GrammarGroupForm form,
+            HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+        if (currentUser == null) {
+            resp.put("success", false);
+            resp.put("message", "Chưa đăng nhập.");
+            return ResponseEntity.status(401).body(resp);
+        }
+        try {
+            grammarGroupService.saveGroup(form);
+            resp.put("success", true);
+            resp.put("message", "Đã tạo dạng ngữ pháp mới thành công!");
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(resp);
+        }
+    }
+    @PostMapping("/grammar/update")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateGrammar(
+            @RequestBody com.hottopik.dto.GrammarForm form,
+            HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+
+        if (currentUser == null) {
+            resp.put("success", false);
+            resp.put("message", "Chưa đăng nhập.");
+            return ResponseEntity.status(401).body(resp);
+        }
+
+        try {
+            // Gọi service xử lý cập nhật ngữ pháp dựa vào ID có sẵn trong form
+            grammarService.updateGrammar(form);
+            resp.put("success", true);
+            resp.put("message", "Đã cập nhật mẫu ngữ pháp thành công!");
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", "Lỗi cập nhật: " + e.getMessage());
+            return ResponseEntity.badRequest().body(resp);
+        }
     }
 }

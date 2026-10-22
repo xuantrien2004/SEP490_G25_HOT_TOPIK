@@ -7,19 +7,19 @@
 
 <main style="max-width: 1380px; margin: 0 auto; padding: 28px 32px; box-sizing: border-box;">
 
-    <!-- 4 TOP TABS (same as theory/index.html) -->
+    <!-- 4 TOP TABS -->
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px;">
         <a th:href="@{/ly-thuyet}" class="theory-tab-link">
             <div class="theory-tab-icon" style="background: #E8F5E9; color: #2E7D67;">가</div>
             <div><span class="theory-tab-title">Từ vựng</span><span class="theory-tab-sub">Theo chủ đề · flashcard · quiz</span></div>
         </a>
-        <a th:href="@{/theory/grammar}" class="theory-tab-link">
+        <a th:href="@{/ly-thuyet(tab='grammar')}" class="theory-tab-link">
             <div class="theory-tab-icon" style="background: #EBF3F8; color: #2B6CB0;">문</div>
             <div><span class="theory-tab-title">Ngữ pháp</span><span class="theory-tab-sub">Theo nhóm chức năng</span></div>
         </a>
         <a th:href="@{/ly-thuyet/han-viet}" class="theory-tab-link active">
             <div class="theory-tab-icon" style="background: #FDF2EB; color: #C05621;">學</div>
-            <div><span class="theory-tab-title">Cầu nối Hán Việt</span><span class="theory-tab-sub">32 gốc chữ Hán</span></div>
+            <div><span class="theory-tab-title">Cầu nối Hán Việt</span><span class="theory-tab-sub">Gốc chữ Hán</span></div>
         </a>
         <a th:href="@{/ly-thuyet/dac-thu}" class="theory-tab-link">
             <div class="theory-tab-icon" style="background: #FEF9E7; color: #B7791F;">한</div>
@@ -27,87 +27,206 @@
         </a>
     </div>
 
-    <!-- PAGE TITLE & DESC -->
-    <h1 style="margin: 0; font-family: var(--font-heading); font-size: 28px; font-weight: 800; color: #24363D;">Cầu nối Hán Việt</h1>
-    <p style="margin: 8px 0 20px; font-size: 14px; color: #53646C; line-height: 1.6;">
-        Khoảng 60% từ vựng tiếng Hàn có gốc chữ Hán, và người Việt đã quen âm Hán Việt. Học một gốc, đoán được cả họ từ. Đã học <b>0/32 gốc</b>.
-    </p>
-
-    <!-- SUB-TAB TOGGLE: Học theo gốc | Đoán nghĩa từ mới -->
-    <div style="display: flex; gap: 10px; margin-bottom: 24px;">
-        <button type="button" id="btnLearn" class="hanja-mode-btn active" onclick="setMode('learn')">Học theo gốc</button>
-        <button type="button" id="btnGuess" class="hanja-mode-btn" onclick="setMode('guess')">Đoán nghĩa từ mới</button>
-    </div>
-
-    <!-- MAIN: TWO COLUMN LAYOUT -->
-    <div style="display: grid; grid-template-columns: 280px 1fr; gap: 24px; align-items: flex-start;">
-
-        <!-- LEFT: Root Grid -->
-        <div style="display: flex; flex-direction: column; gap: 14px;">
-            <!-- Search input -->
-            <input type="text" id="hanjaSearch" placeholder="Tìm: 學, hoc, 학..." oninput="filterHanja(this.value)"
-                   style="width: 100%; height: 42px; border-radius: 12px; border: 1.5px solid #E8E5DC; padding: 0 14px; font-size: 14px; font-family: inherit; outline: none; box-sizing: border-box; background: #FFFFFF;">
-
-            <!-- 4-per-row grid of 32 roots -->
-            <div id="hanjaGrid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
-                <!-- rendered by JS -->
+    <!-- PAGE TITLE & STATS BAR -->
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 12px;">
+        <div>
+            <h1 style="margin: 0; font-family: var(--font-heading); font-size: 28px; font-weight: 800; color: #24363D;">Cầu nối Hán Việt</h1>
+            <p style="margin: 6px 0 0; font-size: 14px; color: #53646C; line-height: 1.6;">
+                Khoảng 60% từ vựng tiếng Hàn có gốc chữ Hán, và người Việt đã quen âm Hán Việt.
+                Học một gốc, đoán được cả họ từ. Đã học <b id="learnedCount">0</b>/<b id="totalRootsCount" th:text="${hanjaStats != null ? hanjaStats['activeRoots'] : '32'}">32</b> gốc.
+            </p>
+        </div>
+        <!-- Stats chips -->
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <div class="stat-chip" style="background: #FDF2EB; color: #C05621; border: 1px solid #FAD7B2;">
+                <span style="font-size: 18px; font-weight: 900;" id="chipTotalRoots" th:text="${hanjaStats != null ? hanjaStats['activeRoots'] : '?'}">32</span>
+                <span style="font-size: 12px;">gốc Hán</span>
+            </div>
+            <div class="stat-chip" style="background: #E8F5E9; color: #2E7D67; border: 1px solid #A8D8BC;">
+                <span style="font-size: 18px; font-weight: 900;" id="chipTotalWords" th:text="${hanjaStats != null ? hanjaStats['totalWords'] : '?'}">—</span>
+                <span style="font-size: 12px;">từ liên quan</span>
+            </div>
+            <div class="stat-chip" style="background: #EBF3F8; color: #2B6CB0; border: 1px solid #BDD4E8;">
+                <span style="font-size: 18px; font-weight: 900;" id="chipLearned">0</span>
+                <span style="font-size: 12px;">đã học</span>
             </div>
         </div>
+    </div>
 
-        <!-- RIGHT: Root Detail Panel -->
-        <div id="rootDetailPanel" style="background: #FFFFFF; border: 1.5px solid #E8E5DC; border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+    <!-- SUB-TAB TOGGLE: Học theo gốc | Đoán nghĩa từ mới -->
+    <div style="display: flex; gap: 10px; margin-bottom: 24px; margin-top: 18px;">
+        <button type="button" id="btnLearn" class="hanja-mode-btn active" onclick="setMode('learn')">📖 Học theo gốc</button>
+        <button type="button" id="btnGuess" class="hanja-mode-btn" onclick="setMode('guess')">🎯 Đoán nghĩa từ mới</button>
+    </div>
 
-            <!-- Root header -->
-            <div style="display: flex; align-items: center; gap: 20px;">
-                <div style="width: 72px; height: 72px; border-radius: 18px; background: #FDF2EB; color: #C05621; display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-size: 42px; font-weight: 900; flex-shrink: 0;">
-                    學
+    <!-- ============ LEARN MODE ============ -->
+    <div id="learnModePanel">
+        <div style="display: grid; grid-template-columns: 280px 1fr; gap: 24px; align-items: flex-start;">
+
+            <!-- LEFT: Root Grid -->
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+                <input type="text" id="hanjaSearch" placeholder="Tìm: 學, học, 학..." oninput="filterHanja(this.value)"
+                       style="width: 100%; height: 42px; border-radius: 12px; border: 1.5px solid #E8E5DC; padding: 0 14px; font-size: 14px; font-family: inherit; outline: none; box-sizing: border-box; background: #FFFFFF;">
+
+                <div id="hanjaGrid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                    <!-- rendered by JS from server data -->
                 </div>
-                <div>
-                    <h2 id="rootTitle" style="margin: 0; font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: #24363D;">
-                        Âm Hàn 학 · âm Hán Việt "học"
-                    </h2>
-                    <span id="rootSub" style="font-size: 13.5px; color: #53646C; margin-top: 4px; display: block;">
-                        Nghĩa gốc: học · 5 từ cùng họ
+
+                <!-- Loading spinner -->
+                <div id="gridLoadingSpinner" style="display:none; text-align:center; padding: 20px; color: #8C9BA2; font-size: 13px;">
+                    ⏳ Đang tải dữ liệu...
+                </div>
+            </div>
+
+            <!-- RIGHT: Root Detail Panel -->
+            <div id="rootDetailPanel" style="background: #FFFFFF; border: 1.5px solid #E8E5DC; border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+
+                <!-- Root header -->
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div id="rootCharBig" style="width: 72px; height: 72px; border-radius: 18px; background: #FDF2EB; color: #C05621; display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-size: 42px; font-weight: 900; flex-shrink: 0;">
+                        學
+                    </div>
+                    <div>
+                        <h2 id="rootTitle" style="margin: 0; font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: #24363D;">
+                            Chọn một gốc Hán bên trái để xem chi tiết
+                        </h2>
+                        <span id="rootSub" style="font-size: 13.5px; color: #53646C; margin-top: 4px; display: block;">
+                            Nghĩa gốc sẽ hiển thị ở đây
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Audio & Pronunciation -->
+                <div id="rootAudioRow" style="display: none; align-items: center; gap: 12px; padding: 12px 16px; background: #F8F6EF; border-radius: 12px;">
+                    <span style="font-size: 13px; color: #53646C; font-weight: 700;">Phát âm Hàn:</span>
+                    <span id="rootKoReading" style="font-family: var(--font-heading); font-size: 22px; font-weight: 900; color: #24363D;"></span>
+                    <button type="button" id="rootAudioBtn" class="btn-audio" onclick="playRootAudio()" title="Nghe phát âm">🔊</button>
+                </div>
+
+                <!-- Word Table -->
+                <div id="wordTableWrapper" style="overflow-x: auto;">
+                    <table id="rootWordTable" style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #E8E5DC;">
+                                <th style="text-align:left; padding: 10px 8px; font-size: 12px; color: #8C9BA2; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; width: 90px;">Tiếng Hàn</th>
+                                <th style="text-align:left; padding: 10px 8px; font-size: 12px; color: #8C9BA2; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; width: 90px;">Chữ Hán</th>
+                                <th style="text-align:left; padding: 10px 8px; font-size: 12px; color: #8C9BA2; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Hán Việt</th>
+                                <th style="text-align:left; padding: 10px 8px; font-size: 12px; color: #8C9BA2; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Nghĩa</th>
+                                <th style="width: 44px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="rootWordTbody">
+                            <tr>
+                                <td colspan="5" style="text-align:center; padding: 32px; color: #8C9BA2; font-size: 13.5px;">
+                                    ← Chọn một gốc Hán để xem các từ liên quan
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mark Learned Button -->
+                <div style="display: flex; align-items: center; gap: 16px; padding-top: 4px; border-top: 1px solid #F1EEE6;">
+                    <button type="button" id="btnMarkLearned" class="btn-hanja-primary" onclick="markLearned()" disabled>
+                        Đánh dấu đã học
+                    </button>
+                    <span style="font-size: 12.5px; color: #8C9BA2;">
+                        Mẹo: nhìn chữ tô màu đỏ để thấy gốc lặp lại trong mỗi từ.
                     </span>
                 </div>
             </div>
 
-            <!-- Word Table -->
-            <table id="rootWordTable" style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                <tbody>
-                    <!-- rows rendered by JS -->
-                </tbody>
-            </table>
+        </div>
+    </div>
 
-            <!-- Mark Learned Button & Tip -->
-            <div style="display: flex; align-items: center; gap: 16px; padding-top: 4px; border-top: 1px solid #F1EEE6;">
-                <button type="button" id="btnMarkLearned" class="btn-hanja-primary" onclick="markLearned()">
-                    Đánh dấu đã học
-                </button>
-                <span style="font-size: 12.5px; color: #8C9BA2;">
-                    Mẹo: nhìn chữ tô màu đỏ để thấy gốc lặp lại trong mỗi từ.
-                </span>
+    <!-- ============ GUESS / QUIZ MODE ============ -->
+    <div id="guessModePanel" style="display:none;">
+
+        <!-- Quiz Header -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <h2 style="margin: 0; font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #24363D;">Đoán nghĩa từ mới</h2>
+                <p style="margin: 6px 0 0; font-size: 13.5px; color: #53646C;">Nhìn từ tiếng Hàn, hãy chọn nghĩa đúng trong 4 đáp án.</p>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <div class="stat-chip" style="background: #E8F5E9; color: #2E7D67; border: 1px solid #A8D8BC;">
+                    <span id="quizScoreText" style="font-size: 18px; font-weight: 900;">0/0</span>
+                    <span style="font-size: 12px;">đúng</span>
+                </div>
+                <button type="button" class="btn-hanja-primary" onclick="startNewQuiz(10)" style="height: 40px; font-size: 13.5px;">🔄 Đề mới (10 câu)</button>
+                <button type="button" class="btn-hanja-outline" onclick="startNewQuiz(20)" style="height: 40px; font-size: 13.5px;">20 câu</button>
             </div>
         </div>
 
+        <!-- Progress Bar -->
+        <div style="height: 6px; background: #EFECE3; border-radius: 6px; margin-bottom: 24px; overflow: hidden;">
+            <div id="quizProgressBar" style="height: 100%; background: linear-gradient(90deg, #2E7D67, #4CAF90); border-radius: 6px; width: 0%; transition: width 0.4s ease;"></div>
+        </div>
+
+        <!-- Quiz Card -->
+        <div id="quizCard" style="max-width: 680px; margin: 0 auto;">
+
+            <!-- Loading -->
+            <div id="quizLoading" style="text-align: center; padding: 60px 20px; color: #8C9BA2;">
+                <div style="font-size: 48px; margin-bottom: 16px;">🎯</div>
+                <p style="font-size: 15px; font-weight: 700;">Nhấn "Đề mới" để bắt đầu làm quiz!</p>
+            </div>
+
+            <!-- Active question -->
+            <div id="quizQuestion" style="display: none;">
+                <!-- Word display -->
+                <div style="background: #FFFFFF; border: 1.5px solid #E8E5DC; border-radius: 20px; padding: 32px; text-align: center; margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.04);">
+                    <div style="font-size: 12px; color: #8C9BA2; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;" id="quizQNum">Câu 1 / 10</div>
+                    <div id="quizWord" style="font-family: var(--font-heading); font-size: 52px; font-weight: 900; color: #24363D; margin-bottom: 8px; line-height: 1.1;"></div>
+                    <div id="quizHanja" style="font-size: 18px; color: #C05621; font-weight: 700; margin-bottom: 4px;"></div>
+                    <button type="button" id="quizAudioBtn" class="btn-audio" onclick="playQuizAudio()" style="margin: 12px auto 0; width: 36px; height: 36px; font-size: 16px;" title="Nghe phát âm">🔊</button>
+                </div>
+
+                <!-- 4 Choice Buttons -->
+                <div id="choiceGrid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                    <!-- rendered by JS -->
+                </div>
+
+                <!-- Feedback area -->
+                <div id="quizFeedback" style="display: none; padding: 14px 18px; border-radius: 12px; font-size: 14px; font-weight: 700; text-align: center; margin-bottom: 16px;"></div>
+
+                <!-- Next button -->
+                <div style="text-align: center;">
+                    <button type="button" id="btnNextQ" class="btn-hanja-primary" onclick="nextQuestion()" style="display:none; height: 44px; padding: 0 32px; font-size: 15px;">
+                        Câu tiếp theo →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quiz Result -->
+            <div id="quizResult" style="display: none; text-align: center; padding: 40px 20px; background: #FFFFFF; border-radius: 20px; border: 1.5px solid #E8E5DC; box-shadow: 0 2px 12px rgba(0,0,0,0.04);">
+                <div id="quizResultEmoji" style="font-size: 64px; margin-bottom: 16px;">🎉</div>
+                <h2 style="font-family: var(--font-heading); font-size: 26px; font-weight: 800; margin: 0 0 8px;">Kết quả quiz</h2>
+                <div id="quizResultScore" style="font-size: 48px; font-weight: 900; color: #2E7D67; margin: 12px 0;"></div>
+                <p id="quizResultMsg" style="font-size: 14px; color: #53646C; margin-bottom: 24px;"></p>
+                <button type="button" class="btn-hanja-primary" onclick="startNewQuiz(10)" style="height: 44px; padding: 0 32px; font-size: 15px;">🔄 Làm lại</button>
+            </div>
+
+        </div>
     </div>
 
 </main>
 
 <div th:replace="~{fragments/footer :: footer}"></div>
 
+<!-- Server-provided initial data as JSON -->
+<script th:inline="javascript">
+/*<![CDATA[*/
+const serverRoots = /*[[${hanjaRoots}]]*/ [];
+const serverStats = /*[[${hanjaStats}]]*/ {};
+/*]]>*/
+</script>
+
 <style>
 .theory-tab-link {
-    background: #FFFFFF;
-    border: 1.5px solid #E8E5DC;
-    border-radius: 18px;
-    padding: 16px 20px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    text-decoration: none;
-    transition: all 0.15s ease;
+    background: #FFFFFF; border: 1.5px solid #E8E5DC; border-radius: 18px;
+    padding: 16px 20px; cursor: pointer; display: flex; align-items: center;
+    gap: 14px; text-decoration: none; transition: all 0.15s ease;
 }
 .theory-tab-link:hover { border-color: #2E7D67; }
 .theory-tab-link.active { background: #F4FAF7; border: 2px solid #2E7D67; }
@@ -119,6 +238,11 @@
 .theory-tab-title { display: block; font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #24363D; }
 .theory-tab-sub   { display: block; font-size: 12.5px; color: #53646C; margin-top: 2px; }
 
+.stat-chip {
+    display: flex; flex-direction: column; align-items: center; padding: 8px 16px;
+    border-radius: 12px; min-width: 68px;
+}
+
 .hanja-mode-btn {
     height: 40px; padding: 0 20px; border-radius: 12px;
     border: 1.5px solid #E8E5DC; background: #FFFFFF;
@@ -126,34 +250,33 @@
     cursor: pointer; font-family: inherit; transition: all 0.15s ease;
 }
 .hanja-mode-btn.active { background: #2E7D67; color: #FFFFFF; border-color: #2E7D67; }
+.hanja-mode-btn:hover:not(.active) { border-color: #2E7D67; color: #2E7D67; }
 
 /* Root Cell */
 .root-cell {
-    aspect-ratio: 1;
-    border-radius: 12px;
-    border: 1.5px solid #E8E5DC;
-    background: #FFFFFF;
-    display: flex; flex-direction: column;
+    aspect-ratio: 1; border-radius: 12px; border: 1.5px solid #E8E5DC;
+    background: #FFFFFF; display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    gap: 4px; cursor: pointer;
-    transition: all 0.15s ease;
+    gap: 4px; cursor: pointer; transition: all 0.15s ease;
     font-family: var(--font-heading);
 }
-.root-cell:hover { border-color: #2E7D67; transform: scale(1.04); }
+.root-cell:hover { border-color: #2E7D67; transform: scale(1.04); box-shadow: 0 3px 8px rgba(46,125,103,0.15); }
 .root-cell.selected { background: #F4FAF7; border: 2.5px solid #2E7D67; }
-.root-cell.learned { background: #E8F5E9; border-color: #96D3B6; }
+.root-cell.learned  { background: #E8F5E9; border-color: #96D3B6; }
 .root-cell .hanja-char { font-size: 24px; font-weight: 900; color: #24363D; }
-.root-cell .sino-vi   { font-size: 11px; font-weight: 700; color: #53646C; }
+.root-cell .sino-vi    { font-size: 11px; font-weight: 700; color: #53646C; }
+.root-cell .check-mark { font-size: 10px; color: #2E7D67; }
 
 /* Word table row */
-.word-row { border-bottom: 1px solid #F8F6EF; }
+.word-row { border-bottom: 1px solid #F8F6EF; transition: background 0.1s; }
+.word-row:hover { background: #F8F6EF; }
 .word-row td { padding: 12px 8px; vertical-align: middle; }
-.word-ko  { font-family: var(--font-heading); font-size: 15px; font-weight: 800; color: #24363D; width: 70px; }
-.word-hanja { font-size: 15px; color: #C05621; font-weight: 700; width: 70px; }
+.word-ko    { font-family: var(--font-heading); font-size: 16px; font-weight: 800; color: #24363D; }
+.word-hanja { font-size: 15px; color: #C05621; font-weight: 700; }
 .word-sino  { font-size: 13px; color: #2E7D67; font-weight: 800; }
 .word-vi    { font-size: 13px; color: #53646C; }
-.word-audio { width: 36px; text-align: right; }
-.btn-audio  { width: 30px; height: 30px; border-radius: 50%; border: 1px solid #E8E5DC; background: #F8F6EF; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+.btn-audio  { width: 30px; height: 30px; border-radius: 50%; border: 1px solid #E8E5DC; background: #F8F6EF; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+.btn-audio:hover { background: #E8F5E9; }
 
 .btn-hanja-primary {
     height: 42px; padding: 0 22px; border-radius: 12px;
@@ -163,212 +286,196 @@
 }
 .btn-hanja-primary:hover { background: #235F4F; }
 .btn-hanja-primary.done { background: #96D3B6; color: #1A5C48; }
+.btn-hanja-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn-hanja-outline {
+    height: 42px; padding: 0 18px; border-radius: 12px;
+    background: #FFFFFF; color: #2E7D67; border: 1.5px solid #2E7D67;
+    font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit;
+    transition: all 0.15s ease;
+}
+.btn-hanja-outline:hover { background: #F4FAF7; }
+
+/* Quiz choice buttons */
+.choice-btn {
+    width: 100%; padding: 16px; border-radius: 14px; border: 2px solid #E8E5DC;
+    background: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 700;
+    color: #24363D; cursor: pointer; text-align: left; line-height: 1.5;
+    transition: all 0.2s ease;
+}
+.choice-btn:hover:not(:disabled) { border-color: #2E7D67; background: #F4FAF7; }
+.choice-btn.correct { border-color: #2E7D67; background: #E8F5E9; color: #1A5C48; }
+.choice-btn.wrong   { border-color: #E53E3E; background: #FFF5F5; color: #9B2C2C; }
+.choice-btn:disabled { cursor: default; }
 </style>
 
 <script>
-// 32 Hanja Roots Data
-const hanjaRoots = [
-    { char: '學', sinoVi: 'học', koReading: '학', meaning: 'học tập, trường học',
-      words: [
-        { ko: '학교', hanja: '學校', sinoVi: 'học hiệu', vi: 'trường học' },
-        { ko: '학생', hanja: '學生', sinoVi: 'học sinh', vi: 'học sinh' },
-        { ko: '대학', hanja: '大學', sinoVi: 'đại học', vi: 'đại học' },
-        { ko: '과학', hanja: '科學', sinoVi: 'khoa học', vi: 'khoa học' },
-        { ko: '학원', hanja: '學院', sinoVi: 'học viện', vi: 'trung tâm học thêm' }
-    ]},
-    { char: '生', sinoVi: 'sinh', koReading: '생', meaning: 'sự sống, phát sinh',
-      words: [
-        { ko: '학생', hanja: '學生', sinoVi: 'học sinh', vi: 'học sinh' },
-        { ko: '선생님', hanja: '先生', sinoVi: 'tiên sinh', vi: 'giáo viên' },
-        { ko: '생활', hanja: '生活', sinoVi: 'sinh hoạt', vi: 'sinh hoạt, cuộc sống' },
-        { ko: '생각', hanja: '生覺', sinoVi: 'sinh giác', vi: 'suy nghĩ, ý kiến' }
-    ]},
-    { char: '人', sinoVi: 'nhân', koReading: '인', meaning: 'con người, nhân cách',
-      words: [
-        { ko: '인간', hanja: '人間', sinoVi: 'nhân gian', vi: 'con người, loài người' },
-        { ko: '외국인', hanja: '外國人', sinoVi: 'ngoại quốc nhân', vi: 'người nước ngoài' },
-        { ko: '인기', hanja: '人氣', sinoVi: 'nhân khí', vi: 'sự nổi tiếng' },
-        { ko: '인사', hanja: '人事', sinoVi: 'nhân sự', vi: 'chào hỏi, nhân sự' }
-    ]},
-    { char: '國', sinoVi: 'quốc', koReading: '국', meaning: 'đất nước, quốc gia',
-      words: [
-        { ko: '한국', hanja: '韓國', sinoVi: 'hàn quốc', vi: 'Hàn Quốc' },
-        { ko: '외국', hanja: '外國', sinoVi: 'ngoại quốc', vi: 'nước ngoài' },
-        { ko: '국가', hanja: '國家', sinoVi: 'quốc gia', vi: 'quốc gia, đất nước' }
-    ]},
-    { char: '會', sinoVi: 'hội', koReading: '회', meaning: 'hội họp, tập hợp',
-      words: [
-        { ko: '회의', hanja: '會議', sinoVi: 'hội nghị', vi: 'cuộc họp' },
-        { ko: '사회', hanja: '社會', sinoVi: 'xã hội', vi: 'xã hội' },
-        { ko: '회사', hanja: '會社', sinoVi: 'hội xã', vi: 'công ty' }
-    ]},
-    { char: '大', sinoVi: 'đại', koReading: '대', meaning: 'lớn, vĩ đại',
-      words: [
-        { ko: '대학', hanja: '大學', sinoVi: 'đại học', vi: 'đại học' },
-        { ko: '대통령', hanja: '大統領', sinoVi: 'đại thống lĩnh', vi: 'tổng thống' },
-        { ko: '위대하다', hanja: '偉大', sinoVi: 'vĩ đại', vi: 'vĩ đại' }
-    ]},
-    { char: '電', sinoVi: 'điện', koReading: '전', meaning: 'điện, điện lực',
-      words: [
-        { ko: '전화', hanja: '電話', sinoVi: 'điện thoại', vi: 'điện thoại' },
-        { ko: '전기', hanja: '電氣', sinoVi: 'điện khí', vi: 'điện' },
-        { ko: '전자', hanja: '電子', sinoVi: 'điện tử', vi: 'điện tử' }
-    ]},
-    { char: '話', sinoVi: 'thoại', koReading: '화', meaning: 'lời nói, câu chuyện',
-      words: [
-        { ko: '전화', hanja: '電話', sinoVi: 'điện thoại', vi: 'điện thoại' },
-        { ko: '이야기', hanja: '話', sinoVi: 'thoại', vi: 'câu chuyện' },
-        { ko: '대화', hanja: '對話', sinoVi: 'đối thoại', vi: 'đối thoại' }
-    ]},
-    { char: '時', sinoVi: 'thời', koReading: '시', meaning: 'thời gian, giờ',
-      words: [
-        { ko: '시간', hanja: '時間', sinoVi: 'thời gian', vi: 'thời gian' },
-        { ko: '시작', hanja: '始作', sinoVi: 'thủy tác', vi: 'bắt đầu' },
-        { ko: '시험', hanja: '試驗', sinoVi: 'thí nghiệm', vi: 'kỳ thi, bài kiểm tra' }
-    ]},
-    { char: '間', sinoVi: 'gian', koReading: '간', meaning: 'khoảng cách, giữa',
-      words: [
-        { ko: '시간', hanja: '時間', sinoVi: 'thời gian', vi: 'thời gian' },
-        { ko: '인간', hanja: '人間', sinoVi: 'nhân gian', vi: 'con người' },
-        { ko: '기간', hanja: '期間', sinoVi: 'kỳ gian', vi: 'khoảng thời gian' }
-    ]},
-    { char: '家', sinoVi: 'gia', koReading: '가', meaning: 'gia đình, chuyên gia',
-      words: [
-        { ko: '가족', hanja: '家族', sinoVi: 'gia tộc', vi: 'gia đình' },
-        { ko: '국가', hanja: '國家', sinoVi: 'quốc gia', vi: 'quốc gia' },
-        { ko: '작가', hanja: '作家', sinoVi: 'tác gia', vi: 'nhà văn' }
-    ]},
-    { char: '動', sinoVi: 'động', koReading: '동', meaning: 'hoạt động, chuyển động',
-      words: [
-        { ko: '운동', hanja: '運動', sinoVi: 'vận động', vi: 'thể thao, vận động' },
-        { ko: '활동', hanja: '活動', sinoVi: 'hoạt động', vi: 'hoạt động' },
-        { ko: '이동', hanja: '移動', sinoVi: 'di động', vi: 'di chuyển' }
-    ]},
-    { char: '物', sinoVi: 'vật', koReading: '물', meaning: 'vật, đồ vật',
-      words: [
-        { ko: '물건', hanja: '物件', sinoVi: 'vật kiện', vi: 'đồ vật' },
-        { ko: '동물', hanja: '動物', sinoVi: 'động vật', vi: 'động vật' },
-        { ko: '식물', hanja: '植物', sinoVi: 'thực vật', vi: 'thực vật' }
-    ]},
-    { char: '文', sinoVi: 'văn', koReading: '문', meaning: 'chữ viết, văn hóa',
-      words: [
-        { ko: '문화', hanja: '文化', sinoVi: 'văn hóa', vi: 'văn hóa' },
-        { ko: '문자', hanja: '文字', sinoVi: 'văn tự', vi: 'chữ viết, văn tự' },
-        { ko: '논문', hanja: '論文', sinoVi: 'luận văn', vi: 'luận văn' }
-    ]},
-    { char: '化', sinoVi: 'hóa', koReading: '화', meaning: 'biến đổi, chuyển hóa',
-      words: [
-        { ko: '문화', hanja: '文化', sinoVi: 'văn hóa', vi: 'văn hóa' },
-        { ko: '변화', hanja: '變化', sinoVi: 'biến hóa', vi: 'sự thay đổi' },
-        { ko: '현대화', hanja: '現代化', sinoVi: 'hiện đại hóa', vi: 'hiện đại hóa' }
-    ]},
-    { char: '心', sinoVi: 'tâm', koReading: '심', meaning: 'tâm, trái tim, tâm hồn',
-      words: [
-        { ko: '관심', hanja: '關心', sinoVi: 'quan tâm', vi: 'quan tâm, sự chú ý' },
-        { ko: '중심', hanja: '中心', sinoVi: 'trung tâm', vi: 'trung tâm' },
-        { ko: '걱정', hanja: '憂心', sinoVi: 'ưu tâm', vi: 'lo lắng, lo âu' }
-    ]},
-    { char: '安', sinoVi: 'an', koReading: '안', meaning: 'an toàn, bình an',
-      words: [
-        { ko: '안전', hanja: '安全', sinoVi: 'an toàn', vi: 'an toàn' },
-        { ko: '안심', hanja: '安心', sinoVi: 'an tâm', vi: 'yên tâm, an lòng' },
-        { ko: '불안', hanja: '不安', sinoVi: 'bất an', vi: 'lo âu, bất an' }
-    ]},
-    { char: '全', sinoVi: 'toàn', koReading: '전', meaning: 'toàn, hoàn toàn, đầy đủ',
-      words: [
-        { ko: '안전', hanja: '安全', sinoVi: 'an toàn', vi: 'an toàn' },
-        { ko: '전부', hanja: '全部', sinoVi: 'toàn bộ', vi: 'tất cả, toàn bộ' },
-        { ko: '완전', hanja: '完全', sinoVi: 'hoàn toàn', vi: 'hoàn toàn' }
-    ]},
-    { char: '社', sinoVi: 'xã', koReading: '사', meaning: 'xã hội, tổ chức',
-      words: [
-        { ko: '사회', hanja: '社會', sinoVi: 'xã hội', vi: 'xã hội' },
-        { ko: '회사', hanja: '會社', sinoVi: 'hội xã', vi: 'công ty' },
-        { ko: '사원', hanja: '社員', sinoVi: 'xã viên', vi: 'nhân viên công ty' }
-    ]},
-    { char: '新', sinoVi: 'tân', koReading: '신', meaning: 'mới, tươi mới',
-      words: [
-        { ko: '신문', hanja: '新聞', sinoVi: 'tân văn', vi: 'báo (giấy)' },
-        { ko: '신상품', hanja: '新商品', sinoVi: 'tân thương phẩm', vi: 'sản phẩm mới' },
-        { ko: '혁신', hanja: '革新', sinoVi: 'cách tân', vi: 'cải tiến, đổi mới' }
-    ]},
-    // Additional 12 roots to reach 32
-    { char: '力', sinoVi: 'lực', koReading: '력', meaning: 'sức lực, năng lực', words: [{ ko: '능력', hanja: '能力', sinoVi: 'năng lực', vi: 'năng lực' }, { ko: '노력', hanja: '努力', sinoVi: 'nỗ lực', vi: 'nỗ lực' }] },
-    { char: '場', sinoVi: 'trường', koReading: '장', meaning: 'địa điểm, sân bãi', words: [{ ko: '시장', hanja: '市場', sinoVi: 'thị trường', vi: 'chợ, thị trường' }, { ko: '공장', hanja: '工場', sinoVi: 'công trường', vi: 'nhà máy' }] },
-    { char: '地', sinoVi: 'địa', koReading: '지', meaning: 'đất, địa điểm', words: [{ ko: '지역', hanja: '地域', sinoVi: 'địa vực', vi: 'khu vực' }, { ko: '지도', hanja: '地圖', sinoVi: 'địa đồ', vi: 'bản đồ' }] },
-    { char: '方', sinoVi: 'phương', koReading: '방', meaning: 'phương, hướng, cách', words: [{ ko: '방법', hanja: '方法', sinoVi: 'phương pháp', vi: 'phương pháp' }, { ko: '지방', hanja: '地方', sinoVi: 'địa phương', vi: 'địa phương' }] },
-    { char: '語', sinoVi: 'ngữ', koReading: '어', meaning: 'ngôn ngữ, lời nói', words: [{ ko: '한국어', hanja: '韓國語', sinoVi: 'hàn quốc ngữ', vi: 'tiếng Hàn' }, { ko: '외국어', hanja: '外國語', sinoVi: 'ngoại quốc ngữ', vi: 'ngoại ngữ' }] },
-    { char: '業', sinoVi: 'nghiệp', koReading: '업', meaning: 'nghề nghiệp, công nghiệp', words: [{ ko: '직업', hanja: '職業', sinoVi: 'chức nghiệp', vi: 'nghề nghiệp' }, { ko: '사업', hanja: '事業', sinoVi: 'sự nghiệp', vi: 'sự nghiệp, kinh doanh' }] },
-    { char: '工', sinoVi: 'công', koReading: '공', meaning: 'công việc, thủ công', words: [{ ko: '공부', hanja: '工夫', sinoVi: 'công phu', vi: 'học bài, học tập' }, { ko: '공장', hanja: '工場', sinoVi: 'công trường', vi: 'nhà máy' }] },
-    { char: '本', sinoVi: 'bản', koReading: '본', meaning: 'bản gốc, chính', words: [{ ko: '기본', hanja: '基本', sinoVi: 'cơ bản', vi: 'cơ bản' }, { ko: '본래', hanja: '本來', sinoVi: 'bản lai', vi: 'vốn dĩ, ban đầu' }] },
-    { char: '事', sinoVi: 'sự', koReading: '사', meaning: 'sự việc, công việc', words: [{ ko: '사건', hanja: '事件', sinoVi: 'sự kiện', vi: 'sự kiện, vụ việc' }, { ko: '사실', hanja: '事實', sinoVi: 'sự thật', vi: 'sự thật, thực tế' }] },
-    { char: '命', sinoVi: 'mệnh', koReading: '명', meaning: 'mệnh lệnh, số mệnh', words: [{ ko: '생명', hanja: '生命', sinoVi: 'sinh mệnh', vi: 'sinh mệnh, tính mạng' }, { ko: '운명', hanja: '運命', sinoVi: 'vận mệnh', vi: 'vận mệnh, số phận' }] },
-    { char: '法', sinoVi: 'pháp', koReading: '법', meaning: 'pháp luật, phương pháp', words: [{ ko: '방법', hanja: '方法', sinoVi: 'phương pháp', vi: 'phương pháp' }, { ko: '법률', hanja: '法律', sinoVi: 'pháp luật', vi: 'pháp luật' }] },
-    { char: '理', sinoVi: 'lý', koReading: '리', meaning: 'lý lẽ, nguyên lý', words: [{ ko: '관리', hanja: '管理', sinoVi: 'quản lý', vi: 'quản lý' }, { ko: '이유', hanja: '理由', sinoVi: 'lý do', vi: 'lý do' }] }
-];
-
-let selectedRoot = hanjaRoots[0];
-let learnedRoots = new Set();
+// ============================================================
+// DATA: Server-provided roots (from Thymeleaf) or fallback to API
+// ============================================================
+let hanjaRoots = [];
+let selectedRoot = null;
+let selectedRootIdx = -1;
+let learnedSet = new Set(JSON.parse(localStorage.getItem('hanjaLearned') || '[]'));
 let currentMode = 'learn';
 
+// Quiz state
+let quizQuestions = [];
+let quizCurrent = 0;
+let quizScore = 0;
+let quizAnswered = false;
+let currentQuizAudioUrl = '';
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Use server-rendered data if available, otherwise fetch via API
+    if (typeof serverRoots !== 'undefined' && Array.isArray(serverRoots) && serverRoots.length > 0) {
+        hanjaRoots = serverRoots;
+        renderGrid();
+        if (hanjaRoots.length > 0) selectRoot(0);
+    } else {
+        loadRootsFromApi();
+    }
+    updateLearnedCounters();
+});
+
+async function loadRootsFromApi(query) {
+    document.getElementById('gridLoadingSpinner').style.display = 'block';
+    try {
+        const url = '/api/learner/hanja/roots' + (query ? '?query=' + encodeURIComponent(query) : '');
+        const res = await fetch(url);
+        hanjaRoots = await res.json();
+        renderGrid();
+        if (!query && hanjaRoots.length > 0) selectRoot(0);
+    } catch(e) {
+        console.error('Failed to load hanja roots:', e);
+    } finally {
+        document.getElementById('gridLoadingSpinner').style.display = 'none';
+    }
+}
+
+// ============================================================
+// MODE SWITCHING
+// ============================================================
 function setMode(mode) {
     currentMode = mode;
     document.getElementById('btnLearn').classList.toggle('active', mode === 'learn');
     document.getElementById('btnGuess').classList.toggle('active', mode === 'guess');
+    document.getElementById('learnModePanel').style.display = mode === 'learn' ? 'block' : 'none';
+    document.getElementById('guessModePanel').style.display = mode === 'guess' ? 'block' : 'none';
 }
 
+// ============================================================
+// LEARN MODE: Grid & Detail
+// ============================================================
 function filterHanja(q) {
-    renderGrid(q.toLowerCase());
+    if (!q) {
+        renderGrid();
+        return;
+    }
+    const lower = q.toLowerCase();
+    renderGrid(hanjaRoots.filter(r =>
+        (r.hanjaChar && r.hanjaChar.includes(q)) ||
+        (r.sinoVi && r.sinoVi.toLowerCase().includes(lower)) ||
+        (r.koReading && r.koReading.toLowerCase().includes(lower)) ||
+        (r.meaningVi && r.meaningVi.toLowerCase().includes(lower))
+    ));
 }
 
-function renderGrid(filter = '') {
+function renderGrid(roots) {
+    const list = roots || hanjaRoots;
     const grid = document.getElementById('hanjaGrid');
     grid.innerHTML = '';
 
-    hanjaRoots.forEach((root, idx) => {
-        const matchQ = !filter || root.char.includes(filter) || root.sinoVi.includes(filter) || root.koReading.includes(filter);
-        if (!matchQ) return;
+    list.forEach((root, idx) => {
+        const actualIdx = roots ? hanjaRoots.indexOf(root) : idx;
+        const isSelected = root === selectedRoot;
+        const isLearned = learnedSet.has(root.id || actualIdx);
 
         const cell = document.createElement('div');
-        cell.className = 'root-cell' + (root === selectedRoot ? ' selected' : '') + (learnedRoots.has(idx) ? ' learned' : '');
-        cell.onclick = () => selectRoot(idx);
-        cell.innerHTML = `<span class="hanja-char">${root.char}</span><span class="sino-vi">${root.sinoVi}</span>`;
+        cell.className = 'root-cell' + (isSelected ? ' selected' : '') + (isLearned ? ' learned' : '');
+        cell.onclick = () => selectRoot(actualIdx);
+        cell.title = root.sinoVi + ' · ' + (root.meaningVi || '');
+        cell.innerHTML = `
+            <span class="hanja-char">${root.hanjaChar || '?'}</span>
+            <span class="sino-vi">${root.sinoVi || ''}</span>
+            ${isLearned ? '<span class="check-mark">✓</span>' : ''}
+        `;
         grid.appendChild(cell);
     });
+
+    if (list.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px; color: #8C9BA2; font-size: 13px;">Không tìm thấy gốc phù hợp</div>';
+    }
 }
 
 function selectRoot(idx) {
     selectedRoot = hanjaRoots[idx];
+    selectedRootIdx = idx;
     renderGrid();
 
-    const panel = document.getElementById('rootDetailPanel');
-    panel.querySelector('#rootTitle').textContent = `Âm Hàn ${selectedRoot.koReading} · âm Hán Việt "${selectedRoot.sinoVi}"`;
-    panel.querySelector('#rootSub').textContent = `Nghĩa gốc: ${selectedRoot.meaning} · ${selectedRoot.words.length} từ cùng họ`;
+    if (!selectedRoot) return;
 
-    // Update the big char
-    panel.querySelector('[style*="font-size: 42px"]').textContent = selectedRoot.char;
+    // Update header
+    document.getElementById('rootCharBig').textContent = selectedRoot.hanjaChar || '?';
+    document.getElementById('rootTitle').textContent =
+        `Âm Hàn: ${selectedRoot.koReading || '—'} · Âm Hán Việt: "${selectedRoot.sinoVi || '—'}"`;
+    document.getElementById('rootSub').textContent =
+        `Nghĩa gốc: ${selectedRoot.meaningVi || '—'} · ${(selectedRoot.relatedWords || []).length} từ cùng họ`;
+
+    // Audio row
+    const audioRow = document.getElementById('rootAudioRow');
+    document.getElementById('rootKoReading').textContent = selectedRoot.koReading || '';
+    audioRow.style.display = 'flex';
 
     // Render word table
-    const tbody = document.getElementById('rootWordTable').querySelector('tbody');
-    tbody.innerHTML = '';
-    selectedRoot.words.forEach(w => {
-        tbody.innerHTML += `
-            <tr class="word-row">
-                <td class="word-ko">${w.ko}</td>
-                <td class="word-hanja">${w.hanja}</td>
-                <td class="word-sino">${w.sinoVi}</td>
-                <td class="word-vi">${w.vi}</td>
-                <td class="word-audio">
-                    <button class="btn-audio" title="Nghe">🔊</button>
-                </td>
-            </tr>
-        `;
-    });
+    renderWordTable(selectedRoot.relatedWords || []);
 
-    // Update mark button
+    // Mark button state
+    updateMarkButton(selectedRoot);
+    document.getElementById('btnMarkLearned').disabled = false;
+}
+
+function renderWordTable(words) {
+    const tbody = document.getElementById('rootWordTbody');
+    if (!words || words.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px; color: #8C9BA2; font-size: 13.5px;">Chưa có từ nào liên quan trong cơ sở dữ liệu.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = words.map(w => `
+        <tr class="word-row">
+            <td class="word-ko">${w.word || '—'}</td>
+            <td class="word-hanja">${w.hanjaWord || '—'}</td>
+            <td class="word-sino">${w.sinoVi || '—'}</td>
+            <td class="word-vi">${w.meaningVi || '—'}</td>
+            <td style="width:44px; text-align:center;">
+                <button class="btn-audio" onclick="speakKorean('${escapeJs(w.word)}', '${escapeJs(w.audioUrl || '')}')" title="Nghe">🔊</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function markLearned() {
+    if (!selectedRoot) return;
+    const key = selectedRoot.id || selectedRootIdx;
+    if (learnedSet.has(key)) {
+        learnedSet.delete(key);
+    } else {
+        learnedSet.add(key);
+    }
+    localStorage.setItem('hanjaLearned', JSON.stringify([...learnedSet]));
+    updateMarkButton(selectedRoot);
+    updateLearnedCounters();
+    renderGrid();
+}
+
+function updateMarkButton(root) {
+    const key = root.id || selectedRootIdx;
     const btn = document.getElementById('btnMarkLearned');
-    const rootIdx = hanjaRoots.indexOf(selectedRoot);
-    if (learnedRoots.has(rootIdx)) {
+    if (learnedSet.has(key)) {
         btn.textContent = '✓ Đã học gốc này';
         btn.classList.add('done');
     } else {
@@ -377,20 +484,200 @@ function selectRoot(idx) {
     }
 }
 
-function markLearned() {
-    const idx = hanjaRoots.indexOf(selectedRoot);
-    if (learnedRoots.has(idx)) {
-        learnedRoots.delete(idx);
-    } else {
-        learnedRoots.add(idx);
-    }
-    selectRoot(idx);
-    renderGrid();
+function updateLearnedCounters() {
+    const count = learnedSet.size;
+    document.getElementById('learnedCount').textContent = count;
+    document.getElementById('chipLearned').textContent = count;
 }
 
-// Initial render
-renderGrid();
-selectRoot(0);
+function playRootAudio() {
+    if (selectedRoot) {
+        speakKorean(selectedRoot.koReading || selectedRoot.hanjaChar, selectedRoot.audioUrl || '');
+    }
+}
+
+// ============================================================
+// QUIZ MODE
+// ============================================================
+async function startNewQuiz(count) {
+    // Reset state
+    quizQuestions = [];
+    quizCurrent = 0;
+    quizScore = 0;
+    quizAnswered = false;
+
+    // Hide result, show loading
+    document.getElementById('quizResult').style.display = 'none';
+    document.getElementById('quizLoading').style.display = 'block';
+    document.getElementById('quizQuestion').style.display = 'none';
+    updateQuizProgress();
+
+    try {
+        const res = await fetch('/api/learner/hanja/quiz?count=' + count);
+        quizQuestions = await res.json();
+
+        if (!quizQuestions || quizQuestions.length === 0) {
+            document.getElementById('quizLoading').innerHTML = `
+                <div style="font-size: 48px; margin-bottom: 16px;">😢</div>
+                <p style="font-size: 15px; color: #8C9BA2;">Chưa có đủ từ trong cơ sở dữ liệu để tạo quiz. Hãy thêm từ Hán Việt trước!</p>
+            `;
+            return;
+        }
+
+        document.getElementById('quizLoading').style.display = 'none';
+        showQuestion();
+    } catch(e) {
+        console.error('Quiz load failed:', e);
+        document.getElementById('quizLoading').innerHTML = '<p style="color:#E53E3E;">Lỗi tải quiz. Vui lòng thử lại.</p>';
+    }
+}
+
+function showQuestion() {
+    if (quizCurrent >= quizQuestions.length) {
+        showQuizResult();
+        return;
+    }
+
+    const q = quizQuestions[quizCurrent];
+    quizAnswered = false;
+    currentQuizAudioUrl = q.audioUrl || '';
+
+    document.getElementById('quizQuestion').style.display = 'block';
+    document.getElementById('quizQNum').textContent = `Câu ${quizCurrent + 1} / ${quizQuestions.length}`;
+    document.getElementById('quizWord').textContent = q.word || '—';
+    document.getElementById('quizHanja').textContent = q.hanjaWord || '';
+    document.getElementById('quizFeedback').style.display = 'none';
+    document.getElementById('btnNextQ').style.display = 'none';
+    updateQuizProgress();
+    updateScoreDisplay();
+
+    // Render choice buttons
+    const grid = document.getElementById('choiceGrid');
+    grid.innerHTML = (q.choices || []).map((choice, i) => `
+        <button class="choice-btn" id="choice-${i}" onclick="answerQuiz(${i})" ${quizAnswered ? 'disabled' : ''}>
+            <span style="display:inline-block; width:22px; height:22px; border-radius:50%; background:#F1EEE6; color:#53646C; font-size:12px; font-weight:900; text-align:center; line-height:22px; margin-right:8px;">${String.fromCharCode(65+i)}</span>
+            ${escapeHtml(choice)}
+        </button>
+    `).join('');
+}
+
+function answerQuiz(choiceIdx) {
+    if (quizAnswered) return;
+    quizAnswered = true;
+
+    const q = quizQuestions[quizCurrent];
+    const isCorrect = choiceIdx === q.correctChoiceIndex;
+
+    // Highlight buttons
+    for (let i = 0; i < 4; i++) {
+        const btn = document.getElementById('choice-' + i);
+        if (!btn) continue;
+        btn.disabled = true;
+        if (i === q.correctChoiceIndex) btn.classList.add('correct');
+        else if (i === choiceIdx && !isCorrect) btn.classList.add('wrong');
+    }
+
+    if (isCorrect) quizScore++;
+
+    // Show feedback
+    const feedback = document.getElementById('quizFeedback');
+    feedback.style.display = 'block';
+    if (isCorrect) {
+        feedback.style.background = '#E8F5E9';
+        feedback.style.color = '#2E7D67';
+        feedback.style.border = '1.5px solid #A8D8BC';
+        feedback.textContent = '✓ Chính xác! Rất giỏi!';
+    } else {
+        feedback.style.background = '#FFF5F5';
+        feedback.style.color = '#9B2C2C';
+        feedback.style.border = '1.5px solid #FEB2B2';
+        feedback.textContent = `✗ Sai rồi! Đáp án đúng là: "${escapeHtml(q.choices[q.correctChoiceIndex])}"`;
+    }
+
+    document.getElementById('btnNextQ').style.display = 'inline-block';
+    updateScoreDisplay();
+}
+
+function nextQuestion() {
+    quizCurrent++;
+    if (quizCurrent >= quizQuestions.length) {
+        showQuizResult();
+    } else {
+        showQuestion();
+    }
+}
+
+function showQuizResult() {
+    document.getElementById('quizQuestion').style.display = 'none';
+    const result = document.getElementById('quizResult');
+    result.style.display = 'block';
+
+    const total = quizQuestions.length;
+    const pct = total > 0 ? Math.round((quizScore / total) * 100) : 0;
+
+    document.getElementById('quizResultScore').textContent = `${quizScore} / ${total}`;
+
+    let emoji = '😢', msg = 'Cần ôn thêm nhiều hơn nhé!';
+    if (pct >= 90) { emoji = '🏆'; msg = 'Xuất sắc! Bạn thật sự hiểu gốc Hán Việt!'; }
+    else if (pct >= 70) { emoji = '🎉'; msg = 'Rất tốt! Tiếp tục luyện tập để đạt điểm cao hơn!'; }
+    else if (pct >= 50) { emoji = '📚'; msg = 'Khá ổn! Hãy ôn lại các gốc chưa thuộc.'; }
+
+    document.getElementById('quizResultEmoji').textContent = emoji;
+    document.getElementById('quizResultMsg').textContent = `${pct}% · ${msg}`;
+
+    updateQuizProgress();
+}
+
+function updateQuizProgress() {
+    const total = quizQuestions.length;
+    const pct = total > 0 ? (quizCurrent / total) * 100 : 0;
+    document.getElementById('quizProgressBar').style.width = pct + '%';
+}
+
+function updateScoreDisplay() {
+    document.getElementById('quizScoreText').textContent = `${quizScore}/${quizCurrent}`;
+}
+
+function playQuizAudio() {
+    if (quizQuestions[quizCurrent]) {
+        speakKorean(quizQuestions[quizCurrent].word, currentQuizAudioUrl);
+    }
+}
+
+// ============================================================
+// AUDIO UTILITY
+// ============================================================
+function speakKorean(text, audioUrl) {
+    if (audioUrl && audioUrl.trim()) {
+        const audio = new Audio(audioUrl);
+        audio.play().catch(() => fallbackSpeak(text));
+    } else {
+        fallbackSpeak(text);
+    }
+}
+
+function fallbackSpeak(text) {
+    if (!text || !window.speechSynthesis) return;
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = 'ko-KR';
+    utt.rate = 0.85;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utt);
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escapeJs(str) {
+    if (!str) return '';
+    return str.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"');
+}
 </script>
+
 </body>
 </html>
