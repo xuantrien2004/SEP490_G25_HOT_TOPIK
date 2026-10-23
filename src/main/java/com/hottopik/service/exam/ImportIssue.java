@@ -4,16 +4,21 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /** Một dòng trong bảng "Kiểm tra lỗi" của bước 3 nhập đề. */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record ImportIssue(Level level, String sheet, Integer row, String skill, Integer no, String message) {
+public record ImportIssue(Level level, String sheet, Integer row, String skill, Integer no, String message,
+                          Integer questionNo) {
 
     public enum Level { ERROR, WARNING }
 
     public static ImportIssue error(String sheet, Integer row, String skill, Integer no, String message) {
-        return new ImportIssue(Level.ERROR, sheet, row, skill, no, message);
+        return new ImportIssue(Level.ERROR, sheet, row, skill, no, message, null);
     }
 
     public static ImportIssue warning(String sheet, Integer row, String skill, Integer no, String message) {
-        return new ImportIssue(Level.WARNING, sheet, row, skill, no, message);
+        return new ImportIssue(Level.WARNING, sheet, row, skill, no, message, null);
+    }
+
+    public ImportIssue forQuestion(Integer questionNo) {
+        return new ImportIssue(level, sheet, row, skill, no, message, questionNo);
     }
 
     public boolean isError() {

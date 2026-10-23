@@ -265,6 +265,24 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'ix_practice_user_type')
     CREATE INDEX ix_practice_user_type ON dbo.practice_attempts (user_id, type_code, completed_at);
 GO
 
+IF OBJECT_ID('dbo.exam_attempts', 'U') IS NULL
+CREATE TABLE dbo.exam_attempts (
+    id                bigint IDENTITY NOT NULL PRIMARY KEY,
+    exam_id           bigint NOT NULL REFERENCES dbo.exams(id),
+    user_id           bigint NOT NULL,
+    answers_json      nvarchar(max) NOT NULL,
+    remaining_seconds int NOT NULL,
+    last_active_at    datetime2(6) NULL,
+    started_at        datetime2(6) NOT NULL,
+    completed_at      datetime2(6) NULL,
+    correct           int NOT NULL,
+    total             int NOT NULL
+);
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'ix_exam_attempt_user_exam' AND object_id = OBJECT_ID('dbo.exam_attempts'))
+    CREATE INDEX ix_exam_attempt_user_exam ON dbo.exam_attempts (user_id, exam_id, started_at);
+GO
+
 /* Bản lộ trình Content Manager phát hành. Học viên tạo lịch cá nhân từ bản PUBLISHED. */
 IF OBJECT_ID('dbo.program_versions', 'U') IS NULL
 CREATE TABLE dbo.program_versions (
@@ -279,7 +297,7 @@ CREATE TABLE dbo.program_versions (
     questions_per_session    int           NOT NULL DEFAULT (8),
     pending_action           varchar(10)   NULL,
     approval_request_id      bigint        NULL,
-    created_by               nvarchar(120) NULL,
+    created_by               bigint NULL,
     published_at             datetime2(6)  NULL,
     created_at               datetime2(6)  NOT NULL,
     updated_at               datetime2(6)  NOT NULL,

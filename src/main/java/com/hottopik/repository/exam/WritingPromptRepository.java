@@ -11,7 +11,9 @@ public interface WritingPromptRepository extends JpaRepository<WritingPrompt, Lo
     @EntityGraph(attributePaths = "source")
     List<WritingPrompt> findByNoAndStatusOrderByIdDesc(int no, QuestionStatus status);
 
+    @EntityGraph(attributePaths = "source")
     List<WritingPrompt> findBySourceIdOrderByNoAsc(Long sourceId);
 
+    @EntityGraph(attributePaths = "source")
     List<WritingPrompt> findAllByOrderByNoAscIdDesc();
 }

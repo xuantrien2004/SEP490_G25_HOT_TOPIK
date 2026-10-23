@@ -39,10 +39,6 @@ public class LearnerController {
 
     @GetMapping({"/hom-nay", "/today", "/dashboard"})
     public String today(Model model, HttpSession session) {
-        UserDTO user = AuthHelper.getLoggedInUser(session);
-        if (user != null && user.isStudent() && (user.getTargetLevel() == null || "TOPIK_0".equals(user.getTargetLevel()))) {
-            return "redirect:/onboarding";
-        }
         model.addAttribute("pageTitle", "Nhiệm vụ hôm nay · HOT TOPIK");
         model.addAttribute("activePage", "today");
         try {

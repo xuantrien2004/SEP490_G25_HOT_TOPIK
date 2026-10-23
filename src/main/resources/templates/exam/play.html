@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body style="background:#F8F6EF;color:#24363D;font-family:var(--font-body)">
+<div th:replace="~{fragments/navbar :: navbar('exam')}"></div>
+<main class="container py-4" style="max-width:1080px">
+    <form id="examForm" method="post" th:action="@{/exam/attempt/{id}/submit(id=${paper.attempt.id})}">
+        <header class="sticky-top bg-white border rounded-4 p-3 mb-4 shadow-sm" style="top:12px">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div><span class="badge text-bg-success" th:text="${paper.track.label}"></span>
+                    <h1 class="h5 mt-2 mb-0" th:text="${paper.title}"></h1></div>
+                <div class="d-flex align-items-center gap-3">
+                    <strong id="timer" class="font-monospace"></strong>
+                    <button class="btn btn-outline-secondary" type="submit" th:formaction="@{/exam/attempt/{id}/pause(id=${paper.attempt.id})}">Lưu và thoát</button>
+                    <button class="btn btn-success" type="submit">Nộp bài</button>
+                </div>
+            </div>
+            <div id="saveStatus" class="small text-muted mt-2" role="status">Câu trả lời được lưu tự động. Bạn có thể lưu và làm tiếp trong 7 ngày.</div>
+        </header>
+        <th:block th:each="section : ${sections}">
+            <th:block th:each="q : ${paper.questions}">
+                <article th:if="${q.skill == section.skill}" class="bg-white border rounded-4 p-4 mb-4 shadow-sm">
+                    <h2 class="h6 fw-bold" th:text="${q.label}"></h2>
+                    <p class="text-muted" th:text="${q.instruction}"></p>
+                    <audio th:if="${q.audio != null}" controls preload="none" class="w-100 mb-3" th:src="${q.audio}"></audio>
+                    <img th:if="${q.image != null}" th:src="${q.image}" alt="Hình của câu hỏi" style="max-width:100%;max-height:400px" class="mb-3">
+                    <div th:if="${q.passage != null}" class="p-3 rounded-3 mb-3" style="background:#F8F6EF;white-space:pre-wrap" th:text="${q.passage}"></div>
+                    <p class="fw-semibold" style="white-space:pre-wrap" th:text="${q.prompt}"></p>
+                    <label th:each="option, stat : ${q.options}" class="d-flex align-items-center gap-3 border rounded-3 p-3 mb-2">
+                        <input type="radio" th:name="${q.key}" th:value="${stat.count}" th:checked="${q.selected == #strings.toString(stat.count)}">
+                        <strong th:text="${stat.count}"></strong>
+                        <img th:if="${option.image != null}" th:src="${option.image}" alt="Hình đáp án" style="max-width:85%;max-height:220px">
+                        <span th:unless="${option.image != null}" th:text="${option.text}"></span>
+                    </label>
+                </article>
+            </th:block>
+            <th:block th:if="${section.skill.name() == 'WRITING'}">
+                <article th:each="q : ${paper.writing}" class="bg-white border rounded-4 p-4 mb-4 shadow-sm">
+                    <h2 class="h6 fw-bold" th:text="${'Viết · Câu ' + q.no}"></h2>
+                    <p style="white-space:pre-wrap" th:text="${q.prompt}"></p>
+                    <img th:if="${q.image != null}" th:src="${q.image}" alt="Biểu đồ đề bài" style="max-width:100%;max-height:400px" class="mb-3">
+                    <table th:unless="${#lists.isEmpty(q.chart)}" class="table table-bordered"><tbody>
+                        <tr th:each="row : ${q.chart}"><th th:text="${row['label']}"></th><td th:text="${row['value']}"></td></tr>
+                    </tbody></table>
+                    <label th:for="${q.key}" class="form-label">Bài làm của bạn</label>
+                    <textarea class="form-control" th:id="${q.key}" th:name="${q.key}" th:rows="${q.no &lt;= 52 ? 5 : 15}"
+                              maxlength="6000" th:placeholder="${q.no &lt;= 52 ? '㉠: ...&#10;㉡: ...' : 'Nhập bài viết bằng tiếng Hàn'}" th:text="${q.selected}"></textarea>
+                </article>
+            </th:block>
+        </th:block>
+        <button type="submit" class="btn btn-success btn-lg mb-4">Nộp bài</button>
+    </form>
+</main>
+<script th:inline="javascript">
+const form = document.getElementById('examForm');
+const saveUrl = /*[[@{/exam/attempt/{id}/save(id=${paper.attempt.id})}]]*/ '';
+const resultUrl = /*[[@{/ket-qua/{id}(id=${paper.attempt.id})}]]*/ '';
+let seconds = /*[[${paper.remainingSeconds}]]*/ 0;
+let leaving = false, saving = Promise.resolve(), queued = false;
+function saveAnswers() {
+    if (leaving) return saving;
+    if (queued) return saving;
+    queued = true;
+    saving = saving.catch(() => {}).then(async () => {
+        queued = false;
+        if (leaving) return;
+        try {
+            const response = await fetch(saveUrl, {method:'POST', body:new URLSearchParams(new FormData(form))});
+            if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) throw new Error('save');
+            const data = await response.json();
+            if (data.completed) { leaving = true; window.location.href = resultUrl; return; }
+            seconds = data.remainingSeconds;
+            document.getElementById('saveStatus').textContent = 'Đã lưu câu trả lời.';
+        } catch (error) {
+            document.getElementById('saveStatus').textContent = 'Chưa lưu được. Kiểm tra kết nối và bấm Lưu và thoát để lưu lại.';
+        }
+    });
+    return saving;
+}
+form.addEventListener('change', saveAnswers);
+let typing;
+form.addEventListener('input', () => { clearTimeout(typing); typing = setTimeout(saveAnswers, 1000); });
+setInterval(saveAnswers, 15000);
+form.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (leaving) return;
+    const action = event.submitter?.getAttribute('formaction') || form.action;
+    if (action.endsWith('/submit') && seconds > 0 && !confirm('Bạn muốn nộp bài?')) return;
+    leaving = true;
+    await saving.catch(() => {});
+    form.action = action;
+    HTMLFormElement.prototype.submit.call(form);
+});
+function tick() {
+    document.getElementById('timer').textContent = Math.floor(seconds / 60).toString().padStart(2, '0') + ':' + (seconds % 60).toString().padStart(2, '0');
+    if (seconds <= 0 && !leaving) form.requestSubmit();
+    seconds = Math.max(0, seconds - 1);
+}
+tick(); setInterval(tick, 1000);
+window.addEventListener('pagehide', () => {
+    if (!leaving) navigator.sendBeacon(saveUrl + '?pause=true', new URLSearchParams(new FormData(form)));
+});
+</script>
+</body>
+</html>

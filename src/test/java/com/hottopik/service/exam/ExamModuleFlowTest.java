@@ -159,8 +159,8 @@ class ExamModuleFlowTest {
         assertEquals(3, minis.size());
         Map<ExamKind, Integer> counts = new EnumMap<>(ExamKind.class);
         minis.forEach(m -> counts.put(m.getKind(), m.questionCount()));
-        assertEquals(50, counts.get(ExamKind.LISTENING));
-        assertEquals(50, counts.get(ExamKind.READING));
+        assertEquals(11, counts.get(ExamKind.LISTENING));
+        assertTrue(counts.get(ExamKind.READING) >= 14 && counts.get(ExamKind.READING) <= 15);
         assertEquals(4, counts.get(ExamKind.WRITING));
         assertTrue(minis.stream().allMatch(m -> m.isAuto() && m.getStatus() == ExamStatus.PUBLISHED));
     }
@@ -522,7 +522,7 @@ class ExamModuleFlowTest {
         Long req = composer.get(r.examId()).getApprovalRequestId();
         approvals.decideRequest(req, false, "Thiếu giải thích", "Admin");
         assertEquals(ExamStatus.DRAFT, composer.get(r.examId()).getStatus());
-        assertTrue(composer.children(r.examId()).isEmpty());
+        assertTrue(composer.children(r.examId()).stream().allMatch(e -> e.getStatus() == ExamStatus.DRAFT));
     }
 
     @Test

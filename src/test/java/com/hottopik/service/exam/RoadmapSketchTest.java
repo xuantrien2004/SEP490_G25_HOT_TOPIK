@@ -91,4 +91,12 @@ class RoadmapSketchTest {
     private static List<String> kinds(RoadmapSketch.Result result, int day) {
         return result.days().get(day - 1).slots().stream().map(RoadmapSketch.Slot::kind).toList();
     }
+
+    @Test
+    void rulesAcceptLegacyJsonArraysAsWellAsCommaSeparatedValues() {
+        assertArrayEquals(ProgramRules.reviews("2,7,14"), ProgramRules.reviews("[2, 7, 14]"));
+        assertArrayEquals(ProgramRules.phases("40,40,20"), ProgramRules.phases("[40,40,20]"));
+        assertThrows(ExamDomainException.class, () -> ProgramRules.reviews("[7,2]"));
+        assertThrows(ExamDomainException.class, () -> ProgramRules.phases("[40,40,30]"));
+    }
 }

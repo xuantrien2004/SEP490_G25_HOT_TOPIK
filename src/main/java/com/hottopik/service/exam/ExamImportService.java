@@ -328,6 +328,14 @@ public class ExamImportService {
         }
     }
 
+    /** Validate manual drafts for display without persisting or changing their lifecycle. */
+    public List<ImportIssue> currentIssues(ImportJob job) {
+        if (job != null && isManual(job)) {
+            return validateManual(getSource(job.getSource().getId()), workbookOf(job));
+        }
+        return issues(job);
+    }
+
     public record PaperForm(boolean writing, Skill skill, int no, String prompt,
                             String opt1, String opt2, String opt3, String opt4, String answer,
                             String explanation, String audio, String script, String passage, String image,
@@ -514,7 +522,7 @@ public class ExamImportService {
         Optional<ImportJob> job = latestJob(sourceId);
         if (job.isEmpty() || !isManual(job.get())) return List.of();
         ParsedWorkbook wb = workbookOf(job.get());
-        List<ImportIssue> found = issues(job.get());
+        List<ImportIssue> found = currentIssues(job.get());
         List<CardView> out = new ArrayList<>();
         int index = 0;
         for (ParsedWorkbook.ManualCard card : wb.manualCards) {
@@ -583,9 +591,7 @@ public class ExamImportService {
             } else if (!blank(card.audioFile) && !sizes.containsKey(ExamImportValidator.key(card.audioFile))) {
                 issues.add(ImportIssue.error("CARD", index, skill, index, "Chưa tải file nghe " + card.audioFile + "."));
             }
-            if (template.getImageScope() == ResourceScope.GROUP && template.isImageRequired() && blank(card.imageFile)) {
-                issues.add(ImportIssue.error("CARD", index, skill, index, "Bài " + index + " thiếu ảnh hoặc biểu đồ."));
-            } else if (template.getImageScope() == ResourceScope.GROUP && !blank(card.imageFile)
+            if (template.getImageScope() == ResourceScope.GROUP && !blank(card.imageFile)
                     && !sizes.containsKey(ExamImportValidator.key(card.imageFile))) {
                 issues.add(ImportIssue.error("CARD", index, skill, index, "Chưa tải ảnh " + card.imageFile + "."));
             }
@@ -601,22 +607,23 @@ public class ExamImportService {
                 askNo++;
                 String where = "Bài " + index + ", câu " + askNo;
                 if (template.isPromptRequired() && blank(ask.promptKo)) {
-                    issues.add(ImportIssue.error("CARD", index, skill, index, where + " thiếu câu hỏi."));
+                    issues.add(ImportIssue.error("CARD", index, skill, index, where + " thiếu câu hỏi.").forQuestion(ask.no));
                 }
                 if (template.getOptionCount() != null) {
                     String[] options = ask.options == null ? new String[4] : ask.options;
                     for (int i = 0; i < 4; i++) {
                         String option = i < options.length ? options[i] : null;
                         if (blank(option)) {
-                            issues.add(ImportIssue.error("CARD", index, skill, index, where + " thiếu phương án " + (i + 1) + "."));
+                            issues.add(ImportIssue.error("CARD", index, skill, index, where + " thiếu phương án " + (i + 1) + ".").forQuestion(ask.no));
                         } else if (template.getImageScope() == ResourceScope.OPTIONS
+                                && Set.of("png", "jpg", "jpeg", "webp", "gif").contains(MediaStorageService.extension(option))
                                 && !sizes.containsKey(ExamImportValidator.key(option))) {
                             issues.add(ImportIssue.error("CARD", index, skill, index,
-                                    where + " chưa tải ảnh phương án " + option + "."));
+                                    where + " chưa tải ảnh phương án " + option + ".").forQuestion(ask.no));
                         }
                     }
                     if (ask.answer == null) {
-                        issues.add(ImportIssue.error("CARD", index, skill, index, where + " chưa chọn đáp án 1–4."));
+                        issues.add(ImportIssue.error("CARD", index, skill, index, where + " chưa chọn đáp án 1–4.").forQuestion(ask.no));
                     }
                     if (blank(ask.explanationVi)) {
                         issues.add(ImportIssue.warning("CARD", index, skill, index,
@@ -624,10 +631,10 @@ public class ExamImportService {
                     }
                 }
                 if (template.getAnswerType() == AnswerType.ACCEPT_KEYS && (blank(ask.keys1) || blank(ask.keys2))) {
-                    issues.add(ImportIssue.error("CARD", index, skill, index, where + " thiếu đáp án chấp nhận cho cả hai chỗ trống."));
+                    issues.add(ImportIssue.error("CARD", index, skill, index, where + " thiếu đáp án chấp nhận cho cả hai chỗ trống.").forQuestion(ask.no));
                 }
                 if (template.getAnswerType() == AnswerType.FREE_TEXT && blank(ask.modelAnswer)) {
-                    issues.add(ImportIssue.error("CARD", index, skill, index, where + " thiếu bài mẫu."));
+                    issues.add(ImportIssue.error("CARD", index, skill, index, where + " thiếu bài mẫu.").forQuestion(ask.no));
                 }
             }
         }
@@ -998,14 +1005,17 @@ public class ExamImportService {
     @Transactional
     public ActivationResult activate(Long sourceId, Actor actor) {
         requireContent(actor);
-        ExamSource source = draftSource(sourceId);
+        ExamSource source = getSource(sourceId);
         ImportJob job = latestJob(sourceId).orElseThrow(() -> new ExamDomainException("Chưa có nội dung đề. Hãy nhập trên web hoặc tải Excel."));
+        if (job.getStatus() == ImportJobStatus.ACTIVATED) {
+            throw new ExamDomainException("Nguồn đề đã được đưa vào ngân hàng. Không thể kích hoạt lần nữa.");
+        }
         ParsedWorkbook wb = workbookOf(job);
         if (isManual(job)) {
             List<ImportIssue> manualIssues = validateManual(source, wb);
+            applyManualResult(job, wb, manualIssues);
             long manualErrors = manualIssues.stream().filter(ImportIssue::isError).count();
             if (manualErrors > 0) {
-                applyManualResult(job, wb, manualIssues);
                 throw new ExamDomainException("Còn lỗi, chưa kích hoạt được (" + manualErrors + " lỗi).");
             }
             return activateCards(source, job, wb, actor);
@@ -1279,6 +1289,16 @@ public class ExamImportService {
     public void updateSourceStatus(Long sourceId, SourceStatus newStatus, Actor actor) {
         requireContent(actor);
         ExamSource source = getSource(sourceId);
+        ImportJob job = latestJob(sourceId).orElse(null);
+        if (newStatus == SourceStatus.DRAFT && job != null && job.getStatus() == ImportJobStatus.ACTIVATED) {
+            throw new ExamDomainException("Nguồn đề đã vào ngân hàng. Hãy sửa từng câu trong Ngân hàng câu hỏi.");
+        }
+        if (newStatus == SourceStatus.ACTIVE) {
+            if (job == null || job.getStatus() != ImportJobStatus.ACTIVATED) {
+                activate(sourceId, actor);
+                return;
+            }
+        }
         source.setStatus(newStatus);
         if (newStatus == SourceStatus.ACTIVE && source.getActivatedAt() == null) {
             source.setActivatedAt(LocalDateTime.now());

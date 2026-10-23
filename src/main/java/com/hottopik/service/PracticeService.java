@@ -109,6 +109,7 @@ public class PracticeService {
         Set<Long> seen = attempts.findByUserIdAndTypeCodeAndCompletedAtIsNotNullOrderByCompletedAtDesc(userId, typeCode)
                 .stream().flatMap(a -> parseIds(a.getQuestionIds()).stream()).collect(Collectors.toSet());
         Map<Long, List<Question>> byGroup = available.stream().collect(Collectors.groupingBy(q -> q.getGroup().getId()));
+        Map<Long, List<Question>> bySource = available.stream().collect(Collectors.groupingBy(q -> q.getSource().getId()));
         List<Question> selected = new ArrayList<>();
         for (List<Integer> block : type.blocks()) {
             Set<Integer> blockNumbers = new HashSet<>(block);
@@ -118,6 +119,17 @@ public class PracticeService {
                             .sorted(Comparator.comparingInt(Question::getOriginalNo)).toList())
                     .filter(group -> group.stream().map(Question::getOriginalNo).distinct().count() == block.size())
                     .collect(Collectors.toCollection(ArrayList::new));
+            // Manual entry can store each question of a reading block in its own card.
+            // Keep those questions in the same source without joining incomplete shared groups.
+            if (type.skill() == Skill.READING && block.size() > 1) {
+                bySource.values().stream()
+                        .map(source -> source.stream().filter(q -> blockNumbers.contains(q.getOriginalNo()))
+                                .sorted(Comparator.comparingInt(Question::getOriginalNo)).toList())
+                        .filter(group -> group.size() == block.size()
+                                && group.stream().map(Question::getOriginalNo).distinct().count() == block.size()
+                                && group.stream().allMatch(q -> q.getGroup().getSize() == 1))
+                        .forEach(matchingGroups::add);
+            }
             if (matchingGroups.isEmpty()) continue;
             List<List<Question>> unseenGroups = matchingGroups.stream()
                     .filter(group -> group.stream().noneMatch(q -> seen.contains(q.getId())))
@@ -227,11 +239,10 @@ public class PracticeService {
     }
 
     /**
-     * Tìm kiếm câu hỏi trong ngân hàng: linh hoạt theo type_code, template_code hoặc dải số câu chuẩn
+     * Lấy câu theo vị trí chuẩn vì khuôn nhập thủ công có thể dùng ở nhiều số câu.
      */
     private List<Question> pool(QuestionTypeDef type) {
-        List<Question> list = questions.findByTrackAndSkillAndTypeCodeAndStatus(
-                type.track(), type.skill(), type.code(), QuestionStatus.ACTIVE);
+        List<Question> list = questions.findPracticeCandidates(type.track(), type.skill(), type.numbers());
         return list.stream()
                 .sorted(Comparator.comparingInt(Question::getOriginalNo))
                 .toList();

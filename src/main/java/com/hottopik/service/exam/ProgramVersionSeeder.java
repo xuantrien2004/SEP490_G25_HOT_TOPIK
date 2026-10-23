@@ -41,7 +41,8 @@ public class ProgramVersionSeeder implements ApplicationRunner {
         program.setSessionsPerType(4);
         program.setQuestionsPerSession(8);
         program.setWeeklyReviewQuestions(20);
-        program.setCreatedBy("Hệ thống");
+        // System-created versions have no user account to reference.
+        program.setCreatedBy(null);
         program.setPublishedAt(LocalDateTime.now());
         programs.save(program);
 

@@ -204,13 +204,6 @@ public class PracticeController {
         return "redirect:/writing?question=" + cau;
     }
 
-    @GetMapping({"/de-thi", "/exam"})
-    public String examIndex(Model model) {
-        model.addAttribute("pageTitle", "Đề thi · Full Mock & Mini Test · HOT TOPIK");
-        model.addAttribute("activePage", "exam");
-        return "exam/index";
-    }
-
     @GetMapping("/practice/mini-test")
     public String miniTest(@RequestParam(value = "skill", defaultValue = "reading") String skill, Model model) {
         model.addAttribute("pageTitle", "Mini Test TOPIK");
