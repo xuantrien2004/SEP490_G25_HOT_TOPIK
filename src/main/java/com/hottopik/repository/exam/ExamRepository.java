@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +31,11 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
     @Query("select distinct e from Exam e where e.id = :id")
     Optional<Exam> findForComposerById(@Param("id") Long id);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select e from Exam e where e.id = :id")
+    Optional<Exam> lockById(@Param("id") Long id);
+
+    @EntityGraph(attributePaths = {"items", "writing51", "writing52", "writing53", "writing54"})
     List<Exam> findByParentId(Long parentId);
 
     long countByStatus(ExamStatus status);

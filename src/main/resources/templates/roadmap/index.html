@@ -81,7 +81,7 @@
                         <span class="lr-kicker" id="detailSessions">Đã tính 0/4 lần</span>
                         <div class="lr-caps" id="detailCaps"></div>
                     </div>
-                    <a class="btn-roadmap-start" id="detailStart" th:href="@{/luyen-tap/chuan-bi}">Bắt đầu</a>
+                    <a class="btn-roadmap-start" id="detailStart" th:href="@{/practice}">Bắt đầu</a>
                 </section>
 
                 <section class="lr-card">
@@ -313,19 +313,10 @@
             if (i < counted) pip.className = "on";
             caps.appendChild(pip);
         }
-        var practiceType = slot.code || "weekly";
-        if (slot.kind === "FULL") practiceType = "full";
-        else if (slot.kind === "MINI") practiceType = (slot.name || "").indexOf("Đọc") >= 0 ? "mini-reading" : "mini-listening";
-        var params = new URLSearchParams({
-            type: practiceType,
-            name: slot.name || slot.title,
-            day: String(selectedDay),
-            slot: String(selectedSlot)
-        });
-        if (slot.kind !== "MINI" && slot.kind !== "FULL") {
-            params.set("questions", String(slot.questions || PLAN.questions));
+        start.href = slot.href || "/practice";
+        if (slot.href && slot.href.indexOf("/practice/prepare?") === 0) {
+            start.href += "&day=" + selectedDay + "&slot=" + selectedSlot;
         }
-        start.href = "/luyen-tap/chuan-bi?" + params.toString();
         start.textContent = isDone(selectedDay, selectedSlot) ? "Làm lại" : (selectedDay < PLAN.today ? "Làm bù" : (selectedDay === PLAN.today ? "Bắt đầu" : "Làm trước"));
     }
 

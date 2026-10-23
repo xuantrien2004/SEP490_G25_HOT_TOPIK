@@ -271,6 +271,9 @@
         <a th:href="@{/content/question-types}" class="cs-nav-item" th:classappend="${active == 'types'} ? ' active'">
             <span>🗂</span><span>Vị trí trong đề chuẩn</span>
         </a>
+        <a th:href="@{/content/roadmap}" class="cs-nav-item" th:classappend="${active == 'roadmap'} ? ' active'">
+            <span>🗺</span><span>Lộ trình học</span>
+        </a>
 
         <div class="nav-group-label" style="margin-top:6px;">Chất lượng</div>
 
@@ -283,7 +286,6 @@
         <a th:href="@{/content(tab='audit')}" class="cs-nav-item">
             <span>📜</span><span>Nhật ký Thao tác</span>
         </a>
-<a th:href="@{/content/roadmap}" class="cs-nav-item" th:classappend="${active == 'roadmap'} ? ' active'">🗺 Lộ trình học</a>
 
     </div>
 

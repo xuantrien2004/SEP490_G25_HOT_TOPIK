@@ -7,6 +7,8 @@ import com.hottopik.service.PracticeService.QuestionView;
 import com.hottopik.service.PracticeService.TypeSummary;
 import com.hottopik.service.exam.QuestionTypeCatalog;
 import com.hottopik.service.exam.QuestionTypeDef;
+import com.hottopik.service.exam.LearnerRoadmapService;
+import com.hottopik.service.exam.ExamDomainException;
 import com.hottopik.entity.exam.PracticeAttempt;
 import com.hottopik.util.AuthHelper;
 import jakarta.servlet.http.HttpSession;
@@ -23,9 +25,13 @@ import java.util.stream.Collectors;
 @Controller
 public class PracticeController {
     private final PracticeService practice;
+    private final LearnerRoadmapService roadmaps;
 
-    public PracticeController(PracticeService practice) {
+    private record RoadmapPractice(String owner, int day, int slot) {}
+
+    public PracticeController(PracticeService practice, LearnerRoadmapService roadmaps) {
         this.practice = practice;
+        this.roadmaps = roadmaps;
     }
 
     @GetMapping({"/luyen-tap", "/practice"})
@@ -65,7 +71,10 @@ public class PracticeController {
     }
 
     @GetMapping({"/practice/prepare", "/luyen-tap/chuan-bi"})
-    public String preparePractice(@RequestParam("typeCode") String typeCode, Model model, HttpSession session) {
+    public String preparePractice(@RequestParam("typeCode") String typeCode,
+                                  @RequestParam(required = false) Integer day,
+                                  @RequestParam(required = false) Integer slot,
+                                  Model model, HttpSession session) {
         QuestionTypeDef type = QuestionTypeCatalog.byCode(typeCode).orElseThrow(() -> new IllegalArgumentException("Dạng câu không hợp lệ: " + typeCode));
         UserDTO user = AuthHelper.getLoggedInUser(session);
         Long userId = user != null ? user.getId() : 1L;
@@ -83,16 +92,26 @@ public class PracticeController {
         model.addAttribute("summary", summary);
         model.addAttribute("history", history);
         model.addAttribute("currentUser", user);
+        model.addAttribute("day", day);
+        model.addAttribute("slot", slot);
         return "practice/prepare";
     }
 
     @PostMapping("/practice/start")
-    public String startPractice(@RequestParam("typeCode") String typeCode, HttpSession session, RedirectAttributes flash) {
+    public String startPractice(@RequestParam("typeCode") String typeCode,
+                                @RequestParam(required = false) Integer day,
+                                @RequestParam(required = false) Integer slot,
+                                HttpSession session, RedirectAttributes flash) {
         UserDTO user = AuthHelper.getLoggedInUser(session);
         Long userId = user != null ? user.getId() : 1L;
         String email = user != null ? user.getEmail() : "learner@hottopik.com";
 
         QuestionTypeDef type = QuestionTypeCatalog.byCode(typeCode).orElseThrow(() -> new IllegalArgumentException("Dạng câu không hợp lệ: " + typeCode));
+        if ((day == null) != (slot == null) || (day != null && (user == null || user.getEmail() == null
+                || !roadmaps.matchesPracticeSlot(user.getEmail(), day, slot, typeCode)))) {
+            flash.addFlashAttribute("practiceError", "Bài luyện không khớp với lộ trình hiện tại. Hãy chọn lại bài trong lộ trình.");
+            return "redirect:/practice/prepare?typeCode=" + typeCode;
+        }
         if (type.isWriting()) {
             PracticeService.TypeSummary summary = practice.allSummaries(userId, email).stream()
                     .filter(s -> s.type().code().equals(typeCode)).findFirst().orElse(null);
@@ -104,6 +123,7 @@ public class PracticeController {
         }
         try {
             PracticeAttempt attempt = practice.start(userId, email, typeCode);
+            if (day != null) session.setAttribute("ROADMAP_PRACTICE_" + attempt.getId(), new RoadmapPractice(email, day, slot));
             return "redirect:/practice/play/" + attempt.getId();
         } catch (IllegalStateException e) {
             flash.addFlashAttribute("practiceError", e.getMessage());
@@ -134,7 +154,7 @@ public class PracticeController {
      */
     @GetMapping("/practice/next")
     public String nextPractice(@RequestParam("typeCode") String typeCode, HttpSession session, RedirectAttributes flash) {
-        return startPractice(typeCode, session, flash);
+        return startPractice(typeCode, null, null, session, flash);
     }
 
     @GetMapping("/practice/play/{attemptId}")
@@ -167,14 +187,27 @@ public class PracticeController {
 
     @PostMapping("/practice/submit/{attemptId}")
     public String submitPractice(@PathVariable Long attemptId, @RequestParam MultiValueMap<String, String> form,
-                                 HttpSession session) {
+                                 HttpSession session, RedirectAttributes flash) {
         UserDTO user = AuthHelper.getLoggedInUser(session);
         Long userId = user != null ? user.getId() : 1L;
 
         Map<String, String> answers = form.entrySet().stream()
                 .filter(e -> e.getKey().startsWith("answer_"))
                 .collect(Collectors.toMap(e -> e.getKey().substring("answer_".length()), e -> e.getValue().get(0)));
-        practice.submit(userId, attemptId, answers);
+        PracticeAttempt attempt = practice.submit(userId, attemptId, answers);
+        String key = "ROADMAP_PRACTICE_" + attemptId;
+        if (session.getAttribute(key) instanceof RoadmapPractice linked && user != null
+                && linked.owner().equals(user.getEmail())) {
+            try {
+                if (roadmaps.matchesPracticeSlot(linked.owner(), linked.day(), linked.slot(), attempt.getTypeCode())) {
+                    roadmaps.setDone(linked.owner(), linked.day(), linked.slot(), true);
+                    flash.addFlashAttribute("roadmapLinked", true);
+                }
+            } catch (ExamDomainException e) {
+                flash.addFlashAttribute("practiceError", "Bài làm đã được lưu nhưng lộ trình đã thay đổi. Hãy kiểm tra lại lộ trình.");
+            }
+            session.removeAttribute(key);
+        }
         return "redirect:/practice/result/" + attemptId;
     }
 
@@ -202,13 +235,6 @@ public class PracticeController {
     @GetMapping({"/luyen-tap/viet/{cau}", "/practice/writing/{cau}"})
     public String practiceWriting(@PathVariable("cau") int cau) {
         return "redirect:/writing?question=" + cau;
-    }
-
-    @GetMapping({"/de-thi", "/exam"})
-    public String examIndex(Model model) {
-        model.addAttribute("pageTitle", "Đề thi · Full Mock & Mini Test · HOT TOPIK");
-        model.addAttribute("activePage", "exam");
-        return "exam/index";
     }
 
     @GetMapping("/practice/mini-test")

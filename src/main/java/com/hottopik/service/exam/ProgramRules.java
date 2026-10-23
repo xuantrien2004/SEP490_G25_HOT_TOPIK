@@ -64,7 +64,12 @@ public final class ProgramRules {
             throw new ExamDomainException(label + " chưa có số.");
         }
         List<Integer> nums = new ArrayList<>();
-        for (String part : raw.split("[,;\\s]+")) {
+        String values = raw.trim();
+        // Existing SQL Server versions store these lists as JSON arrays.
+        if (values.startsWith("[") && values.endsWith("]")) {
+            values = values.substring(1, values.length() - 1);
+        }
+        for (String part : values.split("[,;\\s]+")) {
             if (part.isBlank()) continue;
             try {
                 nums.add(Integer.parseInt(part.trim()));

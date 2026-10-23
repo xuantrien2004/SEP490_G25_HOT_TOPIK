@@ -7,6 +7,9 @@
 
 <main class="container py-4" style="max-width: 1080px; min-height: 85vh;">
 
+    <div th:if="${roadmapLinked}" class="alert alert-success">Kết quả bài làm đã được tính vào lộ trình học tập của bạn!</div>
+    <div th:if="${practiceError}" class="alert alert-warning" th:text="${practiceError}"></div>
+
     <!-- Banner Kết quả tổng kết -->
     <div class="position-relative p-4 p-md-5 rounded-4 mb-4 border shadow-sm overflow-hidden"
          style="background: linear-gradient(135deg, #E8F5E9 0%, #F1F8E9 100%); border-color: #A9D9C0 !important;">

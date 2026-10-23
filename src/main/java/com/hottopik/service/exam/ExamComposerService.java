@@ -3,6 +3,7 @@ package com.hottopik.service.exam;
 import com.hottopik.dto.ApprovalRequestDTO;
 import com.hottopik.entity.exam.*;
 import com.hottopik.repository.exam.ExamRepository;
+import com.hottopik.repository.exam.ExamAttemptRepository;
 import com.hottopik.repository.exam.QuestionRepository;
 import com.hottopik.repository.exam.WritingPromptRepository;
 import com.hottopik.service.AdminSystemService;
@@ -79,16 +80,18 @@ public class ExamComposerService {
     // ------------------------------------------------------------------
 
     private final ExamRepository exams;
+    private final ExamAttemptRepository attempts;
     private final QuestionRepository questions;
     private final WritingPromptRepository writingPrompts;
     private final ApprovalService approvals;
     private final AdminSystemService audit;
     private final Random random = new Random();
 
-    public ExamComposerService(ExamRepository exams, QuestionRepository questions,
+    public ExamComposerService(ExamRepository exams, ExamAttemptRepository attempts, QuestionRepository questions,
                                WritingPromptRepository writingPrompts, ApprovalService approvals,
                                AdminSystemService audit) {
         this.exams = exams;
+        this.attempts = attempts;
         this.questions = questions;
         this.writingPrompts = writingPrompts;
         this.approvals = approvals;
@@ -159,6 +162,7 @@ public class ExamComposerService {
             e.getItems().add(new ExamItem(e, q.getSkill(), q.getOriginalNo(), q.getTypeCode(), q));
         }
         for (WritingPrompt p : writing) setWritingSlot(e, p);
+        synchronizeMinis(e);
         log(actor, "CREATE_EXAM", "Tạo " + e.getName() + " (nháp) từ nguồn đề \"" + source.getName() + "\" theo đúng thứ tự câu của file");
         return e;
     }
@@ -211,6 +215,8 @@ public class ExamComposerService {
         requireContent(actor);
         Exam e = editable(id);
         if (e.getPublishedAt() != null) throw new ExamDomainException("Đề đã từng phát hành, chỉ lưu trữ được.");
+        exams.deleteAll(exams.findByParentId(id));
+        exams.flush();
         exams.delete(e);
         log(actor, "DELETE_EXAM", "Xoá bản nháp " + e.getName());
     }
@@ -590,13 +596,37 @@ public class ExamComposerService {
         }
         e.setStatus(ExamStatus.PUBLISHED);
         e.setPublishedAt(LocalDateTime.now());
+        List<String> created = synchronizeMinis(e);
+        log(admin, "PUBLISH_EXAM", "Phát hành " + e.getName());
+        log(admin, "AUTO_MINI_TEST", "Tự sinh Mini Test từ " + e.getName() + ": " + String.join(", ", created));
+    }
+
+    /** Recover missing/oversized automatic minis for existing papers without changing an attempted paper. */
+    @EventListener(ApplicationReadyEvent.class)
+    @Transactional
+    public void synchronizeExistingMinis() {
+        List<Long> ids = exams.findAllByOrderByIdDesc().stream()
+                .filter(e -> e.getKind() == ExamKind.FULL
+                        && (e.getStatus() == ExamStatus.DRAFT || e.getStatus() == ExamStatus.PUBLISHED))
+                .map(Exam::getId).toList();
+        for (Long id : ids) synchronizeMinis(get(id));
+    }
+
+    private List<String> synchronizeMinis(Exam e) {
         List<String> created = new ArrayList<>();
-        boolean entered = enteredPaper(e);
+        Map<ExamKind, Exam> children = exams.findByParentId(e.getId()).stream()
+                .collect(Collectors.toMap(Exam::getKind, c -> c));
         for (QuestionTypeCatalog.Section s : QuestionTypeCatalog.sections(e.getTrack())) {
             ExamKind kind = ExamKind.valueOf(s.skill().name());
-            if (entered && kind == ExamKind.WRITING && e.writingPrompts().isEmpty()) continue;
-            if (entered && kind != ExamKind.WRITING && e.getItems().stream().noneMatch(it -> it.getSection() == s.skill())) continue;
-            Exam mini = new Exam();
+            List<ExamItem> selected = kind == ExamKind.WRITING ? List.of() : MiniTestSelector.select(e, s.skill());
+            if (kind == ExamKind.WRITING) {
+                if (!e.hasFullWritingSet() || e.writingPrompts().stream().anyMatch(p -> p.getStatus() != QuestionStatus.ACTIVE)) continue;
+            } else if (selected.isEmpty()) continue;
+            Exam mini = children.get(kind);
+            boolean fresh = mini == null;
+            if (fresh) mini = new Exam();
+            boolean rebuild = fresh || ((!MiniTestSelector.compact(mini) || !MiniTestSelector.fromParent(mini, e))
+                    && !attempts.existsByExamId(mini.getId()));
             mini.setKind(kind);
             mini.setTrack(e.getTrack());
             mini.setParent(e);
@@ -605,29 +635,31 @@ public class ExamComposerService {
             mini.setSeqNo(e.getSeqNo());
             mini.setName("Mini " + s.skill().getLabel() + " " + e.getTrack().getLabel() + " · Đề " + e.getSeqNo());
             mini.setCode(e.getCode() + "-" + s.skill().name().charAt(0));
-            mini.setStatus(ExamStatus.PUBLISHED);
+            mini.setStatus(e.getStatus());
             mini.setPublishedAt(e.getPublishedAt());
-            mini.setListeningMinutes(e.getListeningMinutes());
-            mini.setReadingMinutes(e.getReadingMinutes());
-            mini.setWritingMinutes(e.getWritingMinutes());
             mini.setCreatedBy("Hệ thống");
-            if (kind == ExamKind.WRITING) {
+            if (rebuild && kind == ExamKind.WRITING) {
                 mini.setWriting51(e.getWriting51());
                 mini.setWriting52(e.getWriting52());
                 mini.setWriting53(e.getWriting53());
                 mini.setWriting54(e.getWriting54());
-            } else {
-                for (ExamItem it : e.getItems()) {
-                    if (it.getSection() == s.skill()) {
-                        mini.getItems().add(new ExamItem(mini, it.getSection(), it.getNo(), it.getTypeCode(), it.getQuestion()));
-                    }
+                mini.setWritingMinutes(e.getWritingMinutes());
+            } else if (rebuild) {
+                if (!fresh) {
+                    mini.getItems().clear();
+                    exams.flush();
                 }
+                for (ExamItem it : selected) mini.getItems().add(new ExamItem(mini, it.getSection(), it.getNo(),
+                        QuestionTypeCatalog.resolve(e.getTrack(), s.skill(), it.getNo()).orElseThrow().code(), it.getQuestion()));
+                int parentMinutes = s.skill() == Skill.LISTENING ? e.getListeningMinutes() : e.getReadingMinutes();
+                int minutes = Math.max(5, (int) Math.ceil((double) parentMinutes * selected.size() / s.count()));
+                if (kind == ExamKind.LISTENING) mini.setListeningMinutes(minutes);
+                else mini.setReadingMinutes(minutes);
             }
             exams.save(mini);
             created.add(mini.getName());
         }
-        log(admin, "PUBLISH_EXAM", "Phát hành " + e.getName());
-        log(admin, "AUTO_MINI_TEST", "Tự sinh Mini Test từ " + e.getName() + ": " + String.join(", ", created));
+        return created;
     }
 
     private void archive(Exam e, Actor admin) {

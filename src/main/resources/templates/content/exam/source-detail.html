@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
 <body>
 <th:block th:replace="~{fragments/content-shell :: styles}"></th:block>
-<div class="cm-shell" th:with="activated=${source.status.name() == 'ACTIVE'}, hasJob=${job != null}, clean=${job != null and job.errorCount == 0}, editable=${canEdit and source.status.name() != 'ACTIVE'}, total=${#lists.size(slots)}">
+<div class="cm-shell" th:with="activated=${source.status.name() == 'ACTIVE'}, hasJob=${job != null}, clean=${job != null and errorCount == 0}, editable=${canEdit and source.status.name() != 'ACTIVE'}, total=${#lists.size(slots)}">
     <aside th:replace="~{fragments/content-shell :: sidebar('sources')}"></aside>
     <div class="cm-main">
         <header class="cm-header">
@@ -24,14 +24,19 @@
                 <a class="btn btn-ssak-outline btn-sm" th:href="@{/content/sources/{id}/preview(id=${source.id})}">Xem như học viên</a>
                 <span th:if="${activated}" class="pill pill-mint">Đã kích hoạt</span>
                 <span th:unless="${activated}" class="pill pill-gray">Bản nháp</span>
-                <form th:if="${canEdit}" th:action="@{/content/sources/{id}/status(id=${source.id})}" method="post" style="display:inline; margin:0;">
-                    <input type="hidden" name="status" th:value="${activated ? 'DRAFT' : 'ACTIVE'}" />
+                <form th:if="${canEdit and !bankActivated}" th:action="@{/content/sources/{id}/status(id=${source.id})}" method="post" style="display:inline; margin:0;">
+                    <input type="hidden" name="status" th:value="${activated and bankActivated ? 'DRAFT' : 'ACTIVE'}" />
                     <input type="hidden" name="back" th:value="@{/content/sources/{id}(id=${source.id})}" />
                     <button type="submit" class="btn btn-ssak-outline btn-sm"
-                            th:text="${activated ? 'Chuyển về Bản nháp' : 'Kích hoạt ngay'}"
-                            th:title="${activated ? 'Chuyển về Bản nháp để chỉnh sửa' : 'Kích hoạt nguồn đề này'}">
+                            th:text="${activated and bankActivated ? 'Chuyển về Bản nháp' : (activated ? 'Hoàn tất kích hoạt' : 'Kích hoạt ngay')}"
+                            th:title="${activated and bankActivated ? 'Chuyển về Bản nháp để chỉnh sửa' : 'Đưa câu vào ngân hàng và tạo đề trong thư viện'}">
                         Chuyển trạng thái
                     </button>
+                </form>
+                <form th:if="${canEdit and activated and !bankActivated}" th:action="@{/content/sources/{id}/status(id=${source.id})}" method="post">
+                    <input type="hidden" name="status" value="DRAFT">
+                    <input type="hidden" name="back" th:value="@{/content/sources/{id}(id=${source.id})}">
+                    <button type="submit" class="btn btn-ssak-outline btn-sm">Về nháp để bổ sung câu</button>
                 </form>
                 <span th:if="${canEdit}" class="perm perm-full">Toàn quyền</span>
                 <span th:unless="${canEdit}" class="perm perm-view">Chỉ xem</span>
@@ -45,7 +50,7 @@
                     <div class="paper-bar">
                         <div class="grow">
                             <h2 style="margin:0;">Nhập đề</h2>
-                            <div class="cm-muted" th:text="${filledSlots + ' câu đã nhập' + (job.errorCount > 0 ? ' · còn ' + job.errorCount + ' lỗi' : ' · đủ để đưa vào ngân hàng và thư viện đề') + (job.warningCount > 0 ? ' · ' + job.warningCount + ' nhắc' : '')}">0 câu</div>
+                            <div class="cm-muted" th:text="${filledSlots + ' câu đã nhập' + (errorCount > 0 ? ' · còn ' + errorCount + ' lỗi' : ' · đủ để đưa vào ngân hàng và thư viện đề') + (warningCount > 0 ? ' · ' + warningCount + ' nhắc' : '')}">0 câu</div>
                         </div>
                         <a class="btn btn-ssak-outline btn-sm" th:href="@{/content/sources/{id}/preview(id=${source.id})}">Xem như học viên</a>
                         <form th:if="${editable}" th:action="@{/content/sources/{id}/activate(id=${source.id})}" method="post"
@@ -57,11 +62,11 @@
                     <p class="cm-muted" style="margin: 10px 0 0;">Chọn Nghe, Đọc hoặc Viết, rồi chọn dạng câu của phần đó. Danh sách là các mẫu đã chốt, ví dụ TPL1-LIS-01. Bấm ô số bất kỳ trên lưới. Ô xám là chưa nhập, ô xanh là đã nhập, ô đang mở sáng hơn. Câu dùng chung thì bấm đủ số ô của dạng đó, lần lượt ô nào cũng được.</p>
                 </div>
 
-                <div th:if="${job.errorCount > 0 and !#lists.isEmpty(errors)}" class="cm-flash info">
+                <div th:if="${!#lists.isEmpty(currentErrors)}" class="cm-flash info" id="current-question-errors">
                     <span>i</span>
                     <span>
-                        <th:block th:each="i, st : ${errors}">
-                            <th:block th:if="${st.index < 4}"><span th:text="${i.message()}">Thiếu câu</span><br th:if="${!st.last and st.index < 3}"></th:block>
+                        <th:block th:each="message, st : ${currentErrors}">
+                            <span th:text="${message}">Thiếu câu</span><br th:if="${!st.last}">
                         </th:block>
                     </span>
                 </div>
@@ -137,7 +142,7 @@
                                 <textarea name="prompt" rows="3" class="form-control ko" th:disabled="${!editable}" th:text="${ask.prompt}"></textarea>
                                 <div data-when="choices">
                                     <label>Bốn phương án. Chọn đáp án đúng.</label>
-                                    <p class="cm-muted choice-hint">Với dạng chọn tranh, mỗi phương án là tên file ảnh đã tải.</p>
+                                    <p class="cm-muted choice-hint">Có thể nhập nội dung hoặc tên file ảnh đã tải cho từng phương án.</p>
                                     <div class="opt-line"><span class="mark">①</span><input name="opt1" class="form-control ko" th:value="${ask.opt1}" th:disabled="${!editable}" placeholder="Phương án 1" list="media-names"></div>
                                     <div class="opt-line"><span class="mark">②</span><input name="opt2" class="form-control ko" th:value="${ask.opt2}" th:disabled="${!editable}" placeholder="Phương án 2" list="media-names"></div>
                                     <div class="opt-line"><span class="mark">③</span><input name="opt3" class="form-control ko" th:value="${ask.opt3}" th:disabled="${!editable}" placeholder="Phương án 3" list="media-names"></div>
@@ -228,7 +233,7 @@
                 <div class="paper-bar">
                     <div class="grow">
                         <h2 style="margin:0;">Nhập đề</h2>
-                        <div class="cm-muted" th:text="${filledSlots + ' / ' + total + ' câu đã có nội dung' + (job.errorCount > 0 ? ' · còn ' + job.errorCount + ' lỗi cấu trúc' : ' · đủ để đưa vào ngân hàng') + (job.warningCount > 0 ? ' · ' + job.warningCount + ' cảnh báo' : '')}">0 / 70</div>
+                        <div class="cm-muted" th:text="${filledSlots + ' / ' + total + ' câu đã có nội dung' + (errorCount > 0 ? ' · còn ' + errorCount + ' lỗi cấu trúc' : ' · đủ để đưa vào ngân hàng') + (warningCount > 0 ? ' · ' + warningCount + ' cảnh báo' : '')}">0 / 70</div>
                     </div>
                     <div class="paper-meter" th:if="${total > 0}" aria-hidden="true">
                         <span th:style="'width:' + (${filledSlots * 100 / total}) + '%'"></span>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body style="background:#F8F6EF;color:#24363D;font-family:var(--font-body)">
+<div th:replace="~{fragments/navbar :: navbar('exam')}"></div>
+<main class="container py-4" style="max-width:1080px">
+    <section class="bg-white border rounded-4 p-4 mb-4 shadow-sm">
+        <span class="badge text-bg-success" th:text="${paper.track.label}"></span>
+        <h1 class="h3 mt-2" th:text="${'Kết quả: ' + paper.title}"></h1>
+        <p th:if="${paper.attempt.total > 0}" class="h4 text-success" th:text="${'Trắc nghiệm: ' + paper.attempt.correct + '/' + paper.attempt.total + ' câu đúng'}"></p>
+        <p th:unless="${#lists.isEmpty(paper.writing)}">Bài Viết đã được lưu. Bạn có thể đối chiếu với bài mẫu và tiêu chí bên dưới; phần tự luận chưa được tính điểm.</p>
+        <div class="d-flex flex-wrap gap-3 mt-3">
+            <a class="btn btn-outline-secondary" th:href="${backUrl}">← Danh sách đề</a>
+            <form method="post" th:action="@{/exam/{id}/retry(id=${paper.attempt.exam.id})}"><button class="btn btn-success" type="submit">Làm lại đề này</button></form>
+        </div>
+    </section>
+    <h2 class="h5 mb-3">Chi tiết từng câu hỏi</h2>
+    <article th:each="q : ${paper.questions}" class="bg-white border rounded-4 p-4 mb-3">
+        <div class="d-flex justify-content-between mb-3"><strong th:text="${q.label}"></strong>
+            <span class="badge" th:classappend="${q.selected == #strings.toString(q.answer) ? 'text-bg-success' : 'text-bg-danger'}"
+                  th:text="${q.selected == null ? 'Chưa trả lời' : q.selected == #strings.toString(q.answer) ? 'Đúng' : 'Sai'}"></span></div>
+        <audio th:if="${q.audio != null}" controls preload="none" class="w-100 mb-3" th:src="${q.audio}"></audio>
+        <img th:if="${q.image != null}" th:src="${q.image}" alt="Hình đề bài" style="max-width:100%;max-height:400px">
+        <p style="white-space:pre-wrap" th:text="${q.passage}"></p>
+        <p class="fw-semibold" style="white-space:pre-wrap" th:text="${q.prompt}"></p>
+        <div th:each="option, stat : ${q.options}" class="border rounded-3 p-3 mb-2"
+             th:classappend="${stat.count == q.answer ? 'border-success bg-success-subtle' : #strings.toString(stat.count) == q.selected ? 'border-danger bg-danger-subtle' : ''}">
+            <strong th:text="${stat.count + '. '}"></strong>
+            <img th:if="${option.image != null}" th:src="${option.image}" alt="Hình đáp án" style="max-width:85%;max-height:180px">
+            <span th:unless="${option.image != null}" th:text="${option.text}"></span>
+            <span class="fw-bold ms-2" th:if="${#strings.toString(stat.count) == q.selected}">← Bạn chọn</span>
+        </div>
+        <p class="text-success fw-bold" th:text="${'Đáp án đúng: ' + q.answer}"></p>
+        <div style="white-space:pre-wrap"><strong>Giải thích: </strong><span th:text="${q.explanation}"></span></div>
+        <details th:if="${q.script != null}" class="mt-3"><summary>Lời thoại</summary><p style="white-space:pre-wrap" th:text="${q.script}"></p></details>
+    </article>
+    <article th:each="q : ${paper.writing}" class="bg-white border rounded-4 p-4 mb-3">
+        <h3 class="h6" th:text="${'Viết · Câu ' + q.no}"></h3>
+        <p style="white-space:pre-wrap" th:text="${q.prompt}"></p>
+        <img th:if="${q.image != null}" th:src="${q.image}" alt="Biểu đồ đề bài" style="max-width:100%;max-height:400px">
+        <table th:unless="${#lists.isEmpty(q.chart)}" class="table table-bordered"><tbody>
+            <tr th:each="row : ${q.chart}"><th th:text="${row['label']}"></th><td th:text="${row['value']}"></td></tr>
+        </tbody></table>
+        <h4 class="h6">Bài làm của bạn</h4><p class="p-3 rounded-3 bg-light" style="white-space:pre-wrap" th:text="${q.selected == null ? 'Chưa trả lời' : q.selected}"></p>
+        <h4 class="h6">Bài mẫu / Đáp án tham khảo</h4><p style="white-space:pre-wrap" th:text="${q.modelAnswer}"></p>
+        <h4 class="h6">Tiêu chí</h4><p style="white-space:pre-wrap" th:text="${q.rubric}"></p>
+    </article>
+    <section class="bg-white border rounded-4 p-4 my-4">
+        <h2 class="h5">Lịch sử làm đề này</h2>
+        <div th:each="attempt : ${paper.history}" class="d-flex justify-content-between border-bottom py-3">
+            <span th:text="${#temporals.format(attempt.completedAt, 'dd/MM/yyyy HH:mm')}"></span>
+            <span th:text="${attempt.total == 0 ? 'Đã lưu bài Viết' : attempt.correct + '/' + attempt.total + ' câu đúng'}"></span>
+            <a th:href="@{/ket-qua/{id}(id=${attempt.id})}">Xem chi tiết</a>
+        </div>
+    </section>
+</main>
+</body>
+</html>

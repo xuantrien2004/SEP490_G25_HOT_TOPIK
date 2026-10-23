@@ -76,14 +76,15 @@
                 Đang làm dở: 0
             </span>
             <span id="pillDone" style="background: #E6F4EA; color: #137333; padding: 6px 14px; border-radius: 10px; font-size: 13px; font-weight: 800;">
-                Đã làm: 1
+                Đã làm: 0
             </span>
             <span id="pillNotDone" style="background: #ECEAE4; color: #5F6368; padding: 6px 14px; border-radius: 10px; font-size: 13px; font-weight: 800;">
-                Chưa làm: 2
+                Chưa làm: 0
             </span>
         </div>
     </div>
 
+    <div th:if="${examError}" class="alert alert-warning" role="alert" th:text="${examError}"></div>
     <!-- MAIN TWO-COLUMN LAYOUT -->
     <div style="display: flex; gap: 24px; align-items: flex-start;">
         
@@ -276,199 +277,76 @@
 }
 </style>
 
-<script>
-let currentTopTab = 'full'; // 'full', 'listening', 'reading', 'writing'
-let currentTrack = 'II';     // 'I', 'II'
-
-const examsData = {
-    'II': {
-        'full': [
-            {
-                id: 1,
-                title: 'Full Mock TOPIK II · Đề 1',
-                badge: 'Đã làm',
-                badgeColor: '#E6F4EA',
-                badgeTextColor: '#137333',
-                sub: 'Đề đầy đủ Nghe · Viết · Đọc · 104 câu · 180 phút',
-                history: 'Lần gần nhất: 158/300 · TOPIK 4 · đã làm 1 lần',
-                isDone: true,
-                btnOutline: 'Làm lại',
-                btnPrimary: 'Xem kết quả'
-            },
-            {
-                id: 2,
-                title: 'Full Mock TOPIK II · Đề 2',
-                badge: 'Chưa làm',
-                badgeColor: '#ECEAE4',
-                badgeTextColor: '#5F6368',
-                sub: 'Đề đầy đủ Nghe · Viết · Đọc · 104 câu · 180 phút',
-                history: 'Chưa làm',
-                isDone: false,
-                btnPrimary: 'Bắt đầu'
-            },
-            {
-                id: 3,
-                title: 'Full Mock TOPIK II · Đề 3',
-                badge: 'Chưa làm',
-                badgeColor: '#ECEAE4',
-                badgeTextColor: '#5F6368',
-                sub: 'Đề đầy đủ Nghe · Viết · Đọc · 104 câu · 180 phút',
-                history: 'Chưa làm',
-                isDone: false,
-                btnPrimary: 'Bắt đầu'
-            }
-        ],
-        'listening': [
-            { id: 1, title: 'Mini Test Nghe TOPIK II · Đề 1', badge: 'Chưa làm', sub: 'Phần Nghe · 50 câu · 60 phút', history: 'Chưa làm', isDone: false, btnPrimary: 'Bắt đầu' },
-            { id: 2, title: 'Mini Test Nghe TOPIK II · Đề 2', badge: 'Chưa làm', sub: 'Phần Nghe · 50 câu · 60 phút', history: 'Chưa làm', isDone: false, btnPrimary: 'Bắt đầu' }
-        ],
-        'reading': [
-            { id: 1, title: 'Mini Test Đọc TOPIK II · Đề 1', badge: 'Chưa làm', sub: 'Phần Đọc · 50 câu · 70 phút', history: 'Chưa làm', isDone: false, btnPrimary: 'Bắt đầu' },
-            { id: 2, title: 'Mini Test Đọc TOPIK II · Đề 2', badge: 'Chưa làm', sub: 'Phần Đọc · 50 câu · 70 phút', history: 'Chưa làm', isDone: false, btnPrimary: 'Bắt đầu' }
-        ],
-        'writing': [
-            { id: 1, title: 'Mini Test Viết TOPIK II · Đề 1', badge: 'Chưa làm', sub: 'Phần Viết câu 51–54 · 4 câu · 50 phút', history: 'Chưa làm', isDone: false, btnPrimary: 'Bắt đầu' }
-        ]
-    },
-    'I': {
-        'full': [
-            {
-                id: 1,
-                title: 'Full Mock TOPIK I · Đề 1',
-                badge: 'Chưa làm',
-                badgeColor: '#ECEAE4',
-                badgeTextColor: '#5F6368',
-                sub: 'Đề đầy đủ Nghe · Đọc · 70 câu · 100 phút',
-                history: 'Chưa làm',
-                isDone: false,
-                btnPrimary: 'Bắt đầu'
-            },
-            {
-                id: 2,
-                title: 'Full Mock TOPIK I · Đề 2',
-                badge: 'Chưa làm',
-                badgeColor: '#ECEAE4',
-                badgeTextColor: '#5F6368',
-                sub: 'Đề đầy đủ Nghe · Đọc · 70 câu · 100 phút',
-                history: 'Chưa làm',
-                isDone: false,
-                btnPrimary: 'Bắt đầu'
-            },
-            {
-                id: 3,
-                title: 'Full Mock TOPIK I · Đề 3',
-                badge: 'Chưa làm',
-                badgeColor: '#ECEAE4',
-                badgeTextColor: '#5F6368',
-                sub: 'Đề đầy đủ Nghe · Đọc · 70 câu · 100 phút',
-                history: 'Chưa làm',
-                isDone: false,
-                btnPrimary: 'Bắt đầu'
-            }
-        ],
-        'listening': [
-            { id: 1, title: 'Mini Test Nghe TOPIK I · Đề 1', badge: 'Chưa làm', sub: 'Phần Nghe · 30 câu · 40 phút', history: 'Chưa làm', isDone: false, btnPrimary: 'Bắt đầu' }
-        ],
-        'reading': [
-            { id: 1, title: 'Mini Test Đọc TOPIK I · Đề 1', badge: 'Chưa làm', sub: 'Phần Đọc · 40 câu · 60 phút', history: 'Chưa làm', isDone: false, btnPrimary: 'Bắt đầu' }
-        ]
-    }
-};
-
+<script th:inline="javascript">
+const examsData = /*[[${examData}]]*/ {};
+const params = new URLSearchParams(window.location.search);
+let currentTopTab = ['full', 'listening', 'reading', 'writing'].includes(params.get('kind')) ? params.get('kind') : 'full';
+let currentTrack = params.get('track') === 'I' ? 'I' : 'II';
+function escapeHtml(value) {
+    const element = document.createElement('span');
+    element.textContent = value == null ? '' : String(value);
+    return element.innerHTML.replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+}
 function selectTopikTrack(track) {
     currentTrack = track;
     document.getElementById('btnTopik1').classList.toggle('active', track === 'I');
     document.getElementById('btnTopik2').classList.toggle('active', track === 'II');
-
-    const desc = document.getElementById('topikTrackDesc');
-    const writingTab = document.getElementById('tab-writing');
-
-    if (track === 'I') {
-        desc.textContent = 'TOPIK I: cấp 1–2 · Nghe và Đọc';
-        writingTab.style.display = 'none'; // TOPIK I has no writing
-        if (currentTopTab === 'writing') currentTopTab = 'full';
-    } else {
-        desc.textContent = 'TOPIK II: cấp 3–6 · Nghe, Viết và Đọc';
-        writingTab.style.display = 'flex';
-    }
-
+    document.getElementById('topikTrackDesc').textContent = track === 'I'
+        ? 'TOPIK I: cấp 1–2 · Nghe và Đọc' : 'TOPIK II: cấp 3–6 · Nghe, Viết và Đọc';
+    document.getElementById('tab-writing').style.display = track === 'I' ? 'none' : 'flex';
+    if (track === 'I' && currentTopTab === 'writing') currentTopTab = 'full';
     renderExams();
 }
-
 function switchExamTab(tabName) {
     currentTopTab = tabName;
-    document.querySelectorAll('.exam-top-tab').forEach(t => t.classList.remove('active'));
-    document.getElementById('tab-' + tabName).classList.add('active');
     renderExams();
 }
-
+function actionButton(label, url, primary, post) {
+    const css = primary ? 'btn-exam-primary' : 'btn-exam-outline';
+    return post ? `<form method="post" action="${escapeHtml(url)}" style="margin:0"><button type="submit" class="${css}">${escapeHtml(label)}</button></form>`
+        : `<a href="${escapeHtml(url)}" class="${css}">${escapeHtml(label)}</a>`;
+}
 function renderExams() {
+    document.querySelectorAll('.exam-top-tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + currentTopTab));
     const container = document.getElementById('examListContainer');
     container.innerHTML = '';
-
-    const list = (examsData[currentTrack] && examsData[currentTrack][currentTopTab]) ? examsData[currentTrack][currentTopTab] : [];
-
-    let doneCount = 0;
-    let notDoneCount = 0;
-
+    const list = examsData[currentTrack]?.[currentTopTab] || [];
+    let done = 0, pending = 0, fresh = 0;
+    if (!list.length) {
+        const message = document.createElement('div');
+        message.className = 'exam-card';
+        const names = {full: 'Full Mock', listening: 'Mini Nghe', reading: 'Mini Đọc', writing: 'Mini Viết'};
+        message.textContent = `Hiện chưa có đề ${names[currentTopTab]} TOPIK ${currentTrack} được phát hành. Bạn có thể chọn mục khác hoặc quay lại sau.`;
+        container.appendChild(message);
+    }
     list.forEach(item => {
-        if (item.isDone) doneCount++;
-        else notDoneCount++;
-
+        if (item.inProgress) pending++; else if (item.isDone) done++; else fresh++;
         const card = document.createElement('div');
         card.className = 'exam-card' + (item.isDone ? ' done-card' : '');
-
-        let iconHtml = '';
-        if (item.isDone) {
-            iconHtml = `<div style="width: 44px; height: 44px; border-radius: 50%; background: #2E7D67; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; flex-shrink: 0;">✓</div>`;
-        } else {
-            iconHtml = `<div style="width: 44px; height: 44px; border-radius: 50%; background: #ECEAE4; color: #53646C; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">▶</div>`;
-        }
-
-        let buttonsHtml = '';
-        if (item.btnOutline) {
-            buttonsHtml += `<a href="/lam-bai/ATT-MOCK" class="btn-exam-outline">${item.btnOutline}</a>`;
-        }
-        if (item.btnPrimary) {
-            buttonsHtml += `<a href="${item.isDone ? '/ket-qua/ATT-MOCK' : '/lam-bai/ATT-MOCK'}" class="btn-exam-primary">${item.btnPrimary}</a>`;
-        }
-
+        const color = item.inProgress ? '#F5A623' : item.isDone ? '#2E7D67' : '#ECEAE4';
+        const icon = item.inProgress ? '❚❚' : item.isDone ? '✓' : '▶';
+        let buttons = item.btnOutline ? actionButton(item.btnOutline, item.outlineUrl, false, !item.inProgress) : '';
+        buttons += actionButton(item.btnPrimary, item.primaryUrl, true, item.primaryPost);
         card.innerHTML = `
-            <div style="display: flex; gap: 18px; align-items: center;">
-                ${iconHtml}
+            <div style="display:flex;gap:18px;align-items:center">
+                <div style="width:44px;height:44px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;flex-shrink:0">${icon}</div>
                 <div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #24363D;">
-                            ${item.title}
-                        </h3>
-                        <span style="background: ${item.badgeColor || '#ECEAE4'}; color: ${item.badgeTextColor || '#5F6368'}; font-size: 11.5px; font-weight: 800; padding: 2px 10px; border-radius: 8px;">
-                            ${item.badge}
-                        </span>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <h3 style="margin:0;font-family:var(--font-heading);font-size:17px;font-weight:800;color:#24363D">${escapeHtml(item.title)}</h3>
+                        <span style="background:${item.badgeColor};color:${item.badgeTextColor};font-size:11.5px;font-weight:800;padding:2px 10px;border-radius:8px">${escapeHtml(item.badge)}</span>
                     </div>
-                    <div style="font-size: 13px; color: #53646C; margin-top: 4px;">
-                        ${item.sub}
-                    </div>
-                    <div style="font-size: 12.5px; font-weight: 600; color: #24363D; margin-top: 4px;">
-                        ${item.history}
-                    </div>
+                    <div style="font-size:13px;color:#53646C;margin-top:4px">${escapeHtml(item.sub)}</div>
+                    <div style="font-size:12.5px;font-weight:600;color:#24363D;margin-top:4px">${escapeHtml(item.history)}</div>
                 </div>
             </div>
-
-            <div style="display: flex; gap: 10px; align-items: center;">
-                ${buttonsHtml}
-            </div>
-        `;
-
+            <div style="display:flex;gap:10px;align-items:center">${buttons}</div>`;
         container.appendChild(card);
     });
-
-    // Update Counter Pills
-    document.getElementById('pillDone').textContent = `Đã làm: ${doneCount}`;
-    document.getElementById('pillNotDone').textContent = `Chưa làm: ${notDoneCount}`;
+    document.getElementById('pillInProgress').textContent = `Đang làm dở: ${pending}`;
+    document.getElementById('pillDone').textContent = `Đã làm: ${done}`;
+    document.getElementById('pillNotDone').textContent = `Chưa làm: ${fresh}`;
 }
-
-// Initial render for TOPIK II Full Mock (Image 2)
-renderExams();
+selectTopikTrack(currentTrack);
 </script>
 </body>
 </html>

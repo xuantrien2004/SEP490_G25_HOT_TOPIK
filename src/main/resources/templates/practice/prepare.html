@@ -54,6 +54,8 @@
         <div class="d-flex align-items-center gap-3">
             <form th:if="${summary.available > 0}" method="post" th:action="@{/practice/start}" class="m-0">
                 <input type="hidden" name="typeCode" th:value="${type.code}">
+                <input th:if="${day != null and slot != null}" type="hidden" name="day" th:value="${day}">
+                <input th:if="${day != null and slot != null}" type="hidden" name="slot" th:value="${slot}">
                 <button class="btn btn-success btn-lg fw-bold px-5 py-3 rounded-3 shadow-sm d-flex align-items-center gap-2" type="submit">
                     <span>🚀</span>
                     <span th:text="${type.isWriting()} ? 'Mở khu vực luyện Viết →' : 'Bắt đầu bài luyện mới →'">Bắt đầu bài luyện mới →</span>

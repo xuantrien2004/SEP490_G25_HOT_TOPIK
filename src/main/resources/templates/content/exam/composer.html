@@ -234,7 +234,7 @@
                 <div class="cm-card">
                     <th:block th:if="${isFull}">
                         <h2>Mini Test tự sinh</h2>
-                        <div th:if="${#lists.isEmpty(children)}" class="cm-muted" style="margin-top: 6px;">Chưa có. Khi Admin duyệt phát hành, hệ thống tạo Mini Nghe, Mini Đọc<th:block th:if="${exam.track.name() == 'TOPIK_II'}"> và Mini Viết</th:block> từ đề này.</div>
+                        <div th:if="${#lists.isEmpty(children)}" class="cm-muted" style="margin-top: 6px;">Chưa đủ các dạng để tạo Mini Test. Mỗi Mini lấy một câu độc lập hoặc một nhóm câu của từng dạng trong kỹ năng; phát hành cùng đề gốc sau khi Admin duyệt.</div>
                         <table th:unless="${#lists.isEmpty(children)}" class="cm-table" style="margin-top: 8px;">
                             <tr th:each="c : ${children}">
                                 <td class="code" th:text="${c.code}">EX0001-L</td>

@@ -322,13 +322,16 @@ public class ContentExamController {
             importService.startManual(id, Actor.of(u));
         }
         Optional<ImportJob> job = importService.latestJob(id);
-        List<ImportIssue> issues = job.map(importService::issues).orElse(List.of());
+        List<ImportIssue> issues = job.map(importService::currentIssues).orElse(List.of());
         List<MediaAsset> media = importService.mediaOf(id);
         model.addAttribute("source", s);
         model.addAttribute("job", job.orElse(null));
+        model.addAttribute("bankActivated", job.map(j -> j.getStatus() == ImportJobStatus.ACTIVATED).orElse(false));
         model.addAttribute("issues", issues);
         model.addAttribute("errors", issues.stream().filter(ImportIssue::isError).toList());
         model.addAttribute("warnings", issues.stream().filter(i -> !i.isError()).toList());
+        model.addAttribute("errorCount", issues.stream().filter(ImportIssue::isError).count());
+        model.addAttribute("warningCount", issues.stream().filter(i -> !i.isError()).count());
         model.addAttribute("media", media);
         model.addAttribute("audioCount", media.stream().filter(m -> m.getKind() == MediaKind.AUDIO).count());
         model.addAttribute("imageCount", media.stream().filter(m -> m.getKind() == MediaKind.IMAGE).count());
@@ -337,7 +340,7 @@ public class ContentExamController {
         boolean manual = job.map(importService::isManual).orElse(false);
         model.addAttribute("manual", manual);
         if (manual) {
-            fillManualEntry(model, s, importService.cards(id), card, skill, type, nos, focus);
+            fillManualEntry(model, s, importService.cards(id), card, skill, type, nos, focus, issues);
         }
         List<ExamImportService.PaperSlot> slots = manual ? List.of() : importService.paper(id);
         if (manual) {
@@ -345,7 +348,8 @@ public class ContentExamController {
             if (s.getStatus() == SourceStatus.ACTIVE) {
                 model.addAttribute("createdQuestions", importService.questionsOf(id));
                 model.addAttribute("createdWriting", importService.writingOf(id));
-                model.addAttribute("sourceExams", List.of());
+                model.addAttribute("sourceExams", composer.library("DRAFT", null, null).stream()
+                        .filter(e -> e.getSource() != null && e.getSource().getId().equals(id)).toList());
             }
             return "content/exam/source-detail";
         }
@@ -458,6 +462,10 @@ public class ContentExamController {
     public String updateSourceStatus(@PathVariable Long id, @RequestParam SourceStatus status,
                                      @RequestParam(required = false) String back,
                                      HttpSession session, RedirectAttributes ra) {
+        if (status == SourceStatus.ACTIVE
+                && importService.latestJob(id).map(j -> j.getStatus() != ImportJobStatus.ACTIVATED).orElse(true)) {
+            return activate(id, session, ra);
+        }
         String target = (back != null && !back.isBlank()) ? back : "/content/sources";
         return mutate(session, ra, target, actor -> {
             importService.updateSourceStatus(id, status, actor);
@@ -781,7 +789,8 @@ public class ContentExamController {
                             boolean choices, String answerType, boolean writing, String help) {}
 
     private void fillManualEntry(Model model, ExamSource source, List<ExamImportService.CardView> cards,
-                                 String card, String skillRaw, String typeRaw, List<Integer> nos, Integer focus) {
+                                 String card, String skillRaw, String typeRaw, List<Integer> nos, Integer focus,
+                                 List<ImportIssue> issues) {
         model.addAttribute("cards", cards);
         model.addAttribute("slots", List.of());
         model.addAttribute("editSlot", null);
@@ -929,6 +938,11 @@ public class ContentExamController {
         model.addAttribute("entryTypes", entryTypes);
         model.addAttribute("entryCells", cells);
         model.addAttribute("editCard", edit);
+        int cardIndex = edit == null ? -1 : cards.indexOf(edit) + 1;
+        model.addAttribute("currentErrors", issues.stream()
+                .filter(i -> i.isError() && "CARD".equals(i.sheet()) && Objects.equals(i.no(), cardIndex))
+                .filter(i -> i.questionNo() == null || focusNo == null || Objects.equals(i.questionNo(), focusNo))
+                .map(ImportIssue::message).toList());
         model.addAttribute("showCardForm", complete);
         model.addAttribute("editAsks", editAsks);
         model.addAttribute("pairHint", hint);

@@ -184,7 +184,10 @@ public class LearnerRoadmapService {
         for (RoadmapSketch.DayPlan day : schedule.days()) {
             List<Map<String, Object>> slots = new ArrayList<>();
             for (RoadmapSketch.Slot slot : day.slots()) {
-                slots.add(slotView(slot, day.week(), program, byCode));
+                Map<String, Object> item = slotView(slot, day.week(), program, byCode);
+                item.put("track", plan.getTrack().name());
+                item.put("href", practiceHref(item));
+                slots.add(item);
             }
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("day", day.day());
@@ -354,28 +357,36 @@ public class LearnerRoadmapService {
         row.put("kind", source.get("kind"));
         row.put("done", finished);
         row.put("action", action);
-        row.put("href", practiceHref(source));
+        String href = String.valueOf(source.get("href"));
+        if (href.startsWith("/practice/prepare?")) href += "&day=" + day + "&slot=" + slot;
+        row.put("href", href);
         return row;
     }
 
     private static String practiceHref(Map<String, Object> slot) {
         String kind = String.valueOf(slot.get("kind"));
-        String type = practiceType(slot, kind);
-        String name = String.valueOf(slot.get("name") == null ? slot.get("title") : slot.get("name"));
-        String href = "/luyen-tap/chuan-bi?type=" + url(type) + "&name=" + url(name);
-        if ("MINI".equals(kind) || "FULL".equals(kind)) return href;
-        Object questions = slot.get("questions");
-        return href + "&questions=" + (questions == null ? "8" : questions);
+        String track = String.valueOf(slot.get("track"));
+        if ("MINI".equals(kind) || "FULL".equals(kind)) {
+            String examKind = "FULL".equals(kind) ? "full"
+                    : (String.valueOf(slot.get("name")).contains("Đọc") ? "reading" : "listening");
+            return "/exam?track=" + ("TOPIK_I".equals(track) ? "I" : "II") + "&kind=" + examKind;
+        }
+        List<String> types = QuestionTemplateCatalog.typeCodes(String.valueOf(slot.get("code")));
+        if (types.isEmpty()) return "/practice?track=" + url(track);
+        return "/practice/prepare?typeCode=" + url(types.get(0));
     }
 
-    private static String practiceType(Map<String, Object> slot, String kind) {
-        if ("MINI".equals(kind)) {
-            String name = String.valueOf(slot.get("name"));
-            return name.contains("Đọc") ? "mini-reading" : "mini-listening";
-        }
-        if ("FULL".equals(kind)) return "full";
-        if (slot.get("code") == null) return "weekly";
-        return String.valueOf(slot.get("code"));
+    /** Chỉ tính bài luyện cho đúng dạng đang có ở vị trí đó trong lịch hiện tại. */
+    @Transactional(readOnly = true)
+    public boolean matchesPracticeSlot(String owner, int day, int slot, String typeCode) {
+        StudyPlan plan = plans.findByOwnerEmail(owner).orElse(null);
+        if (plan == null) return false;
+        RoadmapSketch.Result schedule = programs.preview(programOf(plan), plan.getTrack(),
+                plan.getTotalDays(), plan.getItemsPerDay());
+        RoadmapSketch.DayPlan dayPlan = schedule.days().stream().filter(d -> d.day() == day).findFirst().orElse(null);
+        if (dayPlan == null || slot < 0 || slot >= dayPlan.slots().size()) return false;
+        String code = dayPlan.slots().get(slot).code();
+        return code != null && code.equals(QuestionTemplateCatalog.templateCode(typeCode));
     }
 
     private static Map<String, Object> weakest(List<Map<String, Object>> days, Set<String> done,

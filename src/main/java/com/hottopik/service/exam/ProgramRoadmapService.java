@@ -98,7 +98,7 @@ public class ProgramRoadmapService {
         }
         ProgramVersion src = programs.findFirstByStatusOrderByIdDesc(ProgramStatus.PUBLISHED)
                 .orElseThrow(() -> new ExamDomainException("Chưa có bản đang phát hành để nhân ra bản nháp."));
-        ProgramVersion copy = copyOf(src, actor.name());
+        ProgramVersion copy = copyOf(src, actor.userId());
         for (ProgramVersionItem item : itemsOf(src.getId())) {
             ProgramVersionItem row = new ProgramVersionItem();
             row.setProgram(copy);
@@ -234,7 +234,7 @@ public class ProgramRoadmapService {
         log(admin, "PUBLISH_PROGRAM", "Phát hành " + program.getVersionCode());
     }
 
-    private ProgramVersion copyOf(ProgramVersion src, String actorName) {
+    private ProgramVersion copyOf(ProgramVersion src, Long creatorId) {
         ProgramVersion copy = new ProgramVersion();
         copy.setVersionCode(nextCode());
         copy.setNote(src.getNote());
@@ -244,7 +244,7 @@ public class ProgramRoadmapService {
         copy.setPhaseSplit(src.getPhaseSplit());
         copy.setSessionsPerType(src.getSessionsPerType());
         copy.setQuestionsPerSession(src.getQuestionsPerSession());
-        copy.setCreatedBy(actorName);
+        copy.setCreatedBy(creatorId);
         return programs.save(copy);
     }
 
