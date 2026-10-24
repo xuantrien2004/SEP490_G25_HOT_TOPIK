@@ -3,6 +3,7 @@ package com.hottopik.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Nationalized;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
@@ -24,10 +25,12 @@ public class Topic {
     @Builder.Default
     private Integer level = 1;
 
-    @Column(name = "name", length = 100, nullable = false)
+    @Nationalized
+    @Column(name = "name", length = 100, nullable = false, columnDefinition = "NVARCHAR(100)")
     private String name;
 
-    @Column(name = "description", length = 500)
+    @Nationalized
+    @Column(name = "description", length = 500, columnDefinition = "NVARCHAR(500)")
     private String description;
 
     @Column(name = "status", length = 10, nullable = false)

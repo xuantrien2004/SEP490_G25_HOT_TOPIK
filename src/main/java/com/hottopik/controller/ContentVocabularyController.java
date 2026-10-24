@@ -230,11 +230,26 @@ public class ContentVocabularyController {
             dto.setRomanization(KoreanRomanizer.romanize(dto.getWord()));
         }
 
+        boolean isNew = (dto.getId() == null || dto.getId() <= 0);
+        boolean existedBefore = false;
+        if (isNew && dto.getTopikLevel() != null && dto.getWord() != null) {
+            existedBefore = vocabularyService.existsWordInLevel(dto.getTopikLevel(), dto.getWord());
+        }
+
         VocabularyDTO saved = vocabularyService.saveOrUpdate(dto);
-        String action = (dto.getId() == null || dto.getId() <= 0) ? "Thêm mới" : "Cập nhật";
+
+        String message;
+        if (isNew && existedBefore) {
+            message = "Từ vựng \"" + saved.getWord() + "\" đã tồn tại trong TOPIK " + saved.getTopikLevel() + "! Hệ thống đã tự động cập nhật thông tin (chỉ lưu 1 từ duy nhất).";
+        } else if (isNew) {
+            message = "Thêm mới từ vựng thành công!";
+        } else {
+            message = "Cập nhật từ vựng thành công!";
+        }
+
         return ResponseEntity.ok(Map.of(
                 "success", true,
-                "message", action + " từ vựng thành công!",
+                "message", message,
                 "data", saved
         ));
     }
@@ -291,11 +306,22 @@ public class ContentVocabularyController {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Danh sách từ rỗng."));
         }
 
+        int totalInput = list.size();
         int count = vocabularyService.bulkCreate(list);
+        int skipped = totalInput - count;
+
+        String msg;
+        if (skipped > 0) {
+            msg = "Đã nhập thành công " + count + " từ mới! (Đã tự động loại bỏ " + skipped + " từ bị trùng lặp)";
+        } else {
+            msg = "Đã tạo thành công " + count + " từ vựng vào hệ thống!";
+        }
+
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "count", count,
-                "message", "Đã tạo thành công " + count + " từ vựng vào hệ thống!"
+                "skipped", skipped,
+                "message", msg
         ));
     }
 }

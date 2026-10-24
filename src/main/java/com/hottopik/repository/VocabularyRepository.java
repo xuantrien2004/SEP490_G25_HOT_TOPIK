@@ -20,7 +20,11 @@ public interface VocabularyRepository extends JpaRepository<Vocabulary, Long> {
 
     Optional<Vocabulary> findFirstByLevelAndTopicAndWord(Short level, String topic, String word);
 
+    Optional<Vocabulary> findFirstByLevelAndWord(Short level, String word);
+
     boolean existsByWord(String word);
+
+    boolean existsByLevelAndWord(Short level, String word);
 
     List<Vocabulary> findByLevel(Short level);
 

@@ -1083,6 +1083,7 @@
                                 <div style="font-weight: 800; font-size: 14px; color: var(--ssak-text-main);">Kết quả phân tích:</div>
                                 <span class="ssak-badge" style="background: #E8F5EE; color: #1F6B56; font-size: 12px; font-weight: 800;" id="kpiTotalParsed">Đã đọc: 0 dòng</span>
                                 <span class="ssak-badge badge-mint" style="font-size: 12px; font-weight: 800;" id="kpiValidCount">✅ Hợp lệ: 0</span>
+                                <span class="ssak-badge" style="background: #FFF8E1; color: #B78103; font-size: 12px; font-weight: 800;" id="kpiDuplicateCount">⚠️ Trùng lặp: 0 (bỏ qua)</span>
                                 <span class="ssak-badge badge-terracotta" style="font-size: 12px; font-weight: 800;" id="kpiErrorCount">❌ Lỗi: 0</span>
                             </div>
 
@@ -1669,6 +1670,9 @@
         document.getElementById('importPreviewArea').style.display = 'none';
         document.getElementById('btnConfirmBulkCreate').style.display = 'none';
         document.getElementById('importPreviewTableBody').innerHTML = "";
+        if (document.getElementById('kpiDuplicateCount')) {
+            document.getElementById('kpiDuplicateCount').innerText = "⚠️ Trùng lặp: 0 (bỏ qua)";
+        }
         validatedExcelRows = [];
         setStepIndicator(1);
     }
@@ -1747,6 +1751,8 @@
         const parsedList = [];
         let validCount = 0;
         let errorCount = 0;
+        let duplicateCount = 0;
+        const seenBatchWords = new Set();
 
         for (let i = 1; i < rawRows.length; i++) {
             const r = rawRows[i];
@@ -1768,6 +1774,7 @@
             const topic = colTopic !== -1 && r[colTopic] ? r[colTopic].toString().trim() : (r[5] ? r[5].toString().trim() : (curTopic || 'Tổng hợp'));
 
             let isValid = true;
+            let isDuplicate = false;
             let errorMsg = "";
             if (!word) {
                 isValid = false;
@@ -1775,9 +1782,24 @@
             } else if (!mean) {
                 isValid = false;
                 errorMsg = "Thiếu nghĩa tiếng Việt";
+            } else {
+                // Tự động phát hiện và loại bỏ các dòng bị trùng trong file Excel
+                const dupKey = level + "_" + word.toLowerCase();
+                if (seenBatchWords.has(dupKey)) {
+                    isValid = false;
+                    isDuplicate = true;
+                    errorMsg = "Trùng lặp (Tự động bỏ qua)";
+                    duplicateCount++;
+                } else {
+                    seenBatchWords.add(dupKey);
+                }
             }
 
-            if (isValid) validCount++; else errorCount++;
+            if (isValid) {
+                validCount++;
+            } else if (!isDuplicate) {
+                errorCount++;
+            }
 
             parsedList.push({
                 rowIndex: i + 1,
@@ -1789,6 +1811,7 @@
                 topic: topic || 'Đời sống',
                 status: 'ACTIVE',
                 isValid: isValid,
+                isDuplicate: isDuplicate,
                 errorMsg: errorMsg
             });
         }
@@ -1799,6 +1822,9 @@
         document.getElementById('importPreviewArea').style.display = 'flex';
         document.getElementById('kpiTotalParsed').innerText = "Đã đọc: " + parsedList.length + " dòng";
         document.getElementById('kpiValidCount').innerText = "✅ Hợp lệ: " + validCount;
+        if (document.getElementById('kpiDuplicateCount')) {
+            document.getElementById('kpiDuplicateCount').innerText = "⚠️ Trùng lặp: " + duplicateCount + " (bỏ qua)";
+        }
         document.getElementById('kpiErrorCount').innerText = "❌ Lỗi: " + errorCount;
 
         const tbody = document.getElementById('importPreviewTableBody');
@@ -1807,7 +1833,18 @@
         parsedList.forEach(item => {
             const tr = document.createElement('tr');
             tr.style.borderBottom = "1px solid var(--ssak-border)";
-            if (!item.isValid) tr.style.background = "#FFF5F5";
+            if (!item.isValid) {
+                tr.style.background = item.isDuplicate ? "#FFFDF2" : "#FFF5F5";
+            }
+
+            let statusBadgeHtml;
+            if (item.isValid) {
+                statusBadgeHtml = '<span class="ssak-badge badge-mint" style="font-size: 11px;">✅ Hợp lệ</span>';
+            } else if (item.isDuplicate) {
+                statusBadgeHtml = '<span class="ssak-badge" style="background: #FFF8E1; color: #B78103; font-size: 11px;">⚠️ Trùng lặp (Bỏ qua)</span>';
+            } else {
+                statusBadgeHtml = '<span class="ssak-badge badge-terracotta" style="font-size: 11px;">❌ ' + item.errorMsg + '</span>';
+            }
 
             tr.innerHTML = `
                 <td style="padding: 8px 12px; font-weight: 700; color: var(--ssak-text-muted);">${item.rowIndex}</td>
@@ -1817,11 +1854,7 @@
                 <td style="padding: 8px 12px;"><span class="ssak-badge badge-mint" style="font-size: 11px;">${item.wordType}</span></td>
                 <td style="padding: 8px 12px;"><span class="ssak-badge badge-sky" style="font-size: 11px;">Cấp ${item.topikLevel}</span></td>
                 <td style="padding: 8px 12px; color: #2F5F7D;">${item.topic}</td>
-                <td style="padding: 8px 12px;">
-                    ${item.isValid 
-                        ? '<span class="ssak-badge badge-mint" style="font-size: 11px;">✅ Hợp lệ</span>' 
-                        : '<span class="ssak-badge badge-terracotta" style="font-size: 11px;">❌ ' + item.errorMsg + '</span>'}
-                </td>
+                <td style="padding: 8px 12px;">${statusBadgeHtml}</td>
             `;
             tbody.appendChild(tr);
         });
