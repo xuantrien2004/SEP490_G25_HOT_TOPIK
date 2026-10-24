@@ -267,6 +267,59 @@
                     </div>
                 </div>
 
+                <!-- Search & Live Filter Toolbar -->
+                <div style="background: #F8FAFC; border: 1.5px solid var(--ssak-border); border-radius: 16px; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                        <!-- Search input -->
+                        <div style="position: relative; flex-grow: 1; min-width: 240px;">
+                            <input type="text" id="adminLearnerSearch" class="form-control ssak-input"
+                                   placeholder="🔍 Tìm theo Họ tên, Email, ID học viên..."
+                                   oninput="filterAdminLearners()"
+                                   style="height: 40px; font-size: 13.5px; border-radius: 10px; padding-left: 14px;" />
+                        </div>
+                        <!-- Role / VIP filter -->
+                        <div style="min-width: 170px;">
+                            <select id="adminLearnerRoleFilter" class="form-select ssak-input" onchange="filterAdminLearners()" style="height: 40px; font-size: 13px; border-radius: 10px;">
+                                <option value="ALL">👑 Tất cả tài khoản</option>
+                                <option value="ROLE_VIP">👑 Thành viên VIP</option>
+                                <option value="ROLE_LEARNER">🎓 Học viên thường</option>
+                            </select>
+                        </div>
+                        <!-- Target level filter -->
+                        <div style="min-width: 150px;">
+                            <select id="adminLearnerLevelFilter" class="form-select ssak-input" onchange="filterAdminLearners()" style="height: 40px; font-size: 13px; border-radius: 10px;">
+                                <option value="ALL">🎯 Tất cả cấp độ</option>
+                                <option value="TOPIK_1">TOPIK 1</option>
+                                <option value="TOPIK_2">TOPIK 2</option>
+                                <option value="TOPIK_3">TOPIK 3</option>
+                                <option value="TOPIK_4">TOPIK 4</option>
+                                <option value="TOPIK_5">TOPIK 5</option>
+                                <option value="TOPIK_6">TOPIK 6</option>
+                            </select>
+                        </div>
+                        <!-- Status filter -->
+                        <div style="min-width: 160px;">
+                            <select id="adminLearnerStatusFilter" class="form-select ssak-input" onchange="filterAdminLearners()" style="height: 40px; font-size: 13px; border-radius: 10px;">
+                                <option value="ALL">⚡ Tất cả trạng thái</option>
+                                <option value="ACTIVE">🟢 Đang hoạt động</option>
+                                <option value="LOCKED">🔴 Đang bị khóa</option>
+                                <option value="PENDING_LOCK">⏳ Chờ duyệt khóa</option>
+                            </select>
+                        </div>
+                        <!-- Reset Button -->
+                        <div>
+                            <button type="button" class="btn-ssak-outline" onclick="resetAdminLearnerFilter()"
+                                    style="height: 40px; padding: 0 14px; font-size: 13px; border-radius: 10px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; cursor: pointer;">
+                                <span>↺</span> Đặt lại
+                            </button>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--ssak-text-muted);">
+                        <span>⚡ Bộ lọc tức thời: Tự động cập nhật danh sách ngay khi nhập hoặc chọn</span>
+                        <span>Hiển thị: <strong id="adminLearnerCount" style="color: #1F6B56;" th:text="${#lists.size(learners) + ' học viên'}"></strong></span>
+                    </div>
+                </div>
+
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                         <thead>
@@ -282,7 +335,15 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="u : ${learners}" th:id="${'row-learner-' + u.id}" style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
+                            <tr th:each="u : ${learners}" th:id="${'row-learner-' + u.id}" class="admin-learner-row"
+                                th:data-id="${u.id}"
+                                th:data-name="${u.fullName != null ? #strings.toLowerCase(u.fullName) : ''}"
+                                th:data-email="${u.email != null ? #strings.toLowerCase(u.email) : ''}"
+                                th:data-role="${u.role}"
+                                th:data-level="${u.targetLevel}"
+                                th:data-status="${u.status}"
+                                th:data-pending-lock="${u.pendingPermanentLock}"
+                                style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
                                 <td style="padding: 14px 10px; font-weight: 800;" th:text="${u.id}">4</td>
                                 <td style="padding: 14px 10px; font-weight: 700; color: #24363D;">
                                     <div style="display: flex; align-items: center; gap: 8px;">
@@ -325,6 +386,11 @@
                                     </button>
                                 </td>
                             </tr>
+                            <tr id="adminLearnerNoResult" style="display: none;">
+                                <td colspan="8" style="text-align: center; padding: 36px 20px; color: var(--ssak-text-muted); font-size: 13.5px;">
+                                    🔍 Không tìm thấy học viên nào phù hợp với điều kiện tìm kiếm và bộ lọc.
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -343,6 +409,48 @@
                     </div>
                 </div>
 
+                <!-- Search & Live Filter Toolbar -->
+                <div style="background: #F8FAFC; border: 1.5px solid var(--ssak-border); border-radius: 16px; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                        <!-- Search input -->
+                        <div style="position: relative; flex-grow: 1; min-width: 240px;">
+                            <input type="text" id="adminStaffSearch" class="form-control ssak-input"
+                                   placeholder="🔍 Tìm theo Họ tên, Email, Username, SĐT, ID..."
+                                   oninput="filterAdminStaff()"
+                                   style="height: 40px; font-size: 13.5px; border-radius: 10px; padding-left: 14px;" />
+                        </div>
+                        <!-- Role filter -->
+                        <div style="min-width: 190px;">
+                            <select id="adminStaffRoleFilter" class="form-select ssak-input" onchange="filterAdminStaff()" style="height: 40px; font-size: 13px; border-radius: 10px;">
+                                <option value="ALL">🛡️ Tất cả vai trò</option>
+                                <option value="ROLE_ADMIN">🛡️ Administrator</option>
+                                <option value="ROLE_CONTENT_MANAGER">📝 Content Manager</option>
+                                <option value="ROLE_OPERATION_MANAGER">💼 Operation Manager</option>
+                                <option value="ROLE_TEACHER">👨‍🏫 Teacher / Giáo viên</option>
+                            </select>
+                        </div>
+                        <!-- Status filter -->
+                        <div style="min-width: 160px;">
+                            <select id="adminStaffStatusFilter" class="form-select ssak-input" onchange="filterAdminStaff()" style="height: 40px; font-size: 13px; border-radius: 10px;">
+                                <option value="ALL">⚡ Tất cả trạng thái</option>
+                                <option value="ACTIVE">🟢 Đang hoạt động</option>
+                                <option value="LOCKED">🔴 Tạm khóa</option>
+                            </select>
+                        </div>
+                        <!-- Reset Button -->
+                        <div>
+                            <button type="button" class="btn-ssak-outline" onclick="resetAdminStaffFilter()"
+                                    style="height: 40px; padding: 0 14px; font-size: 13px; border-radius: 10px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; cursor: pointer;">
+                                <span>↺</span> Đặt lại
+                            </button>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--ssak-text-muted);">
+                        <span>⚡ Bộ lọc tức thời: Tìm kiếm nhanh theo họ tên, email hoặc tài khoản nhân sự</span>
+                        <span>Hiển thị: <strong id="adminStaffCount" style="color: #1F6B56;" th:text="${#lists.size(staffUsers) + ' nhân sự'}"></strong></span>
+                    </div>
+                </div>
+
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                         <thead>
@@ -357,7 +465,15 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="staff : ${staffUsers}" style="border-bottom: 1px solid var(--ssak-border);">
+                            <tr th:each="staff : ${staffUsers}" class="admin-staff-row"
+                                th:data-id="${staff.id}"
+                                th:data-name="${staff.fullName != null ? #strings.toLowerCase(staff.fullName) : ''}"
+                                th:data-email="${staff.email != null ? #strings.toLowerCase(staff.email) : ''}"
+                                th:data-username="${staff.username != null ? #strings.toLowerCase(staff.username) : ''}"
+                                th:data-phone="${staff.phone != null ? staff.phone : ''}"
+                                th:data-role="${staff.role}"
+                                th:data-status="${staff.status}"
+                                style="border-bottom: 1px solid var(--ssak-border);">
                                 <td style="padding: 14px 10px; font-weight: 800;" th:text="${staff.id}">1</td>
                                 <td style="padding: 14px 10px; font-weight: 700; color: #24363D;" th:text="${staff.fullName}">Vũ Minh Quân</td>
                                 <td style="padding: 14px 10px;">
@@ -368,6 +484,7 @@
                                     <span class="ssak-badge badge-honey" th:if="${staff.role == 'ROLE_ADMIN'}">🛡️ Administrator</span>
                                     <span class="ssak-badge badge-mint" th:if="${staff.role == 'ROLE_CONTENT_MANAGER'}">📝 Content Manager</span>
                                     <span class="ssak-badge badge-sky" th:if="${staff.role == 'ROLE_OPERATION_MANAGER'}">💼 Operation Manager</span>
+                                    <span class="ssak-badge badge-mint" th:if="${staff.role == 'ROLE_TEACHER'}">👨‍🏫 Giáo viên</span>
                                 </td>
                                 <td style="padding: 14px 10px;" th:text="${staff.phone != null ? staff.phone : '0912345678'}">0912345678</td>
                                 <td style="padding: 14px 10px;">
@@ -392,6 +509,11 @@
                                     <span th:if="${staff.role == 'ROLE_ADMIN'}" style="font-size: 12px; font-weight: 700; color: var(--ssak-text-muted);">
                                         🛡️ Tài khoản gốc (Root)
                                     </span>
+                                </td>
+                            </tr>
+                            <tr id="adminStaffNoResult" style="display: none;">
+                                <td colspan="7" style="text-align: center; padding: 36px 20px; color: var(--ssak-text-muted); font-size: 13.5px;">
+                                    🔍 Không tìm thấy nhân sự nào phù hợp với điều kiện tìm kiếm và bộ lọc.
                                 </td>
                             </tr>
                         </tbody>
@@ -474,7 +596,6 @@
                                 <th style="padding: 10px 8px;">Hành động</th>
                                 <th style="padding: 10px 8px;">Thực thể tác động</th>
                                 <th style="padding: 10px 8px;">Chi tiết ghi nhận</th>
-                                <th style="padding: 10px 8px;">Địa chỉ IP</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -489,7 +610,6 @@
                                 <td style="padding: 12px 8px; font-weight: 800;" th:text="${log.action}">LOGIN</td>
                                 <td style="padding: 12px 8px; color: var(--ssak-text-muted);" th:text="${log.targetEntity}">AUTH</td>
                                 <td style="padding: 12px 8px;" th:text="${log.details}">Admin đăng nhập từ IP an toàn</td>
-                                <td style="padding: 12px 8px; font-family: monospace; font-size: 12px;" th:text="${log.ipAddress}">192.168.1.10</td>
                             </tr>
                         </tbody>
                     </table>
@@ -581,7 +701,7 @@
 }
 </style>
 
-<script>
+<script th:inline="none">
     const tabMeta = {
         approvals: {
             icon: '📥',
@@ -691,7 +811,7 @@
             iconBox.innerHTML = '🔓';
             title.textContent = 'Mở khóa nhân sự & khôi phục quyền';
             subtitle.textContent = 'Khôi phục quyền truy cập phân hệ quản lý nội bộ';
-            desc.innerHTML = `Bạn có chắc chắn muốn <strong>mở khóa</strong> cho nhân sự <strong>${name}</strong>? Tài khoản này sẽ có thể đăng nhập vào cổng nghiệp vụ được phân quyền ngay lập tức.`;
+            desc.innerHTML = 'Bạn có chắc chắn muốn <strong>mở khóa</strong> cho nhân sự <strong>' + (name || '') + '</strong>? Tài khoản này sẽ có thể đăng nhập vào cổng nghiệp vụ được phân quyền ngay lập tức.';
             confirmBtn.style.background = '#1F6B56';
             confirmBtn.innerHTML = '🔓 Xác nhận mở khóa';
             staffBadge.innerHTML = '<span class="ssak-badge badge-terracotta">Đang bị khóa</span>';
@@ -701,7 +821,7 @@
             iconBox.innerHTML = '🔒';
             title.textContent = 'Đình chỉ & Tạm khóa tài khoản nhân sự';
             subtitle.textContent = 'Thu hồi quyền truy cập cổng quản trị nội bộ';
-            desc.innerHTML = `Bạn có chắc chắn muốn <strong>tạm khóa</strong> tài khoản của <strong>${name}</strong>? Nhân sự này sẽ <strong>bị tước quyền truy cập</strong> toàn bộ cổng quản lý cho đến khi có quyết định mở khóa.`;
+            desc.innerHTML = 'Bạn có chắc chắn muốn <strong>tạm khóa</strong> tài khoản của <strong>' + (name || '') + '</strong>? Nhân sự này sẽ <strong>bị tước quyền truy cập</strong> toàn bộ cổng quản lý cho đến khi có quyết định mở khóa.';
             confirmBtn.style.background = '#CF1322';
             confirmBtn.innerHTML = '🔒 Xác nhận khóa nhân sự';
             staffBadge.innerHTML = '<span class="ssak-badge badge-mint">Đang hoạt động</span>';
@@ -1024,6 +1144,139 @@
             });
         }
     }
+
+    // ==========================================
+    // INSTANT FILTER & SEARCH: LEARNERS
+    // ==========================================
+    function filterAdminLearners() {
+        const query = (document.getElementById('adminLearnerSearch')?.value || '').trim().toLowerCase();
+        const role = document.getElementById('adminLearnerRoleFilter')?.value || 'ALL';
+        const level = document.getElementById('adminLearnerLevelFilter')?.value || 'ALL';
+        const status = document.getElementById('adminLearnerStatusFilter')?.value || 'ALL';
+
+        const rows = document.querySelectorAll('.admin-learner-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const id = (row.getAttribute('data-id') || '').toLowerCase();
+            const name = (row.getAttribute('data-name') || '').toLowerCase();
+            const email = (row.getAttribute('data-email') || '').toLowerCase();
+            const rowRole = row.getAttribute('data-role') || '';
+            const rowLevel = row.getAttribute('data-level') || '';
+            const rowStatus = row.getAttribute('data-status') || '';
+            const isPendingLock = (row.getAttribute('data-pending-lock') === 'true');
+
+            // Text matching
+            let matchText = true;
+            if (query.length > 0) {
+                matchText = name.includes(query) || email.includes(query) || id === query || ('#' + id) === query;
+            }
+
+            // Role matching
+            let matchRole = true;
+            if (role === 'ROLE_VIP') {
+                matchRole = (rowRole === 'ROLE_VIP');
+            } else if (role === 'ROLE_LEARNER') {
+                matchRole = (rowRole !== 'ROLE_VIP');
+            }
+
+            // Level matching
+            let matchLevel = (level === 'ALL' || rowLevel === level);
+
+            // Status matching
+            let matchStatus = true;
+            if (status === 'ACTIVE') {
+                matchStatus = (rowStatus === 'ACTIVE' && !isPendingLock);
+            } else if (status === 'LOCKED') {
+                matchStatus = (rowStatus === 'LOCKED');
+            } else if (status === 'PENDING_LOCK') {
+                matchStatus = isPendingLock;
+            }
+
+            if (matchText && matchRole && matchLevel && matchStatus) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        const countEl = document.getElementById('adminLearnerCount');
+        if (countEl) countEl.innerText = visibleCount + ' học viên';
+
+        const noResult = document.getElementById('adminLearnerNoResult');
+        if (noResult) noResult.style.display = (visibleCount === 0) ? '' : 'none';
+    }
+
+    function resetAdminLearnerFilter() {
+        if (document.getElementById('adminLearnerSearch')) document.getElementById('adminLearnerSearch').value = '';
+        if (document.getElementById('adminLearnerRoleFilter')) document.getElementById('adminLearnerRoleFilter').value = 'ALL';
+        if (document.getElementById('adminLearnerLevelFilter')) document.getElementById('adminLearnerLevelFilter').value = 'ALL';
+        if (document.getElementById('adminLearnerStatusFilter')) document.getElementById('adminLearnerStatusFilter').value = 'ALL';
+        filterAdminLearners();
+    }
+
+    // ==========================================
+    // INSTANT FILTER & SEARCH: STAFF
+    // ==========================================
+    function filterAdminStaff() {
+        const query = (document.getElementById('adminStaffSearch')?.value || '').trim().toLowerCase();
+        const role = document.getElementById('adminStaffRoleFilter')?.value || 'ALL';
+        const status = document.getElementById('adminStaffStatusFilter')?.value || 'ALL';
+
+        const rows = document.querySelectorAll('.admin-staff-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const id = (row.getAttribute('data-id') || '').toLowerCase();
+            const name = (row.getAttribute('data-name') || '').toLowerCase();
+            const email = (row.getAttribute('data-email') || '').toLowerCase();
+            const username = (row.getAttribute('data-username') || '').toLowerCase();
+            const phone = (row.getAttribute('data-phone') || '').toLowerCase();
+            const rowRole = row.getAttribute('data-role') || '';
+            const rowStatus = row.getAttribute('data-status') || '';
+
+            // Text matching
+            let matchText = true;
+            if (query.length > 0) {
+                matchText = name.includes(query) || email.includes(query) || username.includes(query) || phone.includes(query) || id === query || ('#' + id) === query;
+            }
+
+            // Role matching
+            let matchRole = (role === 'ALL' || rowRole === role);
+
+            // Status matching
+            let matchStatus = (status === 'ALL' || rowStatus === status);
+
+            if (matchText && matchRole && matchStatus) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        const countEl = document.getElementById('adminStaffCount');
+        if (countEl) countEl.innerText = visibleCount + ' nhân sự';
+
+        const noResult = document.getElementById('adminStaffNoResult');
+        if (noResult) noResult.style.display = (visibleCount === 0) ? '' : 'none';
+    }
+
+    function resetAdminStaffFilter() {
+        if (document.getElementById('adminStaffSearch')) document.getElementById('adminStaffSearch').value = '';
+        if (document.getElementById('adminStaffRoleFilter')) document.getElementById('adminStaffRoleFilter').value = 'ALL';
+        if (document.getElementById('adminStaffStatusFilter')) document.getElementById('adminStaffStatusFilter').value = 'ALL';
+        filterAdminStaff();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab');
+        if (tab && tabMeta[tab]) {
+            switchAdminTab(tab);
+        }
+    });
 
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') { closeStaffModal(); closeLearnerModal(); }

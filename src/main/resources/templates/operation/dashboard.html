@@ -179,6 +179,59 @@
                     </div>
                 </div>
 
+                <!-- Search & Live Filter Toolbar -->
+                <div style="background: #F8FAFC; border: 1.5px solid var(--ssak-border); border-radius: 16px; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                        <!-- Search input -->
+                        <div style="position: relative; flex-grow: 1; min-width: 240px;">
+                            <input type="text" id="opLearnerSearch" class="form-control ssak-input"
+                                   placeholder="🔍 Tìm theo Họ tên, Email, ID học viên..."
+                                   oninput="filterOpLearners()"
+                                   style="height: 40px; font-size: 13.5px; border-radius: 10px; padding-left: 14px;" />
+                        </div>
+                        <!-- Role / VIP filter -->
+                        <div style="min-width: 170px;">
+                            <select id="opLearnerRoleFilter" class="form-select ssak-input" onchange="filterOpLearners()" style="height: 40px; font-size: 13px; border-radius: 10px;">
+                                <option value="ALL">👑 Tất cả tài khoản</option>
+                                <option value="ROLE_VIP">👑 Thành viên VIP</option>
+                                <option value="ROLE_LEARNER">🎓 Học viên thường</option>
+                            </select>
+                        </div>
+                        <!-- Target level filter -->
+                        <div style="min-width: 150px;">
+                            <select id="opLearnerLevelFilter" class="form-select ssak-input" onchange="filterOpLearners()" style="height: 40px; font-size: 13px; border-radius: 10px;">
+                                <option value="ALL">🎯 Tất cả cấp độ</option>
+                                <option value="TOPIK_1">TOPIK 1</option>
+                                <option value="TOPIK_2">TOPIK 2</option>
+                                <option value="TOPIK_3">TOPIK 3</option>
+                                <option value="TOPIK_4">TOPIK 4</option>
+                                <option value="TOPIK_5">TOPIK 5</option>
+                                <option value="TOPIK_6">TOPIK 6</option>
+                            </select>
+                        </div>
+                        <!-- Status filter -->
+                        <div style="min-width: 160px;">
+                            <select id="opLearnerStatusFilter" class="form-select ssak-input" onchange="filterOpLearners()" style="height: 40px; font-size: 13px; border-radius: 10px;">
+                                <option value="ALL">⚡ Tất cả trạng thái</option>
+                                <option value="ACTIVE">🟢 Đang hoạt động</option>
+                                <option value="LOCKED">🔴 Đang bị khóa</option>
+                                <option value="PENDING_LOCK">⏳ Chờ Admin duyệt khóa</option>
+                            </select>
+                        </div>
+                        <!-- Reset Button -->
+                        <div>
+                            <button type="button" class="btn-ssak-outline" onclick="resetOpLearnerFilter()"
+                                    style="height: 40px; padding: 0 14px; font-size: 13px; border-radius: 10px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; cursor: pointer;">
+                                <span>↺</span> Đặt lại
+                            </button>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--ssak-text-muted);">
+                        <span>⚡ Bộ lọc tức thời: Tự động cập nhật danh sách ngay khi nhập hoặc chọn</span>
+                        <span>Hiển thị: <strong id="opLearnerCount" style="color: #1F6B56;" th:text="${#lists.size(learners) + ' học viên'}"></strong></span>
+                    </div>
+                </div>
+
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                         <thead>
@@ -194,7 +247,15 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="u : ${learners}" th:id="${'row-learner-' + u.id}" style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
+                            <tr th:each="u : ${learners}" th:id="${'row-learner-' + u.id}" class="op-learner-row"
+                                th:data-id="${u.id}"
+                                th:data-name="${u.fullName != null ? #strings.toLowerCase(u.fullName) : ''}"
+                                th:data-email="${u.email != null ? #strings.toLowerCase(u.email) : ''}"
+                                th:data-role="${u.role}"
+                                th:data-level="${u.targetLevel}"
+                                th:data-status="${u.status}"
+                                th:data-pending-lock="${u.pendingPermanentLock}"
+                                style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
                                 <td style="padding: 14px 10px; font-weight: 800;" th:text="${u.id}">4</td>
                                 <td style="padding: 14px 10px; font-weight: 700; color: #24363D;">
                                     <div style="display: flex; align-items: center; gap: 8px;">
@@ -234,6 +295,11 @@
                                         <span th:if="${u.status == 'LOCKED'}" style="color: #1F6B56;">🔓 Mở khóa</span>
                                         <span th:if="${u.status != 'LOCKED'}" style="color: #9C4A2E;">🔒 Khóa tài khoản</span>
                                     </button>
+                                </td>
+                            </tr>
+                            <tr id="opLearnerNoResult" style="display: none;">
+                                <td colspan="8" style="text-align: center; padding: 36px 20px; color: var(--ssak-text-muted); font-size: 13.5px;">
+                                    🔍 Không tìm thấy học viên nào phù hợp với điều kiện tìm kiếm và bộ lọc.
                                 </td>
                             </tr>
                         </tbody>
@@ -530,7 +596,7 @@
 }
 </style>
 
-<script>
+<script th:inline="none">
     const tabMeta = {
         users: {
             icon: '👥',
@@ -959,6 +1025,86 @@
         })
         .catch(e => showSsakToast('Có lỗi: ' + e));
     }
+
+    // ==========================================
+    // INSTANT FILTER & SEARCH: LEARNERS (OP)
+    // ==========================================
+    function filterOpLearners() {
+        const query = (document.getElementById('opLearnerSearch')?.value || '').trim().toLowerCase();
+        const role = document.getElementById('opLearnerRoleFilter')?.value || 'ALL';
+        const level = document.getElementById('opLearnerLevelFilter')?.value || 'ALL';
+        const status = document.getElementById('opLearnerStatusFilter')?.value || 'ALL';
+
+        const rows = document.querySelectorAll('.op-learner-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const id = (row.getAttribute('data-id') || '').toLowerCase();
+            const name = (row.getAttribute('data-name') || '').toLowerCase();
+            const email = (row.getAttribute('data-email') || '').toLowerCase();
+            const rowRole = row.getAttribute('data-role') || '';
+            const rowLevel = row.getAttribute('data-level') || '';
+            const rowStatus = row.getAttribute('data-status') || '';
+            const isPendingLock = (row.getAttribute('data-pending-lock') === 'true');
+
+            // Text matching
+            let matchText = true;
+            if (query.length > 0) {
+                matchText = name.includes(query) || email.includes(query) || id === query || ('#' + id) === query;
+            }
+
+            // Role matching
+            let matchRole = true;
+            if (role === 'ROLE_VIP') {
+                matchRole = (rowRole === 'ROLE_VIP');
+            } else if (role === 'ROLE_LEARNER') {
+                matchRole = (rowRole !== 'ROLE_VIP');
+            }
+
+            // Level matching
+            let matchLevel = (level === 'ALL' || rowLevel === level);
+
+            // Status matching
+            let matchStatus = true;
+            if (status === 'ACTIVE') {
+                matchStatus = (rowStatus === 'ACTIVE' && !isPendingLock);
+            } else if (status === 'LOCKED') {
+                matchStatus = (rowStatus === 'LOCKED');
+            } else if (status === 'PENDING_LOCK') {
+                matchStatus = isPendingLock;
+            }
+
+            if (matchText && matchRole && matchLevel && matchStatus) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        const countEl = document.getElementById('opLearnerCount');
+        if (countEl) countEl.innerText = visibleCount + ' học viên';
+
+        const noResult = document.getElementById('opLearnerNoResult');
+        if (noResult) noResult.style.display = (visibleCount === 0) ? '' : 'none';
+    }
+
+    function resetOpLearnerFilter() {
+        if (document.getElementById('opLearnerSearch')) document.getElementById('opLearnerSearch').value = '';
+        if (document.getElementById('opLearnerRoleFilter')) document.getElementById('opLearnerRoleFilter').value = 'ALL';
+        if (document.getElementById('opLearnerLevelFilter')) document.getElementById('opLearnerLevelFilter').value = 'ALL';
+        if (document.getElementById('opLearnerStatusFilter')) document.getElementById('opLearnerStatusFilter').value = 'ALL';
+        filterOpLearners();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab');
+        if (tab && tabMeta[tab]) {
+            switchOperationTab(tab);
+        }
+    });
+
     // Close on Escape or click outside
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') closeLearnerModal();
