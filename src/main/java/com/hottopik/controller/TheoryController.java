@@ -1,5 +1,9 @@
 package com.hottopik.controller;
 
+import com.hottopik.entity.Grammar;
+import com.hottopik.entity.GrammarGroup;
+import com.hottopik.service.GrammarGroupService;
+import com.hottopik.service.GrammarService;
 import com.hottopik.service.HanjaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -9,18 +13,27 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.util.List;
+
 @Controller
 public class TheoryController {
 
     private final HanjaService hanjaService;
+    private final GrammarService grammarService;
+    private final GrammarGroupService grammarGroupService;
 
     @Autowired
-    public TheoryController(HanjaService hanjaService) {
+    public TheoryController(HanjaService hanjaService,
+                            GrammarService grammarService,
+                            GrammarGroupService grammarGroupService) {
         this.hanjaService = hanjaService;
+        this.grammarService = grammarService;
+        this.grammarGroupService = grammarGroupService;
     }
 
     @GetMapping({"/ly-thuyet", "/theory", "/ly-thuyet/ngu-phap"})
     public String theory(@RequestParam(value = "tab", required = false) String tab,
+                         @RequestParam(value = "level", defaultValue = "1") Short level,
                          HttpServletRequest request,
                          Model model) {
         if (tab == null && request != null && request.getRequestURI() != null && request.getRequestURI().endsWith("/ngu-phap")) {
@@ -29,6 +42,14 @@ public class TheoryController {
         model.addAttribute("pageTitle", "Lý thuyết · Từ vựng, Ngữ pháp, Hán Việt, Đặc thù");
         model.addAttribute("activePage", "theory");
         model.addAttribute("currentTab", tab != null ? tab : "vocab");
+        model.addAttribute("selectedLevel", level);
+
+        // Lấy danh sách nhóm ngữ pháp từ Database theo cấp độ (1-6)
+        if ("grammar".equals(model.getAttribute("currentTab"))) {
+            List<GrammarGroup> grammarGroups = grammarGroupService.getGroupsByLevel(level);
+            model.addAttribute("grammarGroups", grammarGroups);
+        }
+
         return "theory/index";
     }
 
@@ -65,7 +86,6 @@ public class TheoryController {
     public String hanja(Model model) {
         model.addAttribute("pageTitle", "Cầu nối Hán Việt · 32 gốc từ");
         model.addAttribute("activePage", "theory");
-        // Pass initial data so the page renders without a separate AJAX call
         try {
             model.addAttribute("hanjaRoots", hanjaService.getActiveHanjaRoots(null));
             model.addAttribute("hanjaStats", hanjaService.getLearnerStats());
@@ -84,10 +104,47 @@ public class TheoryController {
     }
 
     @GetMapping("/theory/grammar")
-    public String grammarDetail(@RequestParam(value = "id", defaultValue = "1") String id, Model model) {
+    public String grammarDetail(@RequestParam(value = "id", defaultValue = "1") Long id, Model model) {
         model.addAttribute("pageTitle", "Chi tiết ngữ pháp");
         model.addAttribute("activePage", "theory");
-        model.addAttribute("grammarId", id);
+
+        try {
+            Grammar grammar = grammarService.getGrammarById(id);
+            model.addAttribute("grammar", grammar);
+
+            // Lấy danh sách ngữ pháp liên quan (cùng nhóm hoặc cùng level)
+            if (grammar != null) {
+                if (grammar.getGrammarGroup() != null) {
+                    model.addAttribute("relatedGrammars",
+                            grammarService.getGrammarsByGroupId(grammar.getGrammarGroup().getId()));
+                } else {
+                    model.addAttribute("relatedGrammars",
+                            grammarService.getGrammarsByLevelAndStatus(grammar.getLevel(), "ACTIVE"));
+                }
+            }
+        } catch (Exception e) {
+            model.addAttribute("grammar", null);
+            model.addAttribute("errorMessage", "Không tìm thấy mẫu ngữ pháp yêu cầu.");
+        }
+
         return "theory/grammar";
+    }
+
+    // Trang hiển thị danh sách ngữ pháp thuộc một nhóm cụ thể khi học viên bấm vào nhóm
+    @GetMapping({"/ly-thuyet/ngu-phap-nhom", "/theory/grammar-list"})
+    public String grammarListByGroup(@RequestParam(value = "groupId") Integer groupId, Model model) {
+        model.addAttribute("pageTitle", "Danh sách ngữ pháp theo nhóm");
+        model.addAttribute("activePage", "theory");
+
+        try {
+            // Sử dụng phương thức nạp sẵn danh sách ví dụ (examples) để tránh lỗi LazyInitializationException
+            List<Grammar> grammars = grammarService.getGrammarsByGroupIdWithExamples(groupId);
+            model.addAttribute("grammars", grammars);
+        } catch (Exception e) {
+            model.addAttribute("grammars", java.util.Collections.emptyList());
+            model.addAttribute("errorMessage", "Không tìm thấy nhóm ngữ pháp yêu cầu.");
+        }
+
+        return "theory/grammar-list";
     }
 }

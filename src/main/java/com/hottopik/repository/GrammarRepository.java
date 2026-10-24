@@ -19,6 +19,7 @@ public interface GrammarRepository extends JpaRepository<Grammar, Long> {
 
     // Lấy ngữ pháp theo cấp TOPIK
     List<Grammar> findByLevelOrderBySortOrderAscIdAsc(Short level);
+    // Trong GrammarRepository.java
 
     // Lấy ngữ pháp theo trạng thái
     List<Grammar> findByStatusOrderByLevelAscSortOrderAscIdAsc(
@@ -66,4 +67,7 @@ public interface GrammarRepository extends JpaRepository<Grammar, Long> {
             Integer groupId,
             String status
     );
+
+    @Query("SELECT DISTINCT g FROM Grammar g LEFT JOIN FETCH g.examples WHERE g.grammarGroup.id = :groupId ORDER BY g.sortOrder ASC, g.id ASC")
+    List<Grammar> findByGrammarGroupIdWithExamples(@Param("groupId") Integer groupId);
 }

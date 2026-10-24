@@ -415,4 +415,26 @@ public class GrammarService {
 
         grammarRepository.save(grammar);
     }
+    // Lấy danh sách ngữ pháp theo ID nhóm (Phục vụ hiển thị "Ngữ pháp cùng nhóm")
+    @Transactional(readOnly = true)
+    public List<Grammar> getGrammarsByGroupId(Integer groupId) {
+        if (groupId == null || groupId <= 0) {
+            return new ArrayList<>();
+        }
+
+        // Gọi repository để lấy danh sách ngữ pháp theo nhóm
+        return grammarRepository.findByGrammarGroup_IdOrderBySortOrderAscIdAsc(groupId);
+    }
+    // Lấy danh sách ngữ pháp theo cấp độ và trạng thái (Phục vụ hiển thị liên quan khi chưa phân nhóm)
+    @Transactional(readOnly = true)
+    public List<Grammar> getGrammarsByLevelAndStatus(Short level, String status) {
+        if (level == null || level < 1 || level > 6) {
+            return new ArrayList<>();
+        }
+        // Gọi lại hàm filterGrammars có sẵn trong service của bạn
+        return filterGrammars(level, null, status, null);
+    }
+    public List<Grammar> getGrammarsByGroupIdWithExamples(Integer groupId) {
+        return grammarRepository.findByGrammarGroupIdWithExamples(groupId);
+    }
 }
