@@ -1,6 +1,8 @@
 package com.hottopik.controller;
 
 import com.hottopik.dto.UserDTO;
+import com.hottopik.entity.Vocabulary;
+import com.hottopik.repository.VocabularyRepository;
 import com.hottopik.service.UserService;
 import com.hottopik.util.AuthHelper;
 import jakarta.servlet.http.HttpSession;
@@ -10,8 +12,6 @@ import com.hottopik.entity.exam.StudyPlan;
 import com.hottopik.entity.exam.Track;
 import com.hottopik.service.exam.ExamDomainException;
 import com.hottopik.service.exam.LearnerRoadmapService;
-import com.hottopik.util.AuthHelper;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Controller
@@ -27,6 +28,10 @@ public class LearnerController {
 
     private final UserService userService;
     private final LearnerRoadmapService roadmaps;
+
+    @Autowired(required = false)
+    private VocabularyRepository vocabularyRepository;
+
     public LearnerController(UserService userService, LearnerRoadmapService roadmaps) {
         this.userService = userService;
         this.roadmaps = roadmaps;
@@ -41,6 +46,16 @@ public class LearnerController {
     public String today(Model model, HttpSession session) {
         model.addAttribute("pageTitle", "Nhiệm vụ hôm nay · HOT TOPIK");
         model.addAttribute("activePage", "today");
+
+        // Lấy danh sách từ vựng ACTIVE trực tiếp từ CSDL render ra giao diện Học viên
+        if (vocabularyRepository != null) {
+            List<Vocabulary> dbVocabs = vocabularyRepository.findAll()
+                    .stream()
+                    .filter(v -> "ACTIVE".equalsIgnoreCase(v.getStatus()))
+                    .toList();
+            model.addAttribute("vocabularies", dbVocabs);
+        }
+
         try {
             StudyPlan plan = roadmaps.ensure(owner(session), trackFor(session));
             model.addAttribute("board", roadmaps.todayBoard(plan, LearnerRoadmapService.givenName(displayName(session))));

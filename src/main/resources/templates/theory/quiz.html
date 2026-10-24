@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/head :: head('Quiz trắc nghiệm từ vựng · HOT TOPIK')}"></head>
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
 <body style="background: var(--ssak-bg); color: var(--ssak-text-main); font-family: var(--font-body); min-height: 100vh;">
 
 <header class="py-3 px-4 bg-white border-bottom shadow-sm">
     <div class="d-flex justify-content-between align-items-center" style="max-width: 860px; margin: 0 auto; width: 100%;">
-        <a th:href="@{/ly-thuyet}" class="text-decoration-none fw-bold small text-muted">
+        <a th:href="@{/ly-thuyet/tu-vung(topic=${currentTopic}, level=${currentLevel})}" class="text-decoration-none fw-bold small text-muted">
             ← Thoát Quiz
         </a>
         <div class="fw-bold" style="font-family: var(--font-heading); font-size: 18px; color: var(--ssak-primary);">
-            Quiz Từ vựng: Môi trường (10 câu)
+            Quiz Từ vựng: <span th:text="${currentTopic}">Chủ đề</span>
         </div>
         <span class="badge bg-light text-muted border">Tự động chấm</span>
     </div>
@@ -17,10 +17,14 @@
 
 <main class="container my-5" style="max-width: 760px;">
     
-    <!-- Thanh tiến độ theo mục 10.1 (không ghi Câu x/y bằng chữ) -->
+    <!-- Thanh tiến độ -->
     <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-1 small fw-bold text-muted">
+            <span>Câu hỏi <span id="currentQuestionNum">1</span> / <span id="totalQuestionsNum">1</span></span>
+            <span>Đúng: <span id="correctScore" class="text-success">0</span></span>
+        </div>
         <div class="progress" style="height: 10px; border-radius: 5px;">
-            <div class="progress-bar" id="quizProgressBar" style="width: 30%; background-color: var(--ssak-primary);"></div>
+            <div class="progress-bar" id="quizProgressBar" style="width: 0%; background-color: var(--ssak-primary); transition: width 0.3s ease;"></div>
         </div>
     </div>
 
@@ -28,23 +32,12 @@
     <div class="p-4 p-md-5 rounded-5 bg-white border shadow-sm mb-4" id="quizQuestionBox">
         <span class="badge bg-light text-muted border mb-3">Chọn nghĩa đúng của từ tiếng Hàn sau:</span>
         <h2 style="font-family: var(--font-korean); font-size: 38px; font-weight: 800; color: var(--ssak-primary);" class="mb-4" id="quizWord">
-            재활용 (jaehwalyong)
+            ...
         </h2>
 
         <!-- 4 Lựa chọn -->
         <div class="d-flex flex-column gap-3 mb-4" id="quizOptions">
-            <button class="btn btn-outline-secondary p-3 rounded-4 text-start fw-bold fs-6 quiz-opt" onclick="answerQuiz(this, false)">
-                A. Khai thác tài nguyên thiên nhiên
-            </button>
-            <button class="btn btn-outline-secondary p-3 rounded-4 text-start fw-bold fs-6 quiz-opt" onclick="answerQuiz(this, true)">
-                B. Tái chế rác thải sinh hoạt
-            </button>
-            <button class="btn btn-outline-secondary p-3 rounded-4 text-start fw-bold fs-6 quiz-opt" onclick="answerQuiz(this, false)">
-                C. Xử lý nước thải công nghiệp
-            </button>
-            <button class="btn btn-outline-secondary p-3 rounded-4 text-start fw-bold fs-6 quiz-opt" onclick="answerQuiz(this, false)">
-                D. Bảo tồn động vật quý hiếm
-            </button>
+            <!-- Render động bằng JS -->
         </div>
 
         <div class="d-flex justify-content-end">
@@ -54,62 +47,159 @@
         </div>
     </div>
 
-    <!-- KHUNG KẾT QUẢ QUIZ THEO MỤC 10.1 (Ẩn mặc định) -->
+    <!-- KHUNG KẾT QUẢ QUIZ (Ẩn mặc định) -->
     <div class="p-4 p-md-5 rounded-5 bg-white border shadow-sm text-center d-none" id="quizResultBox">
         <div th:replace="~{fragments/ssak :: mascot('happy', 'bloom', 150, 'Bé Ssak hoa nở')}"></div>
-        <h2 style="font-family: var(--font-heading); font-size: 32px; font-weight: 800;" class="mt-3 mb-1">
-            Đúng 8 / 10 câu
+        <h2 style="font-family: var(--font-heading); font-size: 32px; font-weight: 800;" class="mt-3 mb-1" id="quizFinalScoreText">
+            Đúng 0 / 0 câu
         </h2>
-        <p class="text-muted">Hoàn thành bài Quiz từ vựng chủ đề Môi trường</p>
+        <p class="text-muted" id="quizResultSubText">Hoàn thành bài Quiz từ vựng chủ đề <strong th:text="${currentTopic}"></strong></p>
 
-        <!-- 2 Ô: Đã thuộc / Chưa thuộc (không thống kê thời gian) theo mục 10.1 -->
+        <!-- 2 Ô: Đã thuộc / Chưa thuộc -->
         <div class="row g-3 my-4">
             <div class="col-6">
                 <div class="p-3 rounded-4" style="background: var(--ssak-primary-light);">
-                    <div class="fs-4 fw-bold text-success" style="color: var(--ssak-primary) !important;">8 từ</div>
-                    <small class="text-muted fw-bold">Đã thuộc</small>
+                    <div class="fs-4 fw-bold text-success" id="finalCorrectCount" style="color: var(--ssak-primary) !important;">0 từ</div>
+                    <small class="text-muted fw-bold">Trả lời đúng</small>
                 </div>
             </div>
             <div class="col-6">
                 <div class="p-3 rounded-4" style="background: #FBE6DA;">
-                    <div class="fs-4 fw-bold" style="color: var(--ssak-terracotta);">2 từ</div>
-                    <small class="text-muted fw-bold">Chưa thuộc (vào danh sách)</small>
+                    <div class="fs-4 fw-bold" id="finalWrongCount" style="color: var(--ssak-terracotta);">0 từ</div>
+                    <small class="text-muted fw-bold">Cần ôn thêm</small>
                 </div>
             </div>
         </div>
 
-        <!-- 3 Nút hành động theo mục 10.1 -->
+        <!-- Các nút hành động -->
         <div class="d-flex flex-wrap justify-content-center gap-3">
-            <a th:href="@{/ly-thuyet/the}" class="btn btn-outline-danger rounded-pill px-4 py-2 fw-bold">
-                Học lại 2 từ chưa thuộc
+            <a th:href="@{/ly-thuyet/the(topic=${currentTopic}, level=${currentLevel})}" class="btn btn-outline-danger rounded-pill px-4 py-2 fw-bold">
+                Học lại bằng thẻ Flashcard
             </a>
             <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-bold" onclick="location.reload()">
-                Làm quiz lại
+                Làm lại Quiz
             </button>
-            <a th:href="@{/ly-thuyet/tu-vung/moi-truong}" class="btn-ssak-primary rounded-pill px-4 py-2 fw-bold text-decoration-none">
-                Về chủ đề →
+            <a th:href="@{/ly-thuyet/tu-vung(topic=${currentTopic}, level=${currentLevel})}" class="btn-ssak-primary rounded-pill px-4 py-2 fw-bold text-decoration-none">
+                Về danh sách từ vựng →
             </a>
         </div>
     </div>
 
 </main>
 
-<script>
+<script th:inline="javascript">
+    const rawVocabs = /*[[${vocabList}]]*/ [];
+    let questions = [];
+    let currentQIdx = 0;
+    let score = 0;
+
+    function buildQuestions() {
+        if (!rawVocabs || rawVocabs.length === 0) return;
+        const shuffled = [...rawVocabs].sort(() => 0.5 - Math.random());
+        const count = Math.min(10, shuffled.length);
+
+        for (let i = 0; i < count; i++) {
+            const correct = shuffled[i];
+            const otherMeanings = rawVocabs
+                .filter(v => v.id !== correct.id)
+                .map(v => v.meaning)
+                .sort(() => 0.5 - Math.random())
+                .slice(0, 3);
+
+            const options = [correct.meaning, ...otherMeanings].sort(() => 0.5 - Math.random());
+            questions.push({
+                word: correct.word,
+                romanization: correct.romanization,
+                correctMeaning: correct.meaning,
+                options: options
+            });
+        }
+    }
+
+    function init() {
+        buildQuestions();
+        const total = questions.length;
+        document.getElementById('totalQuestionsNum').innerText = total;
+
+        if (total === 0) {
+            document.getElementById('quizQuestionBox').innerHTML = `
+                <div class="text-center py-4">
+                    <p class="text-muted">Chủ đề này chưa đủ từ vựng để tạo bài Quiz.</p>
+                    <a href="/ly-thuyet" class="btn-ssak-primary rounded-pill px-4 py-2 fw-bold text-decoration-none">Về Sổ tay Lý thuyết</a>
+                </div>
+            `;
+            return;
+        }
+
+        renderQuestion();
+    }
+
+    function renderQuestion() {
+        if (currentQIdx >= questions.length) {
+            showResults();
+            return;
+        }
+
+        const q = questions[currentQIdx];
+        document.getElementById('currentQuestionNum').innerText = (currentQIdx + 1);
+        const percent = Math.round((currentQIdx / questions.length) * 100);
+        document.getElementById('quizProgressBar').style.width = percent + '%';
+
+        document.getElementById('quizWord').innerText = q.word + (q.romanization ? ' (' + q.romanization + ')' : '');
+        document.getElementById('nextQuizBtn').setAttribute('disabled', 'true');
+
+        const optContainer = document.getElementById('quizOptions');
+        optContainer.innerHTML = '';
+
+        q.options.forEach((opt, idx) => {
+            const label = String.fromCharCode(65 + idx); // A, B, C, D
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-outline-secondary p-3 rounded-4 text-start fw-bold fs-6 quiz-opt';
+            btn.innerText = label + '. ' + opt;
+            btn.onclick = () => answerQuiz(btn, opt === q.correctMeaning);
+            optContainer.appendChild(btn);
+        });
+    }
+
     function answerQuiz(btn, isCorrect) {
         document.querySelectorAll('.quiz-opt').forEach(b => b.disabled = true);
-        if(isCorrect) {
-            btn.className = 'btn btn-success p-3 rounded-4 text-start fw-bold fs-6';
-            btn.style.backgroundColor = 'var(--ssak-primary)';
+        if (isCorrect) {
+            btn.className = 'btn btn-success p-3 rounded-4 text-start fw-bold fs-6 text-white';
+            btn.style.backgroundColor = '#2E7D67';
+            btn.style.borderColor = '#2E7D67';
+            score++;
+            document.getElementById('correctScore').innerText = score;
         } else {
-            btn.className = 'btn btn-danger p-3 rounded-4 text-start fw-bold fs-6';
+            btn.className = 'btn btn-danger p-3 rounded-4 text-start fw-bold fs-6 text-white';
+            // Highlight đáp án đúng
+            const q = questions[currentQIdx];
+            document.querySelectorAll('.quiz-opt').forEach(b => {
+                if (b.innerText.includes(q.correctMeaning)) {
+                    b.className = 'btn btn-success p-3 rounded-4 text-start fw-bold fs-6 text-white';
+                    b.style.backgroundColor = '#2E7D67';
+                }
+            });
         }
         document.getElementById('nextQuizBtn').removeAttribute('disabled');
     }
 
     function nextQuizQuestion() {
+        currentQIdx++;
+        renderQuestion();
+    }
+
+    function showResults() {
+        document.getElementById('quizProgressBar').style.width = '100%';
         document.getElementById('quizQuestionBox').classList.add('d-none');
         document.getElementById('quizResultBox').classList.remove('d-none');
+
+        const total = questions.length;
+        document.getElementById('quizFinalScoreText').innerText = 'Đúng ' + score + ' / ' + total + ' câu';
+        document.getElementById('finalCorrectCount').innerText = score + ' từ';
+        document.getElementById('finalWrongCount').innerText = (total - score) + ' từ';
     }
+
+    init();
 </script>
 
 <div th:replace="~{fragments/footer :: footer}"></div>

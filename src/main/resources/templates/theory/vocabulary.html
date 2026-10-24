@@ -1,140 +1,141 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/head :: head('Từ vựng: Môi trường & Khí hậu · HOT TOPIK')}"></head>
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
 <body style="background: var(--ssak-bg); color: var(--ssak-text-main); font-family: var(--font-body);">
 
 <!-- Navbar -->
 <div th:replace="~{fragments/navbar :: navbar('theory')}"></div>
 
 <main class="container my-4" style="max-width: 1200px;">
-    <!-- Đầu trang: Tiêu đề, Cấp, Số từ, Số từ chưa thuộc -->
+    <!-- Đầu trang: Tiêu đề, Cấp, Số từ, Danh sách chủ đề -->
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <div>
             <a th:href="@{/ly-thuyet}" class="text-decoration-none fw-bold small text-muted">
                 ‹ Sổ tay Lý thuyết · Từ vựng
             </a>
-            <div class="d-flex align-items-center gap-3 mt-1">
+            <div class="d-flex align-items-center gap-3 mt-1 flex-wrap">
                 <h1 style="font-family: var(--font-heading); font-size: 28px; font-weight: 800; margin: 0;">
-                    Chủ đề: Môi trường & Biến đổi khí hậu
+                    Chủ đề: <span th:text="${currentTopic}">Môi trường & Biến đổi khí hậu</span>
                 </h1>
-                <span class="badge bg-success" style="background: var(--ssak-primary) !important;">TOPIK Cấp 4</span>
+                <span class="badge bg-success" style="background: var(--ssak-primary) !important;" th:text="${currentLevelName}">TOPIK Cấp 1</span>
             </div>
             <div class="text-muted small mt-1">
-                Tổng cộng <strong>40 từ vựng</strong> · Còn <strong>4 từ chưa thuộc</strong>
+                Tổng cộng <strong th:text="${vocabList != null ? vocabList.size() : 0}">0</strong> từ vựng được phát hành từ Content Manager
             </div>
         </div>
 
-        <!-- 2 Ô lớn theo mục 10.1: Học bằng thẻ (cả chủ đề) và Làm quiz (tối đa 10 câu) -->
-        <div class="d-flex gap-2">
-            <a th:href="@{/ly-thuyet/the}" class="btn-ssak-primary px-4 py-2 rounded-pill fw-bold text-decoration-none shadow-sm" style="font-size: 14px;">
-                <i class="bi bi-card-text me-2"></i>Học bằng thẻ (40 từ)
+        <!-- Các nút tác vụ: Chuyển chủ đề & Học bằng thẻ / Quiz -->
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <!-- Dropdown đổi chủ đề khác trong cấp này -->
+            <div class="dropdown" th:if="${levelTopics != null and !levelTopics.empty}">
+                <button class="btn btn-ssak-light dropdown-toggle px-3 py-2 rounded-pill fw-bold" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 13.5px;">
+                    📂 Đổi chủ đề (<span th:text="${levelTopics.size()}">0</span>)
+                </button>
+                <ul class="dropdown-menu shadow-sm" style="max-height: 320px; overflow-y: auto; border-radius: 12px;">
+                    <li th:each="t : ${levelTopics}">
+                        <a class="dropdown-item py-2" th:classappend="${t.name == currentTopic ? 'fw-bold active' : ''}"
+                           th:href="@{/ly-thuyet/tu-vung(topic=${t.name}, level=${currentLevel})}">
+                            <span th:text="${t.name}">Chủ đề</span>
+                            <small class="text-muted ms-2" th:text="'(' + ${t.activeCount} + ' từ)'">(0 từ)</small>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Học bằng thẻ (Flashcard) -->
+            <a th:href="@{/ly-thuyet/the(topic=${currentTopic}, level=${currentLevel})}" class="btn-ssak-primary px-4 py-2 rounded-pill fw-bold text-decoration-none shadow-sm" style="font-size: 14px;">
+                <i class="bi bi-card-text me-2"></i>Học bằng thẻ (<span th:text="${vocabList != null ? vocabList.size() : 0}">0</span>)
             </a>
-            <a th:href="@{/ly-thuyet/quiz}" class="btn-ssak-outline px-4 py-2 rounded-pill fw-bold text-decoration-none shadow-sm" style="font-size: 14px; background: #fff;">
-                <i class="bi bi-question-circle me-2"></i>Làm Quiz (10 câu)
+
+            <!-- Làm Quiz -->
+            <a th:href="@{/ly-thuyet/quiz(topic=${currentTopic}, level=${currentLevel})}" class="btn-ssak-outline px-4 py-2 rounded-pill fw-bold text-decoration-none shadow-sm" style="font-size: 14px; background: #fff;">
+                <i class="bi bi-question-circle me-2"></i>Làm Quiz
             </a>
         </div>
     </div>
 
-    <!-- Thanh "Đã chọn n từ · Học nhanh" hiện khi tích chọn từ theo mục 10.1 -->
+    <!-- Thanh "Đã chọn n từ · Học nhanh" hiện khi tích chọn từ -->
     <div id="quickLearnBar" class="alert p-3 rounded-4 mb-4 border d-flex justify-content-between align-items-center shadow-sm d-none" 
          style="background: #E3F2EA; border-color: var(--ssak-primary) !important;">
         <div class="fw-bold text-success" style="color: var(--ssak-primary-dark) !important;">
             <i class="bi bi-check-circle-fill me-2"></i>Đã chọn <span id="selectedCount">0</span> từ · Học nhanh
         </div>
         <div class="d-flex gap-2">
-            <a th:href="@{/ly-thuyet/the}" class="btn btn-sm btn-success rounded-pill px-3 fw-bold" style="background: var(--ssak-primary) !important;">
+            <a th:href="@{/ly-thuyet/the(topic=${currentTopic}, level=${currentLevel})}" class="btn btn-sm btn-success rounded-pill px-3 fw-bold" style="background: var(--ssak-primary) !important;">
                 Học thẻ các từ đã chọn
             </a>
-            <a th:href="@{/ly-thuyet/quiz}" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-bold">
+            <a th:href="@{/ly-thuyet/quiz(topic=${currentTopic}, level=${currentLevel})}" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-bold">
                 Làm Quiz các từ đã chọn
             </a>
         </div>
     </div>
 
-    <!-- Bộ lọc & Bảng danh sách từ theo mục 10.1 -->
+    <!-- Khung Bảng danh sách từ vựng -->
     <div class="p-4 rounded-4 bg-white border shadow-sm">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <!-- Lọc Tất cả / Chưa thuộc -->
             <div class="btn-group btn-group-sm" role="group">
-                <button type="button" class="btn btn-outline-secondary active" id="btnFilterAll" onclick="filterVocabTable('all')">Tất cả (40)</button>
-                <button type="button" class="btn btn-outline-secondary" id="btnFilterUnlearned" onclick="filterVocabTable('unlearned')">Chưa thuộc (4)</button>
+                <button type="button" class="btn btn-outline-secondary active" id="btnFilterAll" onclick="filterVocabTable('all')">
+                    Tất cả (<span th:text="${vocabList != null ? vocabList.size() : 0}">0</span>)
+                </button>
             </div>
 
             <div class="small text-muted">
-                * Bấm vào loa để nghe phát âm giọng chuẩn
+                * Bấm vào biểu tượng loa <i class="bi bi-volume-up-fill text-primary"></i> để nghe phát âm tiếng Hàn
             </div>
         </div>
 
-        <div class="table-responsive">
+        <!-- Trạng thái trống (Chưa có từ) -->
+        <div th:if="${vocabList == null or vocabList.empty}" class="text-center py-5">
+            <div th:replace="~{fragments/ssak :: mascot('think', 'sprout', 120, 'Bé Ssak')}"></div>
+            <h4 class="mt-3 fw-bold text-muted">Chủ đề này chưa có từ vựng nào!</h4>
+            <p class="text-muted small">Content Manager đang chuẩn bị nội dung cho chủ đề này. Bạn có thể chọn chủ đề khác hoặc quay lại sau nhé.</p>
+            <a th:href="@{/ly-thuyet}" class="btn-ssak-primary rounded-pill px-4 py-2 text-decoration-none fw-bold mt-2">
+                ← Quay lại danh mục Lý thuyết
+            </a>
+        </div>
+
+        <!-- Bảng từ vựng lấy trực tiếp từ Database -->
+        <div class="table-responsive" th:if="${vocabList != null and !vocabList.empty}">
             <table class="table table-hover align-middle mb-0">
                 <thead style="background: var(--ssak-bg);">
                     <tr>
                         <th style="width: 40px;"><input type="checkbox" class="form-check-input" onclick="toggleSelectAll(this)"></th>
                         <th style="width: 25%;">Từ vựng & Phiên âm</th>
-                        <th style="width: 30%;">Nghĩa tiếng Việt</th>
-                        <th style="width: 20%;">Gốc Hán Việt</th>
+                        <th style="width: 35%;">Nghĩa tiếng Việt & Ví dụ</th>
+                        <th style="width: 15%;">Từ loại</th>
                         <th style="width: 15%;">Trạng thái</th>
                         <th style="width: 10%; text-align: center;">Nghe</th>
                     </tr>
                 </thead>
                 <tbody id="vocabTableBody">
-                    <!-- Từ 1 (Bình thường) -->
-                    <tr class="vocab-row">
-                        <td><input type="checkbox" class="form-check-input word-check" onchange="updateSelectedCount()"></td>
+                    <tr th:each="vocab, iter : ${vocabList}" class="vocab-row">
+                        <td><input type="checkbox" class="form-check-input word-check" th:value="${vocab.id}" onchange="updateSelectedCount()"></td>
                         <td>
-                            <strong style="font-family: var(--font-korean); font-size: 17px;">환경오염</strong>
-                            <small class="text-muted d-block">[hwangyeong-oyeom]</small>
+                            <strong style="font-family: var(--font-korean); font-size: 18px; color: #24363D;" th:text="${vocab.word}">한국어</strong>
+                            <small class="text-muted d-block" th:text="'[' + ${vocab.romanization} + ']'"></small>
                         </td>
-                        <td>Ô nhiễm môi trường</td>
-                        <td><span class="badge bg-light text-dark border">Hoàn cảnh ô nhiễm</span></td>
-                        <td><span class="text-muted small">-</span></td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-light rounded-circle text-primary" onclick="alert('🔊 Phát âm: hwangyeong-oyeom')"><i class="bi bi-volume-up-fill"></i></button>
-                        </td>
-                    </tr>
-
-                    <!-- Từ 2 (Chưa thuộc -> nhãn Chưa thuộc theo mục 10.1) -->
-                    <tr class="vocab-row unlearned-row" style="background: #FFFDF8;">
-                        <td><input type="checkbox" class="form-check-input word-check" onchange="updateSelectedCount()"></td>
                         <td>
-                            <strong style="font-family: var(--font-korean); font-size: 17px; color: var(--ssak-terracotta);">온실효과</strong>
-                            <small class="text-muted d-block">[onsil-hyogwa]</small>
+                            <div class="fw-bold" style="color: #24363D;" th:text="${vocab.meaning}">Tiếng Hàn Quốc</div>
+                            <!-- Câu ví dụ tiếng Hàn & Dịch -->
+                            <div th:if="${vocab.exampleKr != null and !vocab.exampleKr.isEmpty()}" 
+                                 class="mt-1 p-2 rounded-3 border" style="background: #F8FBF9; font-size: 12.5px; border-color: #E2ECE7 !important;">
+                                <div style="font-family: var(--font-korean); color: #1F6B56; font-weight: 600;" th:text="${vocab.exampleKr}"></div>
+                                <div class="text-muted" th:text="${vocab.exampleVi}" th:if="${vocab.exampleVi != null and !vocab.exampleVi.isEmpty()}"></div>
+                            </div>
                         </td>
-                        <td>Hiệu ứng nhà kính</td>
-                        <td><span class="badge bg-light text-dark border">Ôn thất hiệu quả</span></td>
-                        <td><span class="badge bg-warning text-dark">Chưa thuộc</span></td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-light rounded-circle text-primary" onclick="alert('🔊 Phát âm: onsil-hyogwa')"><i class="bi bi-volume-up-fill"></i></button>
-                        </td>
-                    </tr>
-
-                    <!-- Từ 3 -->
-                    <tr class="vocab-row">
-                        <td><input type="checkbox" class="form-check-input word-check" onchange="updateSelectedCount()"></td>
                         <td>
-                            <strong style="font-family: var(--font-korean); font-size: 17px;">재활용</strong>
-                            <small class="text-muted d-block">[jaehwalyong]</small>
+                            <span class="badge bg-light text-dark border" th:text="${vocab.wordType}">Danh từ</span>
                         </td>
-                        <td>Tái chế (rác thải)</td>
-                        <td><span class="badge bg-light text-dark border">Tái hoạt dụng</span></td>
-                        <td><span class="text-muted small">-</span></td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-light rounded-circle text-primary" onclick="alert('🔊 Phát âm: jaehwalyong')"><i class="bi bi-volume-up-fill"></i></button>
-                        </td>
-                    </tr>
-
-                    <!-- Từ 4 (Chưa thuộc) -->
-                    <tr class="vocab-row unlearned-row" style="background: #FFFDF8;">
-                        <td><input type="checkbox" class="form-check-input word-check" onchange="updateSelectedCount()"></td>
                         <td>
-                            <strong style="font-family: var(--font-korean); font-size: 17px; color: var(--ssak-terracotta);">생태계 파괴</strong>
-                            <small class="text-muted d-block">[saengtae-gye pagwoe]</small>
+                            <span class="badge bg-success" style="background: #2E7D67 !important;" th:if="${vocab.status == 'ACTIVE'}">Đã phát hành</span>
+                            <span class="badge bg-secondary" th:unless="${vocab.status == 'ACTIVE'}" th:text="${vocab.status}">Ẩn</span>
                         </td>
-                        <td>Phá hủy hệ sinh thái</td>
-                        <td><span class="badge bg-light text-dark border">Sinh thái giới phá hoại</span></td>
-                        <td><span class="badge bg-warning text-dark">Chưa thuộc</span></td>
                         <td class="text-center">
-                            <button class="btn btn-sm btn-light rounded-circle text-primary" onclick="alert('🔊 Phát âm: saengtae-gye pagwoe')"><i class="bi bi-volume-up-fill"></i></button>
+                            <button class="btn btn-sm btn-light rounded-circle text-primary" 
+                                    th:attr="onclick='speakKorean(\'' + ${vocab.word} + '\', \'' + ${vocab.audioUrl != null ? vocab.audioUrl : ''} + '\')'"
+                                    title="Nghe phát âm chuẩn">
+                                <i class="bi bi-volume-up-fill fs-6"></i>
+                            </button>
                         </td>
                     </tr>
                 </tbody>
@@ -147,29 +148,42 @@
     function updateSelectedCount() {
         const checked = document.querySelectorAll('.word-check:checked');
         const count = checked.length;
-        document.getElementById('selectedCount').innerText = count;
-        if(count > 0) {
-            document.getElementById('quickLearnBar').classList.remove('d-none');
-        } else {
-            document.getElementById('quickLearnBar').classList.add('d-none');
+        const el = document.getElementById('selectedCount');
+        if (el) el.innerText = count;
+        const bar = document.getElementById('quickLearnBar');
+        if (bar) {
+            if (count > 0) bar.classList.remove('d-none');
+            else bar.classList.add('d-none');
         }
     }
+
     function toggleSelectAll(master) {
         document.querySelectorAll('.word-check').forEach(c => c.checked = master.checked);
         updateSelectedCount();
     }
+
     function filterVocabTable(type) {
-        if(type === 'unlearned') {
-            document.querySelectorAll('.vocab-row').forEach(r => {
-                if(!r.classList.contains('unlearned-row')) r.style.display = 'none';
-                else r.style.display = '';
-            });
-            document.getElementById('btnFilterUnlearned').className = 'btn btn-outline-secondary active';
-            document.getElementById('btnFilterAll').className = 'btn btn-outline-secondary';
+        document.querySelectorAll('.vocab-row').forEach(r => r.style.display = '');
+    }
+
+    // Phát âm tiếng Hàn chuẩn dùng Web Speech API hoặc audioUrl
+    function speakKorean(word, audioUrl) {
+        if (audioUrl && audioUrl.trim() !== '') {
+            const audio = new Audio(audioUrl);
+            audio.play().catch(() => playSpeech(word));
         } else {
-            document.querySelectorAll('.vocab-row').forEach(r => r.style.display = '');
-            document.getElementById('btnFilterAll').className = 'btn btn-outline-secondary active';
-            document.getElementById('btnFilterUnlearned').className = 'btn btn-outline-secondary';
+            playSpeech(word);
+        }
+    }
+
+    function playSpeech(word) {
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(word);
+            utterance.lang = 'ko-KR';
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        } else {
+            alert('🔊 Phát âm: ' + word);
         }
     }
 </script>
