@@ -1,14 +1,22 @@
 package com.hottopik;
 
 import com.hottopik.dto.VocabularyDTO;
+import com.hottopik.entity.Topic;
+import com.hottopik.entity.Vocabulary;
+import com.hottopik.repository.TopicRepository;
+import com.hottopik.repository.VocabularyRepository;
 import com.hottopik.service.VocabularyService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 public class VocabularyServiceTest {
 
@@ -125,14 +133,53 @@ public class VocabularyServiceTest {
     @Test
     @DisplayName("Test Bulk Create (Excel Import Simulation)")
     void testBulkCreate() {
-        VocabularyDTO v1 = new VocabularyDTO(null, "책상", "chaek-sang", "Bàn học", "Danh từ", 1, "Trường học", null, "책상 위에 책이 있다.", "Trên bàn có quyển sách.", "ACTIVE", null, null);
+        VocabularyDTO v1 = new VocabularyDTO(null, "칠판", "chil-pan", "Bảng đen", "Danh từ", 1, "Trường học", null, "선생님이 칠판에 글씨를 쓰십니다.", "Thầy giáo viết chữ lên bảng.", "ACTIVE", null, null);
         VocabularyDTO v2 = new VocabularyDTO(null, "의자", "ui-ja", "Ghế ngồi", "Danh từ", 1, "Trường học", null, "의자에 앉으세요.", "Xin hãy ngồi vào ghế.", "ACTIVE", null, null);
 
         int count = vocabularyService.bulkCreate(List.of(v1, v2));
         assertEquals(2, count);
 
-        assertFalse(vocabularyService.searchAndFilter("책상", null, null, null, null).isEmpty());
+        assertFalse(vocabularyService.searchAndFilter("칠판", null, null, null, null).isEmpty());
         assertFalse(vocabularyService.searchAndFilter("의자", null, null, null, null).isEmpty());
+    }
+
+    @Test
+    @DisplayName("Test Duplicate Vocabulary Manual Save Merges Into One")
+    void testManualSaveDuplicateWord() {
+        VocabularyDTO w1 = new VocabularyDTO(null, "행복", "haeng-bok", "Hạnh phúc", "Danh từ", 1, "Cảm xúc", null, "행복하세요", "Chúc hạnh phúc", "ACTIVE", null, null);
+        VocabularyDTO saved1 = vocabularyService.saveOrUpdate(w1);
+        assertNotNull(saved1.getId());
+        assertEquals("Hạnh phúc", saved1.getMeaning());
+
+        // Cùng từ "행복" ở cấp 1 nhưng nhập mới (id = null) với nghĩa mới
+        VocabularyDTO w2 = new VocabularyDTO(null, "행복", null, "Niềm vui và hạnh phúc trọn vẹn", "Danh từ", 1, "Cảm xúc", null, null, null, "ACTIVE", null, null);
+        VocabularyDTO saved2 = vocabularyService.saveOrUpdate(w2);
+
+        // Phải tái sử dụng ID của từ đã tồn tại, không sinh ra ID mới
+        assertEquals(saved1.getId(), saved2.getId());
+        assertEquals("Niềm vui và hạnh phúc trọn vẹn", saved2.getMeaning());
+
+        // Kiểm tra danh sách chỉ có đúng 1 từ "행복" ở cấp 1
+        List<VocabularyDTO> list = vocabularyService.searchAndFilter("행복", 1, null, null, null);
+        assertEquals(1, list.size());
+    }
+
+    @Test
+    @DisplayName("Test Bulk Create Deduplication (In-batch and Existing Word)")
+    void testBulkCreateDeduplication() {
+        // "가족" đã có sẵn trong dữ liệu mẫu cấp 1
+        // "시계" xuất hiện 2 lần trong cùng 1 đợt import
+        VocabularyDTO dupExisting = new VocabularyDTO(null, "가족", null, "Gia đình mới", "Danh từ", 1, "Gia đình", null, null, null, "ACTIVE", null, null);
+        VocabularyDTO newWord1 = new VocabularyDTO(null, "시계", null, "Đồng hồ", "Danh từ", 1, "Đồ vật", null, null, null, "ACTIVE", null, null);
+        VocabularyDTO newWord2Duplicate = new VocabularyDTO(null, "시계", null, "Đồng hồ đeo tay", "Danh từ", 1, "Đồ vật", null, null, null, "ACTIVE", null, null);
+
+        int count = vocabularyService.bulkCreate(List.of(dupExisting, newWord1, newWord2Duplicate));
+
+        // Chỉ tạo đúng 1 từ duy nhất ("시계" đầu tiên), bỏ qua "가족" (đã tồn tại) và "시계" thứ 2 (trùng trong batch)
+        assertEquals(1, count);
+
+        List<VocabularyDTO> results = vocabularyService.searchAndFilter("시계", 1, null, null, null);
+        assertEquals(1, results.size());
     }
 
     @Test
@@ -169,5 +216,61 @@ public class VocabularyServiceTest {
 
         String rom2 = com.hottopik.util.KoreanRomanizer.romanize("학교");
         assertEquals("hak-gyo", rom2);
+    }
+
+    @Test
+    @DisplayName("Verify Content Manager creates vocabulary and saves directly to Database Repository")
+    void testSaveVocabularyToDatabaseRepository() {
+        VocabularyRepository mockVocabRepo = mock(VocabularyRepository.class);
+        TopicRepository mockTopicRepo = mock(TopicRepository.class);
+
+        // Giả lập lưu trả về entity có ID
+        when(mockVocabRepo.save(any(Vocabulary.class))).thenAnswer(invocation -> {
+            Vocabulary arg = invocation.getArgument(0);
+            arg.setId(999L);
+            return arg;
+        });
+        when(mockTopicRepo.existsByLevelAndName(anyInt(), anyString())).thenReturn(true);
+
+        VocabularyService serviceWithDb = new VocabularyService(mockVocabRepo, mockTopicRepo);
+
+        VocabularyDTO newWord = new VocabularyDTO();
+        newWord.setWord("희망");
+        newWord.setMeaning("Hy vọng");
+        newWord.setTopikLevel(2);
+        newWord.setTopic("Cảm xúc & Tâm lý");
+        newWord.setWordType("Danh từ");
+        newWord.setStatus("ACTIVE");
+
+        VocabularyDTO savedDto = serviceWithDb.saveOrUpdate(newWord);
+
+        assertNotNull(savedDto);
+        assertEquals(999L, savedDto.getId());
+        assertEquals("희망", savedDto.getWord());
+
+        // Xác minh vocabularyRepository.save() ĐƯỢC GỌI để lưu vào Database!
+        verify(mockVocabRepo, atLeastOnce()).save(any(Vocabulary.class));
+    }
+
+    @Test
+    @DisplayName("Verify Learner gets vocabularies created by Content Manager")
+    void testLearnerReceivesCreatedVocabularies() {
+        VocabularyDTO newWord = new VocabularyDTO();
+        newWord.setWord("꿈");
+        newWord.setMeaning("Ước mơ / Giấc mơ");
+        newWord.setTopikLevel(1);
+        newWord.setTopic("Ước mơ & Tương lai");
+        newWord.setWordType("Danh từ");
+        newWord.setStatus("ACTIVE");
+
+        vocabularyService.saveOrUpdate(newWord);
+
+        // Người dùng (Learner) truy vấn từ vựng của chủ đề "Ước mơ & Tương lai"
+        List<VocabularyDTO> learnerVocabs = vocabularyService.getVocabulariesForLearner(1, "Ước mơ & Tương lai");
+        assertNotNull(learnerVocabs);
+        assertFalse(learnerVocabs.isEmpty());
+        assertEquals(1, learnerVocabs.size());
+        assertEquals("꿈", learnerVocabs.get(0).getWord());
+        assertEquals("Ước mơ / Giấc mơ", learnerVocabs.get(0).getMeaning());
     }
 }

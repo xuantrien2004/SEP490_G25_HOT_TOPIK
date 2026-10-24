@@ -3,8 +3,15 @@ package com.hottopik.service;
 import com.hottopik.dto.TopicDTO;
 import com.hottopik.dto.TopikLevelSummaryDTO;
 import com.hottopik.dto.VocabularyDTO;
+import com.hottopik.entity.Topic;
+import com.hottopik.entity.Vocabulary;
+import com.hottopik.repository.TopicRepository;
+import com.hottopik.repository.VocabularyRepository;
 import com.hottopik.util.KoreanRomanizer;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -16,6 +23,12 @@ import java.util.stream.Collectors;
 @Service
 public class VocabularyService {
 
+    @Autowired(required = false)
+    private VocabularyRepository vocabularyRepository;
+
+    @Autowired(required = false)
+    private TopicRepository topicRepository;
+
     private final Map<Long, VocabularyDTO> vocabMap = new ConcurrentHashMap<>();
     private final Map<String, TopicDTO> topicMap = new ConcurrentHashMap<>();
     private final Map<Integer, Boolean> levelStatusMap = new ConcurrentHashMap<>();
@@ -24,171 +37,262 @@ public class VocabularyService {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     public VocabularyService() {
-        initSampleData();
+        for (int i = 1; i <= 6; i++) {
+            levelStatusMap.put(i, true);
+        }
+        initSampleDataInMemory();
+    }
+
+    public VocabularyService(VocabularyRepository vocabularyRepository, TopicRepository topicRepository) {
+        this();
+        this.vocabularyRepository = vocabularyRepository;
+        this.topicRepository = topicRepository;
+        initDatabaseSync();
+    }
+
+    @PostConstruct
+    public void init() {
+        if (vocabularyRepository != null && topicRepository != null) {
+            initDatabaseSync();
+        }
     }
 
     private String topicKey(int level, String name) {
         return level + "_" + (name != null ? name.trim().toLowerCase() : "");
     }
 
-    private void initSampleData() {
-        for (int i = 1; i <= 6; i++) {
-            levelStatusMap.put(i, true);
+    /**
+     * Đồng bộ dữ liệu CSDL: Nếu chưa có dữ liệu từ vựng theo chủ đề thì tự động seed vào Database.
+     * Sau đó đọc toàn bộ từ CSDL vào bộ nhớ để truy vấn nhanh và đồng bộ.
+     */
+    @Transactional
+    public synchronized void initDatabaseSync() {
+        if (vocabularyRepository == null || topicRepository == null) {
+            return;
         }
 
+        try {
+            long existingCount = vocabularyRepository.findAll().stream()
+                    .filter(v -> v.getTopic() != null && !v.getTopic().trim().isEmpty())
+                    .count();
+
+            if (existingCount == 0) {
+                // Seed sample data into Database
+                for (TopicDTO t : topicMap.values()) {
+                    if (!topicRepository.existsByLevelAndName(t.getTopikLevel(), t.getName())) {
+                        Topic entity = Topic.builder()
+                                .level(t.getTopikLevel())
+                                .name(t.getName())
+                                .description(t.getDescription())
+                                .status(t.getStatus() != null ? t.getStatus() : "ACTIVE")
+                                .build();
+                        topicRepository.save(entity);
+                    }
+                }
+
+                for (VocabularyDTO v : vocabMap.values()) {
+                    Vocabulary entity = Vocabulary.builder()
+                            .word(v.getWord())
+                            .romanization(v.getRomanization())
+                            .pos(v.getWordType())
+                            .meaningVi(v.getMeaning())
+                            .level(v.getTopikLevel() != null ? v.getTopikLevel().shortValue() : 1)
+                            .topic(v.getTopic())
+                            .audioUrl(v.getAudioUrl())
+                            .exampleKr(v.getExampleKr())
+                            .exampleVi(v.getExampleVi())
+                            .status(v.getStatus() != null ? v.getStatus() : "ACTIVE")
+                            .topicId(1)
+                            .build();
+                    vocabularyRepository.save(entity);
+                }
+            }
+
+            // Load from Database into Memory Map
+            reloadFromDatabase();
+        } catch (Exception e) {
+            System.err.println("VocabularyService DB Sync Warning: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Tải lại toàn bộ dữ liệu từ Database vào bộ nhớ
+     */
+    public synchronized void reloadFromDatabase() {
+        if (vocabularyRepository == null || topicRepository == null) {
+            return;
+        }
+
+        vocabMap.clear();
+        topicMap.clear();
+
+        // 1. Tải topics từ DB
+        List<Topic> dbTopics = topicRepository.findAll();
+        for (Topic t : dbTopics) {
+            TopicDTO dto = new TopicDTO(
+                    t.getId(),
+                    t.getName(),
+                    t.getLevel(),
+                    t.getDescription(),
+                    0,
+                    0,
+                    t.getStatus() != null ? t.getStatus() : "ACTIVE"
+            );
+            topicMap.put(topicKey(t.getLevel(), t.getName()), dto);
+            if (t.getId() != null && t.getId() > topicIdGen.get()) {
+                topicIdGen.set(t.getId());
+            }
+        }
+
+        // 2. Tải vocabularies từ DB
+        List<Vocabulary> dbVocabs = vocabularyRepository.findAll();
+        for (Vocabulary v : dbVocabs) {
+            if (v.getTopic() == null || v.getTopic().trim().isEmpty()) {
+                continue;
+            }
+            int lvl = v.getLevel() != null ? v.getLevel().intValue() : 1;
+            String createdAtStr = v.getCreatedAt() != null ? v.getCreatedAt().format(FORMATTER) : LocalDateTime.now().format(FORMATTER);
+            String updatedAtStr = v.getUpdatedAt() != null ? v.getUpdatedAt().format(FORMATTER) : LocalDateTime.now().format(FORMATTER);
+
+            VocabularyDTO dto = new VocabularyDTO(
+                    v.getId(),
+                    v.getWord(),
+                    v.getRomanization(),
+                    v.getMeaningVi(),
+                    v.getPos() != null ? v.getPos() : "Danh từ",
+                    lvl,
+                    v.getTopic(),
+                    v.getAudioUrl(),
+                    v.getExampleKr(),
+                    v.getExampleVi(),
+                    v.getStatus() != null ? v.getStatus() : "ACTIVE",
+                    createdAtStr,
+                    updatedAtStr
+            );
+            vocabMap.put(v.getId(), dto);
+            if (v.getId() != null && v.getId() > vocabIdGen.get()) {
+                vocabIdGen.set(v.getId());
+            }
+
+            // Đảm bảo topic tồn tại trong topicMap
+            String key = topicKey(lvl, v.getTopic());
+            if (!topicMap.containsKey(key)) {
+                TopicDTO newTopicDto = new TopicDTO(
+                        topicIdGen.incrementAndGet(),
+                        v.getTopic(),
+                        lvl,
+                        "Chủ đề " + v.getTopic(),
+                        0,
+                        0,
+                        "ACTIVE"
+                );
+                topicMap.put(key, newTopicDto);
+            }
+        }
+    }
+
+    private void initSampleDataInMemory() {
         String now = LocalDateTime.now().minusDays(3).format(FORMATTER);
         String updated = LocalDateTime.now().minusHours(2).format(FORMATTER);
 
-        // ==========================================
-        // TOPIK 1: 6 CHỦ ĐỀ CHUẨN
-        // ==========================================
-        registerTopic(1, "Gia đình", "Từ vựng về các thành viên và quan hệ gia đình");
-        addSample(1L, "가족", "ga-jok", "Gia đình", "Danh từ", 1, "Gia đình", null,
+        // TOPIK 1
+        registerTopicInMemory(1, "Gia đình", "Từ vựng về các thành viên và quan hệ gia đình");
+        addSampleInMemory(1L, "가족", "ga-jok", "Gia đình", "Danh từ", 1, "Gia đình", null,
                 "우리 가족은 모두 네 명입니다.", "Gia đình tôi có tất cả 4 người.", "ACTIVE", now, updated);
-        addSample(2L, "부모님", "bu-mo-nim", "Bố mẹ / Phụ huynh", "Danh từ", 1, "Gia đình", null,
+        addSampleInMemory(2L, "부모님", "bu-mo-nim", "Bố mẹ / Phụ huynh", "Danh từ", 1, "Gia đình", null,
                 "주말에 부모님 댁을 방문했습니다.", "Cuối tuần tôi đã về thăm nhà bố mẹ.", "ACTIVE", now, updated);
-        addSample(3L, "어머니", "eo-meo-ni", "Mẹ", "Danh từ", 1, "Gia đình", null,
+        addSampleInMemory(3L, "어머니", "eo-meo-ni", "Mẹ", "Danh từ", 1, "Gia đình", null,
                 "어머니께서 맛있는 음식을 만들어 주셨어요.", "Mẹ đã nấu cho tôi những món ăn rất ngon.", "ACTIVE", now, updated);
-        addSample(4L, "아버지", "a-beo-ji", "Bố", "Danh từ", 1, "Gia đình", null,
+        addSampleInMemory(4L, "아버지", "a-beo-ji", "Bố", "Danh từ", 1, "Gia đình", null,
                 "아버지는 회사에 다니십니다.", "Bố tôi đang đi làm ở công ty.", "ACTIVE", now, updated);
-        addSample(5L, "동생", "dong-saeng", "Em (trai / gái)", "Danh từ", 1, "Gia đình", null,
+        addSampleInMemory(5L, "동생", "dong-saeng", "Em (trai / gái)", "Danh từ", 1, "Gia đình", null,
                 "제 동생은 지금 고등학생입니다.", "Em của tôi hiện đang là học sinh cấp ba.", "ACTIVE", now, updated);
 
-        registerTopic(1, "Trường học & Giáo dục", "Từ vựng về trường lớp, học tập và đồ dùng học sinh");
-        addSample(6L, "학교", "hak-gyo", "Trường học", "Danh từ", 1, "Trường học & Giáo dục", null,
+        registerTopicInMemory(1, "Trường học & Giáo dục", "Từ vựng về trường lớp, học tập và đồ dùng học sinh");
+        addSampleInMemory(6L, "학교", "hak-gyo", "Trường học", "Danh từ", 1, "Trường học & Giáo dục", null,
                 "저는 매일 아침 8시에 학교에 갑니다.", "Tôi đến trường vào 8 giờ mỗi sáng.", "ACTIVE", now, updated);
-        addSample(7L, "선생님", "seon-saeng-nim", "Thầy cô giáo", "Danh từ", 1, "Trường học & Giáo dục", null,
+        addSampleInMemory(7L, "선생님", "seon-saeng-nim", "Thầy cô giáo", "Danh từ", 1, "Trường học & Giáo dục", null,
                 "선생님, 질문이 하나 있습니다.", "Thưa thầy cô, em có một câu hỏi ạ.", "ACTIVE", now, updated);
-        addSample(8L, "공부하다", "gong-bu-ha-da", "Học tập", "Động từ", 1, "Trường học & Giáo dục", null,
+        addSampleInMemory(8L, "공부하다", "gong-bu-ha-da", "Học tập", "Động từ", 1, "Trường học & Giáo dục", null,
                 "도서관에서 한국어를 열심히 공부합니다.", "Tôi chăm chỉ học tiếng Hàn ở thư viện.", "ACTIVE", now, updated);
-        addSample(9L, "책상", "chaek-sang", "Bàn học", "Danh từ", 1, "Trường học & Giáo dục", null,
+        addSampleInMemory(9L, "책상", "chaek-sang", "Bàn học", "Danh từ", 1, "Trường học & Giáo dục", null,
                 "책상 위에 한국어 책과 공책이 있어요.", "Trên bàn học có sách và vở tiếng Hàn.", "ACTIVE", now, updated);
 
-        registerTopic(1, "Ẩm thực & Mua sắm", "Từ vựng về đồ ăn, thức uống, giá cả và đi chợ");
-        addSample(10L, "사과", "sa-gwa", "Quả táo / Lời xin lỗi", "Danh từ", 1, "Ẩm thực & Mua sắm", null,
+        registerTopicInMemory(1, "Ẩm thực & Mua sắm", "Từ vựng về đồ ăn, thức uống, giá cả và đi chợ");
+        addSampleInMemory(10L, "사과", "sa-gwa", "Quả táo / Lời xin lỗi", "Danh từ", 1, "Ẩm thực & Mua sắm", null,
                 "시장에서 신선한 사과를 샀어요.", "Tôi đã mua những quả táo tươi ở chợ.", "ACTIVE", now, updated);
-        addSample(11L, "물", "mul", "Nước", "Danh từ", 1, "Ẩm thực & Mua sắm", null,
+        addSampleInMemory(11L, "물", "mul", "Nước", "Danh từ", 1, "Ẩm thực & Mua sắm", null,
                 "식당에서 시원한 물을 마셨습니다.", "Tôi đã uống nước mát ở nhà hàng.", "ACTIVE", now, updated);
-        addSample(12L, "밥", "bap", "Cơm / Bữa ăn", "Danh từ", 1, "Ẩm thực & Mua sắm", null,
+        addSampleInMemory(12L, "밥", "bap", "Cơm / Bữa ăn", "Danh từ", 1, "Ẩm thực & Mua sắm", null,
                 "점심에 친구와 비빔밥을 먹었어요.", "Bữa trưa tôi đã ăn cơm trộn bibimbap cùng bạn.", "ACTIVE", now, updated);
-        addSample(13L, "시장", "si-jang", "Chợ", "Danh từ", 1, "Ẩm thực & Mua sắm", null,
+        addSampleInMemory(13L, "시장", "si-jang", "Chợ", "Danh từ", 1, "Ẩm thực & Mua sắm", null,
                 "주말에 동대문 시장에 구경하러 갔어요.", "Cuối tuần tôi đã đến chợ Dongdaemun để dạo ngắm.", "ACTIVE", now, updated);
 
-        registerTopic(1, "Đời sống hàng ngày", "Các hoạt động sinh hoạt, bạn bè và thời gian");
-        addSample(14L, "친구", "chin-gu", "Bạn bè", "Danh từ", 1, "Đời sống hàng ngày", null,
+        registerTopicInMemory(1, "Đời sống hàng ngày", "Các hoạt động sinh hoạt, bạn bè và thời gian");
+        addSampleInMemory(14L, "친구", "chin-gu", "Bạn bè", "Danh từ", 1, "Đời sống hàng ngày", null,
                 "주말에 오랜만에 친구를 만났습니다.", "Cuối tuần tôi đã gặp bạn cũ sau thời gian dài.", "ACTIVE", now, updated);
-        addSample(15L, "일어나다", "il-eo-na-da", "Thức dậy", "Động từ", 1, "Đời sống hàng ngày", null,
+        addSampleInMemory(15L, "일어나다", "il-eo-na-da", "Thức dậy", "Động từ", 1, "Đời sống hàng ngày", null,
                 "매일 아침 7시에 일어납니다.", "Mỗi sáng tôi thức dậy lúc 7 giờ.", "ACTIVE", now, updated);
-        addSample(16L, "보다", "bo-da", "Xem / Nhìn", "Động từ", 1, "Đời sống hàng ngày", null,
+        addSampleInMemory(16L, "보다", "bo-da", "Xem / Nhìn", "Động từ", 1, "Đời sống hàng ngày", null,
                 "저녁에 가족과 함께 텔레비전을 봅니다.", "Buổi tối tôi xem tivi cùng gia đình.", "ACTIVE", now, updated);
 
-        registerTopic(1, "Thời tiết & Mùa", "Mùa trong năm, mưa, nắng và nhiệt độ");
-        addSample(17L, "날씨", "nal-ssi", "Thời tiết", "Danh từ", 1, "Thời tiết & Mùa", null,
+        registerTopicInMemory(1, "Thời tiết & Mùa", "Mùa trong năm, mưa, nắng và nhiệt độ");
+        addSampleInMemory(17L, "날씨", "nal-ssi", "Thời tiết", "Danh từ", 1, "Thời tiết & Mùa", null,
                 "오늘 날씨가 정말 맑고 좋아요.", "Hôm nay thời tiết thật trong xanh và đẹp.", "ACTIVE", now, updated);
-        addSample(18L, "비", "bi", "Mưa", "Danh từ", 1, "Thời tiết & Mùa", null,
+        addSampleInMemory(18L, "비", "bi", "Mưa", "Danh từ", 1, "Thời tiết & Mùa", null,
                 "밖에 비가 많이 내리고 있어요.", "Bên ngoài trời đang mưa rất to.", "ACTIVE", now, updated);
-        addSample(19L, "봄", "bom", "Mùa xuân", "Danh từ", 1, "Thời tiết & Mùa", null,
+        addSampleInMemory(19L, "봄", "bom", "Mùa xuân", "Danh từ", 1, "Thời tiết & Mùa", null,
                 "봄에는 꽃이 예쁘게 핍니다.", "Vào mùa xuân hoa nở rất đẹp.", "ACTIVE", now, updated);
 
-        registerTopic(1, "Giao thông cơ bản", "Phương tiện đi lại, bến tàu, xe buýt");
-        addSample(20L, "버스", "beo-seu", "Xe buýt", "Danh từ", 1, "Giao thông cơ bản", null,
+        registerTopicInMemory(1, "Giao thông cơ bản", "Phương tiện đi lại, bến tàu, xe buýt");
+        addSampleInMemory(20L, "버스", "beo-seu", "Xe buýt", "Danh từ", 1, "Giao thông cơ bản", null,
                 "학교까지 버스를 타고 다닙니다.", "Tôi đi xe buýt đến trường học.", "ACTIVE", now, updated);
-        addSample(21L, "타다", "ta-da", "Đi / Lên (xe, tàu)", "Động từ", 1, "Giao thông cơ bản", null,
+        addSampleInMemory(21L, "타다", "ta-da", "Đi / Lên (xe, tàu)", "Động từ", 1, "Giao thông cơ bản", null,
                 "정류장에서 100번 버스를 타세요.", "Xin hãy lên xe buýt số 100 tại trạm dừng.", "ACTIVE", now, updated);
-        addSample(22L, "길", "gil", "Con đường / Đường xá", "Danh từ", 1, "Giao thông cơ bản", null,
+        addSampleInMemory(22L, "길", "gil", "Con đường / Đường xá", "Danh từ", 1, "Giao thông cơ bản", null,
                 "길을 건널 때는 신호등을 잘 보세요.", "Khi qua đường hãy chú ý nhìn đèn tín hiệu.", "ACTIVE", now, updated);
 
-        // ==========================================
-        // TOPIK 2: 4 CHỦ ĐỀ
-        // ==========================================
-        registerTopic(2, "Sức khỏe & Y tế", "Bệnh viện, thuốc men và triệu chứng");
-        addSample(23L, "병원", "byeong-won", "Bệnh viện", "Danh từ", 2, "Sức khỏe & Y tế", null,
+        // TOPIK 2
+        registerTopicInMemory(2, "Sức khỏe & Y tế", "Bệnh viện, thuốc men và triệu chứng");
+        addSampleInMemory(23L, "병원", "byeong-won", "Bệnh viện", "Danh từ", 2, "Sức khỏe & Y tế", null,
                 "감기가 심해서 병원에 가서 진료를 받았습니다.", "Bị cảm nặng nên tôi đã đến bệnh viện khám.", "ACTIVE", now, updated);
-        addSample(24L, "약국", "yak-guk", "Hiệu thuốc", "Danh từ", 2, "Sức khỏe & Y tế", null,
+        addSampleInMemory(24L, "약국", "yak-guk", "Hiệu thuốc", "Danh từ", 2, "Sức khỏe & Y tế", null,
                 "약국에서 감기약을 사서 먹었어요.", "Tôi đã mua thuốc cảm ở hiệu thuốc và uống.", "ACTIVE", now, updated);
 
-        registerTopic(2, "Văn hóa & Sở thích", "Xem phim, âm nhạc, du lịch và giải trí");
-        addSample(25L, "취미", "chwi-mi", "Sở thích", "Danh từ", 2, "Văn hóa & Sở thích", null,
+        registerTopicInMemory(2, "Văn hóa & Sở thích", "Xem phim, âm nhạc, du lịch và giải trí");
+        addSampleInMemory(25L, "취미", "chwi-mi", "Sở thích", "Danh từ", 2, "Văn hóa & Sở thích", null,
                 "제 취미는 주말마다 사진을 찍는 것입니다.", "Sở thích của tôi là chụp ảnh vào mỗi cuối tuần.", "ACTIVE", now, updated);
-        addSample(26L, "영화관", "yeong-hwa-gwan", "Rạp chiếu phim", "Danh từ", 2, "Văn hóa & Sở thích", null,
+        addSampleInMemory(26L, "영화관", "yeong-hwa-gwan", "Rạp chiếu phim", "Danh từ", 2, "Văn hóa & Sở thích", null,
                 "친구와 함께 영화관에서 한국 영화를 보았습니다.", "Tôi đã xem phim Hàn Quốc cùng bạn ở rạp.", "ACTIVE", now, updated);
 
-        registerTopic(2, "Giao thông & Đi lại", "Tàu điện ngầm, vé tàu và lộ trình");
-        addSample(27L, "지하철", "ji-ha-cheol", "Tàu điện ngầm", "Danh từ", 2, "Giao thông & Đi lại", null,
-                "출퇴근 시간에는 지하철을 타는 것이 빠릅니다.", "Vào giờ đi làm thì đi tàu điện ngầm nhanh hơn.", "ACTIVE", now, updated);
-
-        registerTopic(2, "Đời sống & Hẹn hò", "Lời hứa, cuộc hẹn và giao tiếp");
-        addSample(28L, "약속", "yak-sok", "Cuộc hẹn / Lời hứa", "Danh từ", 2, "Đời sống & Hẹn hò", null,
-                "친구와 6시에 영화관 앞에서 만나기로 약속했어요.", "Tôi đã hẹn gặp bạn lúc 6 giờ.", "ACTIVE", now, updated);
-
-        // ==========================================
-        // TOPIK 3: 4 CHỦ ĐỀ
-        // ==========================================
-        registerTopic(3, "Môi trường & Tự nhiên", "Bảo vệ môi trường, rác thải và khí hậu");
-        addSample(29L, "환경", "hwan-gyeong", "Môi trường", "Danh từ", 3, "Môi trường & Tự nhiên", null,
+        // TOPIK 3
+        registerTopicInMemory(3, "Môi trường & Tự nhiên", "Bảo vệ môi trường, rác thải và khí hậu");
+        addSampleInMemory(29L, "환경", "hwan-gyeong", "Môi trường", "Danh từ", 3, "Môi trường & Tự nhiên", null,
                 "환경을 보호하기 위해 일회용품 사용을 줄여야 합니다.", "Để bảo vệ môi trường cần giảm đồ dùng 1 lần.", "ACTIVE", now, updated);
+        addSampleInMemory(30L, "온실효과", "on-sil-hyo-gwa", "Hiệu ứng nhà kính", "Danh từ", 3, "Môi trường & Tự nhiên", null,
+                "온실효과로 인해 지구의 평균 기온이 계속 상승하고 있다.", "Do hiệu ứng nhà kính nhiệt độ Trái Đất liên tục tăng.", "ACTIVE", now, updated);
+        addSampleInMemory(31L, "재활용", "jae-hwal-yong", "Tái chế rác thải", "Danh từ", 3, "Môi trường & Tự nhiên", null,
+                "분리수거를 철저히 하여 재활용률을 높여야 합니다.", "Cần phân loại rác kỹ để nâng cao tỉ lệ tái chế.", "ACTIVE", now, updated);
 
-        registerTopic(3, "Công việc & Trải nghiệm", "Kinh nghiệm làm việc, kỹ năng");
-        addSample(30L, "경험", "gyeong-heom", "Kinh nghiệm / Trải nghiệm", "Danh từ", 3, "Công việc & Trải nghiệm", null,
-                "다양한 사회 경험을 쌓는 것이 중요합니다.", "Tích lũy nhiều trải nghiệm đa dạng là rất quan trọng.", "ACTIVE", now, updated);
-
-        registerTopic(3, "Trường học & Thủ tục", "Đăng ký học bổng, thi cử");
-        addSample(31L, "신청하다", "sin-cheong-ha-da", "Đăng ký / Nộp đơn", "Động từ", 3, "Trường học & Thủ tục", null,
-                "장학금을 지원하기 위해 온라인으로 신청서를 제출했습니다.", "Tôi đã nộp đơn đăng ký học bổng trực tuyến.", "ACTIVE", now, updated);
-
-        registerTopic(3, "Giao thông đô thị", "Tắc đường, quy tắc an toàn giao thông");
-        addSample(32L, "교통", "gyo-tong", "Giao thông", "Danh từ", 3, "Giao thông đô thị", null,
-                "비가 오면 도로 교통이 평소보다 훨씬 혼잡해집니다.", "Trời mưa thì giao thông ùn tắc hơn nhiều.", "ACTIVE", now, updated);
-
-        // ==========================================
-        // TOPIK 4: 3 CHỦ ĐỀ
-        // ==========================================
-        registerTopic(4, "Kinh tế & Xã hội", "Thương mại, thị trường, tiêu dùng");
-        addSample(33L, "경제", "gyeong-je", "Kinh tế", "Danh từ", 4, "Kinh tế & Xã hội", null,
+        // TOPIK 4
+        registerTopicInMemory(4, "Kinh tế & Xã hội", "Thương mại, thị trường, tiêu dùng");
+        addSampleInMemory(33L, "경제", "gyeong-je", "Kinh tế", "Danh từ", 4, "Kinh tế & Xã hội", null,
                 "세계 경제 침체로 인해 수출이 다소 감소했습니다.", "Suy thoái kinh tế khiến xuất khẩu giảm sút.", "ACTIVE", now, updated);
-        addSample(34L, "갈등", "gal-deung", "Mâu thuẫn / Xung đột", "Danh từ", 4, "Kinh tế & Xã hội", null,
+        addSampleInMemory(34L, "갈등", "gal-deung", "Mâu thuẫn / Xung đột", "Danh từ", 4, "Kinh tế & Xã hội", null,
                 "대화를 통해 세대 간의 갈등을 해결해야 합니다.", "Cần giải quyết mâu thuẫn thế hệ qua đối thoại.", "ACTIVE", now, updated);
 
-        registerTopic(4, "Học thuật & Công việc", "Báo cáo khoa học, thuyết trình");
-        addSample(35L, "발표하다", "bal-pyo-ha-da", "Phát biểu / Công bố", "Động từ", 4, "Học thuật & Công việc", null,
-                "연구팀은 신약 개발 결과를 학회에서 발표했다.", "Nhóm nghiên cứu công bố kết quả tại hội nghị.", "ACTIVE", now, updated);
-
-        registerTopic(4, "Quan hệ cộng đồng", "Giao tiếp công sở, văn hóa công ty");
-        addSample(36L, "협력", "hyeop-ryeok", "Hợp tác / Chung sức", "Danh từ", 4, "Quan hệ cộng đồng", null,
-                "동료 간의 긴밀한 협력이 프로젝트 성공의 열쇠이다.", "Sự hợp tác chặt chẽ là chìa khóa thành công.", "ACTIVE", now, updated);
-
-        // ==========================================
-        // TOPIK 5: 3 CHỦ ĐỀ
-        // ==========================================
-        registerTopic(5, "Khoa học & Xã hội", "Hiện tượng xã hội, công nghệ hiện đại");
-        addSample(37L, "현상", "hyeon-sang", "Hiện tượng", "Danh từ", 5, "Khoa học & Xã hội", null,
+        // TOPIK 5
+        registerTopicInMemory(5, "Khoa học & Xã hội", "Hiện tượng xã hội, công nghệ hiện đại");
+        addSampleInMemory(37L, "현상", "hyeon-sang", "Hiện tượng", "Danh từ", 5, "Khoa học & Xã hội", null,
                 "저출산 현상은 국가적 위기로 인식되고 있다.", "Hiện tượng sinh thấp được xem là khủng hoảng quốc gia.", "ACTIVE", now, updated);
 
-        registerTopic(5, "Phát triển bền vững", "Năng lượng tái tạo, bảo tồn sinh thái");
-        addSample(38L, "지속가능성", "ji-sok-ga-neung-seong", "Tính bền vững", "Danh từ", 5, "Phát triển bền vững", null,
-                "친환경 에너지 개발은 지구의 지속가능성을 위한 필수 과제이다.", "Phát triển năng lượng sạch là nhiệm vụ tất yếu.", "ACTIVE", now, updated);
-
-        registerTopic(5, "Chính sách & Pháp luật", "Luật lao động, quyền công dân");
-        addSample(39L, "제도", "je-do", "Chế độ / Thể chế", "Danh từ", 5, "Chính sách & Pháp luật", null,
-                "새로운 복지 제도가 도입되어 많은 취약계층이 혜택을 받았다.", "Thể chế phúc lợi mới đã giúp đỡ nhiều người.", "ACTIVE", now, updated);
-
-        // ==========================================
-        // TOPIK 6: 3 CHỦ ĐỀ
-        // ==========================================
-        registerTopic(6, "Triết học & Tư tưởng", "Tư duy, hệ hình, nhân sinh quan");
-        addSample(40L, "패러다임", "pae-reo-da-im", "Hệ hình tư duy (Paradigm)", "Danh từ", 6, "Triết học & Tư tưởng", null,
+        // TOPIK 6
+        registerTopicInMemory(6, "Triết học & Tư tưởng", "Tư duy, hệ hình, nhân sinh quan");
+        addSampleInMemory(40L, "패러다임", "pae-reo-da-im", "Hệ hình tư duy (Paradigm)", "Danh từ", 6, "Triết học & Tư tưởng", null,
                 "생성형 AI 기술의 혁신은 새로운 교육 패러다임을 요구한다.", "Sự đổi mới của AI đòi hỏi hệ hình tư duy mới.", "ACTIVE", now, updated);
-
-        registerTopic(6, "Dân số học & Toàn cầu", "Già hóa dân số, biến đổi nhân khẩu");
-        addSample(41L, "고령화", "go-ryeong-hwa", "Già hóa dân số", "Danh từ", 6, "Dân số học & Toàn cầu", null,
-                "초고령화 사회에 진입함에 따라 복지 예산 확충이 시급하다.", "Xã hội siêu già hóa đòi hỏi mở rộng ngân sách phúc lợi.", "ACTIVE", now, updated);
-
-        registerTopic(6, "Văn hóa nghệ thuật chuyên sâu", "Bảo tồn di sản, mỹ học truyền thống");
-        addSample(42L, "정체성", "jeong-che-seong", "Bản sắc / Tính đồng nhất (Identity)", "Danh từ", 6, "Văn hóa nghệ thuật chuyên sâu", null,
-                "전통 예술의 계승은 민족 정체성을 확립하는 중요한 근간이다.", "Kế thừa nghệ thuật truyền thống là gốc rễ của bản sắc.", "ACTIVE", now, updated);
     }
 
-    private void registerTopic(int level, String name, String desc) {
+    private void registerTopicInMemory(int level, String name, String desc) {
         String key = topicKey(level, name);
         if (!topicMap.containsKey(key)) {
             TopicDTO t = new TopicDTO(topicIdGen.incrementAndGet(), name, level, desc, 0, 0, "ACTIVE");
@@ -196,20 +300,20 @@ public class VocabularyService {
         }
     }
 
-    private void addSample(Long id, String word, String romanization, String meaning, String wordType,
-                           Integer level, String topic, String audioUrl, String exampleKr,
-                           String exampleVi, String status, String createdAt, String updatedAt) {
+    private void addSampleInMemory(Long id, String word, String romanization, String meaning, String wordType,
+                                   Integer level, String topic, String audioUrl, String exampleKr,
+                                   String exampleVi, String status, String createdAt, String updatedAt) {
         if (romanization == null || romanization.trim().isEmpty()) {
             romanization = KoreanRomanizer.romanize(word);
         }
         VocabularyDTO dto = new VocabularyDTO(id, word, romanization, meaning, wordType, level, topic,
                 audioUrl, exampleKr, exampleVi, status, createdAt, updatedAt);
         vocabMap.put(id, dto);
-        registerTopic(level, topic, "Chủ đề " + topic);
+        registerTopicInMemory(level, topic, "Chủ đề " + topic);
     }
 
     // ==========================================
-    // TOPIK LEVEL SUMMARY (MÀN HÌNH 1: TOPIK 1 - 6)
+    // TOPIK LEVEL SUMMARY
     // ==========================================
     public List<TopikLevelSummaryDTO> getTopikLevelSummaries() {
         List<TopikLevelSummaryDTO> list = new ArrayList<>();
@@ -245,13 +349,12 @@ public class VocabularyService {
     }
 
     // ==========================================
-    // TOPIC MANAGEMENT (MÀN HÌNH 2: CHỦ ĐỀ THEO CẤP)
+    // TOPIC MANAGEMENT
     // ==========================================
     public List<TopicDTO> getTopicsByLevel(int level) {
         List<TopicDTO> result = new ArrayList<>();
         for (TopicDTO t : topicMap.values()) {
             if (t.getTopikLevel() != null && t.getTopikLevel() == level) {
-                // calculate word counts
                 long count = vocabMap.values().stream()
                         .filter(v -> v.getTopikLevel() != null && v.getTopikLevel() == level && t.getName().equalsIgnoreCase(v.getTopic()))
                         .count();
@@ -278,17 +381,33 @@ public class VocabularyService {
         return t;
     }
 
+    @Transactional
     public TopicDTO createTopic(int level, String name, String description) {
         String cleanName = name.trim();
         String key = topicKey(level, cleanName);
         if (topicMap.containsKey(key)) {
             throw new IllegalArgumentException("Chủ đề \"" + cleanName + "\" đã tồn tại trong TOPIK " + level + "!");
         }
+
         TopicDTO t = new TopicDTO(topicIdGen.incrementAndGet(), cleanName, level, description, 0, 0, "ACTIVE");
         topicMap.put(key, t);
+
+        // Lưu vào Database
+        if (topicRepository != null) {
+            Topic entity = Topic.builder()
+                    .level(level)
+                    .name(cleanName)
+                    .description(description)
+                    .status("ACTIVE")
+                    .build();
+            Topic saved = topicRepository.save(entity);
+            t.setId(saved.getId());
+        }
+
         return t;
     }
 
+    @Transactional
     public TopicDTO updateTopic(int level, String oldName, String newName, String description) {
         String oldKey = topicKey(level, oldName);
         TopicDTO existing = topicMap.get(oldKey);
@@ -307,7 +426,20 @@ public class VocabularyService {
         if (description != null) existing.setDescription(description);
         topicMap.put(newKey, existing);
 
-        // Update all vocabularies belonging to oldName
+        // Cập nhật CSDL
+        if (topicRepository != null) {
+            topicRepository.findFirstByLevelAndName(level, oldName).ifPresent(entity -> {
+                entity.setName(cleanNew);
+                if (description != null) entity.setDescription(description);
+                topicRepository.save(entity);
+            });
+        }
+
+        if (vocabularyRepository != null) {
+            vocabularyRepository.updateTopicName((short) level, oldName, cleanNew);
+        }
+
+        // Cập nhật các từ vựng trong bộ nhớ
         for (VocabularyDTO v : vocabMap.values()) {
             if (v.getTopikLevel() != null && v.getTopikLevel() == level && oldName.equalsIgnoreCase(v.getTopic())) {
                 v.setTopic(cleanNew);
@@ -318,13 +450,20 @@ public class VocabularyService {
         return existing;
     }
 
-    /**
-     * Delete topic and delete ALL vocabularies in that topic.
-     * Returns the count of deleted vocabularies.
-     */
+    @Transactional
     public int deleteTopic(int level, String name) {
         String key = topicKey(level, name);
         topicMap.remove(key);
+
+        // Xóa trong CSDL
+        if (topicRepository != null) {
+            topicRepository.deleteByLevelAndName(level, name);
+        }
+
+        int deletedInDb = 0;
+        if (vocabularyRepository != null) {
+            deletedInDb = vocabularyRepository.deleteByLevelAndTopic((short) level, name);
+        }
 
         List<Long> toRemove = new ArrayList<>();
         for (VocabularyDTO v : vocabMap.values()) {
@@ -337,7 +476,7 @@ public class VocabularyService {
             vocabMap.remove(id);
         }
 
-        return toRemove.size();
+        return Math.max(deletedInDb, toRemove.size());
     }
 
     public int getWordCountInTopic(int level, String name) {
@@ -347,7 +486,7 @@ public class VocabularyService {
     }
 
     // ==========================================
-    // VOCABULARY CRUD & FILTERS (MÀN HÌNH 3)
+    // VOCABULARY CRUD & FILTERS
     // ==========================================
     public List<VocabularyDTO> getAll() {
         return vocabMap.values().stream()
@@ -357,6 +496,29 @@ public class VocabularyService {
 
     public VocabularyDTO getById(Long id) {
         return vocabMap.get(id);
+    }
+
+    public VocabularyDTO findWordInMap(Integer level, String word) {
+        if (word == null || level == null) return null;
+        String clean = word.trim();
+        for (VocabularyDTO v : vocabMap.values()) {
+            if (v.getTopikLevel() != null && v.getTopikLevel().equals(level)
+                    && v.getWord() != null && v.getWord().trim().equalsIgnoreCase(clean)) {
+                return v;
+            }
+        }
+        return null;
+    }
+
+    public boolean existsWordInLevel(Integer level, String word) {
+        if (level == null || word == null || word.trim().isEmpty()) {
+            return false;
+        }
+        String clean = word.trim();
+        if (vocabularyRepository != null) {
+            return vocabularyRepository.existsByLevelAndWord(level.shortValue(), clean);
+        }
+        return findWordInMap(level, clean) != null;
     }
 
     public List<VocabularyDTO> getByLevelAndTopic(int level, String topic) {
@@ -404,47 +566,132 @@ public class VocabularyService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * CONTENT MANAGER TẠO HOẶC SỬA TỪ VỰNG:
+     * Dữ liệu được chuyển trực tiếp vào Database!
+     */
+    @Transactional
     public VocabularyDTO saveOrUpdate(VocabularyDTO dto) {
         String now = LocalDateTime.now().format(FORMATTER);
         if (dto.getRomanization() == null || dto.getRomanization().trim().isEmpty()) {
             dto.setRomanization(KoreanRomanizer.romanize(dto.getWord()));
         }
 
-        // auto register topic if not exists
+        // Đảm bảo Topic tồn tại
         if (dto.getTopikLevel() != null && dto.getTopic() != null && !dto.getTopic().trim().isEmpty()) {
-            registerTopic(dto.getTopikLevel(), dto.getTopic().trim(), "Chủ đề " + dto.getTopic().trim());
+            String topicName = dto.getTopic().trim();
+            registerTopicInMemory(dto.getTopikLevel(), topicName, "Chủ đề " + topicName);
+            if (topicRepository != null && !topicRepository.existsByLevelAndName(dto.getTopikLevel(), topicName)) {
+                Topic newTopic = Topic.builder()
+                        .level(dto.getTopikLevel())
+                        .name(topicName)
+                        .description("Chủ đề " + topicName)
+                        .status("ACTIVE")
+                        .build();
+                topicRepository.save(newTopic);
+            }
         }
 
-        if (dto.getId() == null || dto.getId() <= 0) {
-            long newId = vocabIdGen.incrementAndGet();
-            dto.setId(newId);
+        Vocabulary entity = null;
+        VocabularyDTO existingInMap = null;
+
+        if (dto.getId() != null && dto.getId() > 0) {
+            if (vocabularyRepository != null) {
+                entity = vocabularyRepository.findById(dto.getId()).orElse(null);
+            }
+            existingInMap = vocabMap.get(dto.getId());
+        }
+
+        // TỰ ĐỘNG CHỐNG TRÙNG LẶP:
+        // Nếu không truyền ID (tạo mới), kiểm tra xem từ này đã tồn tại trong cùng cấp TOPIK chưa.
+        // Nếu đã tồn tại, tự động lấy bản ghi đã có để cập nhật thông tin, không tạo ra bản ghi thứ 2!
+        if (entity == null && existingInMap == null && dto.getTopikLevel() != null && dto.getWord() != null && !dto.getWord().trim().isEmpty()) {
+            String cleanWord = dto.getWord().trim();
+            short lvl = dto.getTopikLevel().shortValue();
+
+            if (vocabularyRepository != null) {
+                entity = vocabularyRepository.findFirstByLevelAndWord(lvl, cleanWord).orElse(null);
+                if (entity != null) {
+                    dto.setId(entity.getId());
+                    existingInMap = vocabMap.get(entity.getId());
+                }
+            }
+
+            if (existingInMap == null) {
+                existingInMap = findWordInMap(dto.getTopikLevel(), cleanWord);
+                if (existingInMap != null) {
+                    dto.setId(existingInMap.getId());
+                }
+            }
+        }
+
+        if (entity == null && existingInMap == null) {
+            // Thêm mới vào Database
+            entity = Vocabulary.builder()
+                    .word(dto.getWord() != null ? dto.getWord().trim() : "")
+                    .romanization(dto.getRomanization() != null ? dto.getRomanization().trim() : "")
+                    .pos(dto.getWordType() != null ? dto.getWordType().trim() : "Danh từ")
+                    .meaningVi(dto.getMeaning() != null ? dto.getMeaning().trim() : "")
+                    .level(dto.getTopikLevel() != null ? dto.getTopikLevel().shortValue() : 1)
+                    .topic(dto.getTopic() != null ? dto.getTopic().trim() : "")
+                    .audioUrl(dto.getAudioUrl())
+                    .exampleKr(dto.getExampleKr())
+                    .exampleVi(dto.getExampleVi())
+                    .status(dto.getStatus() != null && !dto.getStatus().trim().isEmpty() ? dto.getStatus().trim().toUpperCase() : "ACTIVE")
+                    .topicId(1)
+                    .build();
+
+            if (vocabularyRepository != null) {
+                entity = vocabularyRepository.save(entity);
+                dto.setId(entity.getId());
+            } else {
+                dto.setId(vocabIdGen.incrementAndGet());
+            }
+
             dto.setCreatedAt(now);
             dto.setUpdatedAt(now);
-            if (dto.getStatus() == null || dto.getStatus().trim().isEmpty()) {
-                dto.setStatus("ACTIVE");
-            }
             dto.setTopikLevelName(VocabularyDTO.formatTopikName(dto.getTopikLevel()));
-            vocabMap.put(newId, dto);
+            vocabMap.put(dto.getId(), dto);
             return dto;
         } else {
-            VocabularyDTO existing = vocabMap.get(dto.getId());
-            if (existing != null) {
-                existing.setWord(dto.getWord());
-                existing.setRomanization(dto.getRomanization());
-                existing.setMeaning(dto.getMeaning());
-                existing.setWordType(dto.getWordType());
-                existing.setTopikLevel(dto.getTopikLevel());
-                existing.setTopic(dto.getTopic());
-                existing.setAudioUrl(dto.getAudioUrl());
-                existing.setExampleKr(dto.getExampleKr());
-                existing.setExampleVi(dto.getExampleVi());
-                if (dto.getStatus() != null && !dto.getStatus().trim().isEmpty()) {
-                    existing.setStatus(dto.getStatus());
+            // Cập nhật từ vựng trong Database (Ghi đè thông tin mới nhất vào bản ghi cũ, giữ duy nhất 1 từ)
+            if (entity != null && vocabularyRepository != null) {
+                entity.setWord(dto.getWord() != null ? dto.getWord().trim() : entity.getWord());
+                entity.setRomanization(dto.getRomanization() != null ? dto.getRomanization().trim() : entity.getRomanization());
+                entity.setPos(dto.getWordType());
+                entity.setMeaningVi(dto.getMeaning());
+                if (dto.getTopikLevel() != null) {
+                    entity.setLevel(dto.getTopikLevel().shortValue());
                 }
-                existing.setUpdatedAt(now);
-                return existing;
+                if (dto.getTopic() != null) {
+                    entity.setTopic(dto.getTopic().trim());
+                }
+                entity.setAudioUrl(dto.getAudioUrl());
+                entity.setExampleKr(dto.getExampleKr());
+                entity.setExampleVi(dto.getExampleVi());
+                if (dto.getStatus() != null && !dto.getStatus().trim().isEmpty()) {
+                    entity.setStatus(dto.getStatus().trim().toUpperCase());
+                }
+                vocabularyRepository.save(entity);
+            }
+
+            if (existingInMap != null) {
+                existingInMap.setWord(dto.getWord() != null ? dto.getWord().trim() : existingInMap.getWord());
+                existingInMap.setRomanization(dto.getRomanization());
+                existingInMap.setMeaning(dto.getMeaning());
+                existingInMap.setWordType(dto.getWordType());
+                existingInMap.setTopikLevel(dto.getTopikLevel());
+                existingInMap.setTopikLevelName(VocabularyDTO.formatTopikName(dto.getTopikLevel()));
+                existingInMap.setTopic(dto.getTopic());
+                existingInMap.setAudioUrl(dto.getAudioUrl());
+                existingInMap.setExampleKr(dto.getExampleKr());
+                existingInMap.setExampleVi(dto.getExampleVi());
+                if (dto.getStatus() != null && !dto.getStatus().trim().isEmpty()) {
+                    existingInMap.setStatus(dto.getStatus());
+                }
+                existingInMap.setUpdatedAt(now);
+                return existingInMap;
             } else {
-                dto.setCreatedAt(now);
                 dto.setUpdatedAt(now);
                 dto.setTopikLevelName(VocabularyDTO.formatTopikName(dto.getTopikLevel()));
                 vocabMap.put(dto.getId(), dto);
@@ -453,17 +700,26 @@ public class VocabularyService {
         }
     }
 
+    @Transactional
     public boolean toggleWordStatus(Long id) {
         VocabularyDTO v = vocabMap.get(id);
         if (v != null) {
             String newStatus = "ACTIVE".equalsIgnoreCase(v.getStatus()) ? "INACTIVE" : "ACTIVE";
             v.setStatus(newStatus);
             v.setUpdatedAt(LocalDateTime.now().format(FORMATTER));
+
+            if (vocabularyRepository != null) {
+                vocabularyRepository.findById(id).ifPresent(entity -> {
+                    entity.setStatus(newStatus);
+                    vocabularyRepository.save(entity);
+                });
+            }
             return true;
         }
         return false;
     }
 
+    @Transactional
     public int toggleTopicStatus(String topic, boolean active) {
         if (topic == null || topic.trim().isEmpty()) return 0;
         int count = 0;
@@ -473,6 +729,7 @@ public class VocabularyService {
         return count;
     }
 
+    @Transactional
     public int toggleTopicStatus(int level, String topic, boolean active) {
         if (topic == null || topic.trim().isEmpty()) return 0;
         String newStatus = active ? "ACTIVE" : "INACTIVE";
@@ -481,6 +738,17 @@ public class VocabularyService {
         TopicDTO t = topicMap.get(topicKey(level, topic));
         if (t != null) {
             t.setStatus(newStatus);
+        }
+
+        if (topicRepository != null) {
+            topicRepository.findFirstByLevelAndName(level, topic).ifPresent(entity -> {
+                entity.setStatus(newStatus);
+                topicRepository.save(entity);
+            });
+        }
+
+        if (vocabularyRepository != null) {
+            vocabularyRepository.updateStatusByLevelAndTopic((short) level, topic, newStatus);
         }
 
         int count = 0;
@@ -494,16 +762,20 @@ public class VocabularyService {
         return count;
     }
 
+    @Transactional
     public int toggleTopikLevelStatus(int level, boolean active) {
         String newStatus = active ? "ACTIVE" : "INACTIVE";
         levelStatusMap.put(level, active);
         String now = LocalDateTime.now().format(FORMATTER);
 
-        // toggle all topics of this level
         for (TopicDTO t : topicMap.values()) {
             if (t.getTopikLevel() != null && t.getTopikLevel() == level) {
                 t.setStatus(newStatus);
             }
+        }
+
+        if (vocabularyRepository != null) {
+            vocabularyRepository.updateStatusByLevel((short) level, newStatus);
         }
 
         int count = 0;
@@ -517,34 +789,106 @@ public class VocabularyService {
         return count;
     }
 
+    /**
+     * Nhập hàng loạt từ vựng (Bulk import Excel):
+     * Tự động chống trùng lặp:
+     * 1. Nếu trong file Excel có các từ bị trùng nhau -> chỉ lấy từ đầu tiên, tự động loại bỏ các từ xuất hiện sau.
+     * 2. Nếu từ đã tồn tại trong CSDL/hệ thống -> tự động bỏ qua, chỉ giữ lại đúng 1 từ duy nhất đã có!
+     */
+    @Transactional
     public int bulkCreate(List<VocabularyDTO> list) {
         if (list == null || list.isEmpty()) return 0;
         int count = 0;
         String now = LocalDateTime.now().format(FORMATTER);
+
+        // Tập hợp để lọc các từ bị lặp lại trong chính file Excel (chỉ giữ từ đầu tiên)
+        Set<String> seenInBatch = new HashSet<>();
+        List<Vocabulary> entitiesToSave = new ArrayList<>();
+        List<VocabularyDTO> dtoListToSave = new ArrayList<>();
+
         for (VocabularyDTO item : list) {
             if (item.getWord() == null || item.getWord().trim().isEmpty()) {
                 continue;
             }
+            String cleanWord = item.getWord().trim();
+            int lvl = item.getTopikLevel() != null ? item.getTopikLevel() : 1;
+            String key = lvl + "_" + cleanWord.toLowerCase();
+
+            // 1. Nếu từ này bị trùng trong cùng đợt import (xuất hiện ở dòng sau) -> Bỏ qua
+            if (seenInBatch.contains(key)) {
+                continue;
+            }
+            seenInBatch.add(key);
+
+            // 2. Nếu từ này đã tồn tại trong CSDL hoặc trong hệ thống -> Bỏ qua, chỉ giữ 1 từ đã tồn tại
+            if (vocabularyRepository != null && vocabularyRepository.existsByLevelAndWord((short) lvl, cleanWord)) {
+                continue;
+            }
+            if (findWordInMap(lvl, cleanWord) != null) {
+                continue;
+            }
+
             if (item.getRomanization() == null || item.getRomanization().trim().isEmpty()) {
-                item.setRomanization(KoreanRomanizer.romanize(item.getWord()));
-            }
-            long newId = vocabIdGen.incrementAndGet();
-            item.setId(newId);
-            item.setCreatedAt(now);
-            item.setUpdatedAt(now);
-            if (item.getStatus() == null || item.getStatus().trim().isEmpty()) {
-                item.setStatus("ACTIVE");
-            }
-            item.setTopikLevelName(VocabularyDTO.formatTopikName(item.getTopikLevel()));
-            vocabMap.put(newId, item);
-
-            // Register topic
-            if (item.getTopikLevel() != null && item.getTopic() != null && !item.getTopic().trim().isEmpty()) {
-                registerTopic(item.getTopikLevel(), item.getTopic().trim(), "Chủ đề " + item.getTopic().trim());
+                item.setRomanization(KoreanRomanizer.romanize(cleanWord));
             }
 
+            String status = (item.getStatus() != null && !item.getStatus().trim().isEmpty()) ? item.getStatus() : "ACTIVE";
+            String topicName = item.getTopic() != null ? item.getTopic().trim() : "Chung";
+
+            // Đảm bảo topic tồn tại
+            registerTopicInMemory(lvl, topicName, "Chủ đề " + topicName);
+            if (topicRepository != null && !topicRepository.existsByLevelAndName(lvl, topicName)) {
+                Topic newTopic = Topic.builder()
+                        .level(lvl)
+                        .name(topicName)
+                        .description("Chủ đề " + topicName)
+                        .status("ACTIVE")
+                        .build();
+                topicRepository.save(newTopic);
+            }
+
+            Vocabulary entity = Vocabulary.builder()
+                    .word(cleanWord)
+                    .romanization(item.getRomanization().trim())
+                    .pos(item.getWordType() != null ? item.getWordType().trim() : "Danh từ")
+                    .meaningVi(item.getMeaning() != null ? item.getMeaning().trim() : "")
+                    .level((short) lvl)
+                    .topic(topicName)
+                    .audioUrl(item.getAudioUrl())
+                    .exampleKr(item.getExampleKr())
+                    .exampleVi(item.getExampleVi())
+                    .status(status)
+                    .topicId(1)
+                    .build();
+
+            entitiesToSave.add(entity);
+            dtoListToSave.add(item);
             count++;
         }
+
+        if (vocabularyRepository != null && !entitiesToSave.isEmpty()) {
+            List<Vocabulary> saved = vocabularyRepository.saveAll(entitiesToSave);
+            for (int i = 0; i < saved.size(); i++) {
+                Vocabulary s = saved.get(i);
+                VocabularyDTO d = dtoListToSave.get(i);
+                d.setId(s.getId());
+                d.setCreatedAt(now);
+                d.setUpdatedAt(now);
+                d.setStatus(s.getStatus());
+                d.setTopikLevelName(VocabularyDTO.formatTopikName(d.getTopikLevel()));
+                vocabMap.put(s.getId(), d);
+            }
+        } else {
+            for (VocabularyDTO item : dtoListToSave) {
+                long newId = vocabIdGen.incrementAndGet();
+                item.setId(newId);
+                item.setCreatedAt(now);
+                item.setUpdatedAt(now);
+                item.setTopikLevelName(VocabularyDTO.formatTopikName(item.getTopikLevel()));
+                vocabMap.put(newId, item);
+            }
+        }
+
         return count;
     }
 
@@ -577,5 +921,39 @@ public class VocabularyService {
 
     public int getTotalTopicsCount() {
         return topicMap.size();
+    }
+
+    // ==========================================
+    // CÁC HÀM PHỤC VỤ NGƯỜI DÙNG XEM TỪ VỰNG
+    // ==========================================
+
+    /**
+     * Lấy danh sách từ vựng ACTIVE của chủ đề và cấp độ để người dùng học
+     */
+    public List<VocabularyDTO> getVocabulariesForLearner(Integer level, String topic) {
+        return vocabMap.values().stream()
+                .filter(v -> "ACTIVE".equalsIgnoreCase(v.getStatus()))
+                .filter(v -> level == null || (v.getTopikLevel() != null && v.getTopikLevel().equals(level)))
+                .filter(v -> topic == null || topic.trim().isEmpty() || "ALL".equalsIgnoreCase(topic) || (v.getTopic() != null && v.getTopic().equalsIgnoreCase(topic.trim())))
+                .sorted(Comparator.comparing(VocabularyDTO::getId))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Lấy danh sách chủ đề theo cấp độ kèm số từ active cho người dùng
+     */
+    public List<TopicDTO> getTopicsForLearner(Integer level) {
+        return getTopicsByLevel(level != null ? level : 1);
+    }
+
+    /**
+     * Lấy tất cả chủ đề gom nhóm theo từng cấp TOPIK (1 đến 6) cho trang Lý thuyết
+     */
+    public Map<Integer, List<TopicDTO>> getAllTopicsGroupedByLevel() {
+        Map<Integer, List<TopicDTO>> map = new HashMap<>();
+        for (int l = 1; l <= 6; l++) {
+            map.put(l, getTopicsByLevel(l));
+        }
+        return map;
     }
 }

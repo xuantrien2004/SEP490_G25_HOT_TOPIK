@@ -43,7 +43,13 @@ public class LocalSchemaPatch {
                         "ALTER TABLE dbo.writing_prompts ALTER COLUMN standard_answer NVARCHAR(MAX) NULL",
                         "ALTER TABLE dbo.writing_prompts ALTER COLUMN max_score TINYINT NULL",
                         "ALTER TABLE dbo.writing_prompts ALTER COLUMN purpose NVARCHAR(10) NULL",
-                        "ALTER TABLE dbo.writing_prompts ALTER COLUMN updated_at DATETIME2 NULL"
+                        "ALTER TABLE dbo.writing_prompts ALTER COLUMN updated_at DATETIME2 NULL",
+                        "IF COL_LENGTH('dbo.vocabularies', 'topic') IS NULL ALTER TABLE dbo.vocabularies ADD topic NVARCHAR(100) NULL",
+                        "IF COL_LENGTH('dbo.vocabularies', 'example_kr') IS NULL ALTER TABLE dbo.vocabularies ADD example_kr NVARCHAR(500) NULL",
+                        "IF COL_LENGTH('dbo.vocabularies', 'example_vi') IS NULL ALTER TABLE dbo.vocabularies ADD example_vi NVARCHAR(500) NULL",
+                        "IF OBJECT_ID('dbo.FK_vocabularies_topic_id', 'F') IS NOT NULL ALTER TABLE dbo.vocabularies NOCHECK CONSTRAINT FK_vocabularies_topic_id",
+                        "ALTER TABLE dbo.vocabularies ALTER COLUMN topic_id INT NULL",
+                        "IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'vocab_topics') AND NOT EXISTS (SELECT 1 FROM dbo.vocab_topics WHERE id = 1) BEGIN SET IDENTITY_INSERT dbo.vocab_topics ON; INSERT INTO dbo.vocab_topics (id, level, name_vi, name_ko, icon_char, sort_order) VALUES (1, 1, N'Chung', N'일반', N'📚', 1); SET IDENTITY_INSERT dbo.vocab_topics OFF; END"
                 };
                 for (String sql : sqlServerStatements) {
                     try {
@@ -56,7 +62,10 @@ public class LocalSchemaPatch {
                 String[] h2Statements = {
                         "ALTER TABLE dbo.import_jobs ADD COLUMN IF NOT EXISTS draft_json CLOB",
                         "ALTER TABLE dbo.question_types ADD COLUMN IF NOT EXISTS template_code VARCHAR(20)",
-                        "ALTER TABLE dbo.questions ADD COLUMN IF NOT EXISTS template_code VARCHAR(20)"
+                        "ALTER TABLE dbo.questions ADD COLUMN IF NOT EXISTS template_code VARCHAR(20)",
+                        "ALTER TABLE dbo.vocabularies ADD COLUMN IF NOT EXISTS topic VARCHAR(100)",
+                        "ALTER TABLE dbo.vocabularies ADD COLUMN IF NOT EXISTS example_kr VARCHAR(500)",
+                        "ALTER TABLE dbo.vocabularies ADD COLUMN IF NOT EXISTS example_vi VARCHAR(500)"
                 };
                 for (String sql : h2Statements) {
                     try {

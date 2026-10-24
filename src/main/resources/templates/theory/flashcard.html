@@ -1,71 +1,81 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/head :: head('Học từ vựng bằng thẻ Flashcard · HOT TOPIK')}"></head>
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
 <body style="background: var(--ssak-bg); color: var(--ssak-text-main); font-family: var(--font-body); min-height: 100vh;">
 
 <header class="py-3 px-4 bg-white border-bottom shadow-sm">
     <div class="d-flex justify-content-between align-items-center" style="max-width: 900px; margin: 0 auto; width: 100%;">
-        <a th:href="@{/ly-thuyet}" class="text-decoration-none fw-bold small text-muted">
-            ← Về Sổ tay Lý thuyết
+        <a th:href="@{/ly-thuyet/tu-vung(topic=${currentTopic}, level=${currentLevel})}" class="text-decoration-none fw-bold small text-muted">
+            ← Về Danh sách Từ vựng
         </a>
         <div class="fw-bold" style="font-family: var(--font-heading); font-size: 18px; color: var(--ssak-primary);">
-            Thẻ Flashcard: Môi trường & Khí hậu
+            Thẻ Flashcard: <span th:text="${currentTopic}">Chủ đề</span> (<span th:text="${currentLevelName}">Cấp 1</span>)
         </div>
-        <!-- Chiều lật theo mục 10.1 -->
-        <select class="form-select form-select-sm" style="width: 140px;">
-            <option>Hàn → Việt</option>
-            <option>Việt → Hàn</option>
+        <select class="form-select form-select-sm" style="width: 140px;" id="flipDirection" onchange="resetCards()">
+            <option value="ko-vi">Hàn → Việt</option>
+            <option value="vi-ko">Việt → Hàn</option>
         </select>
     </div>
 </header>
 
 <main class="container my-5" style="max-width: 760px;">
-    <!-- Thanh tiến độ & 3 chỉ số theo mục 10.1: Đã nhớ / Chưa nhớ / Còn lại -->
+    <!-- Thanh tiến độ & 3 chỉ số: Đã nhớ / Chưa nhớ / Còn lại -->
     <div class="mb-4">
         <div class="d-flex justify-content-between align-items-center mb-2 small fw-bold">
-            <span class="text-success" style="color: var(--ssak-primary) !important;"><i class="bi bi-check-circle-fill me-1"></i>Đã nhớ: <span id="countRemembered">6</span></span>
-            <span class="text-danger"><i class="bi bi-x-circle-fill me-1"></i>Chưa nhớ: <span id="countUnlearned">2</span></span>
-            <span class="text-muted">Còn lại: <span id="countRemaining">12</span> thẻ</span>
+            <span class="text-success" style="color: var(--ssak-primary) !important;"><i class="bi bi-check-circle-fill me-1"></i>Đã nhớ: <span id="countRemembered">0</span></span>
+            <span class="text-danger"><i class="bi bi-x-circle-fill me-1"></i>Chưa nhớ: <span id="countUnlearned">0</span></span>
+            <span class="text-muted">Thẻ: <span id="currentIndexText">1</span> / <span id="totalCardsText">0</span></span>
         </div>
         <div class="progress" style="height: 8px; border-radius: 4px;">
-            <div class="progress-bar" id="cardProgress" style="width: 40%; background-color: var(--ssak-primary);"></div>
+            <div class="progress-bar" id="cardProgress" style="width: 0%; background-color: var(--ssak-primary); transition: width 0.3s ease;"></div>
         </div>
     </div>
 
     <!-- KHUNG THẺ 3D LẬT TƯƠNG TÁC (Phím Space để lật) -->
-    <div class="flashcard-wrapper mb-4 cursor-pointer" onclick="flipCard()" style="perspective: 1000px; height: 360px;">
+    <div id="flashcardBox" class="flashcard-wrapper mb-4 cursor-pointer" onclick="flipCard()" style="perspective: 1000px; height: 380px;">
         <div class="flashcard-inner rounded-5 p-4 p-md-5 bg-white border shadow-sm h-100 d-flex flex-column justify-content-between text-center transition-all position-relative" id="cardInner">
             
-            <!-- Mặt trước: Từ, Phiên âm, Nút nghe -->
+            <!-- Mặt trước -->
             <div id="cardFront" class="d-flex flex-column justify-content-center align-items-center h-100">
                 <span class="badge rounded-pill bg-light text-muted border px-3 py-1 mb-3">Mặt trước · Nhấn Space hoặc Bấm để lật</span>
-                <h2 style="font-family: var(--font-korean); font-size: 44px; font-weight: 800; color: var(--ssak-primary);" class="mb-2">
-                    온실효과
+                <h2 id="frontMainText" style="font-family: var(--font-korean); font-size: 44px; font-weight: 800; color: var(--ssak-primary);" class="mb-2">
+                    ...
                 </h2>
-                <div class="text-muted fs-5 mb-4">[on-sil-hyo-gwa]</div>
-                <button type="button" class="btn btn-outline-success rounded-pill px-4 py-2" onclick="event.stopPropagation(); alert('🔊 Phát âm: onsil-hyogwa')">
+                <div id="frontSubText" class="text-muted fs-5 mb-4">[...]</div>
+                <button type="button" class="btn btn-outline-success rounded-pill px-4 py-2" onclick="event.stopPropagation(); speakCurrentWord()">
                     <i class="bi bi-volume-up-fill me-2 fs-5"></i>Nghe phát âm
                 </button>
             </div>
 
-            <!-- Mặt sau: Nghĩa, Gốc Hán, Ví dụ (Ẩn mặc định) -->
+            <!-- Mặt sau -->
             <div id="cardBack" class="d-none d-flex flex-column justify-content-center align-items-center h-100">
                 <span class="badge rounded-pill bg-success text-white px-3 py-1 mb-2" style="background: var(--ssak-primary) !important;">Mặt sau</span>
-                <h3 style="font-family: var(--font-heading); font-size: 32px; font-weight: 800;" class="mb-2 text-dark">
-                    Hiệu ứng nhà kính
+                <h3 id="backMainText" style="font-family: var(--font-heading); font-size: 30px; font-weight: 800;" class="mb-2 text-dark">
+                    ...
                 </h3>
-                <div class="badge bg-light text-dark border px-3 py-1 mb-3">Gốc Hán: Ôn thất hiệu quả</div>
-                <div class="p-3 rounded-4 border small text-muted" style="background: var(--ssak-bg); font-family: var(--font-korean); line-height: 1.6; max-width: 480px;">
-                    <strong>Ví dụ:</strong> 온실효과로 인해 지구의 평균 기온이 계속 상승하고 있다.<br>
-                    <span class="text-dark">(Do hiệu ứng nhà kính, nhiệt độ trung bình của Trái Đất liên tục tăng lên.)</span>
+                <div id="backWordType" class="badge bg-light text-dark border px-3 py-1 mb-3">Danh từ</div>
+                <div id="backExampleBox" class="p-3 rounded-4 border small text-muted w-100 d-none" style="background: var(--ssak-bg); font-family: var(--font-korean); line-height: 1.6; max-width: 520px;">
+                    <strong>Ví dụ:</strong> <span id="exampleKrText"></span><br>
+                    <span class="text-dark" id="exampleViText"></span>
                 </div>
             </div>
 
         </div>
     </div>
 
-    <!-- 2 NÚT HÀNH ĐỘNG THEO MỤC 10.1: Chưa nhớ (1) & Đã nhớ (2) -->
-    <div class="d-flex justify-content-center gap-3">
+    <!-- Màn hình hoàn thành (Ẩn mặc định) -->
+    <div id="completedBox" class="p-5 rounded-5 bg-white border shadow-sm text-center d-none">
+        <div th:replace="~{fragments/ssak :: mascot('happy', 'bloom', 140, 'Bé Ssak hoa nở')}"></div>
+        <h3 class="fw-bold mt-3 mb-2" style="color: #1F6B56;">Chúc mừng bạn đã hoàn thành bộ thẻ!</h3>
+        <p class="text-muted">Bạn đã xem hết các từ vựng trong chủ đề <strong th:text="${currentTopic}"></strong>.</p>
+        <div class="d-flex justify-content-center gap-3 mt-4">
+            <button class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-bold" onclick="resetCards()">Học lại từ đầu</button>
+            <a th:href="@{/ly-thuyet/quiz(topic=${currentTopic}, level=${currentLevel})}" class="btn-ssak-primary rounded-pill px-4 py-2 fw-bold text-decoration-none">Làm bài Quiz ngay →</a>
+        </div>
+    </div>
+
+    <!-- 2 NÚT HÀNH ĐỘNG: Chưa nhớ (1) & Đã nhớ (2) -->
+    <div id="actionButtons" class="d-flex justify-content-center gap-3">
         <button class="btn btn-outline-danger px-4 py-3 rounded-pill fw-bold flex-grow-1 shadow-sm" onclick="markUnremembered()" style="max-width: 280px; font-size: 16px;">
             <i class="bi bi-x-lg me-2"></i>Chưa nhớ (Phím 1)
         </button>
@@ -74,17 +84,74 @@
         </button>
     </div>
 
-    <!-- Hướng dẫn phím tắt -->
     <div class="text-center text-muted small mt-4">
-        Phím tắt bàn phím: <kbd>Space</kbd> Lật thẻ · <kbd>1</kbd> Chưa nhớ · <kbd>2</kbd> Đã nhớ
+        Phím tắt: <kbd>Space</kbd> Lật thẻ · <kbd>1</kbd> Chưa nhớ · <kbd>2</kbd> Đã nhớ
     </div>
 </main>
 
-<script>
+<script th:inline="javascript">
+    const vocabList = /*[[${vocabList}]]*/ [];
+    let currentIndex = 0;
+    let rememberedCount = 0;
+    let unlearnedCount = 0;
     let isFlipped = false;
+
+    function init() {
+        const total = vocabList ? vocabList.length : 0;
+        document.getElementById('totalCardsText').innerText = total;
+        if (total === 0) {
+            document.getElementById('flashcardBox').classList.add('d-none');
+            document.getElementById('actionButtons').classList.add('d-none');
+            document.getElementById('completedBox').classList.remove('d-none');
+            return;
+        }
+        renderCard();
+    }
+
+    function renderCard() {
+        if (!vocabList || currentIndex >= vocabList.length) {
+            document.getElementById('flashcardBox').classList.add('d-none');
+            document.getElementById('actionButtons').classList.add('d-none');
+            document.getElementById('completedBox').classList.remove('d-none');
+            document.getElementById('cardProgress').style.width = '100%';
+            return;
+        }
+
+        const v = vocabList[currentIndex];
+        const dir = document.getElementById('flipDirection').value;
+        isFlipped = false;
+        document.getElementById('cardFront').classList.remove('d-none');
+        document.getElementById('cardBack').classList.add('d-none');
+
+        document.getElementById('currentIndexText').innerText = (currentIndex + 1);
+        const percent = Math.round((currentIndex / vocabList.length) * 100);
+        document.getElementById('cardProgress').style.width = percent + '%';
+
+        if (dir === 'ko-vi') {
+            document.getElementById('frontMainText').innerText = v.word;
+            document.getElementById('frontSubText').innerText = '[' + (v.romanization || '') + ']';
+            document.getElementById('backMainText').innerText = v.meaning;
+        } else {
+            document.getElementById('frontMainText').innerText = v.meaning;
+            document.getElementById('frontSubText').innerText = (v.wordType || 'Từ vựng');
+            document.getElementById('backMainText').innerText = v.word + ' [' + (v.romanization || '') + ']';
+        }
+
+        document.getElementById('backWordType').innerText = v.wordType || 'Từ vựng';
+
+        const exBox = document.getElementById('backExampleBox');
+        if (v.exampleKr && v.exampleKr.trim() !== '') {
+            exBox.classList.remove('d-none');
+            document.getElementById('exampleKrText').innerText = v.exampleKr;
+            document.getElementById('exampleViText').innerText = v.exampleVi ? '(' + v.exampleVi + ')' : '';
+        } else {
+            exBox.classList.add('d-none');
+        }
+    }
+
     function flipCard() {
         isFlipped = !isFlipped;
-        if(isFlipped) {
+        if (isFlipped) {
             document.getElementById('cardFront').classList.add('d-none');
             document.getElementById('cardBack').classList.remove('d-none');
         } else {
@@ -94,19 +161,58 @@
     }
 
     function markRemembered() {
-        alert('Đã ghi nhận: Đã nhớ! Thẻ được bỏ khỏi danh sách Chưa thuộc.');
-        flipCard();
+        rememberedCount++;
+        document.getElementById('countRemembered').innerText = rememberedCount;
+        currentIndex++;
+        renderCard();
     }
+
     function markUnremembered() {
-        alert('Đã ghi nhận: Chưa nhớ. Thẻ được chuyển vào danh sách Từ chưa thuộc và xếp ôn lại ở cuối lượt!');
-        flipCard();
+        unlearnedCount++;
+        document.getElementById('countUnlearned').innerText = unlearnedCount;
+        currentIndex++;
+        renderCard();
+    }
+
+    function resetCards() {
+        currentIndex = 0;
+        rememberedCount = 0;
+        unlearnedCount = 0;
+        document.getElementById('countRemembered').innerText = '0';
+        document.getElementById('countUnlearned').innerText = '0';
+        document.getElementById('flashcardBox').classList.remove('d-none');
+        document.getElementById('actionButtons').classList.remove('d-none');
+        document.getElementById('completedBox').classList.add('d-none');
+        renderCard();
+    }
+
+    function speakCurrentWord() {
+        if (!vocabList || currentIndex >= vocabList.length) return;
+        const v = vocabList[currentIndex];
+        if (v.audioUrl && v.audioUrl.trim() !== '') {
+            new Audio(v.audioUrl).play().catch(() => playSpeech(v.word));
+        } else {
+            playSpeech(v.word);
+        }
+    }
+
+    function playSpeech(word) {
+        if ('speechSynthesis' in window) {
+            const u = new SpeechSynthesisUtterance(word);
+            u.lang = 'ko-KR';
+            window.speechSynthesis.speak(u);
+        } else {
+            alert('🔊 Phát âm: ' + word);
+        }
     }
 
     document.addEventListener('keydown', (e) => {
-        if(e.code === 'Space') { e.preventDefault(); flipCard(); }
-        else if(e.key === '1') { markUnremembered(); }
-        else if(e.key === '2') { markRemembered(); }
+        if (e.code === 'Space') { e.preventDefault(); flipCard(); }
+        else if (e.key === '1') { markUnremembered(); }
+        else if (e.key === '2') { markRemembered(); }
     });
+
+    init();
 </script>
 
 <div th:replace="~{fragments/footer :: footer}"></div>

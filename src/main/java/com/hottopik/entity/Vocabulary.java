@@ -52,6 +52,15 @@ public class Vocabulary {
     @Column(name = "audio_url", length = 500)
     private String audioUrl;
 
+    @Column(name = "topic", length = 100)
+    private String topic;
+
+    @Column(name = "example_kr", length = 500)
+    private String exampleKr;
+
+    @Column(name = "example_vi", length = 500)
+    private String exampleVi;
+
     @Column(name = "status", length = 10, nullable = false)
     @Builder.Default
     private String status = "ACTIVE";
