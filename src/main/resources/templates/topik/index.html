@@ -8,7 +8,7 @@
 
 <main class="container my-4" style="max-width: 1200px;">
     <!-- Banner: "Hiểu kỳ thi trước khi luyện" có Bé Ssak theo mục 15.5 -->
-    <div class="p-4 p-md-5 rounded-5 mb-4 position-relative overflow-hidden shadow-sm border" 
+    <div class="p-4 p-md-5 rounded-5 mb-4 position-relative overflow-hidden shadow-sm border"
          style="background: linear-gradient(135deg, #E3F2EA 0%, #E4EEF5 100%); border-color: var(--ssak-primary-border) !important;">
         <div class="row align-items-center">
             <div class="col-md-8">
@@ -16,9 +16,16 @@
                 <h1 style="font-family: var(--font-heading); font-size: clamp(28px, 4vw, 42px); font-weight: 800; color: var(--ssak-text-main);">
                     Hiểu kỳ thi trước khi luyện
                 </h1>
-                <p class="lead text-muted mt-2 mb-0" style="font-size: 17px; line-height: 1.6;">
+                <p class="lead text-muted mt-2 mb-2" style="font-size: 17px; line-height: 1.6;">
                     Nắm rõ cấu trúc đề, tiêu chuẩn quy đổi điểm của Viện Giáo dục Quốc tế Quốc gia Hàn Quốc (NIIED) và những chiến thuật làm bài thực chiến từ các thủ khoa TOPIK 6.
                 </p>
+
+                <!-- HIỂN THỊ SỐ SAO TRUNG BÌNH & SỐ LƯỢT VOTE LẤY TỪ DATABASE -->
+                <div class="d-flex align-items-center gap-2 mt-3" onclick="scrollToReviews()" style="display: inline-flex; background: rgba(255,255,255,0.85); padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.08); cursor: pointer; transition: all 0.2s;">
+                    <div class="text-warning fs-6">⭐⭐⭐⭐⭐</div>
+                    <span class="fw-bold" style="color: var(--ssak-text-main);" th:text="${avgRating} + ' / 5.0'">4.9 / 5.0</span>
+                    <span class="text-muted small">(<span th:text="${totalReviews}">1,248</span> học viên đã đánh giá)</span>
+                </div>
             </div>
             <div class="col-md-4 text-center mt-3 mt-md-0">
                 <div th:replace="~{fragments/ssak :: mascot('think', 'young', 180, 'Bé Ssak nghiên cứu')}"></div>
@@ -29,7 +36,7 @@
     <!-- 3 Ô chọn ngang hàng cùng kích thước: Bài thi TOPIK · Các cấp độ · Tips & kinh nghiệm -->
     <div class="row g-3 mb-4" id="topikTabs">
         <div class="col-md-4">
-            <button class="w-100 p-3 rounded-4 border-2 text-center bg-white shadow-sm transition-all topik-tab-btn active-tab" 
+            <button class="w-100 p-3 rounded-4 border-2 text-center bg-white shadow-sm transition-all topik-tab-btn active-tab"
                     id="tabBtnExam" onclick="switchTopikTab('exam')"
                     style="border: 2px solid var(--ssak-primary); background: var(--ssak-primary-light) !important;">
                 <i class="bi bi-journal-text fs-4 d-block mb-1 text-success" style="color: var(--ssak-primary) !important;"></i>
@@ -38,7 +45,7 @@
             </button>
         </div>
         <div class="col-md-4">
-            <button class="w-100 p-3 rounded-4 border-2 text-center bg-white shadow-sm transition-all topik-tab-btn" 
+            <button class="w-100 p-3 rounded-4 border-2 text-center bg-white shadow-sm transition-all topik-tab-btn"
                     id="tabBtnLevels" onclick="switchTopikTab('levels')"
                     style="border: 2px solid var(--ssak-border);">
                 <i class="bi bi-bar-chart-steps fs-4 d-block mb-1 text-primary"></i>
@@ -47,7 +54,7 @@
             </button>
         </div>
         <div class="col-md-4">
-            <button class="w-100 p-3 rounded-4 border-2 text-center bg-white shadow-sm transition-all topik-tab-btn" 
+            <button class="w-100 p-3 rounded-4 border-2 text-center bg-white shadow-sm transition-all topik-tab-btn"
                     id="tabBtnTips" onclick="switchTopikTab('tips')"
                     style="border: 2px solid var(--ssak-border);">
                 <i class="bi bi-lightbulb fs-4 d-block mb-1 text-warning"></i>
@@ -57,12 +64,12 @@
         </div>
     </div>
 
-    <!-- NỘI DUNG 1: BÀI THI TOPIK (4 mục đánh số + Cột phải mục lục) -->
+    <!-- NỘI DUNG 1: BÀI THI TOPIK -->
     <div id="contentExam" class="tab-content-pane">
         <div class="row g-4">
             <div class="col-lg-8">
                 <div class="p-4 p-md-5 rounded-4 bg-white border shadow-sm d-flex flex-column gap-5">
-                    
+
                     <!-- Mục 1: TOPIK là gì -->
                     <section id="muc1">
                         <div class="d-flex align-items-center gap-3 mb-3">
@@ -142,27 +149,19 @@
                         <div class="d-flex flex-column gap-3">
                             <div class="d-flex gap-3 align-items-start">
                                 <span class="badge bg-light text-dark border p-2">Bước 1</span>
-                                <div>
-                                    <strong>Xem lịch thi & Thông báo:</strong> Theo dõi cổng đăng ký chính thức (topik.iigvietnam.com hoặc tại Hàn topik.go.kr) trước kỳ thi 2–3 tháng.
-                                </div>
+                                <div><strong>Xem lịch thi & Thông báo:</strong> Theo dõi cổng đăng ký chính thức trước kỳ thi 2–3 tháng.</div>
                             </div>
                             <div class="d-flex gap-3 align-items-start">
                                 <span class="badge bg-light text-dark border p-2">Bước 2</span>
-                                <div>
-                                    <strong>Chuẩn bị hồ sơ:</strong> File ảnh thẻ 3x4 chuẩn quốc tế nền trắng, ảnh chụp CCCD/Hộ chiếu rõ nét, sẵn thẻ ngân hàng thanh toán online.
-                                </div>
+                                <div><strong>Chuẩn bị hồ sơ:</strong> File ảnh thẻ 3x4 chuẩn quốc tế nền trắng, ảnh chụp CCCD/Hộ chiếu rõ nét.</div>
                             </div>
                             <div class="d-flex gap-3 align-items-start">
                                 <span class="badge bg-light text-dark border p-2">Bước 3</span>
-                                <div>
-                                    <strong>Đăng ký & Nộp lệ phí:</strong> Đăng nhập đúng giờ mở cổng, điền thông tin và chuyển khoản/quét QR thanh toán lệ phí thi trong thời gian quy định.
-                                </div>
+                                <div><strong>Đăng ký & Nộp lệ phí:</strong> Đăng nhập đúng giờ mở cổng, điền thông tin và thanh toán lệ phí thi.</div>
                             </div>
                             <div class="d-flex gap-3 align-items-start">
                                 <span class="badge bg-light text-dark border p-2">Bước 4</span>
-                                <div>
-                                    <strong>In phiếu dự thi (수험표):</strong> Trước ngày thi 1–2 tuần, in phiếu báo danh để mang theo vào phòng thi cùng giấy tờ tùy thân gốc.
-                                </div>
+                                <div><strong>In phiếu dự thi (수험표):</strong> Trước ngày thi 1–2 tuần, in phiếu báo danh để mang theo vào phòng thi.</div>
                             </div>
                         </div>
                     </section>
@@ -196,12 +195,13 @@
                             </div>
                         </div>
                     </section>
+
                 </div>
             </div>
 
             <!-- Cột phải: Mục lục cuộn & Lối sang kiểm tra trình độ / Đề thi -->
             <div class="col-lg-4">
-                <div class="p-4 rounded-4 bg-white border shadow-sm sticky-top" style="top: 90px;">
+                <div class="p-4 rounded-4 bg-white border shadow-sm sticky-top" style="top: 105px; z-index: 10;">
                     <h5 class="fw-bold mb-3" style="font-family: var(--font-heading); font-size: 18px;">Mục lục bài viết</h5>
                     <nav class="d-flex flex-column gap-2 mb-4 small">
                         <a href="#muc1" class="text-decoration-none text-muted py-1 border-bottom">1. TOPIK là gì?</a>
@@ -226,14 +226,13 @@
         </div>
     </div>
 
-    <!-- NỘI DUNG 2: CÁC CẤP ĐỘ (Thang điểm & 6 thẻ mô tả năng lực) -->
+    <!-- NỘI DUNG 2: CÁC CẤP ĐỘ -->
     <div id="contentLevels" class="tab-content-pane d-none">
         <div class="p-4 p-md-5 rounded-4 bg-white border shadow-sm mb-4">
             <h2 style="font-family: var(--font-heading); font-size: 28px; font-weight: 800;" class="mb-2">Thang điểm chuẩn 6 cấp độ TOPIK</h2>
             <p class="text-muted mb-4">Chứng chỉ TOPIK được xét dựa trên <strong>tổng điểm đạt được</strong>, không có điểm liệt từng phần thi.</p>
 
             <div class="row g-4 mb-5">
-                <!-- TOPIK I Band -->
                 <div class="col-md-6">
                     <div class="p-4 rounded-4 h-100 border" style="background: #E3F2EA;">
                         <span class="badge bg-success mb-2" style="background: var(--ssak-primary) !important;">TOPIK I · Thang điểm /200</span>
@@ -254,7 +253,6 @@
                     </div>
                 </div>
 
-                <!-- TOPIK II Band -->
                 <div class="col-md-6">
                     <div class="p-4 rounded-4 h-100 border" style="background: #E4EEF5;">
                         <span class="badge bg-primary mb-2" style="background: #2F5F7D !important;">TOPIK II · Thang điểm /300</span>
@@ -279,113 +277,123 @@
                     </div>
                 </div>
             </div>
-
-            <!-- 6 Thẻ chi tiết chuẩn năng lực -->
-            <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800;" class="mb-3">Chuẩn năng lực chi tiết từng cấp</h3>
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <div class="p-3 rounded-3 border h-100 bg-white shadow-sm">
-                        <div class="fw-bold text-success mb-2" style="color: var(--ssak-primary) !important;">🌱 Cấp 1 (80–139 điểm)</div>
-                        <p class="small text-muted mb-0">Thực hiện các cuộc hội thoại cơ bản liên quan đến bản thân, gia đình, sở thích. Vốn từ vựng khoảng 800 từ và ngữ pháp sơ cấp căn bản.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="p-3 rounded-3 border h-100 bg-white shadow-sm">
-                        <div class="fw-bold text-success mb-2" style="color: var(--ssak-primary) !important;">🌿 Cấp 2 (140–200 điểm)</div>
-                        <p class="small text-muted mb-0">Sử dụng tiếng Hàn tại các nơi công cộng (ngân hàng, ga tàu, bệnh viện). Phân biệt được văn phong trang trọng (격식체) và thân mật (비격식체).</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="p-3 rounded-3 border h-100 bg-white shadow-sm">
-                        <div class="fw-bold text-primary mb-2" style="color: #2F5F7D !important;">🪴 Cấp 3 (120–149 điểm)</div>
-                        <p class="small text-muted mb-0">Bắt đầu học các thành ngữ, quán dụng ngữ và từ Hán Hàn. Có thể diễn đạt ý kiến cá nhân và giải thích lý do mạch lạc trong công việc đơn giản.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="p-3 rounded-3 border h-100 bg-white shadow-sm">
-                        <div class="fw-bold text-primary mb-2" style="color: #2F5F7D !important;">🌸 Cấp 4 (150–189 điểm)</div>
-                        <p class="small text-muted mb-0">Đọc hiểu các bài báo xã hội, nắm bắt thông điệp văn bản trừu tượng. Viết bài giải thích biểu đồ (câu 53) và bài văn nghị luận ngắn.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="p-3 rounded-3 border h-100 bg-white shadow-sm">
-                        <div class="fw-bold text-warning mb-2" style="color: #7A5A12 !important;">⭐ Cấp 5 (190–229 điểm)</div>
-                        <p class="small text-muted mb-0">Sử dụng thành thạo tiếng Hàn trong nghiên cứu học thuật, kinh tế, chính trị. Viết bài luận 600–700 chữ (câu 54) chặt chẽ và logic.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="p-3 rounded-3 border h-100 bg-white shadow-sm">
-                        <div class="fw-bold text-danger mb-2">👑 Cấp 6 (230–300 điểm)</div>
-                        <p class="small text-muted mb-0">Cấp độ cao nhất. Khả năng ngôn ngữ trôi chảy và chính xác, hiểu sâu sắc các ẩn dụ văn hóa và sắc thái biểu cảm tinh tế trong tiếng Hàn.</p>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
-    <!-- NỘI DUNG 3: TIPS & KINH NGHIỆM (3 cột theo giai đoạn) -->
+    <!-- NỘI DUNG 3: TIPS & KINH NGHIỆM -->
     <div id="contentTips" class="tab-content-pane d-none">
         <div class="p-4 p-md-5 rounded-4 bg-white border shadow-sm mb-4">
             <h2 style="font-family: var(--font-heading); font-size: 28px; font-weight: 800;" class="mb-2">Chiến thuật phòng thi thực chiến</h2>
             <p class="text-muted mb-4">Những kinh nghiệm đắt giá được đúc kết từ quá trình ôn luyện và thi thực tế.</p>
-
             <div class="row g-4">
-                <!-- Cột 1: Trước khi ôn -->
                 <div class="col-md-4">
                     <div class="p-4 rounded-4 border h-100" style="background: #F8F6EF;">
-                        <h4 class="fw-bold mb-3 text-success" style="color: var(--ssak-primary) !important;">
-                            <i class="bi bi-calendar2-check me-2"></i>1. Trước khi ôn thi
-                        </h4>
-                        <ul class="d-flex flex-column gap-3 ps-3 text-muted" style="font-size: 15px; line-height: 1.6;">
-                            <li><strong>Xác định rõ cấp độ mục tiêu:</strong> Chọn thi TOPIK I (nếu mới học) hoặc TOPIK II (nếu đã xong trung cấp). Tránh thi vượt cấp gây nản lòng.</li>
-                            <li><strong>Nắm chắc cấu trúc đề:</strong> Hiểu rõ vị trí các câu hỏi dễ lấy điểm và câu hỏi phân loại thí sinh.</li>
-                            <li><strong>Thiết lập lộ trình theo ngày:</strong> Dành tối thiểu 20–30 phút mỗi ngày duy trì phản xạ thay vì dồn học cả ngày cuối tuần.</li>
-                            <li><strong>Học gốc từ Hán Việt:</strong> Giúp nhân 3 tốc độ nhớ từ vựng tiếng Hàn mà không cần học vẹt.</li>
-                        </ul>
+                        <h4 class="fw-bold mb-3 text-success" style="color: var(--ssak-primary) !important;">1. Trước khi ôn thi</h4>
+                        <p class="small text-muted">Xác định rõ cấp độ mục tiêu, nắm chắc cấu trúc đề và thiết lập lộ trình theo ngày.</p>
                     </div>
                 </div>
-
-                <!-- Cột 2: Trong quá trình ôn -->
                 <div class="col-md-4">
                     <div class="p-4 rounded-4 border h-100" style="background: #F8F6EF;">
-                        <h4 class="fw-bold mb-3 text-primary" style="color: #2F5F7D !important;">
-                            <i class="bi bi-book-half me-2"></i>2. Trong quá trình ôn
-                        </h4>
-                        <ul class="d-flex flex-column gap-3 ps-3 text-muted" style="font-size: 15px; line-height: 1.6;">
-                            <li><strong>Luyện từng dạng câu:</strong> Đừng vội làm full đề. Hãy làm chủ từng dạng (vd: Đọc 1–4, Nghe 1–3) rồi mới ghép thành bài thi hoàn chỉnh.</li>
-                            <li><strong>Ôn lặp ngắt quãng:</strong> Ôn lại câu sai sau 2 ngày, 7 ngày và 14 ngày để biến kiến thức ngắn hạn thành dài hạn.</li>
-                            <li><strong>Luyện viết biểu đồ (Câu 53):</strong> Câu 53 là mỏ vàng điểm Viết TOPIK II vì có mẫu câu cố định, dễ đạt 25/30 điểm nếu thuộc khung.</li>
-                            <li><strong>Nghe thụ động và chép chính tả:</strong> Bật audio lúc đi lại để quen với tốc độ nói tự nhiên của người Hàn.</li>
-                        </ul>
+                        <h4 class="fw-bold mb-3 text-primary" style="color: #2F5F7D !important;">2. Trong quá trình ôn</h4>
+                        <p class="small text-muted">Luyện từng dạng câu, ôn lặp ngắt quãng và chú trọng luyện viết biểu đồ câu 53.</p>
                     </div>
                 </div>
-
-                <!-- Cột 3: Khi làm bài thi -->
                 <div class="col-md-4">
                     <div class="p-4 rounded-4 border h-100" style="background: #F8F6EF;">
-                        <h4 class="fw-bold mb-3 text-warning" style="color: #7A5A12 !important;">
-                            <i class="bi bi-stopwatch me-2"></i>3. Khi làm bài thi
-                        </h4>
-                        <ul class="d-flex flex-column gap-3 ps-3 text-muted" style="font-size: 15px; line-height: 1.6;">
-                            <li><strong>Đọc trước đáp án khi thi Nghe:</strong> Tận dụng khoảng nghỉ 10–15 giây giữa các câu để đọc lướt từ khóa 4 đáp án câu tiếp theo.</li>
-                            <li><strong>Không dừng lại ở câu khó:</strong> Nếu sau 1 phút chưa tìm ra đáp án câu Đọc, hãy đánh dấu tạm và làm tiếp câu sau ngay.</li>
-                            <li><strong>Tô đáp án trực tiếp vào phiếu:</strong> Tuyệt đối không chờ làm hết mới tô vào phiếu trả lời vì rất dễ bị thu bài bất ngờ.</li>
-                            <li><strong>Tuân thủ quy tắc ô vuông 원고지:</strong> Viết đúng quy tắc số, dấu câu và xuống dòng ở câu Viết 53 và 54 để không bị trừ điểm hình thức.</li>
-                        </ul>
+                        <h4 class="fw-bold mb-3 text-warning" style="color: #7A5A12 !important;">3. Khi làm bài thi</h4>
+                        <p class="small text-muted">Đọc trước đáp án câu Nghe, quản lý thời gian Đọc hợp lý và tuân thủ quy tắc viết 원고지.</p>
                     </div>
                 </div>
-            </div>
-
-            <div class="text-center mt-5">
-                <a th:href="@{/lo-trinh}" class="btn-ssak-primary px-5 py-3 rounded-pill fw-bold text-decoration-none">
-                    Xem Lộ trình ôn thi của bạn
-                </a>
             </div>
         </div>
     </div>
+
+    <!-- KHU VỰC ĐÁNH GIÁ & CẢM NHẬN CỦA CỘNG ĐỒNG (LẤY TỪ DATABASE QUA THYMELEAF) -->
+    <section id="reviewsSection" class="p-4 p-md-5 rounded-4 bg-white border shadow-sm my-5">
+        <div class="row align-items-center mb-4">
+            <div class="col-md-8">
+                <h3 style="font-family: var(--font-heading); font-size: 24px; font-weight: 800;" class="mb-1">Đánh giá từ cộng đồng học viên</h3>
+                <p class="text-muted small mb-0">Cảm nhận thực tế của các học viên đã ôn luyện cẩm nang và đề thi trên HOT TOPIK.</p>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <button type="button" onclick="openFeedbackModal()" class="btn-ssak-primary px-4 py-2 rounded-pill fw-bold">
+                    <i class="bi bi-star-fill me-1"></i> Viết đánh giá của bạn
+                </button>
+            </div>
+        </div>
+
+        <div class="row g-4 align-items-center p-4 rounded-4 mb-4" style="background: var(--ssak-bg);">
+            <div class="col-md-4 text-center border-end-md">
+                <div style="font-size: 48px; font-weight: 800; color: var(--ssak-text-main);" th:text="${avgRating}">4.9</div>
+                <div class="text-warning fs-5 my-1">⭐⭐⭐⭐⭐</div>
+                <div class="text-muted small">Dựa trên <strong th:text="${totalReviews}">1,248</strong> đánh giá xác thực</div>
+            </div>
+            <div class="col-md-8">
+                <div class="text-muted small">Hệ thống ghi nhận các đánh giá thực tế từ học viên đã qua kiểm duyệt vận hành.</div>
+            </div>
+        </div>
+
+        <!-- DANH SÁCH BÌNH LUẬN ĐỘNG DÙNG THYMELEAF LẶP QUA approvedReviews -->
+        <div class="row g-3">
+            <div class="col-md-6" th:if="${#lists.isEmpty(approvedReviews)}">
+                <p class="text-muted small fst-italic">Chưa có đánh giá công khai nào. Hãy là người đầu tiên chia sẻ cảm nhận!</p>
+            </div>
+            <div class="col-md-6" th:each="rev : ${approvedReviews}">
+                <div class="p-3 border rounded-4 bg-white shadow-sm h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="fw-bold" th:text="${rev.authorName}">Tên học viên</div>
+                        <small class="text-muted" th:text="${rev.createdAt}">Thời gian</small>
+                    </div>
+                    <!-- In số sao động -->
+                    <div class="text-warning small mb-2">
+                        <span th:if="${rev.rating >= 1}">⭐</span>
+                        <span th:if="${rev.rating >= 2}">⭐</span>
+                        <span th:if="${rev.rating >= 3}">⭐</span>
+                        <span th:if="${rev.rating >= 4}">⭐</span>
+                        <span th:if="${rev.rating == 5}">⭐</span>
+                    </div>
+                    <p class="text-muted small mb-0 fst-italic" th:text="${'“' + rev.comment + '”'}">Nội dung đánh giá...</p>                </div>
+            </div>
+        </div>
+    </section>
 </main>
 
+<!-- MODAL GỬI ĐÁNH GIÁ (5 SAO + CHỮ) -->
+<div id="feedbackModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 99999; justify-content: center; align-items: center;">
+    <div style="background: #FFFFFF; width: 500px; max-width: 90%; border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); position: relative;">
+        <button onclick="closeFeedbackModal()" style="position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 20px; cursor: pointer; color: #53646C;">✕</button>
+
+        <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: var(--ssak-text-main); margin-bottom: 8px;">Đánh giá trải nghiệm</h3>
+        <p class="text-muted small mb-4">Ý kiến của cậu giúp đội ngũ phát triển hoàn thiện HOT TOPIK mỗi ngày!</p>
+
+        <!-- Chọn số sao -->
+        <div class="text-center mb-3">
+            <div id="starContainer" class="fs-2" style="cursor: pointer; color: #CBD5E1;">
+                <span onclick="setRating(1)">★</span>
+                <span onclick="setRating(2)">★</span>
+                <span onclick="setRating(3)">★</span>
+                <span onclick="setRating(4)">★</span>
+                <span onclick="setRating(5)">★</span>
+            </div>
+            <div id="ratingText" class="fw-bold small mt-1 text-muted">Chọn số sao đánh giá</div>
+        </div>
+
+        <!-- Ô nhập nhận xét -->
+        <div class="mb-3">
+            <label class="form-label small fw-bold text-muted">Nhận xét hoặc góp ý của cậu:</label>
+            <textarea id="feedbackComment" class="form-control rounded-3" rows="3" placeholder="Ví dụ: Trang web rất hữu ích, phần giải thích ngữ pháp dễ hiểu..."></textarea>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" onclick="closeFeedbackModal()" class="btn btn-light rounded-pill px-4 fw-bold">Hủy</button>
+            <button type="button" onclick="submitFeedback()" class="btn-ssak-primary rounded-pill px-4 fw-bold">Gửi đánh giá</button>
+        </div>
+    </div>
+</div>
+
 <script>
+    let currentRating = 5;
+
     function switchTopikTab(tab) {
         document.querySelectorAll('.topik-tab-btn').forEach(b => {
             b.style.borderColor = 'var(--ssak-border)';
@@ -406,6 +414,71 @@
             document.getElementById('tabBtnTips').style.background = '#FBF0D3';
             document.getElementById('contentTips').classList.remove('d-none');
         }
+    }
+
+    function scrollToReviews() {
+        document.getElementById('reviewsSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function openFeedbackModal() {
+        document.getElementById('feedbackModal').style.display = 'flex';
+        setRating(5);
+    }
+
+    function closeFeedbackModal() {
+        document.getElementById('feedbackModal').style.display = 'none';
+    }
+
+    function setRating(star) {
+        currentRating = star;
+        const stars = document.getElementById('starContainer').children;
+        for (let i = 0; i < stars.length; i++) {
+            if (i < star) {
+                stars[i].style.color = '#F59E0B';
+            } else {
+                stars[i].style.color = '#CBD5E1';
+            }
+        }
+        const labels = {1: "Rất cần cải thiện", 2: "Tạm ổn", 3: "Bình thường", 4: "Rất tốt", 5: "Tuyệt vời xuất sắc! ⭐"};
+        document.getElementById('ratingText').textContent = labels[star];
+    }
+
+    // GỬI DỮ LIỆU ĐÁNH GIÁ THỰC TẾ LÊN BACKEND QUA API FETCH
+    function submitFeedback() {
+        const commentText = document.getElementById('feedbackComment').value;
+
+        if (!commentText.trim()) {
+            alert("Cậu vui lòng nhập nội dung góp ý nhé!");
+            return;
+        }
+
+        const payload = {
+            rating: currentRating,
+            comment: commentText
+        };
+
+        fetch('/api/feedback/submit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    localStorage.setItem('hasRated', 'true');
+                    closeFeedbackModal();
+                    location.reload(); // Tải lại trang để cập nhật trạng thái nếu cần
+                } else {
+                    alert("Lỗi: " + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("Không thể kết nối đến máy chủ.");
+            });
     }
 </script>
 
