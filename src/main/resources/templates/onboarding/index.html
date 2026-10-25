@@ -46,7 +46,7 @@
     </div>
 
     <!-- 3 Thẻ lựa chọn theo mục 4.1 -->
-    <form th:action="@{/placement/start}" method="post" id="onboardingForm">
+    <form th:action="@{/placement}" method="get" id="onboardingForm">
         <input type="hidden" name="entryMode" id="selectedEntryMode" value="adaptive_full">
         <input type="hidden" name="paper" id="paper" value="TOPIK_I">
 
@@ -65,7 +65,7 @@
                     </div>
 
                     <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800;" class="mb-2">Mình chưa biết trình độ</h3>
-                    <p class="text-muted small mb-3">Làm bài TOPIK I: 10 câu Nghe và 10 câu Đọc, theo đúng dạng trong đề chuẩn.</p>
+                    <p class="text-muted small mb-3">Làm bài kiểm tra TOPIK I, 20 câu.</p>
 
                     <div class="border-top pt-3 text-muted small d-flex flex-column gap-2">
                         <div><i class="bi bi-check-circle-fill text-success me-1"></i> 10 điểm mỗi câu</div>
@@ -86,7 +86,7 @@
                     </div>
 
                     <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800;" class="mb-2">Mình đã qua TOPIK I</h3>
-                    <p class="text-muted small mb-3">Vào thẳng bài TOPIK II: 10 câu Nghe và 10 câu Đọc, cùng cấu trúc dạng một câu.</p>
+                    <p class="text-muted small mb-3">Làm bài kiểm tra TOPIK II, 20 câu.</p>
 
                     <div class="border-top pt-3 text-muted small d-flex flex-column gap-2">
                         <div><i class="bi bi-check-circle-fill text-primary me-1"></i> Báo cấp 3–6 theo điểm</div>
@@ -149,8 +149,8 @@
             form.method = 'get';
             form.action = '/placement/khai';
         } else {
-            form.method = 'post';
-            form.action = '/placement/start';
+            form.method = 'get';
+            form.action = '/placement';
             document.getElementById('paper').value = mode === 'adaptive_topik2' ? 'TOPIK_II' : 'TOPIK_I';
         }
     }

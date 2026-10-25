@@ -13,6 +13,13 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.imageio.ImageIO;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -67,30 +74,63 @@ public class PlacementBankSeeder implements ApplicationRunner {
             if (!PlacementRules.singleQuestion(type)) continue;
             donors.computeIfAbsent(type.code(), key -> new ArrayList<>()).add(question);
         }
-        Map<String, Integer> available = new HashMap<>();
-        donors.forEach((code, list) -> available.put(code, list.size()));
-
-        Map<Paper, Map<String, Integer>> plans = new EnumMap<>(Paper.class);
         Map<String, Integer> needed = new HashMap<>();
         for (Paper paper : Paper.values()) {
-            Map<String, Integer> plan = PlacementRules.demo(paper);
-            if (!PlacementRules.covered(plan, available)) {
-                log.warn("Chưa đủ câu đơn để soạn {}. Bỏ qua.", paper.title());
-                plan = Map.of();
-            }
-            plans.put(paper, plan);
-            plan.forEach((code, count) -> needed.merge(code, count, Math::max));
+            PlacementRules.demo(paper).forEach((code, count) -> needed.merge(code, count, Math::max));
         }
-        boolean bankReady = sources.findAll().stream().anyMatch(source -> MARK.equals(source.getNote()));
-        if (!bankReady && !needed.isEmpty()) copyBank(donors, needed);
+        topUp(donors, needed);
 
         for (Paper paper : Paper.values()) {
             if (!lines.findByPaperCodeOrderBySortOrderAsc(paper.name()).isEmpty()) continue;
-            Map<String, Integer> plan = plans.get(paper);
-            if (plan == null || plan.isEmpty()) continue;
-            placement.save(paper.name(), plan);
+            placement.save(paper.name(), PlacementRules.demo(paper));
             log.info("Đã soạn {}: 10 Nghe + 10 Đọc.", paper.title());
         }
+    }
+
+    /** Đủ câu demo cho từng dạng. Thiếu thì chép từ đề mẫu, vẫn thiếu thì viết câu tạm. */
+    private void topUp(Map<String, List<Question>> donors, Map<String, Integer> needed) {
+        Map<String, Integer> have = assessmentCounts();
+        Map<String, Integer> missing = new LinkedHashMap<>();
+        for (Map.Entry<String, Integer> entry : needed.entrySet()) {
+            int gap = entry.getValue() - have.getOrDefault(entry.getKey(), 0);
+            if (gap > 0) missing.put(entry.getKey(), gap);
+        }
+        if (missing.isEmpty()) return;
+
+        Map<String, Integer> fromDonors = new LinkedHashMap<>();
+        for (Map.Entry<String, Integer> entry : missing.entrySet()) {
+            int copy = Math.min(entry.getValue(), donors.getOrDefault(entry.getKey(), List.of()).size());
+            if (copy > 0) fromDonors.put(entry.getKey(), copy);
+        }
+        if (!fromDonors.isEmpty()) copyBank(donors, fromDonors);
+
+        questions.flush();
+        have = assessmentCounts();
+        for (String code : missing.keySet()) {
+            int still = needed.get(code) - have.getOrDefault(code, 0);
+            if (still <= 0) continue;
+            QuestionTypeDef type = QuestionTypeCatalog.byCode(code).orElseThrow();
+            ExamSource target = sourceFor(type.track());
+            ensureDemoMedia(target);
+            int already = have.getOrDefault(code, 0);
+            for (int i = 0; i < still; i++) synthesize(type, target, already + i);
+            log.info("Đã thêm {} câu demo tạm cho {}.", still, type.code());
+        }
+    }
+
+    private Map<String, Integer> assessmentCounts() {
+        Map<String, Integer> have = new HashMap<>();
+        for (Object[] row : questions.countActiveAssessmentByType()) {
+            have.put(String.valueOf(row[0]), ((Number) row[1]).intValue());
+        }
+        return have;
+    }
+
+    private ExamSource sourceFor(Track track) {
+        for (ExamSource source : sources.findAll()) {
+            if (MARK.equals(source.getNote()) && source.getTrack() == track) return source;
+        }
+        return newSource(track);
     }
 
     private void copyBank(Map<String, List<Question>> donors, Map<String, Integer> needed) {
@@ -189,5 +229,103 @@ public class PlacementBankSeeder implements ApplicationRunner {
         questions.save(copy);
         copy.setCode(String.format("E%04d", copy.getId()));
         target.setExpectedCount(target.getExpectedCount() + 1);
+    }
+
+    private void synthesize(QuestionTypeDef type, ExamSource target, int index) {
+        boolean image = type.imageRequired();
+        QuestionGroup group = new QuestionGroup();
+        group.setSource(target);
+        group.setTypeCode(type.code());
+        group.setSkill(type.skill());
+        group.setSize(1);
+        group.setGroupKey("D-" + type.code() + "-" + index);
+        if (type.skill() == Skill.LISTENING) {
+            group.setAudioFile("nghe.mp3");
+            group.setScriptKo("가: 안녕하세요. 나: 네, 안녕하세요.");
+        } else {
+            group.setPassageKo("이것은 예시 지문입니다. 학생들이 도서관에서 책을 읽습니다.");
+        }
+        groups.save(group);
+
+        String[] options = image
+                ? new String[]{"a1.png", "a2.png", "a3.png", "a4.png"}
+                : new String[]{"네, 맞아요.", "아니요.", "잘 모르겠어요.", "내일 가요."};
+        int answer = (index % 4) + 1;
+        String prompt = "(Demo) " + type.name() + " · câu " + (index + 1);
+        Question question = new Question();
+        question.setSource(target);
+        question.setGroup(group);
+        question.setTypeCode(type.code());
+        question.setTemplateCode(QuestionTemplateCatalog.templateCode(type.code()));
+        question.setTrack(type.track());
+        question.setSkill(type.skill());
+        question.setOriginalNo(type.numbers().get(Math.min(index, type.numbers().size() - 1)));
+        question.setPromptKo(prompt);
+        question.setOption1(options[0]);
+        question.setOption2(options[1]);
+        question.setOption3(options[2]);
+        question.setOption4(options[3]);
+        question.setAnswerIndex(answer);
+        question.setPurpose(QuestionPurpose.ASSESSMENT);
+        question.setStatus(QuestionStatus.ACTIVE);
+        question.setExplanationVi("Câu demo tạm. Đáp án " + answer + ".");
+        question.setContentHash(ExamImportValidator.contentHash(prompt + "\n" + type.code() + "\n" + index,
+                group.getPassageKo(), group.getScriptKo(), options));
+        question.setCode(Codes.temporary());
+        questions.save(question);
+        question.setCode(String.format("E%04d", question.getId()));
+        target.setExpectedCount(target.getExpectedCount() + 1);
+    }
+
+    private void ensureDemoMedia(ExamSource source) {
+        putMedia(source, "nghe.mp3", MediaKind.AUDIO, mpegFrame());
+        putMedia(source, "a1.png", MediaKind.IMAGE, png(new Color(196, 60, 50), "1"));
+        putMedia(source, "a2.png", MediaKind.IMAGE, png(new Color(40, 90, 170), "2"));
+        putMedia(source, "a3.png", MediaKind.IMAGE, png(new Color(46, 125, 80), "3"));
+        putMedia(source, "a4.png", MediaKind.IMAGE, png(new Color(210, 130, 40), "4"));
+    }
+
+    private void putMedia(ExamSource source, String filename, MediaKind kind, byte[] bytes) {
+        if (media.findBySourceIdAndFilename(source.getId(), filename).isPresent()) return;
+        try (InputStream in = new ByteArrayInputStream(bytes)) {
+            Path stored = storage.storeMedia(source.getId(), filename, in);
+            MediaAsset asset = new MediaAsset();
+            asset.setSource(source);
+            asset.setFilename(filename);
+            asset.setKind(kind);
+            asset.setSizeBytes(bytes.length);
+            asset.setStoragePath(storage.toStored(stored));
+            media.save(asset);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static byte[] mpegFrame() {
+        byte[] frame = new byte[417];
+        frame[0] = (byte) 0xFF;
+        frame[1] = (byte) 0xFB;
+        frame[2] = (byte) 0x90;
+        byte[] all = new byte[frame.length * 4];
+        for (int i = 0; i < 4; i++) System.arraycopy(frame, 0, all, i * frame.length, frame.length);
+        return all;
+    }
+
+    private static byte[] png(Color color, String label) {
+        BufferedImage image = new BufferedImage(80, 80, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = image.createGraphics();
+        g.setColor(color);
+        g.fillRect(0, 0, 80, 80);
+        g.setColor(Color.WHITE);
+        g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 32));
+        g.drawString(label, 28, 50);
+        g.dispose();
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ImageIO.write(image, "png", out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

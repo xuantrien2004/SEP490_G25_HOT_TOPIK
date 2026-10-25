@@ -66,6 +66,9 @@ class PlacementFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("name=\"current\"")))
                 .andExpect(content().string(containsString("name=\"target\"")))
+                .andExpect(content().string(containsString("name=\"days\"")))
+                .andExpect(content().string(containsString("name=\"date\"")))
+                .andExpect(content().string(containsString("50 ngày")))
                 .andExpect(content().string(containsString("không chọn ở màn ba thẻ")));
     }
 
@@ -91,8 +94,11 @@ class PlacementFlowTest {
         bank(Paper.TOPIK_I);
         mvc.perform(get("/placement").param("paper", "TOPIK_I").sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Chọn câu trả lời phù hợp")))
-                .andExpect(content().string(containsString("Bắt đầu 20 câu")));
+                .andExpect(content().string(containsString("Bài TOPIK I")))
+                .andExpect(content().string(containsString("20 câu")))
+                .andExpect(content().string(containsString("Xác nhận làm bài")))
+                .andExpect(content().string(not(containsString("Chọn câu trả lời phù hợp"))))
+                .andExpect(content().string(not(containsString("I-N1"))));
 
         long id = start("TOPIK_I");
         mvc.perform(get("/placement/play/" + id).sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
@@ -122,6 +128,8 @@ class PlacementFlowTest {
                         .sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("TOPIK 2")))
+                .andExpect(content().string(containsString("Số ngày")))
+                .andExpect(content().string(containsString("50 ngày")))
                 .andExpect(content().string(containsString("Sinh lộ trình")));
     }
 

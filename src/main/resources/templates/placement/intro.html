@@ -3,45 +3,24 @@
 <head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
 <body style="background: var(--ssak-bg); color: var(--ssak-text-main); font-family: var(--font-body);">
 <div th:replace="~{fragments/navbar :: navbar('practice')}"></div>
-<main class="container py-4" style="max-width: 860px;">
+<main class="container py-5" style="max-width: 640px;">
     <div th:if="${placementError}" class="alert alert-warning" th:text="${placementError}"></div>
     <a th:href="@{/onboarding}" class="btn btn-sm btn-outline-secondary mb-3 rounded-3">← Chọn cách bắt đầu</a>
 
-    <section class="bg-white border rounded-4 p-4 p-md-5 shadow-sm" th:if="${sheet != null}">
-        <span class="badge text-bg-light border" th:text="${sheet.paper.title()}">Bài TOPIK I</span>
-        <h1 class="h3 fw-bold mt-3 mb-2" th:text="${sheet.paper.title()}">Bài TOPIK I</h1>
-        <p class="text-muted">20 câu theo dạng một câu của đề chuẩn: 10 Nghe và 10 Đọc. Mỗi câu 10 điểm, tối đa 200. Không có phần Viết.</p>
+    <section class="bg-white border rounded-4 p-4 p-md-5 shadow-sm text-center" th:if="${sheet != null}">
+        <p class="text-muted small mb-2">Kiểm tra trình độ</p>
+        <h1 class="fw-bold mb-3" style="font-family: var(--font-heading);" th:text="${sheet.paper.title()}">Bài TOPIK I</h1>
+        <p class="mb-1">20 câu · 200 điểm</p>
+        <p class="text-muted">Mỗi câu 10 điểm. Không có phần Viết.</p>
 
-        <div th:if="${!sheet.ready}" class="alert alert-warning">
-            Đề này chưa đủ 10 Nghe + 10 Đọc. Content Manager chốt số câu từng dạng trong mục Đề kiểm tra trình độ.
+        <div th:if="${!sheet.ready}" class="alert alert-warning text-start mt-4">
+            Bài này chưa sẵn sàng. Content Manager cần chốt đủ 20 câu trước.
         </div>
 
-        <div th:if="${sheet.ready}">
-            <h2 class="h6 fw-bold mt-4">Nghe · <span th:text="${sheet.listeningCount}">10</span> câu</h2>
-            <ul class="list-group mb-3">
-                <li class="list-group-item d-flex justify-content-between" th:each="row : ${sheet.listening}" th:if="${row.count > 0}">
-                    <span>
-                        <span class="text-muted me-2" th:text="${row.type.code()}">I-N1</span>
-                        <span th:text="${row.type.name()}">Dạng</span>
-                    </span>
-                    <span class="badge text-bg-light border" th:text="${row.count} + ' câu'">2 câu</span>
-                </li>
-            </ul>
-            <h2 class="h6 fw-bold">Đọc · <span th:text="${sheet.readingCount}">10</span> câu</h2>
-            <ul class="list-group mb-4">
-                <li class="list-group-item d-flex justify-content-between" th:each="row : ${sheet.reading}" th:if="${row.count > 0}">
-                    <span>
-                        <span class="text-muted me-2" th:text="${row.type.code()}">I-D1</span>
-                        <span th:text="${row.type.name()}">Dạng</span>
-                    </span>
-                    <span class="badge text-bg-light border" th:text="${row.count} + ' câu'">2 câu</span>
-                </li>
-            </ul>
-            <form method="post" th:action="@{/placement/start}">
-                <input type="hidden" name="paper" th:value="${sheet.paper.name()}">
-                <button class="btn btn-success btn-lg fw-bold px-5 py-3 rounded-3" type="submit">Bắt đầu 20 câu</button>
-            </form>
-        </div>
+        <form th:if="${sheet.ready}" class="mt-4" method="post" th:action="@{/placement/start}">
+            <input type="hidden" name="paper" th:value="${sheet.paper.name()}">
+            <button class="btn btn-success btn-lg fw-bold px-5 py-3 rounded-3" type="submit">Xác nhận làm bài</button>
+        </form>
     </section>
 </main>
 <div th:replace="~{fragments/footer :: footer}"></div>

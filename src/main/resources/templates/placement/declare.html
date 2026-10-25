@@ -8,7 +8,7 @@
     <div th:if="${placementError}" class="alert alert-warning" th:text="${placementError}"></div>
     <section class="bg-white border rounded-4 p-4 p-md-5 shadow-sm">
         <h1 class="h3 fw-bold mb-2" style="font-family: var(--font-heading);">Mình biết trình độ</h1>
-        <p class="text-muted">Chọn trình hiện tại, cấp muốn tới và ngày muốn đạt. Lộ trình sinh sau bước này, không chọn ở màn ba thẻ bên ngoài.</p>
+        <p class="text-muted">Chọn trình hiện tại, cấp muốn tới, rồi chọn số ngày hoặc ngày trên lịch. Lộ trình sinh sau bước này, không chọn ở màn ba thẻ bên ngoài.</p>
 
         <form method="post" th:action="@{/placement/sinh}" class="d-flex flex-column gap-3">
             <label class="fw-bold">Trình hiện tại
@@ -32,9 +32,7 @@
                     <option value="6">TOPIK 6</option>
                 </select>
             </label>
-            <label class="fw-bold">Ngày muốn đạt
-                <input class="form-control mt-1" type="date" name="date" required th:min="${earliest}" th:max="${latest}" th:value="${earliest}">
-            </label>
+            <div th:replace="~{fragments/goal-span :: fields}"></div>
             <label class="fw-bold">Phút học mỗi ngày
                 <select class="form-select mt-1" name="minutes">
                     <option value="10">10 phút</option>

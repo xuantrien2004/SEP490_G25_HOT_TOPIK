@@ -7,7 +7,7 @@
     <div th:if="${placementError}" class="alert alert-warning" th:text="${placementError}"></div>
     <section class="bg-white border rounded-4 p-4 p-md-5 shadow-sm">
         <h1 class="h3 fw-bold mb-2" style="font-family: var(--font-heading);">Chọn mục tiêu rồi sinh lộ trình</h1>
-        <p class="text-muted">Trình hiện tại lấy từ bài vừa làm. Bạn chọn cấp muốn tới và ngày muốn đạt.</p>
+        <p class="text-muted">Trình hiện tại lấy từ bài vừa làm. Chọn cấp muốn tới, rồi chọn số ngày hoặc chọn ngày trên lịch.</p>
         <p class="fw-bold">Trình hiện tại: <span th:text="${currentLabel}">TOPIK 2</span></p>
         <p class="text-muted small mb-4" th:text="${track.label}">TOPIK I</p>
 
@@ -21,9 +21,7 @@
                     <option th:each="level : ${targets}" th:value="${level}" th:text="'TOPIK ' + ${level}">TOPIK 2</option>
                 </select>
             </label>
-            <label class="fw-bold">Ngày muốn đạt
-                <input class="form-control mt-1" type="date" name="date" required th:min="${earliest}" th:max="${latest}" th:value="${earliest}">
-            </label>
+            <div th:replace="~{fragments/goal-span :: fields}"></div>
             <label class="fw-bold">Phút học mỗi ngày
                 <select class="form-select mt-1" name="minutes">
                     <option value="10">10 phút</option>

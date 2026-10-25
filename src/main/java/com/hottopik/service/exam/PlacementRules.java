@@ -18,6 +18,9 @@ public final class PlacementRules {
     public static final int POINT = 10;
     public static final int MAX_POINTS = SKILL_QUOTA * 2 * POINT;
     public static final int TOPIK_II_OFFER = 160;
+    public static final int MIN_DAYS = 31;
+    public static final int MAX_DAYS = 200;
+    public static final int DEFAULT_DAYS = 60;
 
     public enum Paper {
         TOPIK_I(Track.TOPIK_I, "Bài TOPIK I"),

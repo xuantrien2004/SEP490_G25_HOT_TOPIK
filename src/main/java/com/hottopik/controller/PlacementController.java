@@ -194,8 +194,9 @@ public class PlacementController {
             }
             LocalDate end = LocalDate.parse(date);
             long days = ChronoUnit.DAYS.between(LocalDate.now(), end) + 1;
-            if (days < 31 || days > 200) {
-                throw new ExamDomainException("Ngày đạt mục tiêu phải cách hôm nay từ 31 đến 200 ngày.");
+            if (days < PlacementRules.MIN_DAYS || days > PlacementRules.MAX_DAYS) {
+                throw new ExamDomainException("Chọn từ " + PlacementRules.MIN_DAYS + " đến " + PlacementRules.MAX_DAYS
+                        + " ngày, hoặc một ngày trong khoảng đó.");
             }
             users.saveRoadmapSettings(user.getId(), String.valueOf(current), String.valueOf(target), minutes, attempt == null ? "SELF" : "PLACEMENT");
             user.setCurrentLevel(current == 0 ? "TOPIK_0" : "TOPIK_" + current);
@@ -237,10 +238,15 @@ public class PlacementController {
         fillDates(model);
     }
 
-    /** Ngày đạt mục tiêu là ngày cuối của lịch: 31 ngày nghĩa là hôm nay + 30. */
+    /** 31 ngày kết thúc vào hôm nay + 30. Mặc định 60 ngày. */
     private static void fillDates(Model model) {
-        model.addAttribute("earliest", LocalDate.now().plusDays(30));
-        model.addAttribute("latest", LocalDate.now().plusDays(199));
+        LocalDate today = LocalDate.now();
+        model.addAttribute("minDays", PlacementRules.MIN_DAYS);
+        model.addAttribute("maxDays", PlacementRules.MAX_DAYS);
+        model.addAttribute("goalDays", PlacementRules.DEFAULT_DAYS);
+        model.addAttribute("goalDate", today.plusDays(PlacementRules.DEFAULT_DAYS - 1L));
+        model.addAttribute("earliest", today.plusDays(PlacementRules.MIN_DAYS - 1L));
+        model.addAttribute("latest", today.plusDays(PlacementRules.MAX_DAYS - 1L));
     }
 
     private Track resolveTrack(Long attempt, int current, int target, String track, HttpSession session) {
