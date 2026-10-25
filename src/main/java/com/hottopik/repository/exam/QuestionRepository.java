@@ -42,4 +42,29 @@ public interface QuestionRepository extends JpaRepository<Question, Long>, JpaSp
 
     @Query("select q.templateCode, q.typeCode from Question q where q.status = com.hottopik.entity.exam.QuestionStatus.ACTIVE")
     List<Object[]> activeTemplateCodes();
+
+    @Query("select q.typeCode, count(q) from Question q "
+            + "where q.status = com.hottopik.entity.exam.QuestionStatus.ACTIVE "
+            + "and q.purpose = com.hottopik.entity.exam.QuestionPurpose.ASSESSMENT "
+            + "and q.source.status = com.hottopik.entity.exam.SourceStatus.ACTIVE "
+            + "group by q.typeCode")
+    List<Object[]> countActiveAssessmentByType();
+
+    @EntityGraph(attributePaths = {"source", "group"})
+    @Query("select q from Question q where q.typeCode = :typeCode "
+            + "and q.status = com.hottopik.entity.exam.QuestionStatus.ACTIVE "
+            + "and q.purpose = com.hottopik.entity.exam.QuestionPurpose.ASSESSMENT "
+            + "and q.source.status = com.hottopik.entity.exam.SourceStatus.ACTIVE")
+    List<Question> findAssessmentPool(@org.springframework.data.repository.query.Param("typeCode") String typeCode);
+
+    @EntityGraph(attributePaths = {"source", "group"})
+    @Query("select q from Question q where q.id in :ids")
+    List<Question> findWithMediaByIdIn(@org.springframework.data.repository.query.Param("ids") Collection<Long> ids);
+
+    @EntityGraph(attributePaths = {"source", "group"})
+    @Query("select q from Question q where q.status = com.hottopik.entity.exam.QuestionStatus.ACTIVE "
+            + "and q.purpose <> com.hottopik.entity.exam.QuestionPurpose.ASSESSMENT "
+            + "and q.source.status = com.hottopik.entity.exam.SourceStatus.ACTIVE "
+            + "order by q.id asc")
+    List<Question> findPlacementDonors();
 }

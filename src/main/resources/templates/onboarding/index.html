@@ -46,8 +46,9 @@
     </div>
 
     <!-- 3 Thẻ lựa chọn theo mục 4.1 -->
-    <form th:action="@{/placement/start}" method="GET" id="onboardingForm">
+    <form th:action="@{/placement/start}" method="post" id="onboardingForm">
         <input type="hidden" name="entryMode" id="selectedEntryMode" value="adaptive_full">
+        <input type="hidden" name="paper" id="paper" value="TOPIK_I">
 
         <div class="row g-4 mb-5">
             <!-- Thẻ 1: Chưa biết trình độ (Khuyến nghị) -->
@@ -60,16 +61,16 @@
                     
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div class="fs-1">🎯</div>
-                        <span class="badge bg-white text-dark border px-2 py-1 small">~ 15–20 phút</span>
+                        <span class="badge bg-white text-dark border px-2 py-1 small">20 câu · 200 điểm</span>
                     </div>
 
                     <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800;" class="mb-2">Mình chưa biết trình độ</h3>
-                    <p class="text-muted small mb-3">Làm bài kiểm tra thích ứng ngắn, câu hỏi khó dần theo năng lực.</p>
+                    <p class="text-muted small mb-3">Làm bài TOPIK I: 10 câu Nghe và 10 câu Đọc, theo đúng dạng trong đề chuẩn.</p>
 
                     <div class="border-top pt-3 text-muted small d-flex flex-column gap-2">
-                        <div><i class="bi bi-check-circle-fill text-success me-1"></i> Biết chính xác cấp TOPIK</div>
-                        <div><i class="bi bi-check-circle-fill text-success me-1"></i> Tìm ra 3 dạng câu yếu nhất</div>
-                        <div><i class="bi bi-check-circle-fill text-success me-1"></i> Tối ưu thứ tự lộ trình học</div>
+                        <div><i class="bi bi-check-circle-fill text-success me-1"></i> 10 điểm mỗi câu</div>
+                        <div><i class="bi bi-check-circle-fill text-success me-1"></i> Từ 80% thì được hỏi làm TOPIK II</div>
+                        <div><i class="bi bi-check-circle-fill text-success me-1"></i> Xong bài mới chọn mục tiêu</div>
                     </div>
                 </div>
             </div>
@@ -81,16 +82,16 @@
                      style="border: 2px solid var(--ssak-border);">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div class="fs-1">⚡</div>
-                        <span class="badge bg-white text-dark border px-2 py-1 small">~ 10–15 phút</span>
+                        <span class="badge bg-white text-dark border px-2 py-1 small">20 câu · 200 điểm</span>
                     </div>
 
                     <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800;" class="mb-2">Mình đã qua TOPIK I</h3>
-                    <p class="text-muted small mb-3">Bỏ qua sơ cấp, chỉ làm phần bài kiểm tra thích ứng của TOPIK II.</p>
+                    <p class="text-muted small mb-3">Vào thẳng bài TOPIK II: 10 câu Nghe và 10 câu Đọc, cùng cấu trúc dạng một câu.</p>
 
                     <div class="border-top pt-3 text-muted small d-flex flex-column gap-2">
-                        <div><i class="bi bi-check-circle-fill text-primary me-1"></i> Tập trung đánh giá cấp 3–6</div>
-                        <div><i class="bi bi-check-circle-fill text-primary me-1"></i> Tiết kiệm thời gian làm test</div>
-                        <div><i class="bi bi-check-circle-fill text-primary me-1"></i> Sẵn sàng ôn luyện TOPIK II</div>
+                        <div><i class="bi bi-check-circle-fill text-primary me-1"></i> Báo cấp 3–6 theo điểm</div>
+                        <div><i class="bi bi-check-circle-fill text-primary me-1"></i> Dưới 80 điểm thì gợi ý về TOPIK I</div>
+                        <div><i class="bi bi-check-circle-fill text-primary me-1"></i> Xong bài mới chọn mục tiêu</div>
                     </div>
                 </div>
             </div>
@@ -106,34 +107,12 @@
                     </div>
 
                     <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800;" class="mb-2">Mình biết trình độ</h3>
-                    <p class="text-muted small mb-3">Tự khai cấp độ hiện tại (Mới bắt đầu hoặc TOPIK 1–6) để vào tạo lịch ngay.</p>
+                    <p class="text-muted small mb-3">Vào một màn riêng để chọn trình hiện tại, mục tiêu và ngày muốn đạt.</p>
 
-                    <!-- Khung nhập tự khai mở khi chọn thẻ 3 -->
-                    <div id="selfDeclareInputs" class="border-top pt-3 d-none">
-                        <label class="form-label small fw-bold">Chọn cấp độ hiện tại:</label>
-                        <select class="form-select form-select-sm mb-2" id="declaredLevel" name="declaredLevel">
-                            <option value="BEGINNER">Mới bắt đầu (Chưa có bằng)</option>
-                            <option value="TOPIK_1">TOPIK Cấp 1</option>
-                            <option value="TOPIK_2">TOPIK Cấp 2</option>
-                            <option value="TOPIK_3">TOPIK Cấp 3</option>
-                            <option value="TOPIK_4">TOPIK Cấp 4</option>
-                            <option value="TOPIK_5">TOPIK Cấp 5</option>
-                            <option value="TOPIK_6">TOPIK Cấp 6</option>
-                        </select>
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <input type="number" class="form-control form-control-sm" name="examRound" placeholder="Kỳ thi (vd: 96)">
-                            </div>
-                            <div class="col-6">
-                                <input type="number" class="form-control form-control-sm" name="totalScore" placeholder="Tổng điểm (0-300)">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div id="selfDeclareSummary" class="border-top pt-3 text-muted small d-flex flex-column gap-2">
-                        <div><i class="bi bi-check-circle-fill text-warning me-1"></i> Bắt đầu ngay không cần test</div>
-                        <div><i class="bi bi-check-circle-fill text-warning me-1"></i> Tự chọn kỳ thi và điểm cũ</div>
-                        <div><i class="bi bi-check-circle-fill text-warning me-1"></i> Có thể kiểm tra lại sau</div>
+                    <div class="border-top pt-3 text-muted small d-flex flex-column gap-2">
+                        <div><i class="bi bi-check-circle-fill text-warning me-1"></i> Không chọn cấp ngay trên thẻ này</div>
+                        <div><i class="bi bi-check-circle-fill text-warning me-1"></i> Mục tiêu phải cao hơn trình hiện tại</div>
+                        <div><i class="bi bi-check-circle-fill text-warning me-1"></i> Chọn xong mới sinh lộ trình</div>
                     </div>
                 </div>
             </div>
@@ -165,14 +144,14 @@
         activeCard.style.borderColor = 'var(--ssak-primary)';
         activeCard.style.background = 'var(--ssak-primary-light)';
 
-        if(mode === 'self_declare') {
-            document.getElementById('selfDeclareInputs').classList.remove('d-none');
-            document.getElementById('selfDeclareSummary').classList.add('d-none');
-            document.getElementById('onboardingForm').action = '/lo-trinh/tao';
+        const form = document.getElementById('onboardingForm');
+        if (mode === 'self_declare') {
+            form.method = 'get';
+            form.action = '/placement/khai';
         } else {
-            document.getElementById('selfDeclareInputs').classList.add('d-none');
-            document.getElementById('selfDeclareSummary').classList.remove('d-none');
-            document.getElementById('onboardingForm').action = '/placement';
+            form.method = 'post';
+            form.action = '/placement/start';
+            document.getElementById('paper').value = mode === 'adaptive_topik2' ? 'TOPIK_II' : 'TOPIK_I';
         }
     }
 </script>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body style="background: var(--ssak-bg); color: var(--ssak-text-main); font-family: var(--font-body);"
+      th:attr="data-seconds=${minutes * 60}">
+<header class="py-3 px-3 px-md-4 bg-white border-bottom shadow-sm sticky-top">
+    <div class="d-flex justify-content-between align-items-center gap-3" style="max-width: 1140px; margin: 0 auto;">
+        <div class="d-flex align-items-center gap-2">
+            <a class="btn btn-sm btn-outline-secondary rounded-pill px-3" th:href="@{/onboarding}"
+               onclick="return confirm('Thoát bài này? Câu đã chọn sẽ không được nộp.');">Thoát</a>
+            <div>
+                <div class="fw-bold" style="font-family: var(--font-heading); color: var(--ssak-primary);" th:text="${paper.title()}">Bài TOPIK I</div>
+                <div class="small text-muted" id="progressLabel">Câu 1 / 20</div>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="px-3 py-1 rounded-pill fw-bold" style="background: #FBE6DA; color: var(--ssak-terracotta);" id="countdown">20:00</span>
+            <button class="btn-ssak-primary btn-sm px-3 py-2 rounded-pill fw-bold" type="submit" form="paperForm">Nộp bài</button>
+        </div>
+    </div>
+</header>
+<main class="container my-4" style="max-width: 1140px;">
+    <p class="text-muted small">Đoạn nghe chỉ phát một lần. Phím 1–4 chọn đáp án, mũi tên chuyển câu.</p>
+    <form id="paperForm" method="post" th:action="@{/placement/submit/{id}(id=${attempt.id})}">
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <article class="q-card p-4 p-md-5 rounded-4 bg-white border shadow-sm" th:each="q : ${questions}" th:classappend="${q.no > 1} ? 'd-none'">
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <span class="badge rounded-pill px-3 py-2" style="background: var(--ssak-primary);" th:text="${q.skill} + ' · Câu ' + ${q.no}">Nghe · Câu 1</span>
+                        <span class="badge rounded-pill bg-light text-muted border" th:text="${q.typeName}">Dạng</span>
+                    </div>
+                    <div class="p-3 rounded-4 mb-3" th:if="${q.audio != null}" style="background: #E4EEF5;">
+                        <div class="small fw-bold mb-2">Đoạn nghe <span class="audio-note text-muted fw-normal">· phát một lần</span></div>
+                        <audio class="w-100" controls preload="none" th:src="${q.audio}"></audio>
+                    </div>
+                    <img th:if="${q.image != null}" th:src="${q.image}" alt="" class="img-fluid rounded-3 border mb-3" style="max-height: 240px;">
+                    <p class="fw-bold" style="font-family: var(--font-korean);" th:if="${q.instruction != null and !q.instruction.isBlank()}" th:text="${q.instruction}"></p>
+                    <div class="p-3 rounded-3 mb-3" th:if="${q.passage != null and !q.passage.isBlank()}"
+                         style="background: #FAF8F5; white-space: pre-line; font-family: var(--font-korean);" th:text="${q.passage}"></div>
+                    <p class="fw-semibold" style="font-family: var(--font-korean);" th:text="${q.prompt}">Đề</p>
+                    <div class="d-flex flex-column gap-2">
+                        <label class="opt p-3 rounded-3 border d-flex align-items-center gap-3" th:each="opt, iter : ${q.options}">
+                            <input class="form-check-input mt-0" type="radio" th:name="'answer_' + ${q.id}" th:value="${iter.count}">
+                            <span class="fw-bold" th:text="${iter.count}">1</span>
+                            <img th:if="${q.mediaBase != null and (opt.endsWith('.png') or opt.endsWith('.jpg') or opt.endsWith('.jpeg') or opt.endsWith('.webp') or opt.endsWith('.gif'))}"
+                                 th:src="${q.mediaBase + opt}" alt="" style="height: 72px;" class="rounded border">
+                            <span th:unless="${q.mediaBase != null and (opt.endsWith('.png') or opt.endsWith('.jpg') or opt.endsWith('.jpeg') or opt.endsWith('.webp') or opt.endsWith('.gif'))}"
+                                  style="font-family: var(--font-korean);" th:text="${opt}">Đáp án</span>
+                        </label>
+                    </div>
+                    <div class="d-flex justify-content-between pt-4 mt-4 border-top">
+                        <button class="btn btn-outline-secondary rounded-pill" type="button" onclick="moveQuestion(-1)">Câu trước</button>
+                        <button class="btn-ssak-primary rounded-pill px-4" type="button" onclick="moveQuestion(1)">Câu tiếp</button>
+                    </div>
+                </article>
+            </div>
+            <div class="col-lg-4">
+                <div class="p-4 rounded-4 bg-white border shadow-sm">
+                    <div class="fw-bold mb-3">20 câu · 200 điểm</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="q-nav btn btn-sm rounded-circle" type="button" style="width: 40px; height: 40px;"
+                                th:each="q : ${questions}" th:text="${q.no}"
+                                th:classappend="${q.no == 1} ? 'btn-success' : 'btn-outline-secondary'"
+                                th:attr="data-index=${q.no - 1}">1</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</main>
+<style>
+    .opt { cursor: pointer; background: #fff; }
+    .opt:has(input:checked) { border: 2px solid var(--ssak-primary) !important; background: var(--ssak-primary-light); }
+    .q-nav.answered { box-shadow: inset 0 -3px 0 var(--ssak-terracotta); }
+</style>
+<script>
+    const cards = [...document.querySelectorAll('.q-card')];
+    const nav = [...document.querySelectorAll('.q-nav')];
+    const form = document.getElementById('paperForm');
+    let index = 0;
+    function showQuestion(next) {
+        index = Math.max(0, Math.min(cards.length - 1, next));
+        cards.forEach((card, i) => card.classList.toggle('d-none', i !== index));
+        nav.forEach((button, i) => {
+            button.classList.toggle('btn-success', i === index);
+            button.classList.toggle('btn-outline-secondary', i !== index);
+        });
+        document.getElementById('progressLabel').textContent = 'Câu ' + (index + 1) + ' / ' + cards.length;
+        const audio = cards[index].querySelector('audio');
+        if (!audio || audio.dataset.played === '1') return;
+        audio.addEventListener('play', () => { audio.dataset.played = '1'; }, {once: true});
+        audio.addEventListener('ended', () => {
+            audio.controls = false;
+            const note = cards[index].querySelector('.audio-note');
+            if (note) note.textContent = '· đã phát một lần';
+        }, {once: true});
+    }
+    function moveQuestion(step) { showQuestion(index + step); }
+    nav.forEach(button => button.addEventListener('click', () => showQuestion(Number(button.dataset.index))));
+    form.addEventListener('change', event => {
+        if (!event.target.matches('input[type=radio]')) return;
+        const at = cards.indexOf(event.target.closest('.q-card'));
+        if (at >= 0) nav[at].classList.add('answered');
+    });
+    form.addEventListener('submit', event => {
+        const answered = new Set([...form.querySelectorAll('input:checked')].map(input => input.name)).size;
+        const missing = cards.length - answered;
+        if (missing > 0 && !confirm('Bạn còn ' + missing + ' câu chưa chọn. Vẫn nộp bài?')) event.preventDefault();
+    });
+    document.addEventListener('keydown', event => {
+        if (event.target.matches('input, textarea')) return;
+        if (event.key >= '1' && event.key <= '4') {
+            const radio = cards[index].querySelector('input[value="' + event.key + '"]');
+            if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change', {bubbles: true})); }
+        }
+        if (event.key === 'ArrowRight') showQuestion(index + 1);
+        if (event.key === 'ArrowLeft') showQuestion(index - 1);
+    });
+    let left = Number(document.body.dataset.seconds || 0);
+    const clock = document.getElementById('countdown');
+    const timer = setInterval(() => {
+        left -= 1;
+        if (left < 0) { clearInterval(timer); form.submit(); return; }
+        clock.textContent = String(Math.floor(left / 60)).padStart(2, '0') + ':' + String(left % 60).padStart(2, '0');
+    }, 1000);
+    if (cards.length) showQuestion(0);
+</script>
+</body>
+</html>
