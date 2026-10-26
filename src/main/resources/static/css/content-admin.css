@@ -142,6 +142,20 @@
 .opt-line:has(input[type=radio]:checked) { border-color: #2E7D67; background: #E3F2EA; }
 .opt-line .mark { font-weight: 800; color: #24363D; }
 .paper-editor textarea.ko, .paper-editor input.ko { font-family: var(--font-korean); }
+.q-guide { background: #FBF0D3; border: 1.5px solid #F0D894; border-radius: 14px; padding: 12px 14px; margin-bottom: 14px; }
+.q-guide .ko { font-family: var(--font-korean); font-weight: 700; color: #24363D; line-height: 1.55; }
+.q-guide-meta { margin-top: 4px; font-weight: 800; color: #1F6B56; }
+.ask-title { margin: 0 0 8px; font-size: 18px; }
+.file-slot, .pic-opt { border: 1.5px dashed #C9C4B8; border-radius: 14px; padding: 10px; background: #FAFAF9; }
+.file-slot.over, .pic-opt.over { border-color: #2E7D67; background: #F3FBF7; }
+.file-slot.busy, .pic-opt.busy { opacity: 0.7; }
+.file-hit { display: inline-flex; margin-top: 8px; font-weight: 800; color: #1F6B56; cursor: pointer; }
+.q-photo { display: block; max-width: 100%; max-height: 220px; margin-top: 8px; border-radius: 12px; background: #fff; }
+.pic-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pic-opt { position: relative; }
+.pic-opt:has(input[type=radio]:checked) { border-color: #2E7D67; background: #E3F2EA; box-shadow: inset 0 0 0 1px #2E7D67; }
+.pic-opt .mark { font-weight: 800; }
+audio { width: 100%; margin-top: 8px; }
 .paper details { margin-top: 14px; border-top: 1px solid var(--ssak-border); padding-top: 8px; }
 .paper details summary { cursor: pointer; font-weight: 800; color: #24363D; }
 

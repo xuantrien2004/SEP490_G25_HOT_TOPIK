@@ -43,6 +43,10 @@ public class QuestionGroup {
     private String scriptKo;
 
     @Nationalized
+    @Column(name = "script_vi", length = 4000)
+    private String scriptVi;
+
+    @Nationalized
     @Column(name = "passage_ko", length = 4000)
     private String passageKo;
 

@@ -10,7 +10,7 @@
             <div>
                 <div class="cm-muted"><a th:href="@{/content/sources/{id}(id=${source.id})}">Quay lại nhập đề</a></div>
                 <h1 th:text="${source.name}">TOPIK II kỳ 83</h1>
-                <div class="sub">Học viên thấy hướng dẫn dạng, một file nghe cho cả bài, rồi bốn đáp án. Phụ đề chỉ mở khi xem giải thích.</div>
+                <div class="sub">Học viên thấy hướng dẫn dạng, file nghe phát được, ảnh nếu có, rồi bốn đáp án. Lời thoại nằm trong phần giải thích.</div>
             </div>
         </header>
         <main class="cm-body">
@@ -30,7 +30,7 @@
                 </div>
 
                 <div th:if="${bai.audio != ''}">
-                    <audio class="learn-audio" controls preload="none"
+                    <audio class="learn-audio" controls preload="metadata"
                            th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${bai.audio})}"></audio>
                     <div class="cm-muted">Nghe lại được nhiều lần. Bấm thanh tiếng để tua.</div>
                 </div>
@@ -45,18 +45,28 @@
                     </div>
                     <p class="ko" style="margin: 8px 0 0; font-size: 16px;" th:text="${ask.prompt != '' ? ask.prompt : 'Chưa nhập câu hỏi'}">질문</p>
                     <div th:unless="${bai.writing}">
-                        <div class="learn-opt"><span>①</span><span class="ko" th:text="${ask.opt1}">가</span></div>
-                        <div class="learn-opt"><span>②</span><span class="ko" th:text="${ask.opt2}">나</span></div>
-                        <div class="learn-opt"><span>③</span><span class="ko" th:text="${ask.opt3}">다</span></div>
-                        <div class="learn-opt"><span>④</span><span class="ko" th:text="${ask.opt4}">라</span></div>
+                        <div class="learn-opt"><span>①</span>
+                            <img th:if="${T(com.hottopik.service.exam.MediaStorageService).isImage(ask.opt1)}" alt="Đáp án 1" class="q-photo" th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${ask.opt1})}">
+                            <span class="ko" th:unless="${T(com.hottopik.service.exam.MediaStorageService).isImage(ask.opt1)}" th:text="${ask.opt1}">가</span></div>
+                        <div class="learn-opt"><span>②</span>
+                            <img th:if="${T(com.hottopik.service.exam.MediaStorageService).isImage(ask.opt2)}" alt="Đáp án 2" class="q-photo" th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${ask.opt2})}">
+                            <span class="ko" th:unless="${T(com.hottopik.service.exam.MediaStorageService).isImage(ask.opt2)}" th:text="${ask.opt2}">나</span></div>
+                        <div class="learn-opt"><span>③</span>
+                            <img th:if="${T(com.hottopik.service.exam.MediaStorageService).isImage(ask.opt3)}" alt="Đáp án 3" class="q-photo" th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${ask.opt3})}">
+                            <span class="ko" th:unless="${T(com.hottopik.service.exam.MediaStorageService).isImage(ask.opt3)}" th:text="${ask.opt3}">다</span></div>
+                        <div class="learn-opt"><span>④</span>
+                            <img th:if="${T(com.hottopik.service.exam.MediaStorageService).isImage(ask.opt4)}" alt="Đáp án 4" class="q-photo" th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${ask.opt4})}">
+                            <span class="ko" th:unless="${T(com.hottopik.service.exam.MediaStorageService).isImage(ask.opt4)}" th:text="${ask.opt4}">라</span></div>
                     </div>
                 </div>
 
                 <details class="learn-reveal">
                     <summary>Xem giải thích</summary>
                     <div style="margin-top: 10px;">
-                        <div class="cm-muted">Phụ đề</div>
-                        <div class="learn-script" th:if="${bai.skill.name() == 'LISTENING'}" th:text="${bai.script != '' ? bai.script : 'Chưa có phụ đề cho bài này.'}">Lời thoại</div>
+                        <div class="cm-muted">Lời thoại</div>
+                        <div class="learn-script" th:if="${bai.skill.name() == 'LISTENING'}" th:text="${bai.script != '' ? bai.script : 'Chưa có lời thoại cho bài này.'}">Lời thoại</div>
+                        <div class="cm-muted" th:if="${bai.skill.name() == 'LISTENING' and bai.scriptVi != ''}" style="margin-top: 8px;">Bản dịch</div>
+                        <div th:if="${bai.skill.name() == 'LISTENING' and bai.scriptVi != ''}" style="white-space: pre-wrap;" th:text="${bai.scriptVi}">Bản dịch</div>
                         <p class="cm-muted" th:if="${bai.skill.name() == 'READING'}">Phần Đọc không có phụ đề. Đoạn văn nằm ở trên.</p>
                     </div>
                     <div th:each="ask : ${bai.asks}" style="margin-top: 12px;">

@@ -271,7 +271,9 @@ public class LearnerExamService {
     }
 
     private static String media(ExamSource source, String filename) {
-        return source == null || filename == null || filename.isBlank() ? null : "/exam/media/" + source.getId() + "/" + filename;
+        if (source == null || filename == null || filename.isBlank()) return null;
+        String encoded = java.net.URLEncoder.encode(filename, java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20");
+        return "/exam/media/" + source.getId() + "/" + encoded;
     }
 
     private static boolean isImage(String option) {

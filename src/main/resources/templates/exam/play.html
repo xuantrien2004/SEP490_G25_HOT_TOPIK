@@ -22,7 +22,7 @@
                 <article th:if="${q.skill == section.skill}" class="bg-white border rounded-4 p-4 mb-4 shadow-sm">
                     <h2 class="h6 fw-bold" th:text="${q.label}"></h2>
                     <p class="text-muted" th:text="${q.instruction}"></p>
-                    <audio th:if="${q.audio != null}" controls preload="none" class="w-100 mb-3" th:src="${q.audio}"></audio>
+                    <audio th:if="${q.audio != null}" controls preload="metadata" class="w-100 mb-3" th:src="${q.audio}"></audio>
                     <img th:if="${q.image != null}" th:src="${q.image}" alt="Hình của câu hỏi" style="max-width:100%;max-height:400px" class="mb-3">
                     <div th:if="${q.passage != null}" class="p-3 rounded-3 mb-3" style="background:#F8F6EF;white-space:pre-wrap" th:text="${q.passage}"></div>
                     <p class="fw-semibold" style="white-space:pre-wrap" th:text="${q.prompt}"></p>

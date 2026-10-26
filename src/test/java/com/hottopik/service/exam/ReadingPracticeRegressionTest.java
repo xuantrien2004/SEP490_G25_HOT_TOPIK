@@ -58,7 +58,7 @@ class ReadingPracticeRegressionTest {
 
     private void card(ExamSource source, String template, List<Integer> numbers) {
         imports.saveCard(source.getId(), new ExamImportService.CardForm(null, template,
-                null, null, "지문 " + source.getId() + " — " + numbers.get(0), null,
+                null, null, "지문 " + source.getId() + " — " + numbers.get(0), null, null,
                 numbers.stream().map(n -> "질문 " + n).toList(),
                 numbers.stream().map(n -> "답 1 — " + n).toList(),
                 numbers.stream().map(n -> "답 2 — " + n).toList(),

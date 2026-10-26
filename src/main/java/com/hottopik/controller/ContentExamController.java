@@ -4,9 +4,8 @@ import com.hottopik.dto.UserDTO;
 import com.hottopik.entity.exam.*;
 import com.hottopik.service.exam.*;
 import com.hottopik.util.AuthHelper;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -261,6 +260,7 @@ public class ContentExamController {
                            @RequestParam(required = false) String image,
                            @RequestParam(required = false) String passage,
                            @RequestParam(required = false) String script,
+                           @RequestParam(required = false) String scriptVi,
                            @RequestParam(required = false) List<String> prompt,
                            @RequestParam(required = false) List<String> opt1,
                            @RequestParam(required = false) List<String> opt2,
@@ -277,7 +277,7 @@ public class ContentExamController {
                            HttpSession session, RedirectAttributes ra) {
         return mutate(session, ra, "/content/sources/" + id + "#paper", actor -> {
             String saved = importService.saveCard(id, new ExamImportService.CardForm(cardId, templateCode, audio, image,
-                    passage, script, prompt, opt1, opt2, opt3, opt4, answer, explanation, keys1, keys2,
+                    passage, script, scriptVi, prompt, opt1, opt2, opt3, opt4, answer, explanation, keys1, keys2,
                     modelAnswer, rubric, chart, typeCode, qno), actor);
             ExamImportService.CardView view = importService.cards(id).stream()
                     .filter(c -> c.id().equals(saved)).findFirst().orElse(null);
@@ -358,6 +358,13 @@ public class ContentExamController {
         int at = edit == null ? -1 : slots.indexOf(edit);
         model.addAttribute("slots", slots);
         model.addAttribute("editSlot", edit);
+        QuestionTypeDef slotType = edit == null || edit.writing()
+                ? (edit == null ? null : QuestionTypeCatalog.resolve(Track.TOPIK_II, Skill.WRITING, edit.no()).orElse(null))
+                : QuestionTypeCatalog.resolve(s.getTrack(), edit.skill(), edit.no()).orElse(null);
+        model.addAttribute("slotGuideKo", slotType == null ? "" : slotType.instructionKo());
+        model.addAttribute("slotGuideName", slotType == null ? "" : slotType.code() + " · " + slotType.name());
+        model.addAttribute("slotGuidePoints", QuestionPoints.line(slotType));
+        model.addAttribute("slotGuideMark", QuestionPoints.mark(slotType));
         model.addAttribute("prevKey", at > 0 ? slots.get(at - 1).key() : null);
         model.addAttribute("nextKey", at >= 0 && at + 1 < slots.size() ? slots.get(at + 1).key() : null);
         model.addAttribute("filledSlots", slots.stream().filter(ExamImportService.PaperSlot::filled).count());
@@ -412,6 +419,26 @@ public class ContentExamController {
             }
             return "redirect:" + back + "#check";
         });
+    }
+
+    @PostMapping(value = "/sources/{id}/media/inline", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public Map<String, Object> uploadInline(@PathVariable Long id, @RequestParam("files") List<MultipartFile> files,
+                                            HttpSession session) throws IOException {
+        UserDTO u = AuthHelper.getLoggedInUser(session);
+        if (u == null || !Actor.ROLE_CONTENT.equalsIgnoreCase(u.getRole())) {
+            return Map.of("ok", false, "message", "Bạn không có quyền tải file.");
+        }
+        ExamImportService.MediaUploadReport report = importService.uploadMedia(id, files, Actor.of(u));
+        if (report.stored() < 1) {
+            String message = report.rejected().isEmpty() ? "Không nhận được file." : String.join("; ", report.rejected());
+            return Map.of("ok", false, "message", message);
+        }
+        String filename = MediaStorageService.baseName(files.get(0).getOriginalFilename());
+        boolean audio = MediaStorageService.isAudio(filename);
+        String url = "/content/media/" + id + "/"
+                + java.net.URLEncoder.encode(filename, java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20");
+        return Map.of("ok", true, "filename", filename, "kind", audio ? "AUDIO" : "IMAGE", "url", url);
     }
 
     @PostMapping("/sources/{id}/media")
@@ -495,15 +522,24 @@ public class ContentExamController {
     }
 
     @GetMapping("/media/{sourceId}/{filename:.+}")
-    public ResponseEntity<Resource> media(@PathVariable Long sourceId, @PathVariable String filename, HttpSession session) throws IOException {
-        if (viewer(session) == null) return ResponseEntity.status(403).build();
+    public void media(@PathVariable Long sourceId, @PathVariable String filename,
+                      @RequestHeader(value = "Range", required = false) String range,
+                      HttpSession session, HttpServletResponse response) throws IOException {
+        if (viewer(session) == null) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
         Optional<MediaAsset> a = importService.findMedia(sourceId, filename);
-        if (a.isEmpty()) return ResponseEntity.notFound().build();
+        if (a.isEmpty()) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
         Path p = importService.mediaPath(a.get());
-        if (!Files.exists(p)) return ResponseEntity.notFound().build();
-        String type = Optional.ofNullable(Files.probeContentType(p))
-                .orElse(a.get().getKind() == MediaKind.AUDIO ? "audio/mpeg" : "application/octet-stream");
-        return ResponseEntity.ok().contentType(MediaType.parseMediaType(type)).body(new FileSystemResource(p));
+        if (!Files.exists(p)) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        MediaResponses.play(p, filename, a.get().getKind(), range, response);
     }
 
     // ------------------------------------------------------------------ thư viện đề
@@ -948,9 +984,26 @@ public class ContentExamController {
         model.addAttribute("pairHint", hint);
         model.addAttribute("focusNo", focusNo);
         model.addAttribute("addHref", addHref);
-        model.addAttribute("currentTypeCode", "");
+        QuestionTypeDef guideType = chosenNos.isEmpty() ? null
+                : QuestionTypeCatalog.resolve(source.getTrack(), skill, chosenNos.get(0)).orElse(null);
+        model.addAttribute("currentTypeCode", guideType == null ? "" : guideType.code());
         model.addAttribute("currentTypeName", active == null ? "" : active.getName());
         model.addAttribute("currentTemplate", activeCode);
+        model.addAttribute("guideKo", guideType == null ? "" : guideType.instructionKo());
+        model.addAttribute("guideName", guideType == null
+                ? (active == null ? "" : active.getName())
+                : guideType.code() + " · " + guideType.name());
+        model.addAttribute("guidePoints", QuestionPoints.line(guideType));
+        model.addAttribute("guideMark", QuestionPoints.mark(guideType));
+        model.addAttribute("guideVi", active == null ? "" : active.getDescription());
+        model.addAttribute("listening", skill == Skill.LISTENING);
+        model.addAttribute("reading", skill == Skill.READING);
+        model.addAttribute("writing", skill == Skill.WRITING);
+        model.addAttribute("imageChoice", active != null && active.getDisplayMode() == DisplayMode.IMAGE_CHOICE);
+        model.addAttribute("choices", active != null && active.getOptionCount() != null);
+        model.addAttribute("acceptKeys", active != null && active.getAnswerType() == AnswerType.ACCEPT_KEYS);
+        model.addAttribute("freeText", active != null && active.getAnswerType() == AnswerType.FREE_TEXT);
+        model.addAttribute("chartImage", active != null && active.getSkill() == Skill.WRITING && active.isImageRequired());
     }
 
     private static String resolveMold(String raw, List<QuestionTemplate> molds) {

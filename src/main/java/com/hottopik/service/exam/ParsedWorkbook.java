@@ -73,6 +73,7 @@ public class ParsedWorkbook {
         public String imageFile;
         public String passageKo;
         public String scriptKo;
+        public String scriptVi;
         public final List<ManualAsk> asks = new ArrayList<>();
     }
 

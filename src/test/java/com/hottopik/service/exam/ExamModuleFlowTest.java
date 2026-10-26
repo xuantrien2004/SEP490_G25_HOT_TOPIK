@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Nhập đề đầy đủ → kích hoạt → Full Mock nháp → gửi duyệt → Admin duyệt → tự sinh Mini Test. */
@@ -256,7 +257,7 @@ class ExamModuleFlowTest {
         mvc.perform(get("/content/sources/" + src.getId() + "/preview").sessionAttr(AuthHelper.SESSION_KEY, user))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Nghe lại được nhiều lần")))
-                .andExpect(content().string(containsString("Phụ đề")))
+                .andExpect(content().string(containsString("Lời thoại")))
                 .andExpect(content().string(containsString("bai21.mp3")))
                 .andExpect(content().string(containsString("남자는 무엇을 합니까?")))
                 .andExpect(content().string(containsString("여자는 어디에 갑니까?")));
@@ -348,14 +349,15 @@ class ExamModuleFlowTest {
                 .andExpect(content().string(containsString("TPL1-LIS-01")))
                 .andExpect(content().string(containsString("Nghe câu hỏi, chọn câu trả lời")))
                 .andExpect(content().string(containsString("TPL1-LIS-08")))
+                .andExpect(content().string(containsString("I-N1")))
+                .andExpect(content().string(containsString("Mỗi câu 3 hoặc 4 điểm trên đề chuẩn")))
                 .andExpect(content().string(not(containsString("câu 1-4"))))
-                .andExpect(content().string(not(containsString("I-N1"))))
                 .andExpect(content().string(not(containsString("Đổ nhanh từ Excel"))));
         mvc.perform(get("/content/sources/" + src.getId() + "?skill=READING").sessionAttr(AuthHelper.SESSION_KEY, user))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("TPL1-REA-01")))
                 .andExpect(content().string(containsString("Xác định nội dung câu hoặc văn bản ngắn")))
-                .andExpect(content().string(not(containsString("I-D1"))));
+                .andExpect(content().string(containsString("I-D1")));
         mvc.perform(get("/content/sources/" + src.getId() + "?skill=LISTENING&type=TPL1-LIS-08&nos=8")
                         .sessionAttr(AuthHelper.SESSION_KEY, user))
                 .andExpect(status().isOk())
@@ -383,7 +385,7 @@ class ExamModuleFlowTest {
                 List.of("회의", "회사"), List.of("복사", "은행"), List.of("예약", "학교"), List.of("검색", "병원"),
                 List.of("2", "1"),
                 List.of("Người đàn ông đang photocopy.", "Người phụ nữ đi làm.")), CM);
-        importService.saveCard(src.getId(), listeningCard(null, "TPL2-LIS-02", "mot.mp3", null,
+        importService.saveCard(src.getId(), listeningCard(null, "TPL2-LIS-02", "mot.mp3", "남자: 네, 알겠습니다.",
                 List.of("다음에 할 말은?"),
                 List.of("네"), List.of("아니요"), List.of("잠깐만요"), List.of("감사합니다"),
                 List.of("1"), List.of("Chọn lời đáp.")), CM);
@@ -437,7 +439,7 @@ class ExamModuleFlowTest {
         importService.uploadMedia(src.getId(), List.of(
                 new MockMultipartFile("files", "bai21.mp3", "audio/mpeg", SampleExamFactory.fakeMp3())), CM);
         importService.saveCard(src.getId(), new ExamImportService.CardForm(null, null, "bai21.mp3", null, null,
-                "남자: 회의 자료 복사했어요.",
+                "남자: 회의 자료 복사했어요.", "Nam: đã photocopy tài liệu họp.",
                 List.of("남자는 무엇을 합니까?", "여자는 어디에 갑니까?"),
                 List.of("회의", "회사"), List.of("복사", "은행"), List.of("예약", "학교"), List.of("검색", "병원"),
                 List.of("2", "1"),
@@ -468,13 +470,14 @@ class ExamModuleFlowTest {
         importService.uploadMedia(src.getId(), List.of(
                 new MockMultipartFile("files", "doan.mp3", "audio/mpeg", SampleExamFactory.fakeMp3())), CM);
         importService.saveCard(src.getId(), new ExamImportService.CardForm(null, "TPL1-LIS-08", "doan.mp3", null, null,
-                "남자: 회의 자료 복사했어요.",
+                "남자: 회의 자료 복사했어요.", "Nam: đã photocopy.",
                 List.of("남자는 무엇을 합니까?", "여자는 어디에 갑니까?"),
                 List.of("회의", "회사"), List.of("복사", "은행"), List.of("예약", "학교"), List.of("검색", "병원"),
                 List.of("2", "1"),
                 List.of("Đang photocopy.", "Đi làm."),
                 null, null, null, null, null, null, List.of(8, 19)), CM);
-        importService.saveCard(src.getId(), new ExamImportService.CardForm(null, "TPL1-LIS-01", "doan.mp3", null, null, null,
+        importService.saveCard(src.getId(), new ExamImportService.CardForm(null, "TPL1-LIS-01", "doan.mp3", null, null,
+                "여자: 지금 몇 시예요?", "Nữ: bây giờ là mấy giờ?",
                 List.of("지금 몇 시예요?"),
                 List.of("세 시예요"), List.of("학교예요"), List.of("학생이에요"), List.of("물이에요"),
                 List.of("1"), List.of("Chọn giờ."),
@@ -504,11 +507,51 @@ class ExamModuleFlowTest {
         assertNotEquals(saved.get(0).getGroup().getId(), saved.get(1).getGroup().getId());
     }
 
+    @Test
+    void uploadedAudioPlaysAndImageDisplays() throws Exception {
+        ExamSource src = importService.createSource(new ExamImportService.SourceForm(
+                "File phát được", Track.TOPIK_II, 2026, 3, null, false, "Đề mẫu nội bộ", null), CM);
+        importService.startManual(src.getId(), CM);
+        importService.uploadMedia(src.getId(), List.of(
+                new MockMultipartFile("files", "clip.mp3", "audio/mpeg", SampleExamFactory.fakeMp3()),
+                new MockMultipartFile("files", "banner.png", "image/png", SampleExamFactory.fakePng())), CM);
+        String card = importService.saveCard(src.getId(), new ExamImportService.CardForm(null, "TPL2-LIS-02",
+                "clip.mp3", null, null, "남자: 네.", "Nam: vâng.",
+                List.of("다음에 할 말은?"), List.of("네"), List.of("아니요"), List.of("잠깐만요"), List.of("감사합니다"),
+                List.of("1"), List.of("Chọn lời đáp."),
+                null, null, null, null, null, null, List.of(4)), CM);
+        UserDTO user = new UserDTO(2L, "content_manager", "content@hottopik.com", "", "Lê Thu Hà",
+                Actor.ROLE_CONTENT, "Content Manager", "ACTIVE", "", "", "TOPIK_6", "TOPIK_5", false, null);
+
+        mvc.perform(get("/content/media/" + src.getId() + "/clip.mp3").sessionAttr(AuthHelper.SESSION_KEY, user))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "audio/mpeg"))
+                .andExpect(header().string("Accept-Ranges", "bytes"))
+                .andExpect(header().string("Content-Disposition", containsString("inline")));
+        byte[] mp3 = SampleExamFactory.fakeMp3();
+        mvc.perform(get("/content/media/" + src.getId() + "/clip.mp3").header("Range", "bytes=0-7")
+                        .sessionAttr(AuthHelper.SESSION_KEY, user))
+                .andExpect(status().isPartialContent())
+                .andExpect(header().string("Content-Type", "audio/mpeg"))
+                .andExpect(header().string("Content-Range", "bytes 0-7/" + mp3.length))
+                .andExpect(content().bytes(java.util.Arrays.copyOf(mp3, 8)));
+        mvc.perform(get("/content/media/" + src.getId() + "/banner.png").sessionAttr(AuthHelper.SESSION_KEY, user))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "image/png"));
+        mvc.perform(get("/content/sources/" + src.getId()).param("card", card).param("skill", "LISTENING")
+                        .sessionAttr(AuthHelper.SESSION_KEY, user))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("clip.mp3")))
+                .andExpect(content().string(containsString("<audio")))
+                .andExpect(content().string(containsString("Mỗi câu 2 điểm")));
+    }
+
     private static ExamImportService.CardForm listeningCard(String cardId, String template, String audio, String script,
                                                             List<String> prompts, List<String> opt1, List<String> opt2,
                                                             List<String> opt3, List<String> opt4, List<String> answers,
                                                             List<String> explanations) {
         return new ExamImportService.CardForm(cardId, template, audio, null, null, script,
+                script == null ? null : "Dịch lời thoại.",
                 prompts, opt1, opt2, opt3, opt4, answers, explanations,
                 null, null, null, null, null, null, null);
     }

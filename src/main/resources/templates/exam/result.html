@@ -19,7 +19,7 @@
         <div class="d-flex justify-content-between mb-3"><strong th:text="${q.label}"></strong>
             <span class="badge" th:classappend="${q.selected == #strings.toString(q.answer) ? 'text-bg-success' : 'text-bg-danger'}"
                   th:text="${q.selected == null ? 'Chưa trả lời' : q.selected == #strings.toString(q.answer) ? 'Đúng' : 'Sai'}"></span></div>
-        <audio th:if="${q.audio != null}" controls preload="none" class="w-100 mb-3" th:src="${q.audio}"></audio>
+        <audio th:if="${q.audio != null}" controls preload="metadata" class="w-100 mb-3" th:src="${q.audio}"></audio>
         <img th:if="${q.image != null}" th:src="${q.image}" alt="Hình đề bài" style="max-width:100%;max-height:400px">
         <p style="white-space:pre-wrap" th:text="${q.passage}"></p>
         <p class="fw-semibold" style="white-space:pre-wrap" th:text="${q.prompt}"></p>
