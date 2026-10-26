@@ -1,14 +1,22 @@
 package com.hottopik;
 
 import com.hottopik.dto.VocabularyDTO;
+import com.hottopik.entity.Topic;
+import com.hottopik.entity.Vocabulary;
+import com.hottopik.repository.TopicRepository;
+import com.hottopik.repository.VocabularyRepository;
 import com.hottopik.service.VocabularyService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 public class VocabularyServiceTest {
 
@@ -169,5 +177,61 @@ public class VocabularyServiceTest {
 
         String rom2 = com.hottopik.util.KoreanRomanizer.romanize("학교");
         assertEquals("hak-gyo", rom2);
+    }
+
+    @Test
+    @DisplayName("Verify Content Manager creates vocabulary and saves directly to Database Repository")
+    void testSaveVocabularyToDatabaseRepository() {
+        VocabularyRepository mockVocabRepo = mock(VocabularyRepository.class);
+        TopicRepository mockTopicRepo = mock(TopicRepository.class);
+
+        // Giả lập lưu trả về entity có ID
+        when(mockVocabRepo.save(any(Vocabulary.class))).thenAnswer(invocation -> {
+            Vocabulary arg = invocation.getArgument(0);
+            arg.setId(999L);
+            return arg;
+        });
+        when(mockTopicRepo.existsByLevelAndName(anyInt(), anyString())).thenReturn(true);
+
+        VocabularyService serviceWithDb = new VocabularyService(mockVocabRepo, mockTopicRepo);
+
+        VocabularyDTO newWord = new VocabularyDTO();
+        newWord.setWord("희망");
+        newWord.setMeaning("Hy vọng");
+        newWord.setTopikLevel(2);
+        newWord.setTopic("Cảm xúc & Tâm lý");
+        newWord.setWordType("Danh từ");
+        newWord.setStatus("ACTIVE");
+
+        VocabularyDTO savedDto = serviceWithDb.saveOrUpdate(newWord);
+
+        assertNotNull(savedDto);
+        assertEquals(999L, savedDto.getId());
+        assertEquals("희망", savedDto.getWord());
+
+        // Xác minh vocabularyRepository.save() ĐƯỢC GỌI để lưu vào Database!
+        verify(mockVocabRepo, atLeastOnce()).save(any(Vocabulary.class));
+    }
+
+    @Test
+    @DisplayName("Verify Learner gets vocabularies created by Content Manager")
+    void testLearnerReceivesCreatedVocabularies() {
+        VocabularyDTO newWord = new VocabularyDTO();
+        newWord.setWord("꿈");
+        newWord.setMeaning("Ước mơ / Giấc mơ");
+        newWord.setTopikLevel(1);
+        newWord.setTopic("Ước mơ & Tương lai");
+        newWord.setWordType("Danh từ");
+        newWord.setStatus("ACTIVE");
+
+        vocabularyService.saveOrUpdate(newWord);
+
+        // Người dùng (Learner) truy vấn từ vựng của chủ đề "Ước mơ & Tương lai"
+        List<VocabularyDTO> learnerVocabs = vocabularyService.getVocabulariesForLearner(1, "Ước mơ & Tương lai");
+        assertNotNull(learnerVocabs);
+        assertFalse(learnerVocabs.isEmpty());
+        assertEquals(1, learnerVocabs.size());
+        assertEquals("꿈", learnerVocabs.get(0).getWord());
+        assertEquals("Ước mơ / Giấc mơ", learnerVocabs.get(0).getMeaning());
     }
 }

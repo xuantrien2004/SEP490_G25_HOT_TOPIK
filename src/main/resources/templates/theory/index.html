@@ -245,44 +245,18 @@
 let currentCategory = 'vocab'; // 'vocab', 'grammar', 'hanja', 'special'
 let currentLevel = 1;          // 1 .. 6
 
-// Mock Topics Data matching Image 4 (TOPIK 1) and Image 5 (TOPIK 3)
-const vocabData = {
+// Server Database Topics gom nhóm theo TOPIK level (1 đến 6)
+const serverTopicsByLevel = /*[[${topicsByLevel}]]*/ {};
+
+// Fallback Mock Topics Data if server data is empty
+const fallbackVocabData = {
     1: [
-        { char: '가', name: 'Gia đình 가족', count: '7/8 từ', percent: 87 },
-        { char: '학', name: 'Trường học 학교', count: '4/8 từ', percent: 50 },
-        { char: '쇼', name: 'Mua sắm 쇼핑', count: '4/8 từ', percent: 50 },
-        { char: '음', name: 'Ẩm thực 음식', count: '4/8 từ', percent: 50 },
-        { char: '날', name: 'Thời tiết 날씨', count: '✓ Thuộc hết', percent: 100, isDone: true },
-        { char: '교', name: 'Giao thông 교통', count: '4/8 từ', percent: 50 }
-    ],
-    2: [
-        { char: '취', name: 'Sở thích 취미', count: '5/8 từ', percent: 62 },
-        { char: '건', name: 'Sức khoẻ 건강', count: '3/8 từ', percent: 37 },
-        { char: '직', name: 'Nghề nghiệp 직업', count: '4/8 từ', percent: 50 },
-        { char: '감', name: 'Cảm xúc 감정', count: '6/8 từ', percent: 75 },
-        { char: '위', name: 'Vị trí & phương hướng 위치', count: '2/8 từ', percent: 25 },
-        { char: '계', name: 'Kế hoạch & hẹn gặp 약속', count: '4/8 từ', percent: 50 }
-    ],
-    3: [
-        { char: '환', name: 'Môi trường 환경', count: '0/8 từ', percent: 0 },
-        { char: '문', name: 'Văn hoá 문화', count: '0/8 từ', percent: 0 },
-        { char: '경', name: 'Đời sống kinh tế 경제생활', count: '0/8 từ', percent: 0 },
-        { char: '매', name: 'Truyền thông 매체', count: '0/8 từ', percent: 0 }
-    ],
-    4: [
-        { char: '사', name: 'Hiện tượng xã hội 사회현상', count: '0/8 từ', percent: 0 },
-        { char: '과', name: 'Khoa học công nghệ 과학기술', count: '0/8 từ', percent: 0 },
-        { char: '예', name: 'Nghệ thuật biểu diễn 예술', count: '0/8 từ', percent: 0 },
-        { char: '법', name: 'Pháp luật & quy tắc 법과 규칙', count: '0/8 từ', percent: 0 }
-    ],
-    5: [
-        { char: '정', name: 'Chính trị chính sách 정책', count: '0/8 từ', percent: 0 },
-        { char: '철', name: 'Triết học nhân sinh 철학', count: '0/8 từ', percent: 0 },
-        { char: '역', name: 'Lịch sử & truyền thống 역사', count: '0/8 từ', percent: 0 }
-    ],
-    6: [
-        { char: '학', name: 'Học thuật chuyên sâu 학문', count: '0/8 từ', percent: 0 },
-        { char: '국', name: 'Quan hệ quốc tế 국제관계', count: '0/8 từ', percent: 0 }
+        { char: '가', name: 'Gia đình', count: '5 từ', percent: 100, topicName: 'Gia đình' },
+        { char: '학', name: 'Trường học & Giáo dục', count: '4 từ', percent: 100, topicName: 'Trường học & Giáo dục' },
+        { char: 'Ẩm', name: 'Ẩm thực & Mua sắm', count: '4 từ', percent: 100, topicName: 'Ẩm thực & Mua sắm' },
+        { char: 'Đời', name: 'Đời sống hàng ngày', count: '3 từ', percent: 100, topicName: 'Đời sống hàng ngày' },
+        { char: 'Thời', name: 'Thời tiết & Mùa', count: '3 từ', percent: 100, topicName: 'Thời tiết & Mùa' },
+        { char: 'Giao', name: 'Giao thông cơ bản', count: '3 từ', percent: 100, topicName: 'Giao thông cơ bản' }
     ]
 };
 
@@ -377,7 +351,22 @@ function renderCards(filterQuery = '') {
 
     let list = [];
     if (currentCategory === 'vocab') {
-        list = vocabData[currentLevel] || [];
+        const dbList = serverTopicsByLevel && serverTopicsByLevel[currentLevel] ? serverTopicsByLevel[currentLevel] : [];
+        if (dbList && dbList.length > 0) {
+            list = dbList.map(t => {
+                const firstChar = t.name && t.name.length > 0 ? t.name.substring(0, 1) : '가';
+                return {
+                    char: firstChar,
+                    name: t.name,
+                    topicName: t.name,
+                    count: (t.activeCount || 0) + ' từ',
+                    percent: t.wordCount > 0 ? 100 : 0,
+                    isDone: false
+                };
+            });
+        } else {
+            list = fallbackVocabData[currentLevel] || [];
+        }
         titleEl.textContent = `TOPIK ${currentLevel} · ${list.length} chủ đề`;
     } else if (currentCategory === 'grammar') {
         list = grammarData[currentLevel] || [];
@@ -398,7 +387,10 @@ function renderCards(filterQuery = '') {
     list.forEach(item => {
         const card = document.createElement('a');
         card.className = 'topic-card' + (item.isDone ? ' highlighted' : '');
-        card.href = currentCategory === 'vocab' ? '/ly-thuyet/tu-vung' : (currentCategory === 'grammar' ? '/theory/grammar' : (currentCategory === 'hanja' ? '/ly-thuyet/han-viet' : '/ly-thuyet/dac-thu'));
+        const targetTopic = item.topicName || item.name;
+        card.href = currentCategory === 'vocab' 
+            ? `/ly-thuyet/tu-vung?topic=${encodeURIComponent(targetTopic)}&level=${currentLevel}`
+            : (currentCategory === 'grammar' ? '/theory/grammar' : (currentCategory === 'hanja' ? '/ly-thuyet/han-viet' : '/ly-thuyet/dac-thu'));
 
         let countColor = '#53646C';
         let barColor = '#2E7D67';
