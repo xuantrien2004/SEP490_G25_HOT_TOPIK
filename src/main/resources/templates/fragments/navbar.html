@@ -60,12 +60,12 @@
 
         <!-- Chuông thông báo: /thong-bao -->
         <div style="position: relative;" data-bell="1">
-            <button id="bellToggleBtn" class="ssak-icon-btn" aria-label="Thông báo" onclick="toggleBellDropdown()">
+            <button id="bellToggleBtn" class="ssak-icon-btn" th:classappend="${activePage == 'notifications'} ? 'active' : ''" th:attr="aria-current=${activePage == 'notifications' ? 'page' : null}" th:style="${activePage == 'notifications'} ? 'background: #DFF3E8; outline: 2px solid #2E7D67;' : null" aria-label="Thông báo" onclick="toggleBellDropdown()">
                 <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z" fill="none" stroke="#24363D" stroke-width="2" stroke-linejoin="round"/>
                     <path d="M10 20a2 2 0 0 0 4 0" fill="none" stroke="#24363D" stroke-width="2" stroke-linecap="round"/>
                 </svg>
-                <span class="ssak-bell-badge" id="bellBadge">3</span>
+                <span class="ssak-bell-badge" id="bellBadge" style="display: none;">0</span>
             </button>
 
             <!-- Dropdown Thông báo -->
@@ -74,28 +74,8 @@
                     <span style="font-family: var(--font-heading); font-size: 15px; font-weight: 800;">Thông báo mới</span>
                     <a th:href="@{/thong-bao}" class="btn-ssak-link" style="font-size: 12px;">Xem tất cả</a>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto;">
-                    <a th:href="@{/hom-nay}" class="ssak-notification-item unread">
-                        <span style="width: 8px; height: 8px; margin-top: 7px; border-radius: 4px; background: var(--ssak-primary); flex-shrink: 0;"></span>
-                        <div style="display: flex; flex-direction: column;">
-                            <span style="font-size: 13px; font-weight: 700;">Hôm nay có bài trong lộ trình. Mở Hôm nay để học đúng dạng.</span>
-                            <span style="font-size: 11px; color: var(--ssak-text-muted);">15 phút trước</span>
-                        </div>
-                    </a>
-                    <a th:href="@{/luyen-tap}" class="ssak-notification-item unread">
-                        <span style="width: 8px; height: 8px; margin-top: 7px; border-radius: 4px; background: var(--ssak-primary); flex-shrink: 0;"></span>
-                        <div style="display: flex; flex-direction: column;">
-                            <span style="font-size: 13px; font-weight: 700;">AI đã hoàn tất chấm bài viết Câu 53 của bạn (+8 điểm)!</span>
-                            <span style="font-size: 11px; color: var(--ssak-text-muted);">1 giờ trước</span>
-                        </div>
-                    </a>
-                    <a th:href="@{/tien-do}" class="ssak-notification-item">
-                        <span style="width: 8px; height: 8px; margin-top: 7px; border-radius: 4px; background: transparent; flex-shrink: 0;"></span>
-                        <div style="display: flex; flex-direction: column;">
-                            <span style="font-size: 13px; font-weight: 700;">Bé Ssak chúc mừng bạn đạt mốc 12 ngày học kiên trì!</span>
-                            <span style="font-size: 11px; color: var(--ssak-text-muted);">Hôm qua</span>
-                        </div>
-                    </a>
+                <div id="bellDropdownList" style="display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto;">
+                    <span class="small text-muted">Chưa có thông báo mới.</span>
                 </div>
             </div>
         </div>
@@ -194,5 +174,7 @@
         <span>Thêm</span>
     </a>
 </div>
+
+
 </body>
 </html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Nút Báo lỗi câu hỏi (Nhúng vào từng câu) -->
+<th:block th:fragment="reportButton(qId, qCode, qPrompt, examId, examTitle, qNo)">
+    <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 rounded-3 px-2 py-1 js-report-btn"
+            style="font-size: 12px; font-weight: 600; border-color: #FFA39E; color: #CF1322;"
+            th:attr="data-qid=${qId}, data-code=${qCode}, data-prompt=${qPrompt}, data-examid=${examId}, data-examtitle=${examTitle}, data-no=${qNo}"
+            onclick="openReportModalFromBtn(this)"
+            title="Báo lỗi nội dung câu hỏi này cho Content Manager">
+        <span>🚩</span>
+        <span>Báo lỗi</span>
+    </button>
+</th:block>
+
+<!-- MODAL BÁO LỖI CÂU HỎI CHO HỌC VIÊN -->
+<div th:fragment="reportModal" class="modal fade" id="questionReportModal" tabindex="-1" aria-labelledby="reportModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom pb-3" style="background: #FFF1F0; border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                <div class="d-flex align-items-center gap-2">
+                    <span style="font-size: 24px;">🚩</span>
+                    <div>
+                        <h5 class="modal-title fw-bold text-danger mb-0" id="reportModalTitle">Báo lỗi câu hỏi</h5>
+                        <div class="small text-muted" id="reportModalSubtitle">Góp ý nội dung câu hỏi đến Content Manager</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            
+            <form id="reportQuestionForm" onsubmit="submitQuestionReport(event)">
+                <div class="modal-body py-3 d-flex flex-column gap-3">
+                    <input type="hidden" id="reportFormQId" name="questionId" />
+                    <input type="hidden" id="reportFormQKind" name="questionKind" />
+                    <input type="hidden" id="reportFormQCode" name="questionCode" />
+                    <input type="hidden" id="reportFormQPrompt" name="questionSummary" />
+                    <input type="hidden" id="reportFormExamId" name="examId" />
+                    <input type="hidden" id="reportFormExamTitle" name="examTitle" />
+                    <input type="hidden" id="reportFormQNo" name="questionNo" />
+
+                    <!-- Khung câu hỏi đang báo -->
+                    <div class="p-3 rounded-3 border bg-light">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge bg-secondary" id="reportBadgeCode">Câu hỏi</span>
+                            <span class="small text-muted" id="reportBadgeExam">Đề thi / Bài luyện</span>
+                        </div>
+                        <div class="fw-semibold text-dark text-truncate" id="reportPromptPreview" style="max-height: 48px; font-size: 14px;">
+                            Đang tải câu hỏi...
+                        </div>
+                    </div>
+
+                    <!-- Loại vấn đề -->
+                    <div>
+                        <label class="form-label fw-bold small text-dark mb-1">Vấn đề bạn gặp phải: <span class="text-danger">*</span></label>
+                        <select class="form-select form-select-sm rounded-3" id="reportIssueType" name="issueType" required>
+                            <option value="Đáp án sai hoặc gây tranh cãi">❌ Đáp án sai hoặc gây tranh cãi</option>
+                            <option value="File âm thanh (Audio) bị lỗi / rè / không nghe được">🎧 File âm thanh (Audio) bị lỗi / rè / không nghe được</option>
+                            <option value="Hình ảnh bị mờ / lỗi hiển thị / thiếu hình">🖼️ Hình ảnh bị mờ / lỗi hiển thị / thiếu hình</option>
+                            <option value="Sai chính tả tiếng Hàn / Lỗi gõ văn bản">✍️ Sai chính tả tiếng Hàn / Lỗi gõ văn bản</option>
+                            <option value="Dịch nghĩa / Giải thích tiếng Việt chưa chuẩn">📖 Dịch nghĩa / Giải thích tiếng Việt chưa chuẩn</option>
+                            <option value="Khác">💡 Vấn đề khác</option>
+                        </select>
+                    </div>
+
+                    <!-- Chi tiết lỗi -->
+                    <div>
+                        <label class="form-label fw-bold small text-dark mb-1">Mô tả chi tiết câu này sai ở đâu: <span class="text-danger">*</span></label>
+                        <textarea class="form-control rounded-3" id="reportDetails" name="details" rows="3"
+                                  placeholder="Ví dụ: Đáp án số 2 và 3 bị đảo; hoặc file nghe ở giây thứ 10 bị ngắt..." required minlength="3"></textarea>
+                        <div class="form-text" style="font-size: 11px;">Mô tả càng rõ ràng giúp Content Manager kiểm tra và sửa nhanh hơn. Khi được xác nhận đúng, bạn sẽ được thưởng <strong>+5 Xu</strong>!</div>
+                    </div>
+
+                    <!-- Alert thông báo kết quả -->
+                    <div id="reportAlertBox" class="alert d-none py-2 px-3 small rounded-3 mb-0" role="alert"></div>
+                </div>
+
+                <div class="modal-footer border-top pt-2 pb-3 px-3 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-3" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-danger btn-sm px-4 fw-bold rounded-3" id="btnSubmitReport">
+                        Gửi báo lỗi 🚀
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Script xử lý báo lỗi -->
+<script th:fragment="reportScript">
+    function openReportModalFromBtn(btn) {
+        const qId = btn.getAttribute('data-qid') || '';
+        const qCode = btn.getAttribute('data-code') || '';
+        const qPrompt = btn.getAttribute('data-prompt') || '';
+        const examId = btn.getAttribute('data-examid') || '';
+        const examTitle = btn.getAttribute('data-examtitle') || '';
+        const qNo = btn.getAttribute('data-no') || '';
+
+        document.getElementById('reportFormQId').value = qId;
+        document.getElementById('reportFormQKind').value = btn.getAttribute('data-kind') || 'MC';
+        document.getElementById('reportFormQCode').value = qCode || (qNo ? 'Câu ' + qNo : 'Câu hỏi');
+        document.getElementById('reportFormQPrompt').value = qPrompt;
+        document.getElementById('reportFormExamId').value = examId;
+        document.getElementById('reportFormExamTitle').value = examTitle;
+        document.getElementById('reportFormQNo').value = qNo;
+
+        document.getElementById('reportBadgeCode').textContent = qCode || (qNo ? 'Câu ' + qNo : 'Câu hỏi');
+        document.getElementById('reportBadgeExam').textContent = examTitle || 'Bài luyện tập';
+        document.getElementById('reportPromptPreview').textContent = qPrompt || '(Nội dung câu hỏi)';
+
+        document.getElementById('reportDetails').value = '';
+        const alertBox = document.getElementById('reportAlertBox');
+        alertBox.classList.add('d-none');
+        alertBox.textContent = '';
+
+        const modalEl = document.getElementById('questionReportModal');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    }
+
+    function submitQuestionReport(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnSubmitReport');
+        const alertBox = document.getElementById('reportAlertBox');
+        const details = document.getElementById('reportDetails').value.trim();
+
+        if (details.length < 3) {
+            alertBox.className = 'alert alert-warning py-2 px-3 small rounded-3';
+            alertBox.textContent = 'Vui lòng nhập chi tiết lỗi (ít nhất 3 ký tự).';
+            alertBox.classList.remove('d-none');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Đang gửi...';
+
+        const form = document.getElementById('reportQuestionForm');
+        const formData = new FormData(form);
+
+        fetch('/api/question-reports', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.textContent = 'Gửi báo lỗi 🚀';
+            if (data.success) {
+                alertBox.className = 'alert alert-success py-2 px-3 small rounded-3';
+                alertBox.textContent = data.message || 'Gửi báo lỗi thành công!';
+                alertBox.classList.remove('d-none');
+                setTimeout(() => {
+                    const modalEl = document.getElementById('questionReportModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) modal.hide();
+                    if (window.showSsakToast) {
+                        showSsakToast(data.message || 'Đã gửi báo lỗi thành công!');
+                    }
+                }, 1200);
+            } else {
+                alertBox.className = 'alert alert-danger py-2 px-3 small rounded-3';
+                alertBox.textContent = data.message || 'Có lỗi xảy ra khi gửi báo lỗi.';
+                alertBox.classList.remove('d-none');
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.textContent = 'Gửi báo lỗi 🚀';
+            alertBox.className = 'alert alert-danger py-2 px-3 small rounded-3';
+            alertBox.textContent = 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.';
+            alertBox.classList.remove('d-none');
+        });
+    }
+</script>
+
+</body>
+</html>

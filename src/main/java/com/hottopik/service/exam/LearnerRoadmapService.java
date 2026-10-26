@@ -521,6 +521,11 @@ public class LearnerRoadmapService {
         } catch (ExamDomainException e) {
             return null;
         }
+        RoadmapSketch.Result next = programs.preview(nextProgram, nextTrack, nextDays, nextPerDay);
+        return remapDoneKeys(plan, previous, next);
+    }
+
+    static String remapDoneKeys(StudyPlan plan, RoadmapSketch.Result previous, RoadmapSketch.Result next) {
         Set<String> done = doneKeys(plan);
         Set<String> identities = new java.util.LinkedHashSet<>();
         for (RoadmapSketch.DayPlan day : previous.days()) {
@@ -530,7 +535,6 @@ public class LearnerRoadmapService {
             }
         }
         if (identities.isEmpty()) return null;
-        RoadmapSketch.Result next = programs.preview(nextProgram, nextTrack, nextDays, nextPerDay);
         List<String> kept = new ArrayList<>();
         for (RoadmapSketch.DayPlan day : next.days()) {
             List<RoadmapSketch.Slot> slots = day.slots();

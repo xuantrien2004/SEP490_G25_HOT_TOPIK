@@ -9,8 +9,46 @@ function toggleBellDropdown() {
     if (userDropdown) userDropdown.classList.remove('show');
     if (dropdown) {
         dropdown.classList.toggle('show');
+        if (dropdown.classList.contains('show')) refreshNotifications();
     }
 }
+
+async function refreshNotifications() {
+    const list = document.getElementById('bellDropdownList');
+    const badge = document.getElementById('bellBadge');
+    if (!list || document.hidden) return;
+    try {
+        const response = await fetch('/api/notifications/summary', {cache: 'no-store'});
+        if (!response.ok) return;
+        const data = await response.json();
+        if (badge) {
+            badge.textContent = data.unreadCount;
+            badge.style.display = data.unreadCount > 0 ? 'inline-flex' : 'none';
+        }
+        list.replaceChildren();
+        for (const n of data.notifications) {
+            const link = document.createElement('a');
+            link.href = n.link && n.link.startsWith('/bao-loi/') ? n.link : '/thong-bao';
+            link.className = 'ssak-notification-item' + (n.read ? '' : ' unread');
+            const content = document.createElement('div');
+            const title = document.createElement('strong');
+            const message = document.createElement('div');
+            title.textContent = n.title;
+            message.textContent = n.message;
+            message.className = 'small text-muted';
+            content.append(title, message);
+            link.append(content);
+            link.addEventListener('click', () => fetch('/api/notifications/' + n.id + '/read', {method: 'POST', keepalive: true}));
+            list.append(link);
+        }
+        if (!data.notifications.length) list.textContent = 'Chưa có thông báo mới.';
+    } catch (_) { /* Retry on the next poll or when the learner opens the bell. */ }
+}
+document.addEventListener('DOMContentLoaded', () => {
+    refreshNotifications();
+    if (document.getElementById('bellDropdownList')) setInterval(refreshNotifications, 30000);
+});
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshNotifications(); });
 
 // Toggle User Profile Dropdown
 function toggleUserDropdown(event) {

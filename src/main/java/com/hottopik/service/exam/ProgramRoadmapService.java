@@ -86,6 +86,10 @@ public class ProgramRoadmapService {
                 .filter(i -> i.getTemplate().getTrack() == track)
                 .map(i -> new RoadmapSketch.TypeRef(i.getTemplate().getCode(), i.getTemplate().getName()))
                 .toList();
+        if (types.isEmpty()) {
+            throw new ExamDomainException("Bản lộ trình " + program.getVersionCode() + " chưa có dạng câu "
+                    + track.getLabel() + ". Vui lòng liên hệ quản lý nội dung để kiểm tra bản đã phát hành.");
+        }
         return RoadmapSketch.build(types, days, perDay, ProgramRules.reviews(program.getReviewOffsets()),
                 program.getSessionsPerType(), ProgramRules.phases(program.getPhaseSplit()));
     }

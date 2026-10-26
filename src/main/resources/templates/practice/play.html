@@ -55,7 +55,7 @@
         <div class="d-flex align-items-center gap-2 text-warning-emphasis fw-bold mb-1" style="font-size: 13px;">
             <span>💡 HƯỚNG DẪN DẠNG BÀI:</span>
         </div>
-        <div class="fw-medium text-dark" style="font-size: 15px;" th:text="${type.instructionKo}"></div>
+        <div class="fw-medium text-dark" style="font-size: 15px;" th:text="${type.learnerInstructionKo()}"></div>
     </div>
 
     <!-- Form làm bài -->
@@ -74,7 +74,17 @@
                               th:text="${iter.count}">1</span>
                         <span class="fw-bold text-dark" style="font-size: 16px;" th:text="'Câu hỏi ' + ${iter.count}">Câu hỏi 1</span>
                     </div>
-                    <span class="badge bg-light text-muted border" th:text="'Câu gốc #' + ${q.no}">Câu gốc #1</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-light text-muted border" th:text="'Câu gốc #' + ${q.no}">Câu gốc #1</span>
+                        <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 rounded-3 px-2 py-1"
+                                style="font-size: 12px; font-weight: 600; border-color: #FFA39E; color: #CF1322;"
+                                th:attr="data-qid=${q.id}, data-code=${type.code + ' - Câu ' + iter.count}, data-prompt=${q.prompt}, data-examtitle=${'Luyện tập: ' + type.name}, data-no=${q.no}"
+                                onclick="openReportModalFromBtn(this)"
+                                title="Báo lỗi nội dung câu hỏi này cho Content Manager">
+                            <span>🚩</span>
+                            <span>Báo lỗi</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Đoạn Audio (cho bài nghe) -->
@@ -171,6 +181,10 @@
         </div>
     </div>
 </div>
+
+<!-- Modal và Script Báo lỗi câu hỏi -->
+<div th:replace="~{fragments/report-modal :: reportModal}"></div>
+<div th:replace="~{fragments/report-modal :: reportScript}"></div>
 
 <div th:replace="~{fragments/footer :: footer}"></div>
 

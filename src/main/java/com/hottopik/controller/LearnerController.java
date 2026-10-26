@@ -206,13 +206,6 @@ public class LearnerController {
         return "learner/settings";
     }
 
-    @GetMapping({"/thong-bao", "/notifications"})
-    public String notifications(Model model) {
-        model.addAttribute("pageTitle", "Trung tâm thông báo");
-        model.addAttribute("activePage", "notifications");
-        return "learner/notifications";
-    }
-
     @GetMapping({"/xu", "/coins"})
     public String coins(Model model) {
         model.addAttribute("pageTitle", "Xu của bạn & Đổi quà");

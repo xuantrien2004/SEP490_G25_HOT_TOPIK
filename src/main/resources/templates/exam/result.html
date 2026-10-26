@@ -16,9 +16,21 @@
     </section>
     <h2 class="h5 mb-3">Chi tiết từng câu hỏi</h2>
     <article th:each="q : ${paper.questions}" class="bg-white border rounded-4 p-4 mb-3">
-        <div class="d-flex justify-content-between mb-3"><strong th:text="${q.label}"></strong>
-            <span class="badge" th:classappend="${q.selected == #strings.toString(q.answer) ? 'text-bg-success' : 'text-bg-danger'}"
-                  th:text="${q.selected == null ? 'Chưa trả lời' : q.selected == #strings.toString(q.answer) ? 'Đúng' : 'Sai'}"></span></div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <strong th:text="${q.label}"></strong>
+                <span class="badge" th:classappend="${q.selected == #strings.toString(q.answer) ? 'text-bg-success' : 'text-bg-danger'}"
+                      th:text="${q.selected == null ? 'Chưa trả lời' : q.selected == #strings.toString(q.answer) ? 'Đúng' : 'Sai'}"></span>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 rounded-3 px-2 py-1"
+                    style="font-size: 12px; font-weight: 600; border-color: #FFA39E; color: #CF1322;"
+                    th:attr="data-qid=${q.id}, data-code=${q.label}, data-prompt=${q.prompt}, data-examid=${paper.attempt.exam.id}, data-examtitle=${paper.title}, data-no=${q.no}"
+                    onclick="openReportModalFromBtn(this)"
+                    title="Báo lỗi nội dung câu hỏi này cho Content Manager">
+                <span>🚩</span>
+                <span>Báo lỗi</span>
+            </button>
+        </div>
         <audio th:if="${q.audio != null}" controls preload="none" class="w-100 mb-3" th:src="${q.audio}"></audio>
         <img th:if="${q.image != null}" th:src="${q.image}" alt="Hình đề bài" style="max-width:100%;max-height:400px">
         <p style="white-space:pre-wrap" th:text="${q.passage}"></p>
@@ -35,7 +47,17 @@
         <details th:if="${q.script != null}" class="mt-3"><summary>Lời thoại</summary><p style="white-space:pre-wrap" th:text="${q.script}"></p></details>
     </article>
     <article th:each="q : ${paper.writing}" class="bg-white border rounded-4 p-4 mb-3">
-        <h3 class="h6" th:text="${'Viết · Câu ' + q.no}"></h3>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h3 class="h6 mb-0" th:text="${'Viết · Câu ' + q.no}"></h3>
+            <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 rounded-3 px-2 py-1"
+                    style="font-size: 12px; font-weight: 600; border-color: #FFA39E; color: #CF1322;"
+                    th:attr="data-kind='WRITING', data-qid=${q.id}, data-code=${'Viết · Câu ' + q.no}, data-prompt=${q.prompt}, data-examid=${paper.attempt.exam.id}, data-examtitle=${paper.title}, data-no=${q.no}"
+                    onclick="openReportModalFromBtn(this)"
+                    title="Báo lỗi câu viết này cho Content Manager">
+                <span>🚩</span>
+                <span>Báo lỗi</span>
+            </button>
+        </div>
         <p style="white-space:pre-wrap" th:text="${q.prompt}"></p>
         <img th:if="${q.image != null}" th:src="${q.image}" alt="Biểu đồ đề bài" style="max-width:100%;max-height:400px">
         <table th:unless="${#lists.isEmpty(q.chart)}" class="table table-bordered"><tbody>
@@ -54,5 +76,9 @@
         </div>
     </section>
 </main>
+
+<!-- Modal và Script Báo lỗi câu hỏi -->
+<div th:replace="~{fragments/report-modal :: reportModal}"></div>
+<div th:replace="~{fragments/report-modal :: reportScript}"></div>
 </body>
 </html>

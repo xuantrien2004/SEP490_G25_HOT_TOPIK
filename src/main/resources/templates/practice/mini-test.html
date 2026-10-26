@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/head :: head('Làm bài luyện tập · HOT TOPIK')}"></head>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Làm bài luyện tập · HOT TOPIK')}"><title>Làm bài luyện tập · HOT TOPIK</title></head>
 <body>
 <div style="min-width: 1280px; max-width: 1440px; min-height: 100vh; margin: 0 auto; background: var(--ssak-bg); display: flex; flex-direction: column;">
 
@@ -10,8 +10,8 @@
             ← Thoát bài
         </a>
         <div style="display: flex; flex-direction: column;">
-            <h1 style="margin: 0; font-family: var(--font-heading); font-size: 20px; font-weight: 800; line-height: 1.2;">
-                Đọc 13–15 · Sắp xếp thứ tự câu
+            <h1 style="margin: 0; font-family: var(--font-heading), sans-serif; font-size: 20px; font-weight: 800; line-height: 1.2;">
+                Đọc · Sắp xếp thứ tự câu
             </h1>
             <span style="font-size: 12px; font-weight: 700; color: var(--ssak-text-muted);">Lộ trình ngày 12 · Luyện tập ngắt quãng lần 2/4</span>
         </div>
@@ -52,7 +52,7 @@
 
                 <!-- Prompt Guide -->
                 <span style="font-size: 15px; color: var(--ssak-text-muted);" id="qPrompt">
-                    [13~15] 다음을 순서대로 맞게 배열한 것을 고르십시오. (Chọn thứ tự sắp xếp đúng cho đoạn văn sau)
+                    다음을 순서대로 맞게 배열한 것을 고르십시오. (Chọn thứ tự sắp xếp đúng cho đoạn văn sau)
                 </span>
 
                 <!-- Audio Player (Visible if audio question) -->
@@ -69,7 +69,7 @@
                 </div>
 
                 <!-- Passage Box -->
-                <div id="passageBox" style="padding: 18px 24px; border-radius: 18px; background: var(--ssak-bg); font-family: var(--font-korean); font-size: 19px; line-height: 1.8;">
+                <div id="passageBox" style="padding: 18px 24px; border-radius: 18px; background: var(--ssak-bg); font-family: var(--font-korean), sans-serif; font-size: 19px; line-height: 1.8;">
                     (가) 그러나 자전거 도로가 끊겨 있는 곳이 많아 이용하기에 위험하다.<br>
                     (나) 요즘 환경을 보호하기 위해 자전거를 타는 사람들이 늘고 있다.<br>
                     (다) 안전하게 탈 수 있도록 자전거 도로를 잘 연결해야 한다.<br>
@@ -100,7 +100,7 @@
                 <div id="feedbackCard" style="display: none; padding: 20px 24px; border-radius: 22px; background: var(--ssak-primary-light); gap: 16px; align-items: flex-start;">
                     <div th:replace="~{fragments/ssak :: mascot('cheer', 'sprout', 60, 'Ssak reo mừng')}"></div>
                     <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px;">
-                        <span style="font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: var(--ssak-primary-dark);">
+                        <span style="font-family: var(--font-heading), sans-serif; font-size: 20px; font-weight: 800; color: var(--ssak-primary-dark);">
                             Chính xác! Đáp án đúng là số 1.
                         </span>
                         <p style="margin: 0; font-size: 14px; line-height: 1.6; color: var(--ssak-text-main);">
@@ -148,7 +148,7 @@
         <!-- Right: Question Palette & Navigation -->
         <aside style="width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px;">
             <div class="ssak-card" style="padding: 22px; display: flex; flex-direction: column; gap: 16px;">
-                <span style="font-family: var(--font-heading); font-size: 20px; font-weight: 800;">Phiếu câu hỏi</span>
+                <span style="font-family: var(--font-heading), sans-serif; font-size: 20px; font-weight: 800;">Phiếu câu hỏi</span>
                 
                 <!-- 6 Questions Grid -->
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
@@ -196,18 +196,18 @@
 <!-- Submit Confirmation Modal -->
 <div id="submitModal" class="ssak-modal-overlay">
     <div class="ssak-modal">
-        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 24px; font-weight: 800;">Bạn có chắc muốn nộp bài?</h3>
+        <h3 style="margin: 0; font-family: var(--font-heading), sans-serif; font-size: 24px; font-weight: 800;">Bạn có chắc muốn nộp bài?</h3>
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
             <div style="padding: 12px; border-radius: 14px; background: var(--ssak-primary-light); text-align: center;">
-                <div style="font-family: var(--font-heading); font-size: 26px; font-weight: 800; color: var(--ssak-primary-dark);" id="modalAnswered">1</div>
+                <div style="font-family: var(--font-heading), sans-serif; font-size: 26px; font-weight: 800; color: var(--ssak-primary-dark);" id="modalAnswered">1</div>
                 <div style="font-size: 12px; font-weight: 800; color: var(--ssak-primary-dark);">Đã làm</div>
             </div>
             <div style="padding: 12px; border-radius: 14px; background: var(--ssak-bg-muted); text-align: center;">
-                <div style="font-family: var(--font-heading); font-size: 26px; font-weight: 800; color: var(--ssak-text-muted);" id="modalBlank">5</div>
+                <div style="font-family: var(--font-heading), sans-serif; font-size: 26px; font-weight: 800; color: var(--ssak-text-muted);" id="modalBlank">5</div>
                 <div style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted);">Còn trống</div>
             </div>
             <div style="padding: 12px; border-radius: 14px; background: var(--ssak-honey-light); text-align: center;">
-                <div style="font-family: var(--font-heading); font-size: 26px; font-weight: 800; color: var(--ssak-honey-text);" id="modalFlagged">0</div>
+                <div style="font-family: var(--font-heading), sans-serif; font-size: 26px; font-weight: 800; color: var(--ssak-honey-text);" id="modalFlagged">0</div>
                 <div style="font-size: 12px; font-weight: 800; color: var(--ssak-honey-text);">Chưa chắc</div>
             </div>
         </div>
@@ -224,7 +224,7 @@
 <!-- Report Question Modal -->
 <div id="reportModal" class="ssak-modal-overlay">
     <div class="ssak-modal">
-        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 22px; font-weight: 800;">Báo lỗi câu hỏi</h3>
+        <h3 style="margin: 0; font-family: var(--font-heading), sans-serif; font-size: 22px; font-weight: 800;">Báo lỗi câu hỏi</h3>
         <p style="margin: 0; font-size: 13px; color: var(--ssak-text-muted);">
             Giúp ban học thuật kiểm tra lại nếu có sai sót về nội dung đề hoặc đáp án.
         </p>
@@ -234,7 +234,8 @@
             <button type="button" class="ssak-badge" style="cursor: pointer; border: 1px solid var(--ssak-border); background: #FFFFFF;">Lỗi chính tả tiếng Hàn</button>
             <button type="button" class="ssak-badge" style="cursor: pointer; border: 1px solid var(--ssak-border); background: #FFFFFF;">Khác</button>
         </div>
-        <textarea class="ssak-input" style="height: 90px; padding: 12px; resize: none;" placeholder="Mô tả cụ thể hơn (không bắt buộc)..."></textarea>
+        <label for="reportDetails" class="visually-hidden">Mô tả lỗi câu hỏi</label>
+        <textarea id="reportDetails" class="ssak-input" style="height: 90px; padding: 12px; resize: none;" placeholder="Mô tả cụ thể hơn (không bắt buộc)..."></textarea>
         <div style="display: flex; gap: 10px; justify-content: flex-end;">
             <button type="button" class="btn-ssak-outline" style="height: 42px; padding: 0 16px;" onclick="closeReportModal()">Huỷ</button>
             <button type="button" class="btn-ssak-primary" style="height: 42px; padding: 0 20px;" onclick="submitReport()">Gửi báo cáo</button>
@@ -305,7 +306,6 @@
                 btn.classList.add('flagged');
             }
         }
-        const answeredCount = Object.keys(answers).length;
         document.getElementById('qProgressText').textContent = 'Câu ' + (currentIdx + 1) + '/' + totalQ;
         document.getElementById('qProgressBar').style.width = ((currentIdx + 1) / totalQ * 100) + '%';
         document.getElementById('qBadgeNum').textContent = 'Câu ' + (currentIdx + 1);
@@ -373,8 +373,25 @@
     }
 
     function submitReport() {
-        closeReportModal();
-        showSsakToast('Cảm ơn bạn! Báo cáo đã gửi tới ban học thuật.');
+        const details = document.querySelector('#reportModal textarea')?.value.trim() || 'Học viên báo lỗi trong Mini Test';
+        const formData = new FormData();
+        formData.append('questionCode', 'Mini Test - Câu ' + (currentIdx + 1));
+        formData.append('questionSummary', document.getElementById('qPrompt')?.textContent || '');
+        formData.append('examTitle', 'Mini Test');
+        formData.append('questionNo', currentIdx + 1);
+        formData.append('issueType', 'Nội dung câu hỏi có lỗi');
+        formData.append('details', details);
+
+        fetch('/api/question-reports', {
+            method: 'POST',
+            body: formData
+        }).then(r => r.json()).then(data => {
+            closeReportModal();
+            showSsakToast(data.message || 'Cảm ơn bạn! Báo cáo đã gửi tới Ban Quản lý Nội dung.');
+        }).catch(() => {
+            closeReportModal();
+            showSsakToast('Đã gửi báo cáo lỗi thành công!');
+        });
     }
 </script>
 </body>

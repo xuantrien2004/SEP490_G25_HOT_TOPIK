@@ -36,13 +36,15 @@ public class ContentExamController {
     private final ExamComposerService composer;
     private final QuestionBankService bank;
     private final QuestionTemplateService templates;
+    private final com.hottopik.service.QuestionReportService reportService;
 
     public ContentExamController(ExamImportService importService, ExamComposerService composer, QuestionBankService bank,
-                                 QuestionTemplateService templates) {
+                                 QuestionTemplateService templates, com.hottopik.service.QuestionReportService reportService) {
         this.importService = importService;
         this.composer = composer;
         this.bank = bank;
         this.templates = templates;
+        this.reportService = reportService;
     }
 
     // ------------------------------------------------------------------ quyền
@@ -733,10 +735,25 @@ public class ContentExamController {
                                  @RequestParam String opt3, @RequestParam String opt4,
                                  @RequestParam Integer answer, @RequestParam(required = false) String explanationVi,
                                  @RequestParam(required = false) String reason, @RequestParam(required = false) String back,
+                                 @RequestParam(required = false) Long reportId,
+                                 @RequestParam(required = false) String resolutionNote,
                                  HttpSession session, RedirectAttributes ra) {
         String target = safeBack(back);
         return mutate(session, ra, target, actor -> {
+            if (reportId != null) {
+                var report = reportService.getReportById(reportId).orElseThrow(() -> new ExamDomainException("Không tìm thấy báo lỗi."));
+                if (reportService.isWriting(report) || !id.equals(report.getQuestionId())
+                        || reportService.reportedQuestion(report) == null || !"OPEN".equals(report.getStatus())) {
+                    throw new ExamDomainException("Báo lỗi không thuộc câu hỏi đang sửa.");
+                }
+            }
             bank.update(id, promptKo, List.of(opt1, opt2, opt3, opt4), answer, explanationVi, reason, actor);
+            if (reportId != null) {
+                String note = (resolutionNote != null && !resolutionNote.isBlank()) ? resolutionNote : ("Đã chỉnh sửa nội dung câu hỏi: " + (reason != null ? reason : "Cập nhật đáp án"));
+                reportService.resolveReport(reportId, note, actor.name());
+                ra.addFlashAttribute("flashOk", "Đã cập nhật câu hỏi, giải quyết báo lỗi #" + reportId + " và thưởng +5 Xu cho học viên!");
+                return "redirect:/content?tab=reports";
+            }
             ra.addFlashAttribute("flashOk", "Đã lưu câu hỏi.");
             return "redirect:" + target;
         });

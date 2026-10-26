@@ -77,6 +77,48 @@ class ExamLibraryRegressionTest {
     }
 
     @Test
+    void fullAndGeneratedMinisKeepIndependentProgressAndHistory() throws Exception {
+        Exam full = full(Track.TOPIK_II);
+        publish(full);
+        long owner = 819;
+        List<Exam> minis = composer.children(full.getId());
+        ExamAttempt fullAttempt = learners.start(owner, full.getId(), false);
+        learners.save(owner, fullAttempt.getId(), Map.of(), true, false);
+        for (Exam mini : minis) {
+            var card = learners.library(owner).get("II").get(mini.getKind().name().toLowerCase(Locale.ROOT))
+                    .stream().filter(c -> c.id().equals(mini.getId())).findFirst().orElseThrow();
+            assertFalse(card.inProgress(), "Mini must not inherit the full mock attempt");
+            assertFalse(card.isDone());
+        }
+        String html = mvc.perform(get("/de-thi").sessionAttr(AuthHelper.SESSION_KEY, user(owner, "STUDENT")))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        int dataStart = html.indexOf("const examsData = ") + "const examsData = ".length();
+        var browserData = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(html.substring(dataStart, html.indexOf(';', dataStart))).path("II");
+        for (Exam child : minis) {
+            var browserCard = java.util.stream.StreamSupport.stream(
+                            browserData.path(child.getKind().name().toLowerCase(Locale.ROOT)).spliterator(), false)
+                    .filter(c -> c.path("id").asLong() == child.getId()).findFirst().orElseThrow();
+            assertFalse(browserCard.path("inProgress").asBoolean());
+            assertEquals("/exam/" + child.getId() + "/start", browserCard.path("primaryUrl").asText());
+        }
+        Exam mini = minis.get(0);
+        ExamAttempt miniAttempt = learners.start(owner, mini.getId(), false);
+        assertNotEquals(fullAttempt.getId(), miniAttempt.getId());
+        assertEquals(mini.getId(), miniAttempt.getExam().getId());
+        learners.save(owner, miniAttempt.getId(), Map.of(), false, true);
+        assertEquals(1, learners.result(owner, miniAttempt.getId()).history().size());
+        assertTrue(learners.library(owner).get("II").get("full").stream()
+                .filter(c -> c.id().equals(full.getId())).findFirst().orElseThrow().inProgress());
+        assertEquals(fullAttempt.getId(), learners.start(owner, full.getId(), false).getId());
+        learners.save(owner, fullAttempt.getId(), Map.of(), false, true);
+        assertEquals(1, learners.result(owner, fullAttempt.getId()).history().size());
+        learners.start(owner, mini.getId(), true);
+        assertFalse(learners.library(owner).get("II").get("full").stream()
+                .filter(c -> c.id().equals(full.getId())).findFirst().orElseThrow().inProgress());
+    }
+
+    @Test
     void fullMockAndItsMinisRenderAfterTheHibernateSessionCloses() throws Exception {
         Exam full = full(Track.TOPIK_II);
         List<Exam> minis = composer.children(full.getId());

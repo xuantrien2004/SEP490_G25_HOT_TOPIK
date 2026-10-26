@@ -24,11 +24,15 @@ public class LearnerExamService {
                        boolean primaryPost) {}
     // Answers/explanations are included only in the result DTO, never in the play model.
     public record Choice(String text, String image) {}
-    public record QuestionView(String key, Skill skill, String label, String instruction, String prompt, String passage,
+    public record QuestionView(Long questionId, int no, String key, Skill skill, String label, String instruction, String prompt, String passage,
                                String audio, String image, List<Choice> options, String selected,
-                               Integer answer, String explanation, String script) {}
-    public record WritingView(String key, int no, String prompt, String image, List<Map<String, Object>> chart,
-                              String selected, String modelAnswer, String rubric) {}
+                               Integer answer, String explanation, String script) {
+        public Long id() { return questionId; }
+    }
+    public record WritingView(Long promptId, String key, int no, String prompt, String image, List<Map<String, Object>> chart,
+                              String selected, String modelAnswer, String rubric) {
+        public Long id() { return promptId; }
+    }
     public record Paper(ExamAttempt attempt, String title, Track track, ExamKind kind,
                         int remainingSeconds, List<QuestionView> questions, List<WritingView> writing,
                         List<ExamAttempt> history) {}
@@ -170,14 +174,14 @@ public class LearnerExamService {
                     Question q = i.getQuestion();
                     QuestionGroup g = q.getGroup();
                     String key = "q" + i.getId();
-                    return new QuestionView(key, i.getSection(), i.getSection().getLabel() + " · Câu " + i.getNo(),
+                    return new QuestionView(q.getId(), i.getNo(), key, i.getSection(), i.getSection().getLabel() + " · Câu " + i.getNo(),
                             QuestionTypeCatalog.resolve(exam.getTrack(), i.getSection(), i.getNo()).map(QuestionTypeDef::instructionKo).orElse(""),
                             q.getPromptKo(), g.getPassageKo(), media(g.getSource(), g.getAudioFile()), media(g.getSource(), g.getImageFile()),
                             q.options().stream().map(o -> new Choice(o, isImage(o) ? media(q.getSource(), o) : null)).toList(),
                             answers.get(key), result ? q.getAnswerIndex() : null,
                             result ? q.getExplanationVi() : null, result ? g.getScriptKo() : null);
                 }).toList();
-        List<WritingView> writing = exam.writingPrompts().stream().map(p -> new WritingView("w" + p.getId(), p.getNo(),
+        List<WritingView> writing = exam.writingPrompts().stream().map(p -> new WritingView(p.getId(), "w" + p.getId(), p.getNo(),
                 p.getPromptKo(), media(p.getSource(), p.getChartImage()), chart(p.getChartJson()), answers.get("w" + p.getId()),
                 result ? p.getModelAnswer() : null, result ? p.getRubricNote() : null)).toList();
         // Do not expose the entity's question associations (or their answer keys) to the browser.

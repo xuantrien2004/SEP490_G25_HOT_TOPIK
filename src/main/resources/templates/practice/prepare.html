@@ -20,7 +20,6 @@
                 <span class="badge bg-success-subtle text-success-emphasis border border-success" th:text="${type.track.label}">TOPIK I</span>
                 <span class="badge bg-primary-subtle text-primary-emphasis border border-primary" th:text="${type.skill.label}">Nghe</span>
             </div>
-            <span class="badge bg-light text-muted border" th:text="|Vị trí đề thi: Câu ${type.rangeLabel()}|">Câu 1–4</span>
         </div>
 
         <h1 class="h3 fw-bold mb-3 text-dark" th:text="${type.name}">Chọn câu trả lời phù hợp</h1>
@@ -30,7 +29,7 @@
              class="p-3 mb-4 rounded-3 border"
              style="background: #FFFDF0; border-color: #FDE68A !important;">
             <div class="small fw-bold text-warning-emphasis mb-1">💡 ĐỀ BÀI MẪU TIẾNG HÀN:</div>
-            <div class="fw-medium text-dark" style="font-size: 15px;" th:text="${type.instructionKo}"></div>
+            <div class="fw-medium text-dark" style="font-size: 15px;" th:text="${type.learnerInstructionKo()}"></div>
         </div>
 
         <div th:if="${summary.latestPercent != null}" class="py-3 border-top border-bottom my-4">

@@ -17,7 +17,7 @@
             <span class="badge" style="background: #1F6B56; color: #FFFFFF; font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 20px;">
                 🎉 Hoàn thành bài luyện
             </span>
-            <span class="badge bg-white text-dark border fw-bold" th:text="${result.type.code} + ' · ' + ${result.type.rangeLabel()}">I-N1 · Câu 1–4</span>
+            <span class="badge bg-white text-dark border fw-bold" th:text="${result.type.code}">I-N1</span>
             <span class="badge bg-light text-muted border" th:text="${result.type.track.label}">TOPIK I</span>
         </div>
 
@@ -131,7 +131,17 @@
                             <span th:if="${a.correct}" class="badge bg-success-subtle text-success-emphasis border border-success">✓ Đúng</span>
                             <span th:unless="${a.correct}" class="badge bg-danger-subtle text-danger-emphasis border border-danger">✕ Chưa đúng</span>
                         </div>
-                        <span class="badge bg-light text-muted border" th:text="'Câu gốc #' + ${a.question.no}">Câu gốc #1</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-light text-muted border" th:text="'Câu gốc #' + ${a.question.no}">Câu gốc #1</span>
+                            <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 rounded-3 px-2 py-1"
+                                    style="font-size: 12px; font-weight: 600; border-color: #FFA39E; color: #CF1322;"
+                                    th:attr="data-qid=${a.question.id}, data-code=${result.type.code + ' - Câu ' + iter.count}, data-prompt=${a.question.prompt}, data-examtitle=${'Luyện tập: ' + result.type.name}, data-no=${a.question.no}"
+                                    onclick="openReportModalFromBtn(this)"
+                                    title="Báo lỗi nội dung câu hỏi này cho Content Manager">
+                                <span>🚩</span>
+                                <span>Báo lỗi</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- File Audio nếu có -->
@@ -292,5 +302,9 @@
         });
     }
 </script>
+
+<!-- Modal và Script Báo lỗi câu hỏi -->
+<div th:replace="~{fragments/report-modal :: reportModal}"></div>
+<div th:replace="~{fragments/report-modal :: reportScript}"></div>
 </body>
 </html>

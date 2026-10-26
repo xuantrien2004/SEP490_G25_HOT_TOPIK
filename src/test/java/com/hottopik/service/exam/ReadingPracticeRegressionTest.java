@@ -105,6 +105,7 @@ class ReadingPracticeRegressionTest {
                         .andExpect(content().string(containsString("지문 " + source.getId() + " — 31")))
                         .andExpect(content().string(containsString("질문 31")))
                         .andExpect(content().string(containsString("답 2 — 31")))
+                        .andExpect(content().string(not(containsString("[31~33]"))))
                         .andExpect(content().string(not(containsString("샘플"))));
             }
         }

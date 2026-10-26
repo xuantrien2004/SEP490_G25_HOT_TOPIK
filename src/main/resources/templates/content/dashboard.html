@@ -305,26 +305,38 @@
                                     <div style="font-size: 12px; color: var(--ssak-text-muted); margin-top: 4px;" th:text="${rep.details}">Chi tiết</div>
                                 </td>
 
-                                <!-- ĐƯỜNG DẪN TRỰC TIẾP ĐẾN CÂU HỎI BỊ BÁO LỖI (BẤM VÀO ĐẾN LUÔN KHÔNG CẦN TÌM) -->
+                                <!-- CÂU HỎI LIÊN QUAN: lấy đúng dữ liệu từ rep entity -->
                                 <td style="padding: 14px 14px;">
-                                    <button type="button" class="btn-ssak-light" style="padding: 4px 10px; font-size: 12px; font-weight: 700; color: #1F6B56;"
-                                            onclick="openDirectReportQuestion(1, 'Q-READ-03', 'Đọc hiểu biểu đồ thống kê', 'Biểu đồ tỷ lệ người độc thân tại Hàn Quốc từ 2015-2025.')">
-                                        🔗 Xem câu hỏi bị báo
-                                    </button>
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <div style="font-weight: 700; color: #24363D; font-size: 13px;"
+                                             th:text="${rep.questionCode != null ? rep.questionCode : (rep.questionNo != null ? 'Câu ' + rep.questionNo : 'Câu hỏi')}">
+                                            Câu hỏi
+                                        </div>
+                                        <div style="font-size: 11px; color: var(--ssak-text-muted); max-width: 200px; overflow: hidden; white-space: nowrap;"
+                                             th:text="${rep.examTitle != null ? rep.examTitle : (rep.questionSummary != null ? rep.questionSummary : 'Chưa có tiêu đề')}">
+                                            Đề thi / Bài luyện
+                                        </div>
+                                        <button type="button" class="btn-ssak-light"
+                                                style="padding: 3px 8px; font-size: 11.5px; font-weight: 700; color: #1F6B56; width: fit-content;"
+                                                th:attr="data-reportid=${rep.id}, data-qid=${rep.questionId}, data-code=${rep.questionCode}, data-summary=${rep.questionSummary}, data-details=${rep.details}"
+                                                onclick="viewReportQuestion(this)">
+                                            🔗 Xem câu hỏi
+                                        </button>
+                                    </div>
                                 </td>
 
                                 <td style="padding: 14px 12px;">
                                     <span th:if="${rep.status == 'OPEN'}" class="ssak-badge badge-honey" style="font-size: 11px;">⏳ Chờ xử lý</span>
-                                    <span th:if="${rep.status == 'RESOLVED'}" class="ssak-badge badge-mint" style="font-size: 11px;">✅ Đã sửa · +20 Xu</span>
+                                    <span th:if="${rep.status == 'RESOLVED'}" class="ssak-badge badge-mint" style="font-size: 11px;">✅ Đã sửa · +5 Xu</span>
                                     <span th:if="${rep.status == 'REJECTED'}" class="ssak-badge badge-terracotta" style="font-size: 11px;">❌ Đã từ chối</span>
                                 </td>
 
                                 <td style="padding: 14px 16px; text-align: right;">
                                     <div th:if="${rep.status == 'OPEN'}" style="display: inline-flex; gap: 6px;">
-                                        <button type="button" class="btn-ssak-primary" style="height: 32px; padding: 0 12px; font-size: 12px;"
-                                                th:data-id="${rep.id}" th:data-user="${rep.reporterName}" onclick="openResolveModal(this.getAttribute('data-id'), this.getAttribute('data-user'))">
+                                        <a class="btn-ssak-primary" style="height: 32px; padding: 0 12px; font-size: 12px; text-decoration: none;"
+                                           th:href="@{/content/reports/{id}/edit(id=${rep.id})}">
                                             Sửa & Thưởng Xu
-                                        </button>
+                                        </a>
                                         <button type="button" class="btn-ssak-outline" style="height: 32px; padding: 0 10px; font-size: 12px; color: red; border-color: #FFA39E;"
                                                 th:data-id="${rep.id}" onclick="openRejectModal(this.getAttribute('data-id'))">
                                             Từ chối
@@ -417,7 +429,7 @@
                 </div>
                 <div>
                     <label class="form-label" style="font-size: 13px; font-weight: 700;">Số Xu thưởng khích lệ</label>
-                    <input type="number" id="resolveCoins" class="form-control ssak-input" value="20" min="5" max="100" />
+                    <input type="number" id="resolveCoins" class="form-control ssak-input" value="5" readonly />
                 </div>
             </div>
             <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px;">
@@ -466,7 +478,7 @@
 <!-- MODAL: XEM CHI TIẾT CÂU HỎI TỪ NGÂN HÀNG CÂU HỎI -->
 <!-- ============================================================== -->
 <div class="modal fade" id="modalQuestionDetail" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content" style="border-radius: 20px; border: 2px solid var(--ssak-border); padding: 8px;">
             <div class="modal-header" style="border-bottom: 2px solid var(--ssak-border); padding: 16px 20px;">
                 <div>
@@ -477,22 +489,25 @@
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
-                <div style="background: #F8FAFC; border: 1.5px solid var(--ssak-border); border-radius: 14px; padding: 16px;">
-                    <div style="font-size: 12px; font-weight: 700; color: var(--ssak-text-muted); text-transform: uppercase;">Nội dung đề bài</div>
-                    <div id="qdContent" style="font-family: var(--font-korean); font-size: 16px; font-weight: 700; color: #24363D; margin-top: 6px;"></div>
+            <div class="modal-body" style="padding: 16px 20px;">
+                <!-- Loading spinner -->
+                <div id="qdLoading" style="text-align: center; padding: 20px; display: none;">
+                    <div class="spinner-border text-success" role="status"><span class="visually-hidden">Đang tải...</span></div>
                 </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div style="padding: 10px 14px; background: #FFFFFF; border: 1px solid var(--ssak-border); border-radius: 10px;">① Lựa chọn A</div>
-                    <div style="padding: 10px 14px; background: #E6F7F0; border: 2px solid #2E7D67; border-radius: 10px; font-weight: 800; color: #1F6B56;">② Lựa chọn B ✅ (Đáp án đúng)</div>
-                    <div style="padding: 10px 14px; background: #FFFFFF; border: 1px solid var(--ssak-border); border-radius: 10px;">③ Lựa chọn C</div>
-                    <div style="padding: 10px 14px; background: #FFFFFF; border: 1px solid var(--ssak-border); border-radius: 10px;">④ Lựa chọn D</div>
+                <!-- Prompt -->
+                <div>
+                    <div style="font-size: 12px; font-weight: 700; color: var(--ssak-text-muted); text-transform: uppercase;">Nội dung câu hỏi</div>
+                    <div id="qdContent" style="color: #24363D; margin-top: 10px;"></div>
+                    <div id="qdPassage" style="font-size: 14px; color: #444; margin-top: 8px; border-top: 1px solid var(--ssak-border); padding-top: 8px; display: none;"></div>
                 </div>
-
-                <div style="padding: 14px; background: #FFFBE6; border: 1px solid #FFE58F; border-radius: 12px; font-size: 13px; color: #7A5A12;">
-                    💡 <strong>Giải thích chuyên môn:</strong> Cung cấp đầy đủ cơ sở ngữ pháp, từ vựng và mẹo làm bài cho học viên.
+                <!-- Options -->
+                <div id="qdOptions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
+                <!-- Explanation -->
+                <div id="qdExplain" style="padding: 14px; background: #FFFBE6; border: 1px solid #FFE58F; border-radius: 12px; font-size: 13px; color: #7A5A12; display: none;">
+                    💡 <strong>Giải thích:</strong> <span id="qdExplainText"></span>
                 </div>
+                <!-- Fallback: plain summary -->
+                <div id="qdFallback" style="font-size: 14px; color: #555; display: none;"></div>
             </div>
             <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px;">
                 <button type="button" class="btn-ssak-primary" data-bs-dismiss="modal" style="height: 38px; padding: 0 20px;">Đóng</button>
@@ -678,18 +693,40 @@
     // ==========================================
     // 4. REPORT RESOLVE & REJECT ACTIONS
     // ==========================================
-    function openDirectReportQuestion(qId, code, skill, summary) {
-        document.getElementById('qdTitle').innerText = "Câu hỏi bị báo lỗi: " + code;
-        document.getElementById('qdSubtitle').innerText = skill + " · Đang phản ánh lỗi nội dung";
-        document.getElementById('qdContent').innerText = summary;
-        const modal = new bootstrap.Modal(document.getElementById('modalQuestionDetail'));
-        modal.show();
+
+    // Helper: reset modal state
+    function resetQuestionModal() {
+        delete document.getElementById('qdContent').dataset.reportId;
+        document.getElementById('qdContent').innerText = '';
+        document.getElementById('qdPassage').style.display = 'none';
+        document.getElementById('qdOptions').innerHTML = '';
+        document.getElementById('qdExplain').style.display = 'none';
+        document.getElementById('qdFallback').style.display = 'none';
+        document.getElementById('qdLoading').style.display = 'none';
+    }
+
+    // Hiển thị câu hỏi từ API (hoặc fallback sang summary)
+    function viewReportQuestion(btn) {
+        const id = btn.getAttribute('data-reportid');
+        resetQuestionModal();
+        const body = document.getElementById('qdContent');
+        document.getElementById('qdTitle').textContent = 'Câu hỏi bị báo lỗi: ' + (btn.getAttribute('data-code') || '');
+        document.getElementById('qdSubtitle').textContent = 'Học viên báo: ' + (btn.getAttribute('data-details') || '');
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalQuestionDetail')).show();
+        document.getElementById('qdLoading').style.display = 'block';
+        body.dataset.reportId = id;
+        fetch('/content/reports/' + id + '/question')
+            .then(r => { if (!r.ok) throw new Error(); return r.text(); })
+            .then(html => { if (body.dataset.reportId === id) body.innerHTML = html; })
+            .catch(() => { if (body.dataset.reportId === id) body.textContent = 'Không tải được câu hỏi. Vui lòng thử lại.'; })
+            .finally(() => { if (body.dataset.reportId === id) document.getElementById('qdLoading').style.display = 'none'; });
     }
 
     function openQuestionDetailModal(btn) {
-        document.getElementById('qdTitle').innerText = "Chi tiết câu hỏi: " + btn.getAttribute('data-code');
-        document.getElementById('qdSubtitle').innerText = btn.getAttribute('data-skill') + " - Dạng: " + btn.getAttribute('data-type');
-        document.getElementById('qdContent').innerText = btn.getAttribute('data-summary');
+        resetQuestionModal();
+        document.getElementById('qdTitle').innerText = 'Chi tiết câu hỏi: ' + btn.getAttribute('data-code');
+        document.getElementById('qdSubtitle').innerText = (btn.getAttribute('data-skill') || '') + ' - Dạng: ' + (btn.getAttribute('data-type') || '');
+        document.getElementById('qdContent').innerText = btn.getAttribute('data-summary') || '';
         const modal = new bootstrap.Modal(document.getElementById('modalQuestionDetail'));
         modal.show();
     }
@@ -697,16 +734,16 @@
     function openResolveModal(id, user) {
         document.getElementById('resolveReportId').value = id;
         document.getElementById('resolveReporterName').value = user || "Học viên";
+        document.getElementById('resolveNote').value = '';
         const modal = new bootstrap.Modal(document.getElementById('modalResolveReport'));
         modal.show();
     }
 
     function confirmResolveReport() {
         const id = document.getElementById('resolveReportId').value;
-        const coins = document.getElementById('resolveCoins').value;
         const formData = new FormData();
         formData.append('reportId', id);
-        formData.append('coins', coins);
+        formData.append('note', document.getElementById('resolveNote').value.trim());
 
         fetch('/content/report/resolve', {
             method: 'POST',
@@ -714,15 +751,17 @@
         })
         .then(r => r.json())
         .then(data => {
+            if (!data.success) { showSsakToast(data.message || 'Chưa xử lý được báo lỗi.'); return; }
             showSsakToast(data.message || 'Đã sửa lỗi và thưởng Xu cho học viên!');
             const modal = bootstrap.Modal.getInstance(document.getElementById('modalResolveReport'));
             if (modal) modal.hide();
             setTimeout(() => window.location.reload(), 600);
-        });
+        }).catch(() => showSsakToast('Không gửi được yêu cầu. Vui lòng thử lại.'));
     }
 
     function openRejectModal(id) {
         document.getElementById('rejectReportId').value = id;
+        document.getElementById('rejectReason').value = '';
         const modal = new bootstrap.Modal(document.getElementById('modalRejectReport'));
         modal.show();
     }
@@ -742,11 +781,12 @@
         })
         .then(r => r.json())
         .then(data => {
+            if (!data.success) { showSsakToast(data.message || 'Chưa từ chối được báo lỗi.'); return; }
             showSsakToast(data.message || 'Đã từ chối báo cáo và phản hồi học viên!');
             const modal = bootstrap.Modal.getInstance(document.getElementById('modalRejectReport'));
             if (modal) modal.hide();
             setTimeout(() => window.location.reload(), 600);
-        });
+        }).catch(() => showSsakToast('Không gửi được yêu cầu. Vui lòng thử lại.'));
     }
 
     // Auto load tab from URL query if present

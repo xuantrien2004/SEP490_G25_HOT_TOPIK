@@ -20,7 +20,17 @@
         <th:block th:each="section : ${sections}">
             <th:block th:each="q : ${paper.questions}">
                 <article th:if="${q.skill == section.skill}" class="bg-white border rounded-4 p-4 mb-4 shadow-sm">
-                    <h2 class="h6 fw-bold" th:text="${q.label}"></h2>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h2 class="h6 fw-bold mb-0" th:text="${q.label}"></h2>
+                        <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 rounded-3 px-2 py-1"
+                                style="font-size: 12px; font-weight: 600; border-color: #FFA39E; color: #CF1322;"
+                                th:attr="data-qid=${q.id}, data-code=${q.label}, data-prompt=${q.prompt}, data-examid=${paper.attempt.exam.id}, data-examtitle=${paper.title}, data-no=${q.no}"
+                                onclick="openReportModalFromBtn(this)"
+                                title="Báo lỗi nội dung câu hỏi này cho Content Manager">
+                            <span>🚩</span>
+                            <span>Báo lỗi</span>
+                        </button>
+                    </div>
                     <p class="text-muted" th:text="${q.instruction}"></p>
                     <audio th:if="${q.audio != null}" controls preload="none" class="w-100 mb-3" th:src="${q.audio}"></audio>
                     <img th:if="${q.image != null}" th:src="${q.image}" alt="Hình của câu hỏi" style="max-width:100%;max-height:400px" class="mb-3">
@@ -36,7 +46,17 @@
             </th:block>
             <th:block th:if="${section.skill.name() == 'WRITING'}">
                 <article th:each="q : ${paper.writing}" class="bg-white border rounded-4 p-4 mb-4 shadow-sm">
-                    <h2 class="h6 fw-bold" th:text="${'Viết · Câu ' + q.no}"></h2>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h2 class="h6 fw-bold mb-0" th:text="${'Viết · Câu ' + q.no}"></h2>
+                        <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 rounded-3 px-2 py-1"
+                                style="font-size: 12px; font-weight: 600; border-color: #FFA39E; color: #CF1322;"
+                                th:attr="data-kind='WRITING', data-qid=${q.id}, data-code=${'Viết · Câu ' + q.no}, data-prompt=${q.prompt}, data-examid=${paper.attempt.exam.id}, data-examtitle=${paper.title}, data-no=${q.no}"
+                                onclick="openReportModalFromBtn(this)"
+                                title="Báo lỗi câu viết này cho Content Manager">
+                            <span>🚩</span>
+                            <span>Báo lỗi</span>
+                        </button>
+                    </div>
                     <p style="white-space:pre-wrap" th:text="${q.prompt}"></p>
                     <img th:if="${q.image != null}" th:src="${q.image}" alt="Biểu đồ đề bài" style="max-width:100%;max-height:400px" class="mb-3">
                     <table th:unless="${#lists.isEmpty(q.chart)}" class="table table-bordered"><tbody>
@@ -101,5 +121,8 @@ window.addEventListener('pagehide', () => {
     if (!leaving) navigator.sendBeacon(saveUrl + '?pause=true', new URLSearchParams(new FormData(form)));
 });
 </script>
+<!-- Modal và Script Báo lỗi câu hỏi -->
+<div th:replace="~{fragments/report-modal :: reportModal}"></div>
+<div th:replace="~{fragments/report-modal :: reportScript}"></div>
 </body>
 </html>
