@@ -38,7 +38,7 @@ public class AuthController {
     }
 
 
-    // ================= 1. TRANG ĐĂNG NHẬP / ĐĂNG KÝ =================
+    // Đăng nhập và đăng ký
     @GetMapping("/login")
     public String login(@RequestParam(value = "tab", defaultValue = "login") String tab,
                         @RequestParam(value = "error", required = false) String error,
@@ -73,7 +73,7 @@ public class AuthController {
 
         return "auth/login";
     }
-
+// phân quyền
     // ================= 2. XỬ LÝ ĐĂNG NHẬP PHÂN QUYỀN =================
     @PostMapping("/login")
     public String handleLogin(@RequestParam(value = "email", required = false) String email,
