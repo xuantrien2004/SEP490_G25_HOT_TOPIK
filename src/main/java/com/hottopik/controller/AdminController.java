@@ -239,6 +239,7 @@ public class AdminController {
         }
 
         if (success) {
+            //YÊU CẦU KHÓA
             // Nếu phê duyệt yêu cầu khóa vĩnh viễn học viên -> Thực hiện khóa vĩnh viễn ngay
             if (approve && "PERMANENT_LOCK_USER".equalsIgnoreCase(req.getRequestType()) && req.getTargetId() != null) {
                 userService.lockUserPermanently(req.getTargetId(), "Khóa vĩnh viễn theo phê duyệt của Admin: " + (note != null ? note : req.getDescription()));
