@@ -44,7 +44,7 @@ public class TheoryController {
         model.addAttribute("currentTab", tab != null ? tab : "vocab");
         model.addAttribute("selectedLevel", level);
 
-        // Lấy danh sách nhóm ngữ pháp từ Database theo cấp độ (1-6)
+        // Lấy danh sách nhóm ngữ pháp theo cấp độ (1-6)
         if ("grammar".equals(model.getAttribute("currentTab"))) {
             List<GrammarGroup> grammarGroups = grammarGroupService.getGroupsByLevel(level);
             model.addAttribute("grammarGroups", grammarGroups);
@@ -110,17 +110,25 @@ public class TheoryController {
 
         try {
             Grammar grammar = grammarService.getGrammarById(id);
+
+            // Kiểm tra nếu grammar ở trạng thái HIDDEN hoặc DRAFT thì không cho học viên xem
+            if (grammar == null || !"ACTIVE".equals(grammar.getStatus())) {
+                model.addAttribute("grammar", null);
+                model.addAttribute("errorMessage", "Mẫu ngữ pháp này hiện không khả dụng.");
+                return "theory/grammar";
+            }
+
             model.addAttribute("grammar", grammar);
 
-            // Lấy danh sách ngữ pháp liên quan (cùng nhóm hoặc cùng level)
-            if (grammar != null) {
-                if (grammar.getGrammarGroup() != null) {
-                    model.addAttribute("relatedGrammars",
-                            grammarService.getGrammarsByGroupId(grammar.getGrammarGroup().getId()));
-                } else {
-                    model.addAttribute("relatedGrammars",
-                            grammarService.getGrammarsByLevelAndStatus(grammar.getLevel(), "ACTIVE"));
-                }
+            // Lấy danh sách ngữ pháp liên quan nhưng chỉ lấy bản có status = ACTIVE
+            if (grammar.getGrammarGroup() != null) {
+                List<Grammar> related = grammarService.getActiveGrammarsByGroupIdWithExamples(grammar.getGrammarGroup().getId());
+                // Loại bỏ chính nó ra khỏi danh sách liên quan nếu muốn
+                related.removeIf(g -> g.getId().equals(grammar.getId()));
+                model.addAttribute("relatedGrammars", related);
+            } else {
+                model.addAttribute("relatedGrammars",
+                        grammarService.getActiveGrammarsByLevel(grammar.getLevel()));
             }
         } catch (Exception e) {
             model.addAttribute("grammar", null);
@@ -130,15 +138,15 @@ public class TheoryController {
         return "theory/grammar";
     }
 
-    // Trang hiển thị danh sách ngữ pháp thuộc một nhóm cụ thể khi học viên bấm vào nhóm
+    // Trang hiển thị danh sách ngữ pháp thuộc một nhóm cụ thể - CHỈ LẤY STATUS = ACTIVE
     @GetMapping({"/ly-thuyet/ngu-phap-nhom", "/theory/grammar-list"})
     public String grammarListByGroup(@RequestParam(value = "groupId") Integer groupId, Model model) {
         model.addAttribute("pageTitle", "Danh sách ngữ pháp theo nhóm");
         model.addAttribute("activePage", "theory");
 
         try {
-            // Sử dụng phương thức nạp sẵn danh sách ví dụ (examples) để tránh lỗi LazyInitializationException
-            List<Grammar> grammars = grammarService.getGrammarsByGroupIdWithExamples(groupId);
+            // Chỉ lấy các mẫu ngữ pháp ACTIVE trong nhóm để học viên học
+            List<Grammar> grammars = grammarService.getActiveGrammarsByGroupIdWithExamples(groupId);
             model.addAttribute("grammars", grammars);
         } catch (Exception e) {
             model.addAttribute("grammars", java.util.Collections.emptyList());

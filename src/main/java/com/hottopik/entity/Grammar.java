@@ -25,13 +25,13 @@ public class Grammar {
     @Column(name = "level", nullable = false)
     private Short level;
 
-    @Column(name = "pattern", nullable = false, length = 100)
+    @Column(name = "pattern", nullable = false, length = 100, columnDefinition = "nvarchar(100)")
     private String pattern;
 
-    @Column(name = "translation", nullable = false, length = 200)
+    @Column(name = "translation", nullable = false, length = 200, columnDefinition = "nvarchar(200)")
     private String translation;
 
-    @Column(name = "meaning", length = 1000)
+    @Column(name = "meaning", length = 1000, columnDefinition = "nvarchar(1000)")
     private String meaning;
 
     @Lob

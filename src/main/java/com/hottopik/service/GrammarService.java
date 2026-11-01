@@ -437,4 +437,13 @@ public class GrammarService {
     public List<Grammar> getGrammarsByGroupIdWithExamples(Integer groupId) {
         return grammarRepository.findByGrammarGroupIdWithExamples(groupId);
     }
+
+    // Lấy danh sách ngữ pháp theo nhóm nhưng bắt buộc status = "ACTIVE" cho học viên
+    public List<Grammar> getActiveGrammarsByGroupIdWithExamples(Integer groupId) {
+        return grammarRepository.findByGrammarGroupIdAndStatusWithExamples(groupId, "ACTIVE");
+    }
+
+    public List<Grammar> getActiveGrammarsByLevel(Short level) {
+        return grammarRepository.findByLevelAndStatus(level, "ACTIVE");
+    }
 }
