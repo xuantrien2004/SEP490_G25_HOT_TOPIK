@@ -3,23 +3,20 @@
 <head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
 <body style="background: var(--ssak-bg); color: var(--ssak-text-main); font-family: var(--font-body);">
 <div th:replace="~{fragments/navbar :: navbar('practice')}"></div>
-<main class="container py-5" style="max-width: 640px;">
+<main class="container py-5" style="max-width: 560px;">
     <div th:if="${placementError}" class="alert alert-warning" th:text="${placementError}"></div>
-    <a th:href="@{/onboarding}" class="btn btn-sm btn-outline-secondary mb-3 rounded-3">← Chọn cách bắt đầu</a>
+    <a th:href="@{/onboarding}" class="btn btn-sm btn-outline-secondary mb-3 rounded-3">← Quay lại</a>
 
-    <section class="bg-white border rounded-4 p-4 p-md-5 shadow-sm text-center" th:if="${sheet != null}">
-        <p class="text-muted small mb-2">Kiểm tra trình độ</p>
-        <h1 class="fw-bold mb-3" style="font-family: var(--font-heading);" th:text="${sheet.paper.title()}">Bài TOPIK I</h1>
+    <section class="bg-white border rounded-4 shadow-sm p-4 p-md-5 text-center" th:if="${sheet != null}">
+        <h1 class="fw-bold mb-2" style="font-family: var(--font-heading);">Bài kiểm tra trình độ</h1>
         <p class="mb-1">20 câu · 200 điểm</p>
-        <p class="text-muted">Mỗi câu 10 điểm. Không có phần Viết.</p>
-
-        <div th:if="${!sheet.ready}" class="alert alert-warning text-start mt-4">
-            Bài này chưa sẵn sàng. Content Manager cần chốt đủ 20 câu trước.
+        <p class="text-muted mb-4">10 Nghe · 10 Đọc</p>
+        <div th:if="${!sheet.ready}" class="alert alert-warning text-start">
+            Bài chưa sẵn sàng. Content Manager cần chốt đủ 20 câu.
         </div>
-
-        <form th:if="${sheet.ready}" class="mt-4" method="post" th:action="@{/placement/start}">
+        <form th:if="${sheet.ready}" method="post" th:action="@{/placement/start}">
             <input type="hidden" name="paper" th:value="${sheet.paper.name()}">
-            <button class="btn btn-success btn-lg fw-bold px-5 py-3 rounded-3" type="submit">Xác nhận làm bài</button>
+            <button class="btn-ssak-primary px-5 py-3 rounded-pill fw-bold" type="submit">Bắt đầu</button>
         </form>
     </section>
 </main>

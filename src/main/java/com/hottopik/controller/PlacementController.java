@@ -33,6 +33,8 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -57,17 +59,17 @@ public class PlacementController {
     }
 
     @GetMapping("/placement")
-    public String intro(@RequestParam(defaultValue = "TOPIK_I") String paper, HttpSession session, Model model) {
+    public String intro(HttpSession session, Model model) {
         UserDTO user = AuthHelper.getLoggedInUser(session);
         if (user == null) return "redirect:/login";
         try {
-            Paper chosen = Paper.fromCode(paper);
+            Paper chosen = PlacementRules.learnerPaper();
             model.addAttribute("pageTitle", chosen.title());
             model.addAttribute("sheet", placement.paper(chosen.name()));
             model.addAttribute("currentUser", user);
             return "placement/intro";
         } catch (ExamDomainException e) {
-            model.addAttribute("pageTitle", "Kiểm tra trình độ");
+            model.addAttribute("pageTitle", "Bài kiểm tra trình độ");
             model.addAttribute("placementError", e.getMessage());
             model.addAttribute("currentUser", user);
             return "placement/intro";
@@ -133,9 +135,9 @@ public class PlacementController {
             model.addAttribute("result", result);
             model.addAttribute("listenPoints", attempt.getListenCorrect() * PlacementRules.POINT);
             model.addAttribute("readPoints", attempt.getReadCorrect() * PlacementRules.POINT);
+            model.addAttribute("maxPoints", PlacementRules.MAX_POINTS);
+            model.addAttribute("choices", choices(result.level()));
             model.addAttribute("currentUser", AuthHelper.getLoggedInUser(session));
-            Track stay = result.level() == 0 && result.paper() == Paper.TOPIK_II ? Track.TOPIK_I : result.paper().track();
-            model.addAttribute("stayTrack", stay.name());
             return "placement/result";
         } catch (ExamDomainException e) {
             flash.addFlashAttribute("placementError", e.getMessage());
@@ -154,8 +156,12 @@ public class PlacementController {
     }
 
     @GetMapping("/placement/muc-tieu")
-    public String goal(@RequestParam Long attempt, @RequestParam String track, HttpSession session,
-                       Model model, RedirectAttributes flash) {
+    public String goal(@RequestParam Long attempt,
+                       @RequestParam String track,
+                       @RequestParam(required = false) Integer target,
+                       @RequestParam(required = false) Integer targetI,
+                       @RequestParam(required = false) Integer targetII,
+                       HttpSession session, Model model, RedirectAttributes flash) {
         UserDTO user = AuthHelper.getLoggedInUser(session);
         if (user == null) return "redirect:/login";
         try {
@@ -163,11 +169,11 @@ public class PlacementController {
             if (taken.getCompletedAt() == null) return "redirect:/placement/play/" + attempt;
             ResultView result = placement.result(taken);
             Track chosen = Track.valueOf(track);
-            int current = chosen == Track.TOPIK_I && result.paper() == Paper.TOPIK_II ? 0 : result.level();
-            if (chosen == Track.TOPIK_II && result.paper() != Paper.TOPIK_II) {
-                throw new ExamDomainException("Hãy làm bài TOPIK II trước khi chọn mục tiêu cấp 3–6.");
+            int chosenTarget = postedTarget(chosen, target, targetI, targetII);
+            if (!PlacementRules.roadmapTargets(chosen).contains(chosenTarget)) {
+                throw new ExamDomainException("Mục tiêu không nằm trong lộ trình đã chọn.");
             }
-            fillGoal(model, user, current, chosen, attempt);
+            fillGoal(model, user, result.level(), chosen, chosenTarget, attempt);
             return "placement/goal";
         } catch (ExamDomainException | IllegalArgumentException e) {
             flash.addFlashAttribute("placementError", e.getMessage());
@@ -185,12 +191,17 @@ public class PlacementController {
                         HttpSession session, RedirectAttributes flash) {
         UserDTO user = AuthHelper.getLoggedInUser(session);
         if (user == null) return "redirect:/login";
-        String back = attempt == null ? "/placement/khai" : "/placement/muc-tieu?attempt=" + attempt + "&track=" + track;
+        String back = attempt == null ? "/placement/khai"
+                : "/placement/muc-tieu?attempt=" + attempt + "&track=" + track + "&target=" + target;
         try {
             Track chosen = resolveTrack(attempt, current, target, track, session);
-            List<Integer> allowed = PlacementRules.targets(current, chosen);
+            List<Integer> allowed = attempt == null
+                    ? PlacementRules.targets(current, chosen)
+                    : PlacementRules.roadmapTargets(chosen);
             if (!allowed.contains(target)) {
-                throw new ExamDomainException("Mục tiêu không khớp trình hiện tại.");
+                throw new ExamDomainException(attempt == null
+                        ? "Mục tiêu không khớp trình hiện tại."
+                        : "Mục tiêu không nằm trong lộ trình đã chọn.");
             }
             LocalDate end = LocalDate.parse(date);
             long days = ChronoUnit.DAYS.between(LocalDate.now(), end) + 1;
@@ -227,26 +238,50 @@ public class PlacementController {
         return ResponseEntity.ok().contentType(MediaType.parseMediaType(type)).body(new FileSystemResource(path));
     }
 
-    private void fillGoal(Model model, UserDTO user, int current, Track track, Long attempt) {
-        model.addAttribute("pageTitle", "Chọn mục tiêu");
+    private void fillGoal(Model model, UserDTO user, int current, Track track, int target, Long attempt) {
+        model.addAttribute("pageTitle", "Hoàn thành trong bao lâu");
         model.addAttribute("currentUser", user);
         model.addAttribute("currentLevel", current);
         model.addAttribute("currentLabel", PlacementRules.levelLabel(current));
         model.addAttribute("track", track);
-        model.addAttribute("targets", PlacementRules.targets(current, track));
+        model.addAttribute("targetLevel", target);
+        model.addAttribute("choiceChip", "Đã chọn lộ trình " + track.getLabel() + " · mục tiêu TOPIK " + target);
         model.addAttribute("attemptId", attempt);
         fillDates(model);
     }
 
-    /** 31 ngày kết thúc vào hôm nay + 30. Mặc định 60 ngày. */
+    /** Mốc tháng là lối tắt. Ô số ngày và ô lịch vẫn chọn bất kỳ ngày nào từ 31 đến 200. */
     private static void fillDates(Model model) {
         LocalDate today = LocalDate.now();
+        int days = PlacementRules.defaultSpan();
         model.addAttribute("minDays", PlacementRules.MIN_DAYS);
         model.addAttribute("maxDays", PlacementRules.MAX_DAYS);
-        model.addAttribute("goalDays", PlacementRules.DEFAULT_DAYS);
-        model.addAttribute("goalDate", today.plusDays(PlacementRules.DEFAULT_DAYS - 1L));
+        model.addAttribute("goalDays", days);
+        model.addAttribute("goalDate", today.plusDays(days - 1L));
         model.addAttribute("earliest", today.plusDays(PlacementRules.MIN_DAYS - 1L));
         model.addAttribute("latest", today.plusDays(PlacementRules.MAX_DAYS - 1L));
+        model.addAttribute("dayMarks", PlacementRules.dayMarks());
+    }
+
+    private static int postedTarget(Track track, Integer target, Integer targetI, Integer targetII) {
+        if (target != null) return target;
+        Integer fromRow = track == Track.TOPIK_I ? targetI : targetII;
+        return fromRow == null ? PlacementRules.defaultTarget(track) : fromRow;
+    }
+
+    private static List<Map<String, Object>> choices(int level) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (Track track : PlacementRules.choiceOrder(level)) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("track", track);
+            row.put("label", PlacementRules.choiceLabel(track, level));
+            row.put("suggested", track == PlacementRules.suggestedTrack(level));
+            row.put("defaultTarget", PlacementRules.defaultTarget(track));
+            row.put("targets", PlacementRules.roadmapTargets(track));
+            row.put("field", track == Track.TOPIK_I ? "targetI" : "targetII");
+            rows.add(row);
+        }
+        return rows;
     }
 
     private Track resolveTrack(Long attempt, int current, int target, String track, HttpSession session) {

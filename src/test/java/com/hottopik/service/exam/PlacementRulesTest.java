@@ -45,24 +45,29 @@ class PlacementRulesTest {
     }
 
     @Test
-    void scoreBandsAndTopikTwoOffer() {
+    void scoreBandsSuggestARoadmapWithoutASecondPaper() {
         assertEquals(0, PlacementRules.suggestedLevel(Paper.TOPIK_I, 79));
         assertEquals(1, PlacementRules.suggestedLevel(Paper.TOPIK_I, 80));
         assertEquals(1, PlacementRules.suggestedLevel(Paper.TOPIK_I, 139));
         assertEquals(2, PlacementRules.suggestedLevel(Paper.TOPIK_I, 140));
-        assertEquals(0, PlacementRules.suggestedLevel(Paper.TOPIK_II, 79));
-        assertEquals(3, PlacementRules.suggestedLevel(Paper.TOPIK_II, 80));
-        assertEquals(3, PlacementRules.suggestedLevel(Paper.TOPIK_II, 99));
-        assertEquals(4, PlacementRules.suggestedLevel(Paper.TOPIK_II, 100));
-        assertEquals(4, PlacementRules.suggestedLevel(Paper.TOPIK_II, 129));
-        assertEquals(5, PlacementRules.suggestedLevel(Paper.TOPIK_II, 130));
-        assertEquals(5, PlacementRules.suggestedLevel(Paper.TOPIK_II, 159));
-        assertEquals(6, PlacementRules.suggestedLevel(Paper.TOPIK_II, 160));
-        assertEquals(79, PlacementRules.percent(159));
-        assertEquals(80, PlacementRules.percent(160));
-        assertFalse(PlacementRules.offerTopikII(Paper.TOPIK_I, 159));
-        assertTrue(PlacementRules.offerTopikII(Paper.TOPIK_I, 160));
-        assertFalse(PlacementRules.offerTopikII(Paper.TOPIK_II, 200));
+        assertEquals(Track.TOPIK_I, PlacementRules.suggestedTrack(0));
+        assertEquals(Track.TOPIK_I, PlacementRules.suggestedTrack(1));
+        assertEquals(Track.TOPIK_II, PlacementRules.suggestedTrack(2));
+        assertEquals("Nên chọn", PlacementRules.choiceLabel(Track.TOPIK_I, 0));
+        assertEquals("Vẫn chọn được", PlacementRules.choiceLabel(Track.TOPIK_II, 1));
+        assertEquals("Học lại", PlacementRules.choiceLabel(Track.TOPIK_I, 2));
+        assertEquals("Nên chọn", PlacementRules.choiceLabel(Track.TOPIK_II, 2));
+        assertEquals(java.util.List.of(1, 2), PlacementRules.roadmapTargets(Track.TOPIK_I));
+        assertEquals(java.util.List.of(3, 4, 5, 6), PlacementRules.roadmapTargets(Track.TOPIK_II));
+        assertTrue(PlacementRules.advice(70).startsWith("Chưa đạt cấp 1."));
+        assertTrue(PlacementRules.advice(80).contains("khoảng TOPIK 1"));
+        assertTrue(PlacementRules.advice(140).contains("lộ trình TOPIK II"));
+        assertFalse(PlacementRules.advice(200).contains("làm thêm"));
+        assertEquals(java.util.List.of(31, 60, 90, 180), PlacementRules.dayMarks().stream().map(PlacementRules.DayMark::days).toList());
+        assertEquals("1 tháng", PlacementRules.dayMarks().get(0).label());
+        assertEquals("2 tháng", PlacementRules.dayMarks().get(1).label());
+        assertEquals("6 tháng", PlacementRules.dayMarks().get(3).label());
+        assertEquals(90, PlacementRules.defaultSpan());
         assertEquals(200, PlacementRules.points(20));
     }
 

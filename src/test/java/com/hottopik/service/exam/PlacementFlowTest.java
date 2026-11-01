@@ -55,9 +55,12 @@ class PlacementFlowTest {
     void threeEntryCardsDoNotAskForALevel() throws Exception {
         mvc.perform(get("/onboarding"))
                 .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Bạn muốn bắt đầu thế nào?")))
                 .andExpect(content().string(containsString("Mình chưa biết trình độ")))
-                .andExpect(content().string(containsString("Mình đã qua TOPIK I")))
+                .andExpect(content().string(containsString("Làm một bài kiểm tra trình độ, 20 câu, 200 điểm.")))
                 .andExpect(content().string(containsString("Mình biết trình độ")))
+                .andExpect(content().string(containsString("Khai cấp hiện tại và mục tiêu, không làm bài.")))
+                .andExpect(content().string(not(containsString("Mình đã qua TOPIK I"))))
                 .andExpect(content().string(containsString("/placement/khai")))
                 .andExpect(content().string(not(containsString("<select"))));
 
@@ -68,16 +71,19 @@ class PlacementFlowTest {
                 .andExpect(content().string(containsString("name=\"target\"")))
                 .andExpect(content().string(containsString("name=\"days\"")))
                 .andExpect(content().string(containsString("name=\"date\"")))
-                .andExpect(content().string(containsString("50 ngày")))
-                .andExpect(content().string(containsString("không chọn ở màn ba thẻ")));
+                .andExpect(content().string(containsString("3 tháng")))
+                .andExpect(content().string(containsString("6 tháng")))
+                .andExpect(content().string(not(containsString("66 ngày"))));
     }
 
     @Test
     void contentManagerLocksTenAndTenAndHidesGroupedTypes() throws Exception {
         mvc.perform(get("/content/placement").sessionAttr(AuthHelper.SESSION_KEY, CONTENT))
                 .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Bài kiểm tra trình độ")))
                 .andExpect(content().string(containsString("I-N1")))
                 .andExpect(content().string(containsString("Chọn câu trả lời phù hợp")))
+                .andExpect(content().string(not(containsString("II-N1"))))
                 .andExpect(content().string(not(containsString("Một đoạn nghe, 2 câu hỏi"))))
                 .andExpect(content().string(not(containsString("II-V1"))));
 
@@ -90,61 +96,50 @@ class PlacementFlowTest {
     }
 
     @Test
-    void topikOneShowsPointsAndOffersTopikTwoAtEightyPercent() throws Exception {
+    void onePaperThenEachScoreBandStillBuildsEitherRoadmap() throws Exception {
         bank(Paper.TOPIK_I);
-        mvc.perform(get("/placement").param("paper", "TOPIK_I").sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
+        mvc.perform(get("/placement").sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Bài TOPIK I")))
-                .andExpect(content().string(containsString("20 câu")))
-                .andExpect(content().string(containsString("Xác nhận làm bài")))
-                .andExpect(content().string(not(containsString("Chọn câu trả lời phù hợp"))))
-                .andExpect(content().string(not(containsString("I-N1"))));
+                .andExpect(content().string(containsString("Bài kiểm tra trình độ")))
+                .andExpect(content().string(containsString("20 câu · 200 điểm")))
+                .andExpect(content().string(containsString("10 Nghe · 10 Đọc")))
+                .andExpect(content().string(containsString("Bắt đầu")))
+                .andExpect(content().string(not(containsString("Một bài duy nhất"))))
+                .andExpect(content().string(not(containsString("Bài TOPIK"))));
 
-        long id = start("TOPIK_I");
-        mvc.perform(get("/placement/play/" + id).sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
+        long low = start(Paper.TOPIK_I.name());
+        answer(low, 7);
+        mvc.perform(get("/placement/result/" + low).sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("(Đề mẫu")))
-                .andExpect(content().string(containsString("answer_")));
+                .andExpect(content().string(containsString("70/200")))
+                .andExpect(content().string(containsString("Chưa đạt cấp 1. Hệ thống gợi ý lộ trình TOPIK I, mục tiêu cấp 1 hoặc 2. Bạn vẫn tự chọn.")))
+                .andExpect(content().string(containsString("Nên chọn")))
+                .andExpect(content().string(containsString("Vẫn chọn được")))
+                .andExpect(content().string(not(containsString("Làm bài TOPIK II"))))
+                .andExpect(content().string(not(containsString("làm thêm"))));
+        openRoadmap(low, "TOPIK_II", 3, 70);
 
-        var submit = post("/placement/submit/" + id).sessionAttr(AuthHelper.SESSION_KEY, LEARNER);
-        for (Question question : placed(id)) {
-            submit.param("answer_" + question.getId(), String.valueOf(question.getAnswerIndex()));
-        }
-        mvc.perform(submit).andExpect(redirectedUrl("/placement/result/" + id));
-
-        mvc.perform(get("/placement/result/" + id).sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
+        long middle = start(Paper.TOPIK_I.name());
+        answer(middle, 8);
+        mvc.perform(get("/placement/result/" + middle).sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("200/200")))
-                .andExpect(content().string(containsString("80%")))
-                .andExpect(content().string(containsString("Làm bài TOPIK II")))
-                .andExpect(content().string(containsString("Chọn mục tiêu và sinh lộ trình")));
+                .andExpect(content().string(containsString("80/200")))
+                .andExpect(content().string(containsString("Trình hiện tại khoảng TOPIK 1. Hệ thống gợi ý lộ trình TOPIK I. Bạn tự cân nhắc.")));
+        openRoadmap(middle, "TOPIK_II", 3, 70);
 
-        mvc.perform(get("/placement/muc-tieu").param("attempt", String.valueOf(id)).param("track", "TOPIK_II")
-                        .sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
-                .andExpect(redirectedUrl("/placement/result/" + id))
-                .andExpect(flash().attribute("placementError", containsString("TOPIK II")));
-
-        mvc.perform(get("/placement/muc-tieu").param("attempt", String.valueOf(id)).param("track", "TOPIK_I")
-                        .sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
+        long high = start(Paper.TOPIK_I.name());
+        answer(high, 14);
+        mvc.perform(get("/placement/result/" + high).sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("TOPIK 2")))
-                .andExpect(content().string(containsString("Số ngày")))
-                .andExpect(content().string(containsString("50 ngày")))
-                .andExpect(content().string(containsString("Sinh lộ trình")));
-    }
-
-    @Test
-    void lowTopikTwoScoreSendsTheLearnerBackToTopikOne() throws Exception {
-        bank(Paper.TOPIK_II);
-        long id = start("TOPIK_II");
-        mvc.perform(post("/placement/submit/" + id).sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
-                .andExpect(redirectedUrl("/placement/result/" + id));
-        mvc.perform(get("/placement/result/" + id).sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("0/200")))
-                .andExpect(content().string(containsString("Nên về lộ trình TOPIK I")))
-                .andExpect(content().string(containsString("track=TOPIK_I")))
-                .andExpect(content().string(not(containsString("Làm bài TOPIK II"))));
+                .andExpect(content().string(containsString("140/200")))
+                .andExpect(content().string(containsString("Trình hiện tại TOPIK 2. Lộ trình TOPIK I đã vững. Hệ thống gợi ý lộ trình TOPIK II. Học lại TOPIK I vẫn được.")))
+                .andExpect(content().string(containsString("Học lại")));
+        mvc.perform(post("/placement/sinh").sessionAttr(AuthHelper.SESSION_KEY, LEARNER)
+                        .param("attempt", String.valueOf(high)).param("track", "TOPIK_I")
+                        .param("current", "2").param("target", "2")
+                        .param("date", LocalDate.now().plusDays(59).toString()).param("minutes", "20"))
+                .andExpect(redirectedUrl("/lo-trinh"));
+        openRoadmap(high, "TOPIK_I", 2, 65);
     }
 
     @Test
@@ -163,13 +158,43 @@ class PlacementFlowTest {
 
         mvc.perform(post("/placement/sinh").sessionAttr(AuthHelper.SESSION_KEY, LEARNER)
                         .param("current", "0").param("target", "2")
-                        .param("date", LocalDate.now().plusDays(60).toString()).param("minutes", "20"))
+                        .param("date", LocalDate.now().plusDays(70).toString()).param("minutes", "20"))
                 .andExpect(redirectedUrl("/lo-trinh"));
 
         mvc.perform(get("/lo-trinh").sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("TOPIK I")))
                 .andExpect(content().string(containsString("TOPIK 0 → TOPIK 2")));
+    }
+
+    private void answer(long id, int correct) throws Exception {
+        var submit = post("/placement/submit/" + id).sessionAttr(AuthHelper.SESSION_KEY, LEARNER);
+        List<Question> paper = placed(id);
+        for (int i = 0; i < correct && i < paper.size(); i++) {
+            submit.param("answer_" + paper.get(i).getId(), String.valueOf(paper.get(i).getAnswerIndex()));
+        }
+        mvc.perform(submit).andExpect(redirectedUrl("/placement/result/" + id));
+    }
+
+    private void openRoadmap(long id, String track, int target, int plusDays) throws Exception {
+        String chip = "Đã chọn lộ trình " + ("TOPIK_II".equals(track) ? "TOPIK II" : "TOPIK I")
+                + " · mục tiêu TOPIK " + target;
+        mvc.perform(get("/placement/muc-tieu").param("attempt", String.valueOf(id))
+                        .param("track", track).param("target", String.valueOf(target))
+                        .sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(chip)))
+                .andExpect(content().string(containsString("Hoàn thành trong bao lâu")))
+                .andExpect(content().string(containsString("Sinh lộ trình")))
+                .andExpect(content().string(containsString("3 tháng")))
+                .andExpect(content().string(containsString("6 tháng")))
+                .andExpect(content().string(not(containsString("66 ngày"))));
+
+        mvc.perform(post("/placement/sinh").sessionAttr(AuthHelper.SESSION_KEY, LEARNER)
+                        .param("attempt", String.valueOf(id)).param("track", track)
+                        .param("current", "0").param("target", String.valueOf(target))
+                        .param("date", LocalDate.now().plusDays(plusDays).toString()).param("minutes", "20"))
+                .andExpect(redirectedUrl("/lo-trinh"));
     }
 
     private long start(String paper) throws Exception {

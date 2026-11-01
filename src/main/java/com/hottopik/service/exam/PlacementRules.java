@@ -17,14 +17,12 @@ public final class PlacementRules {
     public static final int SKILL_QUOTA = 10;
     public static final int POINT = 10;
     public static final int MAX_POINTS = SKILL_QUOTA * 2 * POINT;
-    public static final int TOPIK_II_OFFER = 160;
     public static final int MIN_DAYS = 31;
     public static final int MAX_DAYS = 200;
-    public static final int DEFAULT_DAYS = 60;
 
     public enum Paper {
-        TOPIK_I(Track.TOPIK_I, "Bài TOPIK I"),
-        TOPIK_II(Track.TOPIK_II, "Bài TOPIK II");
+        TOPIK_I(Track.TOPIK_I, "Bài kiểm tra trình độ"),
+        TOPIK_II(Track.TOPIK_II, "Bài kiểm tra trình độ");
 
         private final Track track;
         private final String title;
@@ -54,6 +52,11 @@ public final class PlacementRules {
                 throw new ExamDomainException("Bài kiểm tra không hợp lệ.");
             }
         }
+    }
+
+    /** Học viên chỉ làm một bài. Câu lấy từ các dạng một câu sơ cấp. */
+    public static Paper learnerPaper() {
+        return Paper.TOPIK_I;
     }
 
     private PlacementRules() {
@@ -145,21 +148,63 @@ public final class PlacementRules {
         return Math.max(0, scorePoints) * 100 / MAX_POINTS;
     }
 
+    /** Dưới 80 là 0, từ 80 đến 139 là 1, từ 140 là 2. Điểm chỉ để khuyên. */
     public static int suggestedLevel(Paper paper, int scorePoints) {
-        if (paper == Paper.TOPIK_I) {
-            if (scorePoints >= 140) return 2;
-            if (scorePoints >= 80) return 1;
-            return 0;
-        }
-        if (scorePoints >= 160) return 6;
-        if (scorePoints >= 130) return 5;
-        if (scorePoints >= 100) return 4;
-        if (scorePoints >= 80) return 3;
+        if (scorePoints >= 140) return 2;
+        if (scorePoints >= 80) return 1;
         return 0;
     }
 
-    public static boolean offerTopikII(Paper paper, int scorePoints) {
-        return paper == Paper.TOPIK_I && scorePoints >= TOPIK_II_OFFER;
+    /** Mức 0 và 1 gợi ý lộ trình TOPIK I. Mức 2 gợi ý lộ trình TOPIK II. */
+    public static Track suggestedTrack(int level) {
+        return level >= 2 ? Track.TOPIK_II : Track.TOPIK_I;
+    }
+
+    public static String advice(int scorePoints) {
+        if (scorePoints < 80) {
+            return "Chưa đạt cấp 1. Hệ thống gợi ý lộ trình TOPIK I, mục tiêu cấp 1 hoặc 2. Bạn vẫn tự chọn.";
+        }
+        if (scorePoints < 140) {
+            return "Trình hiện tại khoảng TOPIK 1. Hệ thống gợi ý lộ trình TOPIK I. Bạn tự cân nhắc.";
+        }
+        return "Trình hiện tại TOPIK 2. Lộ trình TOPIK I đã vững. Hệ thống gợi ý lộ trình TOPIK II. Học lại TOPIK I vẫn được.";
+    }
+
+    public static String choiceLabel(Track track, int level) {
+        if (track == suggestedTrack(level)) return "Nên chọn";
+        if (level >= 2 && track == Track.TOPIK_I) return "Học lại";
+        return "Vẫn chọn được";
+    }
+
+    /** Dropdown của lộ trình: TOPIK I là cấp 1–2, TOPIK II là cấp 3–6. */
+    public static List<Integer> roadmapTargets(Track track) {
+        return track == Track.TOPIK_I ? List.of(1, 2) : List.of(3, 4, 5, 6);
+    }
+
+    public static int defaultTarget(Track track) {
+        return track == Track.TOPIK_I ? 2 : 3;
+    }
+
+    public static List<Track> choiceOrder(int level) {
+        Track suggested = suggestedTrack(level);
+        Track other = suggested == Track.TOPIK_I ? Track.TOPIK_II : Track.TOPIK_I;
+        return List.of(suggested, other);
+    }
+
+    /** Mốc gợi ý. 1 tháng lấy 31 ngày vì lịch nhận từ 31 đến 200. */
+    public record DayMark(int days, String label) {
+    }
+
+    public static List<DayMark> dayMarks() {
+        return List.of(
+                new DayMark(31, "1 tháng"),
+                new DayMark(60, "2 tháng"),
+                new DayMark(90, "3 tháng"),
+                new DayMark(180, "6 tháng"));
+    }
+
+    public static int defaultSpan() {
+        return 90;
     }
 
     public static String levelLabel(int level) {

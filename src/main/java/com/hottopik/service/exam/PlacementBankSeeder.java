@@ -34,7 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Profile local: chép câu đơn từ đề mẫu và soạn sẵn bài TOPIK I, TOPIK II nếu chưa có. */
+/** Profile local: chép câu đơn sơ cấp và soạn sẵn một bài kiểm tra trình độ nếu chưa có. */
 @Component
 @Profile("local")
 @Order(40)
@@ -74,14 +74,11 @@ public class PlacementBankSeeder implements ApplicationRunner {
             if (!PlacementRules.singleQuestion(type)) continue;
             donors.computeIfAbsent(type.code(), key -> new ArrayList<>()).add(question);
         }
-        Map<String, Integer> needed = new HashMap<>();
-        for (Paper paper : Paper.values()) {
-            PlacementRules.demo(paper).forEach((code, count) -> needed.merge(code, count, Math::max));
-        }
+        Paper paper = PlacementRules.learnerPaper();
+        Map<String, Integer> needed = new HashMap<>(PlacementRules.demo(paper));
         topUp(donors, needed);
 
-        for (Paper paper : Paper.values()) {
-            if (!lines.findByPaperCodeOrderBySortOrderAsc(paper.name()).isEmpty()) continue;
+        if (lines.findByPaperCodeOrderBySortOrderAsc(paper.name()).isEmpty()) {
             placement.save(paper.name(), PlacementRules.demo(paper));
             log.info("Đã soạn {}: 10 Nghe + 10 Đọc.", paper.title());
         }

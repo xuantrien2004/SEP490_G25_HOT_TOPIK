@@ -15,14 +15,14 @@
     <section th:if="${plan != null}">
         <header class="lr-head">
             <div>
-                <p class="lr-level" th:if="${levelPath != null}" th:text="${levelPath}">TOPIK 3 → TOPIK 4</p>
-                <p class="lr-level" th:if="${levelPath == null}" th:text="${plan.track}">TOPIK II</p>
+                <p class="lr-level" th:if="${levelPath != null}" th:text="${plan.track + ' · ' + levelPath + ' · ' + plan.totalDays + ' ngày'}">TOPIK I · TOPIK 2 · 90 ngày</p>
+                <p class="lr-level" th:if="${levelPath == null}" th:text="${plan.track + ' · ' + plan.totalDays + ' ngày'}">TOPIK II · 90 ngày</p>
                 <h1>Hành trình của <span th:text="${learnerName}">bạn</span></h1>
             </div>
             <div class="lr-head-actions">
                 <button type="button" class="btn-makeup" id="makeupJump" hidden>Còn 0 bài làm bù</button>
                 <a class="btn-soft" th:href="@{/lo-trinh/tao}">Sắp nhập lộ trình</a>
-                <a class="btn-soft btn-soft-dark" th:href="@{/lo-trinh/dieu-chinh}">Điều chỉnh lộ trình</a>
+                <a class="btn-soft btn-soft-dark" th:href="@{/lo-trinh/dieu-chinh}">Điều chỉnh</a>
             </div>
         </header>
         <div class="lr-phases" id="phaseBar">
@@ -60,7 +60,6 @@
                         <div class="lr-legend">
                             <span><i class="swatch" style="background:#1F6B56;"></i> Xong</span>
                             <span><i class="swatch" style="background:#F0B429;"></i> Còn thiếu bài</span>
-                            <span><i class="swatch" style="background:#fff; border:1.5px dashed #8E71C8;"></i> Ôn tuần</span>
                             <span><i class="swatch" style="background:#E8F3FB; border:1.5px solid #8FB7D6;"></i> Mini test</span>
                             <span><i class="swatch" style="background:#FDECEC; border:1.5px solid #E7B1B1;"></i> Full test</span>
                             <span><i class="swatch" style="background:#fff; border:2.5px solid #24363D;"></i> Hôm nay</span>
@@ -95,14 +94,7 @@
 
                 <div class="lr-note">
                     <span>🌱</span>
-                    <p style="margin:0;">
-                        Mỗi ô là một dạng trong bản Content Manager, không phải khoảng số câu.
-                        Ngày chia hết cho 7 có <b>Ôn tuần</b> khoảng
-                        <span th:text="${plan.weeklyQuestions}">20</span> câu.
-                        Ô còn trống là <b>Mini test</b> Nghe và Đọc xen kẽ. Hai ô trống cuối cùng là <b>Full test</b>.
-                        Nộp bài xong thì lịch tự tính.
-                        Mỗi dạng tính tối đa <span th:text="${plan.sessions}">4</span> lần.
-                    </p>
+                    <p style="margin:0;">Ôn vào ngày +2, +7 và +14. Ngày trống là ngày chờ mốc.</p>
                 </div>
             </aside>
         </div>
@@ -201,7 +193,7 @@
         if (!data.slots.length) {
             var empty = document.createElement("div");
             empty.className = "task-block";
-            empty.innerHTML = '<span class="task-name">Không có bài</span>';
+            empty.innerHTML = '<span class="task-name">Trống, chờ mốc</span>';
             card.appendChild(empty);
             return card;
         }
@@ -254,7 +246,7 @@
                 else if (hasKind(data, "MINI")) cell.classList.add("mini");
                 else if (hasWeekly(data)) cell.classList.add("weekly");
                 if (dayNum === selectedDay) cell.classList.add("selected");
-                cell.textContent = hasWeekly(data) && !allDone ? dayNum + " ôn" : String(dayNum);
+                cell.textContent = String(dayNum);
                 cell.onclick = (function (n) { return function () { choose(n, firstOpen(n)); }; })(dayNum);
                 grid.appendChild(cell);
             }

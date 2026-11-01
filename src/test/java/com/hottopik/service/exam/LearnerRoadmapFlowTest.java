@@ -66,13 +66,13 @@ class LearnerRoadmapFlowTest {
                 .andExpect(content().string(not(containsString("Nghe 1–"))))
                 .andExpect(content().string(containsString("Bắt đầu")));
 
-        mvc.perform(get("/lo-trinh/tao").param("track", "TOPIK_II").param("days", "60")
+        mvc.perform(get("/lo-trinh/tao").param("track", "TOPIK_II").param("days", "90")
                         .sessionAttr(AuthHelper.SESSION_KEY, learner))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Nghe và chọn tranh hoặc biểu đồ")))
                 .andExpect(content().string(not(containsString("TPL2-WRI-01"))));
 
-        mvc.perform(post("/lo-trinh").param("track", "TOPIK_II").param("days", "60").param("minutes", "20")
+        mvc.perform(post("/lo-trinh").param("track", "TOPIK_II").param("days", "90").param("minutes", "20")
                         .sessionAttr(AuthHelper.SESSION_KEY, learner))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/lo-trinh"));
@@ -93,7 +93,13 @@ class LearnerRoadmapFlowTest {
                 .andExpect(content().string(containsString("2,7,14")))
                 .andExpect(content().string(containsString("40,40,20")))
                 .andExpect(content().string(containsString("Mỗi dạng học")))
-                .andExpect(content().string(not(containsString("Số bài mỗi ngày"))));
+                .andExpect(content().string(containsString("1 tháng")))
+                .andExpect(content().string(containsString("6 tháng")))
+                .andExpect(content().string(containsString("name=\"date\"")))
+                .andExpect(content().string(not(containsString("Số bài mỗi ngày"))))
+                .andExpect(content().string(not(containsString("Dùng số ngày ít nhất"))))
+                .andExpect(content().string(not(containsString("93 ngày"))))
+                .andExpect(content().string(not(containsString("4 tháng"))));
 
         mvc.perform(post("/lo-trinh/dieu-chinh").param("track", "TOPIK_II").param("days", "31").param("minutes", "20")
                         .sessionAttr(AuthHelper.SESSION_KEY, learner))
@@ -104,8 +110,9 @@ class LearnerRoadmapFlowTest {
                 .andExpect(status().isOk());
 
         int shortest = roadmaps.minimumDays(Track.TOPIK_II);
-        assertTrue(roadmaps.lessonsFor(roadmaps.published(), Track.TOPIK_II, shortest) > 2);
-        assertEquals(2, roadmaps.lessonsFor(roadmaps.published(), Track.TOPIK_II, 120));
+        assertEquals(31, shortest);
+        assertEquals(3, roadmaps.lessonsFor(roadmaps.published(), Track.TOPIK_II, shortest));
+        assertEquals(1, roadmaps.lessonsFor(roadmaps.published(), Track.TOPIK_II, 120));
 
         mvc.perform(post("/lo-trinh/dieu-chinh").param("track", "TOPIK_II").param("days", "120").param("minutes", "30")
                         .sessionAttr(AuthHelper.SESSION_KEY, learner))
@@ -116,7 +123,7 @@ class LearnerRoadmapFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("\"totalDays\":120")))
                 .andExpect(content().string(containsString("\"minutes\":30")))
-                .andExpect(content().string(containsString("\"itemsPerDay\":2")))
+                .andExpect(content().string(containsString("\"itemsPerDay\":1")))
                 .andExpect(content().string(containsString("1:0")));
 
         int[] position = practiceSlot(learner, "TPL2-LIS-01");
@@ -166,6 +173,41 @@ class LearnerRoadmapFlowTest {
                 .andExpect(content().string(containsString("đã được tính vào lộ trình")))
                 .andExpect(content().string(not(containsString("Đánh dấu xong"))));
         assertTrue(doneKeys(learner).contains(doneKey));
+    }
+
+    @Test
+    void oldScreensUseTheSameMonthMarksAndTheSameShortCalendarSentence() throws Exception {
+        UserDTO learner = new UserDTO(9L, "minh", "learner@hottopik.com", "", "Phạm Minh Anh",
+                "ROLE_USER", "Học viên", "ACTIVE", "", "", "TOPIK_4", "TOPIK_3", false, null);
+
+        mvc.perform(get("/lo-trinh/tao").sessionAttr(AuthHelper.SESSION_KEY, learner))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("1 tháng")))
+                .andExpect(content().string(containsString("2 tháng")))
+                .andExpect(content().string(containsString("3 tháng")))
+                .andExpect(content().string(containsString("6 tháng")))
+                .andExpect(content().string(containsString("value=\"90\"")))
+                .andExpect(content().string(containsString("name=\"date\"")))
+                .andExpect(content().string(containsString("name=\"days\"")))
+                .andExpect(content().string(not(containsString("93 ngày"))))
+                .andExpect(content().string(not(containsString("4 tháng"))))
+                .andExpect(content().string(not(containsString("66 ngày"))));
+
+        mvc.perform(get("/lo-trinh/tao").param("track", "TOPIK_I").param("days", "31")
+                        .sessionAttr(AuthHelper.SESSION_KEY, learner))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Ngày học mới đầu có")))
+                .andExpect(content().string(containsString("ngày học mới cuối có")))
+                .andExpect(content().string(not(containsString("chưa đủ chỗ"))));
+
+        mvc.perform(post("/lo-trinh").param("track", "TOPIK_I").param("days", "60").param("minutes", "20")
+                        .sessionAttr(AuthHelper.SESSION_KEY, learner))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/lo-trinh"));
+
+        mvc.perform(get("/lo-trinh").sessionAttr(AuthHelper.SESSION_KEY, learner))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("TOPIK I · TOPIK 3 → TOPIK 4 · 60 ngày")));
     }
 
     @Test

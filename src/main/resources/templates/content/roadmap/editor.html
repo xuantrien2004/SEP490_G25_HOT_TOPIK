@@ -28,7 +28,7 @@
 
             <section class="cm-card">
                 <h2>Quy tắc xếp lịch</h2>
-                <p class="cm-muted">Lần 1 là bài mới. Các lần sau là bài ôn, cách bài mới đúng số ngày ở mốc ôn. Ngày thứ 7, 14, 21… dành một ô cho ôn tuần.</p>
+                <p class="cm-muted">Lần 1 là bài mới, Nghe và Đọc xếp xen kẽ. Bài ôn khóa đúng mốc, không dời sang ngày khác. Ngày ôn bị trùng thì thêm một chỗ. Năm ngày cuối là mini test Đọc, mini test Nghe, mini test Đọc, mini test Nghe và full test.</p>
                 <form class="cm-form" style="margin-top: 14px;" method="post" th:action="@{/content/roadmap/{id}/settings(id=${program.id})}">
                     <div>
                         <label for="reviews">Mốc ôn (ngày)</label>
@@ -134,8 +134,6 @@
                             </select>
                             <label class="cm-muted" for="days">Số ngày</label>
                             <input id="days" class="form-control ssak-input" type="number" name="days" min="31" max="200" th:value="${days}" style="width: 96px;">
-                            <label class="cm-muted" for="perDay">Bài/ngày</label>
-                            <input id="perDay" class="form-control ssak-input" type="number" name="perDay" min="1" max="4" th:value="${perDay}" style="width: 80px;">
                             <button class="btn btn-ssak-outline btn-sm" type="submit">Xem lịch</button>
                         </div>
                     </form>
@@ -150,7 +148,9 @@
                     <p class="cm-muted" style="margin: 10px 0;">
                         <span th:text="${preview.newCount + ' bài mới'}">0</span>
                         · <span th:text="${preview.reviewCount + ' bài ôn'}">0</span>
-                        · <span th:text="${preview.weeklyCount + ' buổi ôn tuần, mỗi buổi ' + program.weeklyReviewQuestions + ' câu'}">ôn tuần</span>
+                        · <span th:text="${preview.heavyNewDays > 0
+                            ? ('ngày học mới đầu ' + preview.baseQuota + ' bài, ' + preview.heavyNewDays + ' ngày cuối ' + (preview.baseQuota + 1) + ' bài')
+                            : ('mỗi ngày học mới ' + preview.baseQuota + ' bài')}">mỗi ngày học mới 1 bài</span>
                         · <span th:text="${preview.miniCount + ' mini test'}">mini</span>
                         · <span th:text="${preview.fullCount + ' full test'}">full</span>
                         · mỗi bài mới hoặc bài ôn lấy <span th:text="${program.questionsPerSession}">8</span> câu của dạng.
@@ -165,7 +165,7 @@
                         <article class="rd-day" th:each="day : ${previewDays}">
                             <div class="n" th:text="${'Ngày ' + day.day + ' · tuần ' + day.week}">Ngày 1</div>
                             <div class="cm-muted" th:text="${day.phase}">Làm quen</div>
-                            <div th:if="${#lists.isEmpty(day.slots)}" class="rd-slot">Trống</div>
+                            <div th:if="${#lists.isEmpty(day.slots)}" class="rd-slot">Trống, chờ mốc</div>
                             <div th:each="slot : ${day.slots}" class="rd-slot"
                                  th:classappend="${slot.kind == 'NEW'} ? 'new' : (${slot.kind == 'WEEKLY'} ? 'weekly' : (${slot.kind == 'MINI' or slot.kind == 'FULL'} ? 'weekly' : 'review'))">
                                 <span th:if="${slot.kind == 'WEEKLY'}">Ôn tuần</span>

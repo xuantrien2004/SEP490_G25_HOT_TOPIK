@@ -59,8 +59,8 @@ public class ContentRoadmapController {
 
     @GetMapping("/{id}")
     public String editor(@PathVariable Long id,
-                         @RequestParam(defaultValue = "60") int days,
-                         @RequestParam(defaultValue = "2") int perDay,
+                         @RequestParam(defaultValue = "90") int days,
+                         @RequestParam(defaultValue = "0") int perDay,
                          @RequestParam(defaultValue = "TOPIK_I") String track,
                          HttpSession session, HttpServletRequest request, Model model) {
         UserDTO user = viewer(session);
@@ -86,7 +86,7 @@ public class ContentRoadmapController {
         model.addAttribute("days", days);
         model.addAttribute("perDay", perDay);
         try {
-            RoadmapSketch.Result preview = programs.preview(program, previewTrack, days, perDay);
+            RoadmapSketch.Result preview = programs.preview(program, previewTrack, days);
             model.addAttribute("preview", preview);
             model.addAttribute("previewDays", preview.days().stream().limit(21).toList());
             model.addAttribute("shortfalls", RoadmapSketch.incomplete(preview, program.getSessionsPerType()));

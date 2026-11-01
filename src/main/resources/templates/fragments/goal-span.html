@@ -1,15 +1,19 @@
 <div th:fragment="fields">
-    <div>
+    <div id="goalSpan" th:data-start="${spanStart}" th:data-live="${liveSpan}">
         <div class="d-flex justify-content-between align-items-center mb-2">
             <span class="fw-bold">Học trong bao lâu</span>
-            <span class="badge text-bg-light border" id="goalSpanNote" th:text="${goalDays} + ' ngày'">60 ngày</span>
+            <span class="badge text-bg-light border" id="goalSpanNote" th:text="${goalDays} + ' ngày'">90 ngày</span>
         </div>
-        <div class="d-flex flex-wrap gap-2 mb-3">
-            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="setGoalDays(31)">31 ngày</button>
-            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="setGoalDays(50)">50 ngày</button>
-            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="setGoalDays(60)">60 ngày</button>
-            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="setGoalDays(90)">90 ngày</button>
-            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="setGoalDays(120)">120 ngày</button>
+        <div class="row g-2 mb-3" id="dayMarks">
+            <div class="col-6 col-md-3" th:each="mark : ${dayMarks}">
+                <button type="button" class="span-choice"
+                        th:classappend="${mark.days == goalDays} ? 'is-on'"
+                        th:data-days="${mark.days}"
+                        th:attr="onclick=|setGoalDays(${mark.days})|">
+                    <span th:text="${mark.label}">3 tháng</span>
+                    <small th:text="${mark.days} + ' ngày'">90 ngày</small>
+                </button>
+            </div>
         </div>
         <div class="row g-3">
             <div class="col-sm-4">
@@ -25,22 +29,41 @@
                 </label>
             </div>
         </div>
-        <p class="text-muted small mt-2 mb-0">Tối thiểu <span th:text="${minDays}">31</span> ngày, tối đa <span th:text="${maxDays}">200</span> ngày. Gõ số ngày thì lịch đổi theo. Chọn lịch thì số ngày đổi theo.</p>
+        <p class="text-muted small mt-2 mb-0">Từ 31 đến 200 ngày. Gõ số ngày thì lịch đổi theo. Chọn lịch thì số ngày đổi theo.</p>
     </div>
+    <style>
+        .span-choice {
+            width: 100%; border: 1.5px solid #E6E1D6; background: #fff; color: #24363D;
+            border-radius: 16px; padding: 12px; font-weight: 800; text-align: left;
+        }
+        .span-choice small { display: block; font-weight: 700; color: #6A7A80; margin-top: 2px; }
+        .span-choice.is-on { background: #1F6B56; border-color: #1F6B56; color: #fff; }
+        .span-choice.is-on small { color: rgba(255,255,255,.85); }
+    </style>
     <script>
         function goalIso(date) {
             var month = String(date.getMonth() + 1).padStart(2, '0');
             var day = String(date.getDate()).padStart(2, '0');
             return date.getFullYear() + '-' + month + '-' + day;
         }
-        function goalEnd(span) {
-            var date = new Date();
+        function goalStart() {
+            var root = document.getElementById('goalSpan');
+            var raw = root ? root.getAttribute('data-start') : '';
+            var date = raw ? new Date(raw + 'T12:00:00') : new Date();
             date.setHours(12, 0, 0, 0);
+            return date;
+        }
+        function goalEnd(span) {
+            var date = goalStart();
             date.setDate(date.getDate() + span - 1);
             return date;
         }
         function paintGoal(span, end) {
-            document.getElementById('goalSpanNote').textContent = span + ' ngày · ' + end.toLocaleDateString('vi-VN');
+            var note = document.getElementById('goalSpanNote');
+            if (note) note.textContent = span + ' ngày · ' + end.toLocaleDateString('vi-VN');
+            document.querySelectorAll('#dayMarks button').forEach(function (button) {
+                button.classList.toggle('is-on', Number(button.dataset.days) === span);
+            });
         }
         function applyGoalDays() {
             var days = document.getElementById('goalDays');
@@ -60,8 +83,7 @@
             var date = document.getElementById('goalDate');
             if (!date.value) return;
             var end = new Date(date.value + 'T12:00:00');
-            var start = new Date();
-            start.setHours(12, 0, 0, 0);
+            var start = goalStart();
             var span = Math.round((end - start) / 86400000) + 1;
             var min = parseInt(days.min, 10);
             var max = parseInt(days.max, 10);
@@ -73,8 +95,11 @@
             paintGoal(span, end);
         }
         function setGoalDays(value) {
-            document.getElementById('goalDays').value = value;
+            var days = document.getElementById('goalDays');
+            days.value = value;
             applyGoalDays();
+            var root = document.getElementById('goalSpan');
+            if (root && root.getAttribute('data-live') === 'true') days.form.submit();
         }
         document.getElementById('goalDays').addEventListener('input', applyGoalDays);
         document.getElementById('goalDate').addEventListener('input', applyGoalDate);

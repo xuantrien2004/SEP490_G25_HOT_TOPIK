@@ -33,7 +33,7 @@ public class PlacementService {
     }
 
     public record ResultView(PlacementAttempt attempt, Paper paper, String scoreLine, int percent,
-                             int level, String levelLabel, boolean offerTopikII, String message) {
+                             int level, String levelLabel, String message) {
     }
 
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -58,11 +58,7 @@ public class PlacementService {
         for (Object[] row : questions.countActiveAssessmentByType()) {
             bank.put(String.valueOf(row[0]), ((Number) row[1]).intValue());
         }
-        List<EditorPaper> papers = new ArrayList<>();
-        for (Paper paper : Paper.values()) {
-            papers.add(sheet(paper, saved, bank));
-        }
-        return papers;
+        return List.of(sheet(PlacementRules.learnerPaper(), saved, bank));
     }
 
     @Transactional(readOnly = true)
@@ -94,6 +90,9 @@ public class PlacementService {
     @Transactional
     public PlacementAttempt start(Long userId, String email, String paperCode) {
         Paper paper = Paper.fromCode(paperCode);
+        if (paper != PlacementRules.learnerPaper()) {
+            throw new ExamDomainException("Chỉ có một bài kiểm tra trình độ.");
+        }
         List<PlacementLine> plan = lines.findByPaperCodeOrderBySortOrderAsc(paper.name());
         Map<String, Integer> counts = new LinkedHashMap<>();
         for (PlacementLine line : plan) counts.put(line.getTypeCode(), line.getQuestionCount());
@@ -172,32 +171,15 @@ public class PlacementService {
     public ResultView result(PlacementAttempt attempt) {
         Paper paper = Paper.fromCode(attempt.getPaperCode());
         int level = PlacementRules.suggestedLevel(paper, attempt.getPoints());
-        boolean offer = PlacementRules.offerTopikII(paper, attempt.getPoints());
-        String message = message(paper, attempt.getPoints(), level);
+        String message = PlacementRules.advice(attempt.getPoints());
         return new ResultView(attempt, paper,
                 PlacementRules.scoreLine(attempt.getCorrectCount(), attempt.getTotal(), attempt.getPoints()),
                 PlacementRules.percent(attempt.getPoints()),
-                level, PlacementRules.levelLabel(level), offer, message);
+                level, PlacementRules.levelLabel(level), message);
     }
 
     public PlacementAttempt require(Long id) {
         return attempts.findById(id).orElseThrow(() -> new ExamDomainException("Không tìm thấy bài kiểm tra."));
-    }
-
-    private static String message(Paper paper, int points, int level) {
-        if (paper == Paper.TOPIK_I && points >= PlacementRules.TOPIK_II_OFFER) {
-            return "Bạn đạt từ 80%. Có thể làm tiếp bài TOPIK II để xem mình đang ở cấp 3–6, hoặc giữ TOPIK I và chọn mục tiêu.";
-        }
-        if (paper == Paper.TOPIK_I && level == 0) {
-            return "Bạn chưa đạt cấp 1. Chọn mục tiêu TOPIK 1 hoặc 2 rồi sinh lộ trình TOPIK I.";
-        }
-        if (paper == Paper.TOPIK_I) {
-            return "Trình hiện tại là " + PlacementRules.levelLabel(level) + ". Chọn mục tiêu rồi sinh lộ trình.";
-        }
-        if (level == 0) {
-            return "Bạn chưa đạt cấp 3. Nên về lộ trình TOPIK I, chọn mục tiêu cấp 1 hoặc 2.";
-        }
-        return "Trình hiện tại là " + PlacementRules.levelLabel(level) + ". Chọn mục tiêu TOPIK II rồi sinh lộ trình. Điểm này chưa tính phần Viết.";
     }
 
     private static EditorPaper sheet(Paper paper, Map<String, Integer> saved, Map<String, Integer> bank) {
