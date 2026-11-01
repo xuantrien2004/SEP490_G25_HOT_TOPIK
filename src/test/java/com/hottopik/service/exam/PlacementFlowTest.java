@@ -77,6 +77,24 @@ class PlacementFlowTest {
     }
 
     @Test
+    void placementMenuShowsWithoutOpeningTheRoadmap() throws Exception {
+        for (String path : List.of("/content", "/content/grammar", "/content/hanja",
+                "/content/profile", "/content/vocabulary", "/content/placement")) {
+            mvc.perform(get(path).sessionAttr(AuthHelper.SESSION_KEY, CONTENT))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("Đầu vào")))
+                    .andExpect(content().string(containsString("href=\"/content/placement\"")))
+                    .andExpect(content().string(containsString("Đề kiểm tra trình độ")));
+        }
+
+        mvc.perform(get("/placement").sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/placement\"")))
+                .andExpect(content().string(containsString(">Trình độ")))
+                .andExpect(content().string(containsString("Kiểm tra trình độ")));
+    }
+
+    @Test
     void contentManagerLocksTenAndTenAndHidesGroupedTypes() throws Exception {
         mvc.perform(get("/content/placement").sessionAttr(AuthHelper.SESSION_KEY, CONTENT))
                 .andExpect(status().isOk())

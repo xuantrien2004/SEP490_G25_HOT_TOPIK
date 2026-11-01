@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="vi">
 <head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
 <body style="background: var(--ssak-bg); color: var(--ssak-text-main); font-family: var(--font-body);">
-<div th:replace="~{fragments/navbar :: navbar('practice')}"></div>
+<div th:replace="~{fragments/navbar :: navbar('placement')}"></div>
 <main class="container py-5" style="max-width: 720px;">
     <a th:href="@{/onboarding}" class="btn btn-sm btn-outline-secondary mb-3 rounded-3">← Chọn cách bắt đầu</a>
     <div th:if="${placementError}" class="alert alert-warning" th:text="${placementError}"></div>
