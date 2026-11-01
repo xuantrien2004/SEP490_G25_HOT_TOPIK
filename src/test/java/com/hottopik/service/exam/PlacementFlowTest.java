@@ -87,11 +87,12 @@ class PlacementFlowTest {
                     .andExpect(content().string(containsString("Đề kiểm tra trình độ")));
         }
 
-        mvc.perform(get("/placement").sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
+        mvc.perform(get("/hom-nay").sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("href=\"/placement\"")))
-                .andExpect(content().string(containsString(">Trình độ")))
-                .andExpect(content().string(containsString("Kiểm tra trình độ")));
+                .andExpect(content().string(containsString(">Hôm nay")))
+                .andExpect(content().string(containsString(">Lộ trình")))
+                .andExpect(content().string(not(containsString(">Trình độ"))))
+                .andExpect(content().string(not(containsString("Kiểm tra trình độ"))));
     }
 
     @Test

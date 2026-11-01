@@ -16,9 +16,6 @@
         <a th:href="@{/hom-nay}" th:classappend="${activePage == 'today' || activePage == 'hom-nay' ? 'active' : ''}" class="ssak-nav-item">
             <i class="bi bi-sun-fill me-1" style="font-size: 13px;"></i>Hôm nay
         </a>
-        <a th:href="@{/placement}" th:classappend="${activePage == 'placement' ? 'active' : ''}" class="ssak-nav-item">
-            <i class="bi bi-bullseye me-1" style="font-size: 13px;"></i>Trình độ
-        </a>
         <a th:href="@{/lo-trinh}" th:classappend="${activePage == 'roadmap' || activePage == 'lo-trinh' ? 'active' : ''}" class="ssak-nav-item">
             <i class="bi bi-calendar-week me-1" style="font-size: 13px;"></i>Lộ trình
         </a>
@@ -174,10 +171,6 @@
     <a th:href="@{/hom-nay}" th:classappend="${activePage == 'today' || activePage == 'hom-nay' ? 'active' : ''}" class="mobile-nav-item" style="display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 0; text-align: center; font-size: 10px; text-decoration: none; color: var(--ssak-text-muted);">
         <i class="bi bi-sun-fill" style="font-size: 18px;"></i>
         <span>Hôm nay</span>
-    </a>
-    <a th:href="@{/placement}" th:classappend="${activePage == 'placement' ? 'active' : ''}" class="mobile-nav-item" style="display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 0; text-align: center; font-size: 10px; text-decoration: none; color: var(--ssak-text-muted);">
-        <i class="bi bi-bullseye" style="font-size: 18px;"></i>
-        <span>Trình độ</span>
     </a>
     <a th:href="@{/lo-trinh}" th:classappend="${activePage == 'roadmap' || activePage == 'lo-trinh' ? 'active' : ''}" class="mobile-nav-item" style="display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 0; text-align: center; font-size: 10px; text-decoration: none; color: var(--ssak-text-muted);">
         <i class="bi bi-calendar-week" style="font-size: 18px;"></i>
