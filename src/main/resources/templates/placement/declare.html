@@ -10,28 +10,54 @@
         <h1 class="h3 fw-bold mb-2" style="font-family: var(--font-heading);">Mình biết trình độ</h1>
         <p class="text-muted">Khai cấp hiện tại và mục tiêu. Không làm bài.</p>
 
-        <form method="post" th:action="@{/placement/sinh}" class="d-flex flex-column gap-3">
+        <form method="post" th:action="@{/placement/sinh}" class="d-flex flex-column gap-3" id="declareForm">
             <label class="fw-bold">Trình hiện tại
                 <select class="form-select mt-1" name="current" id="currentLevel">
                     <option value="0">Chưa có cấp</option>
-                    <option value="1">TOPIK 1</option>
-                    <option value="2">TOPIK 2</option>
-                    <option value="3">TOPIK 3</option>
-                    <option value="4">TOPIK 4</option>
-                    <option value="5">TOPIK 5</option>
-                    <option value="6">TOPIK 6</option>
+                    <option th:each="item : ${levelChoices}" th:value="${item.level}"
+                            th:text="${item.option}">TOPIK 1 · Sơ cấp 1</option>
                 </select>
             </label>
-            <label class="fw-bold">Mục tiêu
-                <select class="form-select mt-1" name="target" id="targetLevel">
-                    <option value="1">TOPIK 1</option>
-                    <option value="2" selected>TOPIK 2</option>
-                    <option value="3">TOPIK 3</option>
-                    <option value="4">TOPIK 4</option>
-                    <option value="5">TOPIK 5</option>
-                    <option value="6">TOPIK 6</option>
-                </select>
-            </label>
+
+            <div>
+                <div class="fw-bold mb-2">Mục tiêu</div>
+                <div class="d-flex flex-column gap-3" id="trackChoices">
+                    <label class="d-block p-3 rounded-4 border mb-0 track-choice">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <span class="d-flex align-items-center gap-2 fw-bold">
+                                <input class="form-check-input mt-0" type="radio" name="track" value="TOPIK_I" checked>
+                                <span>Lộ trình TOPIK I</span>
+                            </span>
+                            <select class="form-select level-select" name="targetI" style="max-width: 240px;">
+                                <option th:each="item : ${levelChoices}" th:if="${item.level <= 2}"
+                                        th:value="${item.level}" th:selected="${item.level == 2}"
+                                        th:attr="data-detail=${item.detail}"
+                                        th:text="${item.option}">TOPIK 2 · Sơ cấp 2</option>
+                            </select>
+                        </div>
+                        <small class="d-block text-muted mt-2">Cấp 1–2 · sơ cấp</small>
+                        <small class="level-detail d-block mt-1 fw-bold" style="color: #1F6B56;"></small>
+                    </label>
+                    <label class="d-block p-3 rounded-4 border mb-0 track-choice">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <span class="d-flex align-items-center gap-2 fw-bold">
+                                <input class="form-check-input mt-0" type="radio" name="track" value="TOPIK_II">
+                                <span>Lộ trình TOPIK II</span>
+                            </span>
+                            <select class="form-select level-select" name="targetII" style="max-width: 240px;">
+                                <option th:each="item : ${levelChoices}" th:if="${item.level >= 3}"
+                                        th:value="${item.level}" th:selected="${item.level == 3}"
+                                        th:attr="data-detail=${item.detail}"
+                                        th:text="${item.option}">TOPIK 3 · Trung cấp 1</option>
+                            </select>
+                        </div>
+                        <small class="d-block text-muted mt-2">Cấp 3–6 · trung cấp và cao cấp</small>
+                        <small class="level-detail d-block mt-1 fw-bold" style="color: #1F6B56;"></small>
+                    </label>
+                </div>
+                <input type="hidden" name="target" id="declaredTarget" value="2">
+            </div>
+
             <div th:replace="~{fragments/goal-span :: fields}"></div>
             <label class="fw-bold">Phút học mỗi ngày
                 <select class="form-select mt-1" name="minutes">
@@ -47,6 +73,29 @@
         </form>
     </section>
 </main>
+<script>
+    function paintDeclare() {
+        document.querySelectorAll('#trackChoices .track-choice').forEach(function (card) {
+            var on = card.querySelector('input[name="track"]').checked;
+            card.style.borderColor = on ? '#1F6B56' : '';
+            card.style.background = on ? '#E3F2EA' : '';
+            var select = card.querySelector('select.level-select');
+            var note = card.querySelector('.level-detail');
+            var option = select.options[select.selectedIndex];
+            if (note && option) note.textContent = option.getAttribute('data-detail') || '';
+        });
+        var track = document.querySelector('#trackChoices input[name="track"]:checked');
+        var select = track && track.value === 'TOPIK_II'
+                ? document.querySelector('[name="targetII"]')
+                : document.querySelector('[name="targetI"]');
+        if (select) document.getElementById('declaredTarget').value = select.value;
+    }
+    document.querySelectorAll('#trackChoices input, #trackChoices select').forEach(function (field) {
+        field.addEventListener('change', paintDeclare);
+    });
+    document.getElementById('declareForm').addEventListener('submit', paintDeclare);
+    paintDeclare();
+</script>
 <div th:replace="~{fragments/footer :: footer}"></div>
 </body>
 </html>

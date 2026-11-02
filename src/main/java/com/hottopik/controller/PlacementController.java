@@ -167,6 +167,7 @@ public class PlacementController {
         if (user == null) return "redirect:/login";
         model.addAttribute("pageTitle", "Mình biết trình độ");
         model.addAttribute("currentUser", user);
+        model.addAttribute("levelChoices", PlacementRules.levelChoices());
         fillDates(model);
         return "placement/declare";
     }
@@ -200,21 +201,25 @@ public class PlacementController {
     @PostMapping("/placement/sinh")
     public String build(@RequestParam(required = false) Long attempt,
                         @RequestParam int current,
-                        @RequestParam int target,
+                        @RequestParam(required = false) Integer target,
+                        @RequestParam(required = false) Integer targetI,
+                        @RequestParam(required = false) Integer targetII,
                         @RequestParam String date,
                         @RequestParam(defaultValue = "20") int minutes,
                         @RequestParam(required = false) String track,
                         HttpSession session, RedirectAttributes flash) {
         UserDTO user = AuthHelper.getLoggedInUser(session);
         if (user == null) return "redirect:/login";
-        String back = attempt == null ? "/placement/khai"
-                : "/placement/muc-tieu?attempt=" + attempt + "&track=" + track + "&target=" + target;
+        String back = attempt == null ? "/placement/khai" : "/placement/result/" + attempt;
         try {
-            Track chosen = resolveTrack(attempt, current, target, track, session);
+            int goal = chosenTarget(track, target, targetI, targetII);
+            back = attempt == null ? "/placement/khai"
+                    : "/placement/muc-tieu?attempt=" + attempt + "&track=" + track + "&target=" + goal;
+            Track chosen = resolveTrack(attempt, current, goal, track, session);
             List<Integer> allowed = attempt == null
                     ? PlacementRules.targets(current, chosen)
                     : PlacementRules.roadmapTargets(chosen);
-            if (!allowed.contains(target)) {
+            if (!allowed.contains(goal)) {
                 throw new ExamDomainException(attempt == null
                         ? "Mục tiêu không khớp trình hiện tại."
                         : "Mục tiêu không nằm trong lộ trình đã chọn.");
@@ -225,9 +230,9 @@ public class PlacementController {
                 throw new ExamDomainException("Chọn từ " + PlacementRules.MIN_DAYS + " đến " + PlacementRules.MAX_DAYS
                         + " ngày, hoặc một ngày trong khoảng đó.");
             }
-            users.saveRoadmapSettings(user.getId(), String.valueOf(current), String.valueOf(target), minutes, attempt == null ? "SELF" : "PLACEMENT");
+            users.saveRoadmapSettings(user.getId(), String.valueOf(current), String.valueOf(goal), minutes, attempt == null ? "SELF" : "PLACEMENT");
             user.setCurrentLevel(current == 0 ? "TOPIK_0" : "TOPIK_" + current);
-            user.setTargetLevel("TOPIK_" + target);
+            user.setTargetLevel("TOPIK_" + goal);
             roadmaps.open(user.getEmail().trim().toLowerCase(), chosen, (int) days, minutes);
             return "redirect:/lo-trinh";
         } catch (DateTimeParseException e) {
@@ -261,7 +266,7 @@ public class PlacementController {
         model.addAttribute("currentLabel", PlacementRules.levelLabel(current));
         model.addAttribute("track", track);
         model.addAttribute("targetLevel", target);
-        model.addAttribute("choiceChip", "Đã chọn lộ trình " + track.getLabel() + " · mục tiêu TOPIK " + target);
+        model.addAttribute("choiceChip", "Đã chọn lộ trình " + track.getLabel() + " · mục tiêu " + PlacementRules.levelOption(target));
         model.addAttribute("attemptId", attempt);
         fillDates(model);
     }
@@ -279,6 +284,21 @@ public class PlacementController {
         model.addAttribute("dayMarks", PlacementRules.dayMarks());
     }
 
+    /** Ô của lộ trình đang chọn thắng. Không có ô đó thì dùng mục tiêu gửi thẳng. */
+    private static int chosenTarget(String track, Integer target, Integer targetI, Integer targetII) {
+        if (track != null && !track.isBlank()) {
+            try {
+                Track chosen = Track.valueOf(track);
+                Integer fromRow = chosen == Track.TOPIK_I ? targetI : targetII;
+                if (fromRow != null) return fromRow;
+            } catch (IllegalArgumentException ignored) {
+                // Lộ trình lạ thì rơi xuống mục tiêu gửi thẳng.
+            }
+        }
+        if (target == null) throw new ExamDomainException("Chưa chọn mục tiêu.");
+        return target;
+    }
+
     private static int postedTarget(Track track, Integer target, Integer targetI, Integer targetII) {
         if (target != null) return target;
         Integer fromRow = track == Track.TOPIK_I ? targetI : targetII;
@@ -293,7 +313,9 @@ public class PlacementController {
             row.put("label", PlacementRules.choiceLabel(track, level));
             row.put("suggested", track == PlacementRules.suggestedTrack(level));
             row.put("defaultTarget", PlacementRules.defaultTarget(track));
-            row.put("targets", PlacementRules.roadmapTargets(track));
+            row.put("defaultDetail", PlacementRules.levelDetail(PlacementRules.defaultTarget(track)));
+            row.put("span", track == Track.TOPIK_I ? "Cấp 1–2 · sơ cấp" : "Cấp 3–6 · trung cấp và cao cấp");
+            row.put("targets", PlacementRules.levelChoices(track));
             row.put("field", track == Track.TOPIK_I ? "targetI" : "targetII");
             rows.add(row);
         }
@@ -305,7 +327,13 @@ public class PlacementController {
             if (target <= current && current < 6) {
                 throw new ExamDomainException("Mục tiêu phải cao hơn trình hiện tại.");
             }
-            return PlacementRules.trackForTarget(target);
+            Track fromLevel = PlacementRules.trackForTarget(target);
+            if (track == null || track.isBlank()) return fromLevel;
+            Track posted = Track.valueOf(track);
+            if (posted != fromLevel) {
+                throw new ExamDomainException("Mục tiêu không nằm trong lộ trình đã chọn.");
+            }
+            return posted;
         }
         owned(attempt, session);
         if (track == null) throw new ExamDomainException("Chưa chọn lộ trình.");

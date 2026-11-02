@@ -69,6 +69,11 @@ class PlacementFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("name=\"current\"")))
                 .andExpect(content().string(containsString("name=\"target\"")))
+                .andExpect(content().string(containsString("name=\"track\"")))
+                .andExpect(content().string(containsString("Lộ trình TOPIK I")))
+                .andExpect(content().string(containsString("Lộ trình TOPIK II")))
+                .andExpect(content().string(containsString("TOPIK 2 · Sơ cấp 2")))
+                .andExpect(content().string(containsString("TOPIK 6 · Cao cấp 2")))
                 .andExpect(content().string(containsString("name=\"days\"")))
                 .andExpect(content().string(containsString("name=\"date\"")))
                 .andExpect(content().string(containsString("3 tháng")))
@@ -131,7 +136,10 @@ class PlacementFlowTest {
         mvc.perform(get("/placement/result/" + low).sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("70/200")))
-                .andExpect(content().string(containsString("Chưa đạt cấp 1. Hệ thống gợi ý lộ trình TOPIK I, mục tiêu cấp 1 hoặc 2. Bạn vẫn tự chọn.")))
+                .andExpect(content().string(containsString("Hệ thống gợi ý lộ trình TOPIK I")))
+                .andExpect(content().string(containsString("TOPIK 1 · Sơ cấp 1")))
+                .andExpect(content().string(containsString("TOPIK 2 · Sơ cấp 2")))
+                .andExpect(content().string(not(containsString("Bạn vẫn tự chọn"))))
                 .andExpect(content().string(containsString("Nên chọn")))
                 .andExpect(content().string(containsString("Vẫn chọn được")))
                 .andExpect(content().string(not(containsString("Làm bài TOPIK II"))))
@@ -143,7 +151,7 @@ class PlacementFlowTest {
         mvc.perform(get("/placement/result/" + middle).sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("80/200")))
-                .andExpect(content().string(containsString("Trình hiện tại khoảng TOPIK 1. Hệ thống gợi ý lộ trình TOPIK I. Bạn tự cân nhắc.")));
+                .andExpect(content().string(containsString("Hệ thống gợi ý lộ trình TOPIK I")));
         openRoadmap(middle, "TOPIK_II", 3, 70);
 
         long high = start(Paper.TOPIK_I.name());
@@ -151,7 +159,9 @@ class PlacementFlowTest {
         mvc.perform(get("/placement/result/" + high).sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("140/200")))
-                .andExpect(content().string(containsString("Trình hiện tại TOPIK 2. Lộ trình TOPIK I đã vững. Hệ thống gợi ý lộ trình TOPIK II. Học lại TOPIK I vẫn được.")))
+                .andExpect(content().string(containsString("Hệ thống gợi ý lộ trình TOPIK II")))
+                .andExpect(content().string(containsString("TOPIK 3 · Trung cấp 1")))
+                .andExpect(content().string(containsString("Cao cấp 2")))
                 .andExpect(content().string(containsString("Học lại")));
         mvc.perform(post("/placement/sinh").sessionAttr(AuthHelper.SESSION_KEY, LEARNER)
                         .param("attempt", String.valueOf(high)).param("track", "TOPIK_I")
@@ -184,6 +194,16 @@ class PlacementFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("TOPIK I")))
                 .andExpect(content().string(containsString("TOPIK 0 → TOPIK 2")));
+
+        mvc.perform(post("/placement/sinh").sessionAttr(AuthHelper.SESSION_KEY, LEARNER)
+                        .param("current", "0").param("track", "TOPIK_II")
+                        .param("targetI", "2").param("targetII", "4")
+                        .param("date", LocalDate.now().plusDays(70).toString()).param("minutes", "20"))
+                .andExpect(redirectedUrl("/lo-trinh"));
+        mvc.perform(get("/lo-trinh").sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("TOPIK II")))
+                .andExpect(content().string(containsString("TOPIK 0 → TOPIK 4")));
     }
 
     private void answer(long id, int correct) throws Exception {

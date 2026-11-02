@@ -161,13 +161,39 @@ public final class PlacementRules {
     }
 
     public static String advice(int scorePoints) {
-        if (scorePoints < 80) {
-            return "Chưa đạt cấp 1. Hệ thống gợi ý lộ trình TOPIK I, mục tiêu cấp 1 hoặc 2. Bạn vẫn tự chọn.";
-        }
-        if (scorePoints < 140) {
-            return "Trình hiện tại khoảng TOPIK 1. Hệ thống gợi ý lộ trình TOPIK I. Bạn tự cân nhắc.";
-        }
-        return "Trình hiện tại TOPIK 2. Lộ trình TOPIK I đã vững. Hệ thống gợi ý lộ trình TOPIK II. Học lại TOPIK I vẫn được.";
+        Track track = suggestedTrack(suggestedLevel(Paper.TOPIK_I, scorePoints));
+        return "Hệ thống gợi ý lộ trình " + track.getLabel();
+    }
+
+    /** Tên ngắn để người học phân biệt cấp 1–6 khi chọn mục tiêu. */
+    public static String levelName(int level) {
+        return switch (level) {
+            case 1 -> "Sơ cấp 1";
+            case 2 -> "Sơ cấp 2";
+            case 3 -> "Trung cấp 1";
+            case 4 -> "Trung cấp 2";
+            case 5 -> "Cao cấp 1";
+            case 6 -> "Cao cấp 2";
+            default -> "";
+        };
+    }
+
+    public static String levelOption(int level) {
+        String name = levelName(level);
+        return name.isEmpty() ? "TOPIK " + level : "TOPIK " + level + " · " + name;
+    }
+
+    /** Việc người đạt cấp đó làm được, một dòng, để chọn mục tiêu. */
+    public static String levelDetail(int level) {
+        return switch (level) {
+            case 1 -> "Chào hỏi, mua bán, giới thiệu bản thân";
+            case 2 -> "Sinh hoạt hàng ngày: gọi điện, nhờ vả";
+            case 3 -> "Đọc đoạn văn quen, dùng dịch vụ công";
+            case 4 -> "Tin tức và chủ đề xã hội thông thường";
+            case 5 -> "Công việc, nghiên cứu, chủ đề chưa quen";
+            case 6 -> "Diễn đạt chính xác, gần như thành thạo";
+            default -> "";
+        };
     }
 
     public static String choiceLabel(Track track, int level) {
@@ -189,6 +215,21 @@ public final class PlacementRules {
         Track suggested = suggestedTrack(level);
         Track other = suggested == Track.TOPIK_I ? Track.TOPIK_II : Track.TOPIK_I;
         return List.of(suggested, other);
+    }
+
+    public record LevelChoice(int level, String option, String detail) {
+    }
+
+    public static List<LevelChoice> levelChoices() {
+        List<LevelChoice> rows = new ArrayList<>();
+        for (int level = 1; level <= 6; level++) {
+            rows.add(new LevelChoice(level, levelOption(level), levelDetail(level)));
+        }
+        return rows;
+    }
+
+    public static List<LevelChoice> levelChoices(Track track) {
+        return levelChoices().stream().filter(item -> roadmapTargets(track).contains(item.level())).toList();
     }
 
     /** Mốc gợi ý. 1 tháng lấy 31 ngày vì lịch nhận từ 31 đến 200. */

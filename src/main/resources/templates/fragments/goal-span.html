@@ -18,8 +18,9 @@
         <div class="row g-3">
             <div class="col-sm-4">
                 <label class="fw-bold" for="goalDays">Số ngày
-                    <input id="goalDays" class="form-control mt-1" type="number" name="days" required
-                           th:min="${minDays}" th:max="${maxDays}" th:value="${goalDays}">
+                    <input id="goalDays" class="form-control mt-1" type="text" inputmode="numeric"
+                           name="days" required autocomplete="off" pattern="[0-9]*"
+                           th:attr="data-min=${minDays},data-max=${maxDays}" th:value="${goalDays}">
                 </label>
             </div>
             <div class="col-sm-8">
@@ -29,7 +30,7 @@
                 </label>
             </div>
         </div>
-        <p class="text-muted small mt-2 mb-0">Từ 31 đến 200 ngày. Gõ số ngày thì lịch đổi theo. Chọn lịch thì số ngày đổi theo.</p>
+        <p class="text-muted small mt-2 mb-0">Từ 31 đến 200 ngày. Xóa rồi gõ số mới, lịch đổi khi số nằm trong khoảng. Chọn lịch thì số ngày đổi theo.</p>
     </div>
     <style>
         .span-choice {
@@ -58,6 +59,13 @@
             date.setDate(date.getDate() + span - 1);
             return date;
         }
+        function goalBounds(days) {
+            var min = parseInt(days.getAttribute('data-min'), 10);
+            var max = parseInt(days.getAttribute('data-max'), 10);
+            if (!Number.isFinite(min)) min = 31;
+            if (!Number.isFinite(max)) max = 200;
+            return { min: min, max: max };
+        }
         function paintGoal(span, end) {
             var note = document.getElementById('goalSpanNote');
             if (note) note.textContent = span + ' ngày · ' + end.toLocaleDateString('vi-VN');
@@ -65,18 +73,40 @@
                 button.classList.toggle('is-on', Number(button.dataset.days) === span);
             });
         }
-        function applyGoalDays() {
-            var days = document.getElementById('goalDays');
+        function clearGoalMarks() {
+            document.querySelectorAll('#dayMarks button').forEach(function (button) {
+                button.classList.remove('is-on');
+            });
+        }
+        function writeGoal(span) {
             var date = document.getElementById('goalDate');
-            var span = parseInt(days.value, 10);
-            var min = parseInt(days.min, 10);
-            var max = parseInt(days.max, 10);
-            if (!Number.isFinite(span)) return;
-            span = Math.min(max, Math.max(min, span));
-            days.value = span;
             var end = goalEnd(span);
             date.value = goalIso(end);
             paintGoal(span, end);
+        }
+        function previewTypedDays() {
+            var days = document.getElementById('goalDays');
+            var raw = String(days.value).trim();
+            if (!/^\d+$/.test(raw)) {
+                clearGoalMarks();
+                return;
+            }
+            var span = parseInt(raw, 10);
+            var bounds = goalBounds(days);
+            if (span < bounds.min || span > bounds.max) {
+                clearGoalMarks();
+                return;
+            }
+            writeGoal(span);
+        }
+        function commitGoalDays() {
+            var days = document.getElementById('goalDays');
+            var bounds = goalBounds(days);
+            var span = parseInt(String(days.value).trim(), 10);
+            if (!Number.isFinite(span)) span = bounds.min;
+            span = Math.min(bounds.max, Math.max(bounds.min, span));
+            days.value = String(span);
+            writeGoal(span);
         }
         function applyGoalDate() {
             var days = document.getElementById('goalDays');
@@ -85,27 +115,29 @@
             var end = new Date(date.value + 'T12:00:00');
             var start = goalStart();
             var span = Math.round((end - start) / 86400000) + 1;
-            var min = parseInt(days.min, 10);
-            var max = parseInt(days.max, 10);
-            if (span < min) span = min;
-            if (span > max) span = max;
-            end = goalEnd(span);
-            days.value = span;
-            date.value = goalIso(end);
-            paintGoal(span, end);
+            var bounds = goalBounds(days);
+            if (span < bounds.min) span = bounds.min;
+            if (span > bounds.max) span = bounds.max;
+            days.value = String(span);
+            writeGoal(span);
         }
         function setGoalDays(value) {
             var days = document.getElementById('goalDays');
             days.value = value;
-            applyGoalDays();
+            commitGoalDays();
             var root = document.getElementById('goalSpan');
             if (root && root.getAttribute('data-live') === 'true') days.form.submit();
         }
-        document.getElementById('goalDays').addEventListener('input', applyGoalDays);
+        var goalDaysInput = document.getElementById('goalDays');
+        goalDaysInput.addEventListener('input', previewTypedDays);
+        goalDaysInput.addEventListener('blur', function () {
+            if (String(goalDaysInput.value).trim() === '') return;
+            commitGoalDays();
+        });
         document.getElementById('goalDate').addEventListener('input', applyGoalDate);
-        document.getElementById('goalDays').form.addEventListener('submit', function () {
-            if (document.activeElement && document.activeElement.id === 'goalDays') applyGoalDays();
-            else applyGoalDate();
+        goalDaysInput.form.addEventListener('submit', function () {
+            if (String(goalDaysInput.value).trim() === '') applyGoalDate();
+            else commitGoalDays();
         });
     </script>
 </div>

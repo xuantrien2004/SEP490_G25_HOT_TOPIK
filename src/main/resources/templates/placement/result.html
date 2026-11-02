@@ -32,12 +32,16 @@
                                        th:value="${choice.track.name()}" th:checked="${choice.suggested}">
                                 <span th:text="'Lộ trình ' + ${choice.track.label}">Lộ trình TOPIK I</span>
                             </span>
-                            <select class="form-select" style="max-width: 160px;" th:name="${choice.field}">
-                                <option th:each="level : ${choice.targets}" th:value="${level}"
-                                        th:selected="${level == choice.defaultTarget}"
-                                        th:text="'TOPIK ' + ${level}">TOPIK 2</option>
+                            <select class="form-select level-select" style="max-width: 240px;" th:name="${choice.field}">
+                                <option th:each="item : ${choice.targets}" th:value="${item.level}"
+                                        th:selected="${item.level == choice.defaultTarget}"
+                                        th:attr="data-detail=${item.detail}"
+                                        th:text="${item.option}">TOPIK 2 · Sơ cấp 2</option>
                             </select>
                         </div>
+                        <small class="d-block text-muted mt-2" th:text="${choice.span}">Cấp 1–2 · sơ cấp</small>
+                        <small class="level-detail d-block mt-1 fw-bold" style="color: #1F6B56;"
+                               th:text="${choice.defaultDetail}">Sinh hoạt hàng ngày</small>
                     </label>
                     <button class="btn-ssak-primary py-3 rounded-pill fw-bold" type="submit">Tiếp tục</button>
                 </form>
@@ -45,6 +49,17 @@
         </div>
     </section>
 </main>
+<script>
+    function paintLevel(select) {
+        var card = select.closest('label');
+        var note = card ? card.querySelector('.level-detail') : null;
+        var option = select.options[select.selectedIndex];
+        if (note && option) note.textContent = option.getAttribute('data-detail') || '';
+    }
+    document.querySelectorAll('select.level-select').forEach(function (select) {
+        select.addEventListener('change', function () { paintLevel(select); });
+    });
+</script>
 <div th:replace="~{fragments/footer :: footer}"></div>
 </body>
 </html>
