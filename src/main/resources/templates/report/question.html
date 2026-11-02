@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<body>
+<div th:fragment="content">
+    <style>
+        .report-question { display: flex; flex-direction: column; gap: 12px; font-size: 15px; line-height: 1.6; font-weight: 400; overflow-wrap: anywhere; }
+        .report-question .report-text { white-space: pre-wrap; }
+        .report-question > .mb-3, .report-question > .mt-3 { margin: 0 !important; }
+        .report-question > img { max-height: 320px; object-fit: contain; align-self: flex-start; }
+        .report-question .report-choice { display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; border: 1px solid #DEE5E0; border-radius: 10px; background: #FAFCFA; }
+        .report-choice-content { flex: 1; min-width: 0; }
+        .report-choice-content img { display: block; max-height: 180px; object-fit: contain; }
+        .report-choice .badge { margin-left: auto; align-self: center; white-space: normal; flex-shrink: 0; font-size: 11px; }
+        .report-question .p-3 { padding: 12px !important; }
+    </style>
+    <div th:if="${question != null}" class="report-question">
+        <div th:if="${question.passage}" class="report-text p-3 bg-light border rounded-3 mb-3" th:text="${question.passage}"></div>
+        <div class="report-text fw-bold mb-3" th:text="${question.prompt}"></div>
+        <audio th:if="${question.audio}" controls preload="none" class="w-100 mb-3" th:src="${question.audio}"></audio>
+        <img th:if="${question.image}" th:src="${question.image}" alt="Hình minh họa câu hỏi" class="img-fluid mb-3" />
+        <table th:if="${question.chart != null and question.chart.isArray()}" class="table table-bordered mb-3">
+            <tbody><tr th:each="row : ${question.chart}">
+                <td th:text="${row.isArray() ? row.path(0).asText() : row.path('label').asText()}"></td>
+                <td th:text="${row.isArray() ? row.path(1).asText() : row.path('value').asText()}"></td>
+            </tr></tbody>
+        </table>
+        <div th:each="option, iter : ${question.options}" class="report-choice"
+             th:classappend="${showAnswers and question.answer == iter.count} ? 'bg-success-subtle border-success' : 'bg-light'">
+            <strong th:text="${iter.count + '. '}"></strong>
+            <div class="report-choice-content">
+                <span class="report-text" th:if="${option.text}" th:text="${option.text}"></span>
+                <img th:if="${option.image}" th:src="${option.image}" alt="Phương án trả lời" class="img-fluid" />
+            </div>
+            <span th:if="${showAnswers and question.answer == iter.count}" class="badge bg-success">Đáp án đúng</span>
+        </div>
+        <div th:if="${showAnswers and question.explanation != null}" class="p-3 bg-warning-subtle border rounded-3 mt-3"><strong>Giải thích:</strong><div th:text="${question.explanation}"></div></div>
+        <div th:if="${showAnswers and question.script != null}" class="p-3 bg-light border rounded-3 mt-3"><strong>Nội dung bài nghe:</strong><div th:text="${question.script}"></div></div>
+        <div th:if="${showAnswers and question.modelAnswer != null}" class="p-3 bg-light border rounded-3 mt-3"><strong>Bài viết tham khảo:</strong><div th:text="${question.modelAnswer}"></div></div>
+        <div th:if="${showAnswers and question.rubric != null}" class="p-3 bg-light border rounded-3 mt-3"><strong>Hướng dẫn chấm:</strong><div th:text="${question.rubric}"></div></div>
+    </div>
+    <div th:if="${question == null}" class="p-3 bg-light border rounded-3">
+        <p>Không xác định được liên kết dữ liệu gốc của câu hỏi. Nội dung đã báo:</p>
+        <div th:text="${report.questionSummary}"></div>
+    </div>
+</div>
+</body>
+</html>

@@ -69,11 +69,11 @@
                             <div style="display:flex; align-items:center; gap:6px;">
                                 <span th:if="${s.status.name() == 'ACTIVE'}" class="pill pill-mint">Đã kích hoạt</span>
                                 <span th:unless="${s.status.name() == 'ACTIVE'}" class="pill pill-gray">Bản nháp</span>
-                                <form th:if="${canEdit}" th:action="@{/content/sources/{id}/status(id=${s.id})}" method="post" style="display:inline; margin:0;">
-                                    <input type="hidden" name="status" th:value="${s.status.name() == 'ACTIVE' ? 'DRAFT' : 'ACTIVE'}" />
+                                <form th:if="${canEdit and (j == null or j.status.name() != 'ACTIVATED')}" th:action="@{/content/sources/{id}/status(id=${s.id})}" method="post" style="display:inline; margin:0;">
+                                    <input type="hidden" name="status" th:value="${s.status.name() == 'ACTIVE' and j != null and j.status.name() == 'ACTIVATED' ? 'DRAFT' : 'ACTIVE'}" />
                                     <button type="submit" class="btn btn-ssak-outline btn-xs" style="padding: 2px 7px; font-size: 11px;"
-                                            th:text="${s.status.name() == 'ACTIVE' ? 'Về Nháp' : 'Kích hoạt'}"
-                                            th:title="${s.status.name() == 'ACTIVE' ? 'Chuyển về trạng thái Bản nháp' : 'Chuyển sang trạng thái Đã kích hoạt'}">
+                                            th:text="${s.status.name() == 'ACTIVE' and j != null and j.status.name() == 'ACTIVATED' ? 'Về Nháp' : (s.status.name() == 'ACTIVE' ? 'Hoàn tất kích hoạt' : 'Kích hoạt')}"
+                                            th:title="${s.status.name() == 'ACTIVE' and j != null and j.status.name() == 'ACTIVATED' ? 'Chuyển về trạng thái Bản nháp' : 'Đưa câu vào ngân hàng và tạo đề trong thư viện'}">
                                         Đổi
                                     </button>
                                 </form>

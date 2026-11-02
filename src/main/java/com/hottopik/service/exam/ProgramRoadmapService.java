@@ -86,6 +86,10 @@ public class ProgramRoadmapService {
                 .filter(i -> i.getTemplate().getTrack() == track)
                 .map(i -> new RoadmapSketch.TypeRef(i.getTemplate().getCode(), i.getTemplate().getName()))
                 .toList();
+        if (types.isEmpty()) {
+            throw new ExamDomainException("Bản lộ trình " + program.getVersionCode() + " chưa có dạng câu "
+                    + track.getLabel() + ". Vui lòng liên hệ quản lý nội dung để kiểm tra bản đã phát hành.");
+        }
         return RoadmapSketch.build(types, days, perDay, ProgramRules.reviews(program.getReviewOffsets()),
                 program.getSessionsPerType(), ProgramRules.phases(program.getPhaseSplit()));
     }
@@ -98,7 +102,7 @@ public class ProgramRoadmapService {
         }
         ProgramVersion src = programs.findFirstByStatusOrderByIdDesc(ProgramStatus.PUBLISHED)
                 .orElseThrow(() -> new ExamDomainException("Chưa có bản đang phát hành để nhân ra bản nháp."));
-        ProgramVersion copy = copyOf(src, actor.name());
+        ProgramVersion copy = copyOf(src, actor.userId());
         for (ProgramVersionItem item : itemsOf(src.getId())) {
             ProgramVersionItem row = new ProgramVersionItem();
             row.setProgram(copy);
@@ -234,7 +238,7 @@ public class ProgramRoadmapService {
         log(admin, "PUBLISH_PROGRAM", "Phát hành " + program.getVersionCode());
     }
 
-    private ProgramVersion copyOf(ProgramVersion src, String actorName) {
+    private ProgramVersion copyOf(ProgramVersion src, Long creatorId) {
         ProgramVersion copy = new ProgramVersion();
         copy.setVersionCode(nextCode());
         copy.setNote(src.getNote());
@@ -244,7 +248,7 @@ public class ProgramRoadmapService {
         copy.setPhaseSplit(src.getPhaseSplit());
         copy.setSessionsPerType(src.getSessionsPerType());
         copy.setQuestionsPerSession(src.getQuestionsPerSession());
-        copy.setCreatedBy(actorName);
+        copy.setCreatedBy(creatorId);
         return programs.save(copy);
     }
 

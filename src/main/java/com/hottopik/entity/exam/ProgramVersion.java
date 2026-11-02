@@ -63,9 +63,8 @@ public class ProgramVersion {
     @Column(name = "approval_request_id")
     private Long approvalRequestId;
 
-    @Nationalized
-    @Column(name = "created_by", length = 120)
-    private String createdBy;
+    @Column(name = "created_by")
+    private Long createdBy;
 
     @Column(name = "published_at")
     private LocalDateTime publishedAt;

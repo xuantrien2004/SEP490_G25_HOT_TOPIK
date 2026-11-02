@@ -113,10 +113,16 @@ class ExamModuleFlowTest {
         mvc.perform(get("/practice/play/{id}", retry.getId()).session(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("I-N1")));
-        mvc.perform(get("/practice/result/{id}", completed.getId()).session(session))
+        String resultHtml = mvc.perform(get("/practice/result/{id}", completed.getId()).session(session))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Đáp án dựa vào chi tiết")))
-                .andExpect(content().string(containsString("Lịch sử các lần luyện dạng này")));
+                .andExpect(content().string(containsString("Lịch sử các lần luyện dạng này")))
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        for (PracticeService.QuestionView question : questions) {
+            assertNotNull(question.explanation());
+            assertFalse(question.explanation().isBlank());
+            assertTrue(resultHtml.contains(org.springframework.web.util.HtmlUtils.htmlEscape(question.explanation(), "UTF-8")),
+                    "Missing explanation for question " + question.id());
+        }
 
         mvc.perform(get("/practice"))
                 .andExpect(status().isOk())
@@ -159,8 +165,8 @@ class ExamModuleFlowTest {
         assertEquals(3, minis.size());
         Map<ExamKind, Integer> counts = new EnumMap<>(ExamKind.class);
         minis.forEach(m -> counts.put(m.getKind(), m.questionCount()));
-        assertEquals(50, counts.get(ExamKind.LISTENING));
-        assertEquals(50, counts.get(ExamKind.READING));
+        assertEquals(11, counts.get(ExamKind.LISTENING));
+        assertTrue(counts.get(ExamKind.READING) >= 14 && counts.get(ExamKind.READING) <= 15);
         assertEquals(4, counts.get(ExamKind.WRITING));
         assertTrue(minis.stream().allMatch(m -> m.isAuto() && m.getStatus() == ExamStatus.PUBLISHED));
     }
@@ -522,7 +528,7 @@ class ExamModuleFlowTest {
         Long req = composer.get(r.examId()).getApprovalRequestId();
         approvals.decideRequest(req, false, "Thiếu giải thích", "Admin");
         assertEquals(ExamStatus.DRAFT, composer.get(r.examId()).getStatus());
-        assertTrue(composer.children(r.examId()).isEmpty());
+        assertTrue(composer.children(r.examId()).stream().allMatch(e -> e.getStatus() == ExamStatus.DRAFT));
     }
 
     @Test

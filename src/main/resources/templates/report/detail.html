@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body style="background: var(--ssak-bg, #F4F3EF); color: var(--ssak-text-main, #24363D); font-family: var(--font-body, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);">
+
+<div th:replace="~{fragments/navbar :: navbar('notifications')}"></div>
+
+<main class="container py-4" style="max-width: 960px; min-height: 85vh;">
+
+    <!-- Thanh quay lại -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <a th:href="@{/thong-bao}" class="btn btn-sm btn-outline-secondary rounded-3 d-inline-flex align-items-center gap-1">
+            <i class="bi bi-arrow-left"></i> Quay lại thông báo
+        </a>
+        <a th:href="@{/practice}" class="btn btn-sm btn-outline-success rounded-3">
+            📚 Tiếp tục luyện tập
+        </a>
+    </div>
+
+    <!-- Banner Kết quả xử lý Báo lỗi -->
+    <div class="bg-white border rounded-4 p-4 p-md-5 shadow-sm mb-4"
+         th:style="${report.status == 'RESOLVED' ? 'border-color: #A9D9C0 !important;' : (report.status == 'REJECTED' ? 'border-color: #FFA39E !important;' : 'border-color: #FDE68A !important;')}">
+
+        <!-- Header Status -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge" style="font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 20px;"
+                      th:classappend="${report.status == 'RESOLVED' ? 'bg-success text-white' : (report.status == 'REJECTED' ? 'bg-danger text-white' : 'bg-warning text-dark')}"
+                      th:text="${report.status == 'RESOLVED' ? '✅ Đã khắc phục & Thưởng +5 Xu' : (report.status == 'REJECTED' ? '❌ Đã từ chối báo lỗi' : '⏳ Đang chờ Content Manager rà soát')}">
+                    Trạng thái
+                </span>
+                <span class="badge bg-light text-muted border" th:text="${'Mã phản hồi: #REP-' + report.id}">#REP-1</span>
+            </div>
+            <span class="small text-muted" th:text="${#temporals.format(report.createdAt, 'dd/MM/yyyy HH:mm')}">Thời gian</span>
+        </div>
+
+        <h1 class="h3 fw-bold mb-3" style="font-family: var(--font-heading, sans-serif); color: #164E40;">
+            Phản hồi Báo lỗi: <span th:text="${report.questionCode}">Câu hỏi</span>
+        </h1>
+
+        <!-- Vấn đề người học đã báo -->
+        <div class="p-3 rounded-3 border bg-light mb-4">
+            <div class="d-flex align-items-center gap-2 small fw-bold text-muted mb-1">
+                <span>⚠️ VẤN ĐỀ BẠN ĐÃ BÁO CÁO:</span>
+                <span class="badge bg-secondary-subtle text-secondary border" th:text="${report.issueType}">Đáp án sai</span>
+            </div>
+            <div class="fw-medium text-dark" style="font-size: 15px;" th:text="${report.details}">
+                Chi tiết vấn đề học viên gửi...
+            </div>
+        </div>
+
+        <!-- HỘP PHẢN HỒI TỪ CONTENT MANAGER -->
+        <div th:if="${report.status == 'RESOLVED'}" class="p-4 rounded-3 border mb-4"
+             style="background: #F0FDF4; border-color: #86EFAC !important;">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span style="font-size: 22px;">🎉</span>
+                    <strong class="text-success" style="font-size: 16px;">Content Manager đã tiếp nhận & sửa chữa câu hỏi!</strong>
+                </div>
+                <span class="badge bg-success text-white fw-bold px-3 py-2 rounded-pill">+5 Xu Thưởng</span>
+            </div>
+            <p class="mb-2 text-dark" style="font-size: 15px; line-height: 1.6;">
+                <strong>Phương án sửa đổi / ghi chú của Content Manager:</strong>
+            </p>
+            <div class="p-3 bg-white rounded-3 border text-dark" style="font-size: 14.5px; line-height: 1.6;"
+                 th:text="${report.resolutionNote != null and !report.resolutionNote.isBlank() ? report.resolutionNote : 'Đã sửa câu hỏi và cập nhật đáp án chuẩn xác trong ngân hàng câu hỏi.'}">
+                Chi tiết phương án sửa đổi...
+            </div>
+            <div class="small text-muted mt-2">
+                Được xử lý bởi: <span class="fw-bold" th:text="${report.resolvedBy}">Content Manager</span> · <span th:text="${#temporals.format(report.resolvedAt, 'dd/MM/yyyy HH:mm')}">Thời gian</span>
+            </div>
+        </div>
+
+        <div th:if="${report.status == 'REJECTED'}" class="p-4 rounded-3 border mb-4"
+             style="background: #FFF1F0; border-color: #FFA39E !important;">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <span style="font-size: 22px;">ℹ️</span>
+                <strong class="text-danger" style="font-size: 16px;">Content Manager đã kiểm tra lại: Câu hỏi không có lỗi</strong>
+            </div>
+            <p class="mb-2 text-dark" style="font-size: 15px; line-height: 1.6;">
+                <strong>Lý do từ chối từ Ban Quản lý Nội dung:</strong>
+            </p>
+            <div class="p-3 bg-white rounded-3 border text-dark" style="font-size: 14.5px; line-height: 1.6;"
+                 th:text="${report.rejectionReason != null and !report.rejectionReason.isBlank() ? report.rejectionReason : 'Câu hỏi đã được đối chiếu chuẩn xác theo tài liệu công bố chính thức của Viện Giáo dục Quốc tế Hàn Quốc (NIIED).'}">
+                Lý do từ chối chi tiết...
+            </div>
+            <div class="small text-muted mt-2">
+                Người kiểm tra: <span class="fw-bold" th:text="${report.resolvedBy}">Content Manager</span> · <span th:text="${#temporals.format(report.resolvedAt, 'dd/MM/yyyy HH:mm')}">Thời gian</span>
+            </div>
+        </div>
+
+        <div th:if="${report.status == 'OPEN'}" class="p-4 rounded-3 border bg-light mb-4 text-center">
+            <span style="font-size: 32px;">⏳</span>
+            <h5 class="fw-bold mt-2">Báo cáo đang chờ Ban Quản lý kiểm tra</h5>
+            <p class="text-muted mb-0 small">Content Manager sẽ kiểm tra lại câu hỏi này trong thời gian sớm nhất. Bạn sẽ nhận được thông báo ngay khi có kết quả.</p>
+        </div>
+
+    </div>
+
+    <!-- KHU VỰC HIỂN THỊ CÂU HỎI LIÊN QUAN (NỘI DUNG SAU KHI SỬA HOẶC NỘI DUNG GỐC) -->
+    <section class="bg-white border rounded-4 p-4 shadow-sm mb-4">
+        <div class="d-flex justify-content-between align-items-center pb-3 mb-3 border-bottom">
+            <h2 class="h5 fw-bold mb-0 d-flex align-items-center gap-2">
+                <span>🔗 Nội dung câu hỏi liên quan</span>
+                <span class="badge bg-light text-dark border" th:text="${report.questionCode}">Câu hỏi</span>
+            </h2>
+            <span th:if="${report.examTitle != null}" class="badge bg-info-subtle text-info-emphasis border border-info" th:text="${report.examTitle}">Đề thi</span>
+        </div>
+
+        <div th:replace="~{report/question :: content}"></div>
+
+    </section>
+
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+</body>
+</html>

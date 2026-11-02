@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body class="bg-light">
+<main class="container py-4" style="max-width: 880px;">
+    <a th:href="@{/content(tab='reports')}" class="btn btn-outline-secondary btn-sm mb-3">← Xử lý báo lỗi</a>
+    <section class="bg-white border rounded-4 p-4">
+        <h1 class="h4 mb-3">Sửa câu Viết <span th:text="${report.questionCode}"></span></h1>
+        <p class="alert alert-warning" th:text="${report.details}"></p>
+        <p th:if="${error}" class="alert alert-danger" th:text="${error}"></p>
+        <form th:action="@{/content/reports/{id}/writing(id=${report.id})}" method="post" th:object="${writing}" class="d-flex flex-column gap-3">
+            <label class="form-label">Đề bài<textarea class="form-control mt-1" th:field="*{promptKo}" rows="5" maxlength="4000" required></textarea></label>
+            <div class="row g-3">
+                <label class="col-md-6 form-label">Đáp án ô 1<textarea class="form-control mt-1" th:field="*{keys1}" rows="2" maxlength="1000"></textarea></label>
+                <label class="col-md-6 form-label">Đáp án ô 2<textarea class="form-control mt-1" th:field="*{keys2}" rows="2" maxlength="1000"></textarea></label>
+            </div>
+            <label class="form-label">Dữ liệu biểu đồ (JSON)<textarea class="form-control mt-1" th:field="*{chartJson}" rows="3" maxlength="2000"></textarea></label>
+            <label class="form-label">Bài viết tham khảo<textarea class="form-control mt-1" th:field="*{modelAnswer}" rows="5" maxlength="4000" required></textarea></label>
+            <label class="form-label">Hướng dẫn chấm<textarea class="form-control mt-1" th:field="*{rubricNote}" rows="3" maxlength="2000"></textarea></label>
+            <label class="form-label">Ghi chú gửi người học<textarea class="form-control mt-1" name="resolutionNote" rows="2" maxlength="2000" required></textarea></label>
+            <button class="btn btn-success align-self-start" type="submit">Lưu thay đổi &amp; giải quyết báo lỗi (+5 Xu)</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

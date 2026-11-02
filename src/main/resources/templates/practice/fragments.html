@@ -20,7 +20,6 @@
             <article class="bg-white border rounded-3 p-3 h-100 d-flex flex-column">
                 <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
                     <span class="badge text-bg-light border" th:text="${item.type.code}">I-N1</span>
-                    <span class="small text-muted" th:text="|Câu ${item.type.rangeLabel()}|">Câu 1–4</span>
                 </div>
                 <h2 class="h6 fw-bold mb-2" th:text="${item.type.name}">Dạng câu</h2>
                 <div class="small text-muted mb-3" th:text="${item.latestPercent != null} ? |Lần gần nhất: ${item.latestPercent}%| : 'Chưa có kết quả'"></div>

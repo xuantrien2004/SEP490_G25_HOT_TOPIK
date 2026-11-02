@@ -21,6 +21,16 @@ public interface QuestionRepository extends JpaRepository<Question, Long>, JpaSp
                                                            com.hottopik.entity.exam.Skill skill,
                                                            String typeCode, QuestionStatus status);
 
+    @EntityGraph(attributePaths = {"source", "group"})
+    @Query("select q from Question q where q.track = :track and q.skill = :skill "
+            + "and q.originalNo in :numbers and q.status = com.hottopik.entity.exam.QuestionStatus.ACTIVE "
+            + "and q.source.status = com.hottopik.entity.exam.SourceStatus.ACTIVE "
+            + "and q.source.assessment = false "
+            + "and q.purpose <> com.hottopik.entity.exam.QuestionPurpose.ASSESSMENT")
+    List<Question> findPracticeCandidates(com.hottopik.entity.exam.Track track,
+                                          com.hottopik.entity.exam.Skill skill, Collection<Integer> numbers);
+
+    @EntityGraph(attributePaths = {"source", "group"})
     List<Question> findBySourceIdOrderBySkillAscOriginalNoAsc(Long sourceId);
 
     List<Question> findByContentHashIn(Collection<String> hashes);

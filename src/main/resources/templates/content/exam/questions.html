@@ -223,6 +223,8 @@
         };
 
         async function open(id) {
+            const params = new URLSearchParams(location.search);
+            const reportId = String(id) === params.get('openQuestionId') ? params.get('reportId') : null;
             const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('qModal'));
             const body = document.getElementById('qBody');
             body.innerHTML = '<div class="cm-empty">Đang tải…</div>';
@@ -264,6 +266,10 @@
                     </div>
                     <form method="post" action="${base}/questions/${q.id}" id="editForm">
                         <input type="hidden" name="back" value="${esc(back)}">
+                        ${reportId ? `<input type="hidden" name="reportId" value="${esc(reportId)}">
+                        <div class="alert alert-warning py-2 px-3 small rounded-3 mb-2" style="background:#FFFBE6;border:1px solid #FFE58F;color:#D46B08;">
+                            <strong>🚩 Đang xử lý Báo lỗi #REP-${esc(reportId)}:</strong> Sau khi bạn bấm "Lưu thay đổi", hệ thống sẽ lưu câu hỏi, tự động giải quyết báo lỗi, thưởng <strong>+5 Xu</strong> cho học viên và chuyển bạn về lại trang Xử lý Báo lỗi.
+                        </div>` : ''}
                         <label class="form-label" style="font-weight:800;font-size:13px" for="e-prompt">Câu hỏi (tiếng Hàn)</label>
                         <textarea id="e-prompt" name="promptKo" class="form-control ssak-input ko" rows="3" required ${ro}>${esc(q.promptKo)}</textarea>
                         ${q.options.map((o, i) => `
@@ -273,10 +279,12 @@
                             </div>`).join('')}
                         <label class="form-label" style="font-weight:800;font-size:13px;margin-top:10px" for="e-exp">Giải thích (tiếng Việt)</label>
                         <textarea id="e-exp" name="explanationVi" class="form-control ssak-input" rows="3" ${ro}>${esc(q.explanationVi)}</textarea>
+                        ${reportId ? `<label class="form-label" style="font-weight:800;font-size:13px;margin-top:10px" for="e-resnote">Phương án sửa đổi / Ghi chú gửi học viên</label>
+                        <textarea id="e-resnote" name="resolutionNote" class="form-control ssak-input" rows="2" placeholder="Ví dụ: Đã sửa đáp án đúng thành phương án ②, bổ sung giải thích chi tiết..."></textarea>` : ''}
                         <label class="form-label" style="font-weight:800;font-size:13px;margin-top:10px" for="e-reason">Lý do (bắt buộc khi đổi đáp án)</label>
                         <input id="e-reason" name="reason" class="form-control ssak-input" ${ro}>
                         ${canEdit ? `<div class="cm-toolbar" style="margin-top:12px">
-                            <button class="btn btn-ssak-primary btn-sm" type="submit">Lưu thay đổi</button>
+                            <button class="btn btn-ssak-primary btn-sm" type="submit">${reportId ? 'Lưu thay đổi & Giải quyết Báo lỗi (+5 Xu)' : 'Lưu thay đổi'}</button>
                             ${q.status === 'ACTIVE'
                                 ? '<button class="btn btn-ssak-light btn-sm" type="button" id="btnHide">Ẩn câu…</button>'
                                 : '<button class="btn btn-ssak-light btn-sm" type="button" id="btnShow">Hiện lại</button>'}
@@ -307,6 +315,12 @@
         }
 
         document.querySelectorAll('.js-open').forEach(b => b.addEventListener('click', () => open(b.dataset.qid)));
+
+        // Tự động mở câu hỏi nếu được dẫn từ trang Xử lý Báo lỗi
+        const autoQId = new URLSearchParams(location.search).get('openQuestionId');
+        if (autoQId) {
+            setTimeout(() => open(autoQId), 150);
+        }
     })();
 </script>
 </body>

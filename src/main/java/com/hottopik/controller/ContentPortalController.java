@@ -8,6 +8,7 @@ import com.hottopik.service.AdminSystemService;
 import com.hottopik.service.ContentManagementService;
 import com.hottopik.service.GrammarGroupService;
 import com.hottopik.service.GrammarService;
+import com.hottopik.service.QuestionReportService;
 import com.hottopik.service.VocabularyService;
 import com.hottopik.service.exam.ExamComposerService;
 import com.hottopik.service.exam.QuestionBankService;
@@ -37,6 +38,7 @@ public class ContentPortalController {
     private final UserService userService;
     private final GrammarService grammarService;
     private final GrammarGroupService grammarGroupService;
+    private final QuestionReportService questionReportService;
 
     @Autowired
     public ContentPortalController(ContentManagementService contentService,
@@ -46,7 +48,8 @@ public class ContentPortalController {
                                    ExamComposerService examComposer,
                                    UserService userService,
                                    GrammarService grammarService,
-                                   GrammarGroupService grammarGroupService) {
+                                   GrammarGroupService grammarGroupService,
+                                   QuestionReportService questionReportService) {
         this.contentService = contentService;
         this.vocabularyService = vocabularyService;
         this.adminSystemService = adminSystemService;
@@ -55,6 +58,7 @@ public class ContentPortalController {
         this.userService = userService;
         this.grammarService = grammarService;
         this.grammarGroupService = grammarGroupService;
+        this.questionReportService = questionReportService;
     }
 
     @GetMapping
@@ -77,9 +81,9 @@ public class ContentPortalController {
         model.addAttribute("totalTopicCount", vocabularyService.getTotalTopicsCount());
         model.addAttribute("totalGrammarCount", grammarService.getAllGrammars().size());
         model.addAttribute("totalQuestionCount", contentService.getTotalQuestionCount());
-        model.addAttribute("pendingReportCount", contentService.getPendingReportCount());
+        model.addAttribute("pendingReportCount", questionReportService.getPendingCount());
         model.addAttribute("totalExamCount", examComposer.libraryCounts().values().stream().mapToLong(Long::longValue).sum());
-        model.addAttribute("reports", contentService.getReports());
+        model.addAttribute("reports", questionReportService.getAllReports());
         model.addAttribute("auditLogs", adminSystemService.getAuditLogsForRole("ROLE_CONTENT_MANAGER"));
 
         return "content/dashboard";
@@ -141,6 +145,7 @@ public class ContentPortalController {
     @ResponseBody
     public ResponseEntity<Map<String, Object>> resolveReport(
             @RequestParam("reportId") Long reportId,
+            @RequestParam(value = "note", required = false) String note,
             HttpSession session) {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
         Map<String, Object> resp = new HashMap<>();
@@ -151,18 +156,18 @@ public class ContentPortalController {
             return ResponseEntity.status(403).body(resp);
         }
 
-        boolean ok = contentService.resolveReport(reportId);
+        boolean ok = questionReportService.resolveReport(reportId, note, currentUser.getFullName());
         if (ok) {
             adminSystemService.logAction(
                     currentUser.getFullName(),
                     currentUser.getRole(),
                     "RESOLVE_CONTENT_REPORT",
                     "CONTENT_REPORT",
-                    "Đã rà soát và giải quyết báo lỗi nội dung ID #" + reportId + ", tặng thưởng Xu cho người báo",
+                    "Đã rà soát và giải quyết báo lỗi nội dung ID #" + reportId + ", tặng thưởng +5 Xu cho học viên",
                     "127.0.0.1"
             );
             resp.put("success", true);
-            resp.put("message", "Đã giải quyết báo cáo và tặng Xu thưởng cho học viên thành công!");
+            resp.put("message", "Đã giải quyết báo cáo và tặng +5 Xu thưởng cho học viên thành công!");
         } else {
             resp.put("success", false);
             resp.put("message", "Không tìm thấy báo cáo.");
@@ -542,25 +547,32 @@ public class ContentPortalController {
             HttpSession session) {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
         Map<String, Object> resp = new HashMap<>();
-        if (currentUser == null) {
+        if (currentUser == null || (!currentUser.isContentManager() && !currentUser.isAdmin())) {
             resp.put("success", false);
-            resp.put("message", "Chưa đăng nhập.");
+            resp.put("message", "Chưa đăng nhập hoặc không có quyền.");
             return ResponseEntity.status(401).body(resp);
         }
         Long reportId = payload.containsKey("reportId") ? Long.valueOf(payload.get("reportId").toString()) : null;
+        String reason = payload.containsKey("reason") ? payload.get("reason").toString() : "";
         if (reportId != null) {
-            adminSystemService.logAction(
-                    currentUser.getFullName(),
-                    currentUser.getRole(),
-                    "REJECT_CONTENT_REPORT",
-                    "CONTENT_REPORT",
-                    "Từ chối báo lỗi #" + reportId + " - Không xác nhận lỗi, đã thông báo học viên",
-                    "127.0.0.1"
-            );
+            boolean ok = questionReportService.rejectReport(reportId, reason, currentUser.getFullName());
+            if (ok) {
+                adminSystemService.logAction(
+                        currentUser.getFullName(),
+                        currentUser.getRole(),
+                        "REJECT_CONTENT_REPORT",
+                        "CONTENT_REPORT",
+                        "Từ chối báo lỗi #" + reportId + " - Lý do: " + reason,
+                        "127.0.0.1"
+                );
+                resp.put("success", true);
+                resp.put("message", "Đã từ chối báo lỗi và gửi thông báo giải thích đến học viên!");
+                return ResponseEntity.ok(resp);
+            }
         }
-        resp.put("success", true);
-        resp.put("message", "Đã từ chối báo lỗi và thông báo học viên!");
-        return ResponseEntity.ok(resp);
+        resp.put("success", false);
+        resp.put("message", "Không tìm thấy báo cáo cần từ chối.");
+        return ResponseEntity.badRequest().body(resp);
     }
     // Thêm API này vào ContentPortalController.java
     @PostMapping("/grammar/group/save")

@@ -28,6 +28,11 @@ public record QuestionTypeDef(
         return blocks.stream().mapToInt(List::size).sum();
     }
 
+    public String learnerInstructionKo() {
+        return instructionKo == null ? null
+                : instructionKo.replaceAll("\\[\\s*\\d+\\s*[~–-]\\s*\\d+\\s*\\]\\s*", "").trim();
+    }
+
     public boolean isGrouped() {
         return blocks.stream().anyMatch(b -> b.size() > 1);
     }

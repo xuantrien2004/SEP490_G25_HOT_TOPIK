@@ -125,7 +125,7 @@
 
             <section class="cm-card" id="roadmap-preview">
                 <div class="cm-toolbar">
-                    <h2 style="margin: 0;" th:text="'Lịch mẫu ' + ${days} + ' ngày'">Lịch mẫu</h2>
+                    <h2 style="margin: 0;" th:text="${previewDays != null ? 'Lịch mẫu ' + previewDays.size() + ' ngày đầu' : 'Lịch mẫu'}">Lịch mẫu</h2>
                     <form id="preview-form" method="get" th:action="@{/content/roadmap/{id}(id=${program.id})}" class="rd-add" style="margin: 0;">
                         <div>
                             <select class="form-select ssak-input" name="track" onchange="this.form.submit()">

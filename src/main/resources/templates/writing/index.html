@@ -14,7 +14,7 @@
         <div style="display: flex; justify-content: space-between; align-items: flex-end;">
             <div>
                 <a th:href="@{/practice(skill='writing',track='TOPIK_II')}" style="display: inline-flex; align-items: center; gap: 4px; color: #5C6E72; font-size: 14px; font-weight: 700; text-decoration: none; margin-bottom: 6px;">
-                    ‹ Luyện tập · Viết từng câu (51–54)
+                    ‹ Luyện tập · Viết từng câu
                 </a>
                 <h1 style="margin: 0; font-family: var(--font-heading); font-size: 32px; font-weight: 800;">
                     Luyện Viết TOPIK II · AI + Giáo viên Chấm ✍️
@@ -87,6 +87,14 @@
                             </span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 12px;">
+                            <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 rounded-3 px-2 py-1"
+                                    style="font-size: 12px; font-weight: 600; border-color: #FFA39E; color: #CF1322;"
+                                    th:attr="data-kind='WRITING', data-qid=${currentPrompt.id}, data-code=${'Viết · Câu ' + currentQuestion}, data-prompt=${currentPrompt.promptKo}, data-examtitle=${'Luyện Viết TOPIK II · Câu ' + currentQuestion}, data-no=${currentQuestion}"
+                                    onclick="openReportModalFromBtn(this)"
+                                    title="Báo lỗi nội dung đề bài viết này cho Content Manager">
+                                <span>🚩</span>
+                                <span>Báo lỗi đề này</span>
+                            </button>
                             <a th:if="${bankPrompts != null && bankPrompts.size() > 1}"
                                th:href="@{/writing(question=${currentQuestion}, random='true')}"
                                style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: #1F6B56; text-decoration: none; padding: 4px 10px; border-radius: 8px; background: #F0FDF4; border: 1px solid #86EFAC;"
@@ -518,6 +526,10 @@
         /*[/]*/
     });
 </script>
+
+<!-- Modal và Script Báo lỗi câu hỏi -->
+<div th:replace="~{fragments/report-modal :: reportModal}"></div>
+<div th:replace="~{fragments/report-modal :: reportScript}"></div>
 
 </body>
 </html>

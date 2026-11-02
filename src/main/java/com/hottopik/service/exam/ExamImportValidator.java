@@ -153,9 +153,6 @@ public final class ExamImportValidator {
                     "Nguồn dành riêng cho đánh giá: mọi câu sẽ có purpose = ASSESSMENT, cột purpose bị bỏ qua."));
         }
 
-        if (type.imageRequired() && blank(q.imageFile)) {
-            issues.add(ImportIssue.error(S, q.row, sk, q.no, "Dạng " + type.code() + " (" + type.name() + ") bắt buộc có image_file."));
-        }
         if (!blank(q.imageFile) && !ctx.mediaSizes().containsKey(key(q.imageFile))) {
             issues.add(ImportIssue.error(S, q.row, sk, q.no, "Thiếu file ảnh " + q.imageFile + "."));
         }
@@ -345,7 +342,6 @@ public final class ExamImportValidator {
     private static void validateChart(WritingRow w, Context ctx, List<ImportIssue> issues) {
         final String S = ParsedWorkbook.SHEET_WRITING;
         if (blank(w.chartJson)) {
-            issues.add(ImportIssue.error(S, w.row, "WRITING", 53, "Câu 53 cần chart_json hoặc tên file ảnh biểu đồ."));
             return;
         }
         String v = w.chartJson.trim();
