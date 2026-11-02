@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/head :: head('Cổng Quản trị viên (Administrator) · HOT TOPIK')}"></head>
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
 <body>
 <div style="min-height: 100vh; background: #F4F3EF; font-family: var(--font-body); color: var(--ssak-text-main); display: flex;">
-    
-    <!-- ==================== LEFT SIDEBAR (THANH TÁC VỤ BÊN TRÁI) ==================== -->
-    <aside style="width: 275px; background: #24363D; color: #FFFFFF; display: flex; flex-direction: column; flex-shrink: 0; min-height: 100vh; position: sticky; top: 0; z-index: 100; box-shadow: 4px 0 16px rgba(0,0,0,0.08);">
+
+    <!-- ==================== LEFT SIDEBAR ==================== -->
+    <aside style="width: 275px; background: #1B2E28; color: #FFFFFF; display: flex; flex-direction: column; flex-shrink: 0; min-height: 100vh; position: sticky; top: 0; z-index: 100; box-shadow: 4px 0 16px rgba(0,0,0,0.12);">
         
         <!-- Sidebar Brand / Logo -->
         <div style="padding: 24px 24px 18px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;">
@@ -18,73 +18,51 @@
                 <span style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #6CC49F; letter-spacing: -0.5px;">HOT TOPIK</span>
             </a>
             <div style="display: flex; align-items: center; gap: 6px;">
-                <span style="font-size: 11px; color: #FFE08A; background: rgba(244, 196, 90, 0.15); border: 1px solid rgba(244, 196, 90, 0.35); padding: 3px 10px; border-radius: 12px; font-weight: 800; text-transform: uppercase;">
+                <span style="font-size: 11px; color: #F4C45A; background: rgba(244, 196, 90, 0.15); border: 1px solid rgba(244, 196, 90, 0.3); padding: 3px 10px; border-radius: 12px; font-weight: 800; text-transform: uppercase;">
                     🛡️ Administrator
                 </span>
-                <span style="font-size: 11px; color: #A9D9C0; background: rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 12px;">Root Access</span>
+                <span style="font-size: 11px; color: #A9D9C0; background: rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 12px;">Quản trị</span>
             </div>
         </div>
 
         <!-- User Profile Card -->
-        <a th:href="@{/admin/profile}" style="padding: 16px 20px; margin: 12px 14px; background: rgba(0,0,0,0.22); border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px; text-decoration: none; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='rgba(46, 125, 103, 0.35)'; this.style.borderColor='#6CC49F';" onmouseout="this.style.background='rgba(0,0,0,0.22)'; this.style.borderColor='rgba(255,255,255,0.06)';">
+        <a th:href="@{/admin/profile}" style="padding: 14px 20px; margin: 12px 14px; background: rgba(255,255,255,0.06); border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 12px; text-decoration: none; transition: background 0.15s ease;">
             <div style="width: 44px; height: 44px; border-radius: 22px; background: #2E7D67; color: #FFFFFF; font-family: var(--font-heading); font-size: 20px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-                <span th:text="${#strings.substring(currentUser.fullName, 0, 1)}">Q</span>
+                <span th:text="${#strings.substring(currentUser.fullName, 0, 1)}">A</span>
             </div>
             <div style="display: flex; flex-direction: column; overflow: hidden; min-width: 0; flex-grow: 1;">
                 <span style="font-weight: 800; font-size: 14px; color: #FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" th:text="${currentUser.fullName}">Vũ Minh Quân</span>
-                <span style="font-size: 11px; color: #6CC49F; font-weight: 700;">Hồ sơ Quản trị viên →</span>
+                <span style="font-size: 11px; color: #A9D9C0;">Hồ sơ Quản trị viên →</span>
             </div>
         </a>
 
-        <!-- Sidebar Navigation Menu Items -->
-        <div style="padding: 6px 14px; display: flex; flex-direction: column; gap: 4px; flex-grow: 1;">
+        <!-- Navigation Menu -->
+        <div style="padding: 6px 14px; display: flex; flex-direction: column; gap: 6px; flex-grow: 1;">
             <div style="font-size: 11px; font-weight: 800; color: #8ECDB0; padding: 8px 12px 4px 12px; text-transform: uppercase; letter-spacing: 0.8px;">
-                Tác vụ Quản trị
+                Tác vụ Quản lý
             </div>
 
-            <!-- Tab 1: Approvals -->
-            <a href="javascript:void(0)" onclick="switchAdminTab('approvals')" id="side-nav-approvals" class="sidebar-item active">
-                <span style="font-size: 17px;">📥</span>
-                <span style="flex-grow: 1;">Hộp duyệt yêu cầu</span>
-                <span class="ssak-badge badge-honey" style="font-size: 11px; padding: 2px 7px;" th:text="${#lists.size(pendingRequests)}">3</span>
-            </a>
-
-            <!-- Tab 2: Manage Learners -->
-            <a href="javascript:void(0)" onclick="switchAdminTab('learners')" id="side-nav-learners" class="sidebar-item">
-                <span style="font-size: 17px;">🎓</span>
-                <span style="flex-grow: 1;">Quản lý Học viên</span>
-                <span class="ssak-badge badge-mint" style="font-size: 11px; padding: 2px 7px;" th:text="${#lists.size(learners)}">2</span>
-            </a>
-
-            <!-- Tab 3: Staff & Access Reviews -->
-            <a href="javascript:void(0)" onclick="switchAdminTab('staff')" id="side-nav-staff" class="sidebar-item">
-                <span style="font-size: 17px;">👥</span>
-                <span style="flex-grow: 1;">Nhân sự & Phân quyền</span>
+            <!-- Tab: Staff Management -->
+            <a href="javascript:void(0)" onclick="switchAdminTab('staff')" id="side-nav-staff" class="sidebar-item active">
+                <span style="font-size: 18px;">👥</span>
+                <span style="flex-grow: 1;">Quản lý Nhân sự</span>
                 <span class="ssak-badge badge-mint" style="font-size: 11px; padding: 2px 7px;" th:text="${#lists.size(staffUsers)}">3</span>
             </a>
 
-            <!-- Tab 4: Configuration & AI Budget -->
-            <a href="javascript:void(0)" onclick="switchAdminTab('aibudget')" id="side-nav-aibudget" class="sidebar-item">
-                <span style="font-size: 17px;">⚙️</span>
-                <span style="flex-grow: 1;">Cấu hình & Ngân sách AI</span>
-            </a>
-
-            <!-- Tab 5: Audit Log -->
+            <!-- Tab: Audit Log -->
             <a href="javascript:void(0)" onclick="switchAdminTab('audit')" id="side-nav-audit" class="sidebar-item">
-                <span style="font-size: 17px;">📜</span>
+                <span style="font-size: 18px;">📋</span>
                 <span style="flex-grow: 1;">Nhật ký Kiểm toán</span>
-            </a>
-
-            <!-- Tab 6: Break-glass Emergency -->
-            <a href="javascript:void(0)" onclick="switchAdminTab('breakglass')" id="side-nav-breakglass" class="sidebar-item">
-                <span style="font-size: 17px;">🚨</span>
-                <span style="flex-grow: 1;">Quyền Khẩn cấp</span>
-                <span th:if="${breakGlassActive}" class="ssak-badge badge-terracotta" style="font-size: 10px; padding: 2px 6px;">BẬT</span>
+                <span class="ssak-badge badge-honey" style="font-size: 11px; padding: 2px 7px;" th:text="${#lists.size(auditLogs)}">4</span>
             </a>
         </div>
 
         <!-- Sidebar Bottom Footer -->
         <div style="padding: 16px 14px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;">
+            <a th:href="@{/operation}" class="sidebar-bottom-link">
+                <span>💼</span>
+                <span>Xem Cổng Vận hành (Operation)</span>
+            </a>
             <a th:href="@{/today}" class="sidebar-bottom-link">
                 <span>🎓</span>
                 <span>Xem Cổng Học viên</span>
@@ -102,324 +80,91 @@
         <!-- Top Header Bar inside Content -->
         <header style="height: 68px; padding: 0 40px; background: #FFFFFF; border-bottom: 2px solid var(--ssak-border); display: flex; align-items: center; justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 12px;">
-                <span id="currentSectionIcon" style="font-size: 22px;">📥</span>
+                <span id="currentSectionIcon" style="font-size: 22px;">👥</span>
                 <div>
                     <h2 id="currentSectionTitle" style="margin: 0; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D;">
-                        Hộp phê duyệt yêu cầu (Decide Approval Requests)
+                        Quản lý Nhân sự & Phân quyền (Staff Management & Access Control)
                     </h2>
                     <span id="currentSectionSubtitle" style="font-size: 12px; color: var(--ssak-text-muted);">
-                        Xem xét và đưa ra quyết định phê duyệt hoặc từ chối các đề xuất từ Content Manager và Operation Manager.
+                        Kiểm soát danh sách tài khoản nhân sự nội bộ, trạng thái hoạt động và phân quyền chức năng.
                     </span>
                 </div>
             </div>
 
             <div style="display: flex; align-items: center; gap: 14px;">
                 <span class="ssak-badge badge-mint" style="font-size: 12px; padding: 6px 12px;">
-                    🛡️ Vai trò: Quản trị viên Tối cao
+                    🛡️ Administrator Root
                 </span>
-                <button type="button" class="btn-ssak-primary" style="height: 38px; padding: 0 16px; font-size: 13px;" onclick="switchAdminTab('approvals')">
-                    ⚡ Xử lý ngay (<span th:text="${#lists.size(pendingRequests)}">3</span>)
+                <button type="button" class="btn-ssak-primary" style="height: 38px; padding: 0 16px; font-size: 13px;" onclick="openNewStaffModal()">
+                    ➕ Thêm nhân sự mới
                 </button>
             </div>
         </header>
 
-        <!-- Main Content Area -->
-        <main style="padding: 28px 40px; display: flex; flex-direction: column; gap: 24px; flex-grow: 1;">
+        <!-- Main Body Wrapper -->
+        <main style="padding: 32px 40px; display: flex; flex-direction: column; gap: 24px;">
             
-            <!-- 5 Metric KPI Cards -->
-            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px;">
-                <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border);">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Yêu cầu chờ duyệt</span>
-                        <span style="font-size: 20px;">📥</span>
+            <!-- Key Metric Overview Cards: Staff Only -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;">
+                <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 18px; border: 2px solid var(--ssak-border); display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 52px; height: 52px; border-radius: 14px; background: #E8F5E9; display: flex; align-items: center; justify-content: center; font-size: 26px;">
+                        👥
                     </div>
-                    <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; color: #1F6B56; margin: 4px 0;" th:text="${#lists.size(pendingRequests) + ' mục'}">3 mục</div>
-                    <span style="font-size: 12px; color: #1F6B56; font-weight: 700;">Từ Content & Operation</span>
+                    <div>
+                        <div style="font-size: 12.5px; font-weight: 700; color: var(--ssak-text-muted); text-transform: uppercase;">Tổng nhân sự nội bộ</div>
+                        <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; color: #1F6B56; margin: 4px 0;" th:text="${#lists.size(staffUsers) + ' nhân sự'}">3 nhân sự</div>
+                        <div style="font-size: 12px; color: var(--ssak-text-muted);">Admin, Content, Operation, Mentor</div>
+                    </div>
                 </div>
 
-                <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border);">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Tổng học viên</span>
-                        <span style="font-size: 20px;">🎓</span>
+                <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 18px; border: 2px solid var(--ssak-border); display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 52px; height: 52px; border-radius: 14px; background: #E8F5E9; display: flex; align-items: center; justify-content: center; font-size: 26px;">
+                        🟢
                     </div>
-                    <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; color: #2E7D67; margin: 4px 0;" th:text="${#lists.size(learners) + ' người'}">2 người</div>
-                    <span style="font-size: 12px; color: #2E7D67; font-weight: 700;">Gồm VIP & Standard</span>
+                    <div>
+                        <div style="font-size: 12.5px; font-weight: 700; color: var(--ssak-text-muted); text-transform: uppercase;">Trạng thái tài khoản</div>
+                        <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; color: #1F6B56; margin: 4px 0;">Hoạt động</div>
+                        <div style="font-size: 12px; color: #1F6B56; font-weight: 700;">Được cấp quyền đầy đủ</div>
+                    </div>
                 </div>
 
-                <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border);">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Nhân sự quản lý</span>
-                        <span style="font-size: 20px;">👥</span>
+                <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 18px; border: 2px solid var(--ssak-border); display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 52px; height: 52px; border-radius: 14px; background: #E0E7FF; display: flex; align-items: center; justify-content: center; font-size: 26px;">
+                        🛡️
                     </div>
-                    <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; color: #24363D; margin: 4px 0;" th:text="${#lists.size(staffUsers) + ' tài khoản'}">3 tài khoản</div>
-                    <span style="font-size: 12px; color: var(--ssak-text-muted);">1 Admin · 1 Content · 1 Operation</span>
-                </div>
-
-                <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border);">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Dịch vụ AI đang chạy</span>
-                        <span style="font-size: 20px;">⚡</span>
+                    <div>
+                        <div style="font-size: 12.5px; font-weight: 700; color: var(--ssak-text-muted); text-transform: uppercase;">Phân quyền hệ thống</div>
+                        <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; color: #2F5F7D; margin: 4px 0;">4 vai trò</div>
+                        <div style="font-size: 12px; color: var(--ssak-text-muted);">Administrator · Content · Operation · Mentor</div>
                     </div>
-                    <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; color: #2F5F7D; margin: 4px 0;">3 Engine</div>
-                    <span style="font-size: 12px; color: var(--ssak-text-muted);">GPT-4o, Gemini 1.5, Azure TTS</span>
-                </div>
-
-                <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border);">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Trạng thái hệ thống</span>
-                        <span style="font-size: 20px;">🛡️</span>
-                    </div>
-                    <div style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; margin: 8px 0;"
-                         th:style="${breakGlassActive ? 'color: #9C4A2E;' : 'color: #1F6B56;'}">
-                        <span th:if="${!breakGlassActive}">AN TOÀN</span>
-                        <span th:if="${breakGlassActive}">BREAK-GLASS ⚠️</span>
-                    </div>
-                    <span style="font-size: 12px; color: var(--ssak-text-muted);">Phiên kiểm toán đang ghi nhận</span>
                 </div>
             </div>
 
-            <!-- TAB 1: DECIDE APPROVAL REQUESTS (Use Case: Decide Approval Requests) -->
-            <section id="pane-approvals" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 18px;">
+            <!-- ==================== TAB 1: MANAGE STAFF (Primary Admin Tab) ==================== -->
+            <section id="pane-staff" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 18px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <h3 style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">
-                            📥 Danh sách yêu cầu cần xem xét phê duyệt
-                        </h3>
-                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
-                            Học viên và nhân viên đang chờ quyết định của bạn để xuất bản đề thi hoặc xử lý hoàn tiền đơn hàng.
-                        </p>
-                    </div>
-                    <span class="ssak-badge badge-honey" style="font-size: 12px; font-weight: 800;" th:text="${'Chờ duyệt: ' + #lists.size(pendingRequests)}">Chờ duyệt: 3</span>
-                </div>
-
-                <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                        <thead>
-                            <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase;">
-                                <th style="padding: 12px 10px;">Mã</th>
-                                <th style="padding: 12px 10px;">Phòng ban gửi</th>
-                                <th style="padding: 12px 10px;">Loại yêu cầu</th>
-                                <th style="padding: 12px 10px;">Tiêu đề & Nội dung chi tiết</th>
-                                <th style="padding: 12px 10px;">Thời gian gửi</th>
-                                <th style="padding: 12px 10px;">Trạng thái</th>
-                                <th style="padding: 12px 10px; text-align: right;">Quyết định của Admin</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:each="req : ${allRequests}" style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
-                                <td style="padding: 14px 10px; font-weight: 800;" th:text="${'#' + req.id}">#1</td>
-                                <td style="padding: 14px 10px;">
-                                    <div style="font-weight: 700; color: #24363D;" th:text="${req.requesterName}">Lê Thu Hà</div>
-                                    <div style="font-size: 12px; color: var(--ssak-text-muted);" th:text="${req.requesterRole}">Content Manager</div>
-                                </td>
-                                <td style="padding: 14px 10px;">
-                                    <span class="ssak-badge badge-mint" th:if="${req.requestType == 'PUBLISH_EXAM'}">Phát hành đề thi</span>
-                                    <span class="ssak-badge badge-terracotta" th:if="${req.requestType == 'REFUND_ORDER'}">Hoàn tiền đơn</span>
-                                    <span class="ssak-badge badge-honey" th:if="${req.requestType == 'VIP_COMPENSATION'}">Cấp bù VIP</span>
-                                    <span class="ssak-badge badge-sky" th:if="${req.requestType == 'PRICE_UPDATE'}">Điều chỉnh giá</span>
-                                    <span class="ssak-badge badge-terracotta" th:if="${req.requestType == 'PERMANENT_LOCK_USER'}">🔒 Khóa vĩnh viễn</span>
-                                    <span class="ssak-badge badge-peach" th:if="${req.requestType == 'ARCHIVE_EXAM'}">Lưu trữ đề thi</span>
-                                    <span class="ssak-badge badge-peach" th:if="${req.requestType == 'BULK_HIDE_QUESTIONS'}">Ẩn hàng loạt câu hỏi</span>
-                                    <span class="ssak-badge badge-mint" th:if="${req.requestType == 'PUBLISH_PROGRAM'}">Phát hành lộ trình</span>
-                                </td>
-                                <td style="padding: 14px 10px; max-width: 400px;">
-                                    <div style="font-weight: 800; color: #24363D;" th:text="${req.title}">Tiêu đề yêu cầu</div>
-                                    <div style="font-size: 13px; color: var(--ssak-text-muted); margin-top: 3px;" th:text="${req.description}">Chi tiết nội dung yêu cầu</div>
-                                    <div th:if="${req.decisionNote != null}" style="font-size: 12px; color: #1F6B56; font-style: italic; margin-top: 4px;" th:text="${'Ghi chú duyệt: ' + req.decisionNote}"></div>
-                                </td>
-                                <td style="padding: 14px 10px; font-size: 13px; color: var(--ssak-text-muted);" th:text="${req.createdAt}">2026-10-06</td>
-                                <td style="padding: 14px 10px;">
-                                    <span class="ssak-badge badge-honey" th:if="${req.status == 'PENDING'}">⏳ Chờ duyệt</span>
-                                    <span class="ssak-badge badge-mint" th:if="${req.status == 'APPROVED'}">✅ Đã phê duyệt</span>
-                                    <span class="ssak-badge badge-terracotta" th:if="${req.status == 'REJECTED'}">❌ Đã từ chối</span>
-                                </td>
-                                <td style="padding: 14px 10px; text-align: right;">
-                                    <div th:if="${req.status == 'PENDING'}" style="display: inline-flex; gap: 8px;">
-                                        <button type="button" class="btn-ssak-primary" style="height: 34px; padding: 0 16px; font-size: 13px; font-weight: 800;"
-                                                th:data-id="${req.id}" onclick="decideRequest(this.getAttribute('data-id'), 'approve')">
-                                            Phê duyệt
-                                        </button>
-                                        <button type="button" class="btn-ssak-outline" style="height: 34px; padding: 0 12px; font-size: 13px; color: #9C4A2E; border-color: #FFA39E;"
-                                                th:data-id="${req.id}" onclick="decideRequest(this.getAttribute('data-id'), 'reject')">
-                                            Từ chối
-                                        </button>
-                                    </div>
-                                    <div th:if="${req.status != 'PENDING'}" style="font-size: 12px; color: var(--ssak-text-muted);">
-                                        Đã xử lý lúc <span th:text="${req.decidedAt != null ? req.decidedAt : 'Gần đây'}">2026-10-07</span>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- TAB 2: MANAGE LEARNERS (Use Case: Manage Learners) -->
-            <section id="pane-learners" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: none; flex-direction: column; gap: 18px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">
-                            🎓 Danh sách Học viên trong hệ thống (Manage Learners)
-                        </h3>
-                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
-                            Quản lý quyền học viên, rà soát cấp độ mục tiêu và khóa tài khoản khi có dấu hiệu vi phạm.
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Search & Live Filter Toolbar -->
-                <div style="background: #F8FAFC; border: 1.5px solid var(--ssak-border); border-radius: 16px; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px;">
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-                        <!-- Search input -->
-                        <div style="position: relative; flex-grow: 1; min-width: 240px;">
-                            <input type="text" id="adminLearnerSearch" class="form-control ssak-input"
-                                   placeholder="🔍 Tìm theo Họ tên, Email, ID học viên..."
-                                   oninput="filterAdminLearners()"
-                                   style="height: 40px; font-size: 13.5px; border-radius: 10px; padding-left: 14px;" />
-                        </div>
-                        <!-- Role / VIP filter -->
-                        <div style="min-width: 170px;">
-                            <select id="adminLearnerRoleFilter" class="form-select ssak-input" onchange="filterAdminLearners()" style="height: 40px; font-size: 13px; border-radius: 10px;">
-                                <option value="ALL">👑 Tất cả tài khoản</option>
-                                <option value="ROLE_VIP">👑 Thành viên VIP</option>
-                                <option value="ROLE_LEARNER">🎓 Học viên thường</option>
-                            </select>
-                        </div>
-                        <!-- Target level filter -->
-                        <div style="min-width: 150px;">
-                            <select id="adminLearnerLevelFilter" class="form-select ssak-input" onchange="filterAdminLearners()" style="height: 40px; font-size: 13px; border-radius: 10px;">
-                                <option value="ALL">🎯 Tất cả cấp độ</option>
-                                <option value="TOPIK_1">TOPIK 1</option>
-                                <option value="TOPIK_2">TOPIK 2</option>
-                                <option value="TOPIK_3">TOPIK 3</option>
-                                <option value="TOPIK_4">TOPIK 4</option>
-                                <option value="TOPIK_5">TOPIK 5</option>
-                                <option value="TOPIK_6">TOPIK 6</option>
-                            </select>
-                        </div>
-                        <!-- Status filter -->
-                        <div style="min-width: 160px;">
-                            <select id="adminLearnerStatusFilter" class="form-select ssak-input" onchange="filterAdminLearners()" style="height: 40px; font-size: 13px; border-radius: 10px;">
-                                <option value="ALL">⚡ Tất cả trạng thái</option>
-                                <option value="ACTIVE">🟢 Đang hoạt động</option>
-                                <option value="LOCKED">🔴 Đang bị khóa</option>
-                                <option value="PENDING_LOCK">⏳ Chờ duyệt khóa</option>
-                            </select>
-                        </div>
-                        <!-- Reset Button -->
-                        <div>
-                            <button type="button" class="btn-ssak-outline" onclick="resetAdminLearnerFilter()"
-                                    style="height: 40px; padding: 0 14px; font-size: 13px; border-radius: 10px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; cursor: pointer;">
-                                <span>↺</span> Đặt lại
-                            </button>
-                        </div>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--ssak-text-muted);">
-                        <span>⚡ Bộ lọc tức thời: Tự động cập nhật danh sách ngay khi nhập hoặc chọn</span>
-                        <span>Hiển thị: <strong id="adminLearnerCount" style="color: #1F6B56;" th:text="${#lists.size(learners) + ' học viên'}"></strong></span>
-                    </div>
-                </div>
-
-                <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                        <thead>
-                            <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase;">
-                                <th style="padding: 12px 10px;">ID</th>
-                                <th style="padding: 12px 10px;">Họ tên học viên</th>
-                                <th style="padding: 12px 10px;">Email đăng nhập</th>
-                                <th style="padding: 12px 10px;">Loại tài khoản</th>
-                                <th style="padding: 12px 10px;">Cấp độ mục tiêu</th>
-                                <th style="padding: 12px 10px;">Gói VIP</th>
-                                <th style="padding: 12px 10px;">Trạng thái</th>
-                                <th style="padding: 12px 10px; text-align: right;">Thao tác quản trị</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:each="u : ${learners}" th:id="${'row-learner-' + u.id}" class="admin-learner-row"
-                                th:data-id="${u.id}"
-                                th:data-name="${u.fullName != null ? #strings.toLowerCase(u.fullName) : ''}"
-                                th:data-email="${u.email != null ? #strings.toLowerCase(u.email) : ''}"
-                                th:data-role="${u.role}"
-                                th:data-level="${u.targetLevel}"
-                                th:data-status="${u.status}"
-                                th:data-pending-lock="${u.pendingPermanentLock}"
-                                style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
-                                <td style="padding: 14px 10px; font-weight: 800;" th:text="${u.id}">4</td>
-                                <td style="padding: 14px 10px; font-weight: 700; color: #24363D;">
-                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                        <span style="width: 32px; height: 32px; border-radius: 50%; background: #E8F5E9; color: #1F6B56; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px;" th:text="${u.fullName != null && !u.fullName.isEmpty() ? #strings.substring(u.fullName, 0, 1) : 'U'}">N</span>
-                                        <span th:text="${u.fullName}">Nguyễn Hoàng Nam</span>
-                                    </div>
-                                </td>
-                                <td style="padding: 14px 10px; font-weight: 500;" th:text="${u.email}">viplearner@hottopik.com</td>
-                                <td style="padding: 14px 10px;">
-                                    <span class="ssak-badge badge-honey" th:if="${u.role == 'ROLE_VIP'}">👑 VIP Member</span>
-                                    <span class="ssak-badge badge-mint" th:if="${u.role != 'ROLE_VIP'}">🎓 Học viên</span>
-                                </td>
-                                <td style="padding: 14px 10px; font-weight: 700;" th:text="${u.targetLevel}">TOPIK_5</td>
-                                <td style="padding: 14px 10px;">
-                                    <span th:if="${u.vip}" style="color: #7A5A12; font-weight: 800;" th:text="${u.vipPackage}">Trọn đời</span>
-                                    <span th:if="${!u.vip}" style="color: var(--ssak-text-muted);">Gói miễn phí</span>
-                                </td>
-                                <td style="padding: 14px 10px;">
-                                    <span th:id="${'learner-status-' + u.id}" class="ssak-badge"
-                                          th:classappend="${u.pendingPermanentLock ? 'badge-honey' : (u.status == 'ACTIVE' ? 'badge-mint' : (u.status == 'PENDING_VERIFY' ? 'badge-honey' : 'badge-terracotta'))}"
-                                          th:text="${u.pendingPermanentLock ? '⏳ Chờ duyệt khóa vĩnh viễn' : (u.status == 'ACTIVE' ? 'Đang hoạt động' : (u.status == 'PENDING_VERIFY' ? 'Chờ kích hoạt' : (u.permanentlyLocked ? 'Khóa vĩnh viễn' : 'Tạm khóa')))}">
-                                        Hoạt động
-                                    </span>
-                                    <div th:if="${!u.pendingPermanentLock && u.status == 'LOCKED' && u.formattedLockedUntil != null && !u.permanentlyLocked}" style="font-size: 11px; color: #9C4A2E; margin-top: 3px;" th:text="${'Đến: ' + u.formattedLockedUntil}"></div>
-                                </td>
-                                <td style="padding: 14px 10px; text-align: right;">
-                                    <button th:if="${u.pendingPermanentLock}" type="button" class="btn-ssak-light" style="height: 34px; padding: 0 14px; font-size: 12.5px; font-weight: 800; border-radius: 10px; cursor: pointer; background: #FFFBE6; border: 1.5px solid #FFE58F; color: #D48806;"
-                                            onclick="switchAdminTab('approvals')" title="Học viên này đang có yêu cầu đề xuất khóa vĩnh viễn cần duyệt">
-                                        ⏳ Xem phiếu duyệt
-                                    </button>
-                                    <button th:if="${!u.pendingPermanentLock}" type="button" class="btn-ssak-light" style="height: 34px; padding: 0 14px; font-size: 12.5px; font-weight: 800; border-radius: 10px; cursor: pointer; transition: all 0.15s ease;"
-                                            th:id="${'btn-toggle-learner-' + u.id}"
-                                            th:data-id="${u.id}"
-                                            th:data-name="${u.fullName}"
-                                            th:data-email="${u.email}"
-                                            th:data-status="${u.status}"
-                                            onclick="openLearnerModal(this.getAttribute('data-id'), this.getAttribute('data-name'), this.getAttribute('data-email'), this.getAttribute('data-status'))">
-                                        <span th:if="${u.status == 'LOCKED'}" style="color: #1F6B56;">🔓 Mở khóa</span>
-                                        <span th:if="${u.status != 'LOCKED'}" style="color: #9C4A2E;">🔒 Khóa tài khoản</span>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr id="adminLearnerNoResult" style="display: none;">
-                                <td colspan="8" style="text-align: center; padding: 36px 20px; color: var(--ssak-text-muted); font-size: 13.5px;">
-                                    🔍 Không tìm thấy học viên nào phù hợp với điều kiện tìm kiếm và bộ lọc.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- TAB 3: MANAGE STAFF & ACCESS REVIEWS (Use Case: Manage Staff & Access Reviews) -->
-            <section id="pane-staff" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: none; flex-direction: column; gap: 18px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">
-                            👥 Quản lý Nhân sự & Rà soát phân quyền (Manage Staff & Access Reviews)
+                            👥 Danh sách Nhân sự Nội bộ (Internal Staff Members)
                         </h3>
                         <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
                             Kiểm soát danh sách tài khoản nhân sự nội bộ, trạng thái hoạt động và phân quyền chức năng.
                         </p>
                     </div>
+                    <button type="button" class="btn-ssak-primary" style="height: 38px; padding: 0 16px; font-size: 13px;" onclick="openNewStaffModal()">
+                        ➕ Thêm nhân sự mới
+                    </button>
                 </div>
 
                 <!-- Search & Live Filter Toolbar -->
                 <div style="background: #F8FAFC; border: 1.5px solid var(--ssak-border); border-radius: 16px; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px;">
                     <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-                        <!-- Search input -->
                         <div style="position: relative; flex-grow: 1; min-width: 240px;">
                             <input type="text" id="adminStaffSearch" class="form-control ssak-input"
                                    placeholder="🔍 Tìm theo Họ tên, Email, Username, SĐT, ID..."
                                    oninput="filterAdminStaff()"
                                    style="height: 40px; font-size: 13.5px; border-radius: 10px; padding-left: 14px;" />
                         </div>
-                        <!-- Role filter -->
                         <div style="min-width: 190px;">
                             <select id="adminStaffRoleFilter" class="form-select ssak-input" onchange="filterAdminStaff()" style="height: 40px; font-size: 13px; border-radius: 10px;">
                                 <option value="ALL">🛡️ Tất cả vai trò</option>
@@ -429,25 +174,12 @@
                                 <option value="ROLE_TEACHER">👨‍🏫 Teacher / Giáo viên</option>
                             </select>
                         </div>
-                        <!-- Status filter -->
-                        <div style="min-width: 160px;">
-                            <select id="adminStaffStatusFilter" class="form-select ssak-input" onchange="filterAdminStaff()" style="height: 40px; font-size: 13px; border-radius: 10px;">
-                                <option value="ALL">⚡ Tất cả trạng thái</option>
-                                <option value="ACTIVE">🟢 Đang hoạt động</option>
-                                <option value="LOCKED">🔴 Tạm khóa</option>
-                            </select>
-                        </div>
-                        <!-- Reset Button -->
                         <div>
                             <button type="button" class="btn-ssak-outline" onclick="resetAdminStaffFilter()"
                                     style="height: 40px; padding: 0 14px; font-size: 13px; border-radius: 10px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; cursor: pointer;">
                                 <span>↺</span> Đặt lại
                             </button>
                         </div>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--ssak-text-muted);">
-                        <span>⚡ Bộ lọc tức thời: Tìm kiếm nhanh theo họ tên, email hoặc tài khoản nhân sự</span>
-                        <span>Hiển thị: <strong id="adminStaffCount" style="color: #1F6B56;" th:text="${#lists.size(staffUsers) + ' nhân sự'}"></strong></span>
                     </div>
                 </div>
 
@@ -511,144 +243,216 @@
                                     </span>
                                 </td>
                             </tr>
-                            <tr id="adminStaffNoResult" style="display: none;">
-                                <td colspan="7" style="text-align: center; padding: 36px 20px; color: var(--ssak-text-muted); font-size: 13.5px;">
-                                    🔍 Không tìm thấy nhân sự nào phù hợp với điều kiện tìm kiếm và bộ lọc.
-                                </td>
-                            </tr>
                         </tbody>
                     </table>
                 </div>
             </section>
 
-            <!-- TAB 3: MANAGE CONFIGURATION & AI BUDGET (Use Case: Manage Configuration & AI Budget) -->
-            <section id="pane-aibudget" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: none; flex-direction: column; gap: 18px;">
+            <!-- ==================== TAB 2: AUDIT LOG (Nhật ký Kiểm toán) ==================== -->
+            <section id="pane-audit" class="ssak-card" style="display: none; padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); flex-direction: column; gap: 18px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <h3 style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">
-                            ⚙️ Cấu hình Hệ thống & Ngân sách AI (Manage Configuration & AI Budget)
+                            📋 Nhật ký Kiểm toán Hệ thống (System Audit Log)
                         </h3>
                         <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
-                            Giám sát mức tiêu thụ hạn mức AI hàng tháng, cảnh báo vượt trần chi phí và cấu hình hệ thống.
+                            Theo dõi mọi hành động thay đổi, cập nhật của Content Manager, Operation Manager và Admin trên hệ thống.
                         </p>
                     </div>
+                    <span class="ssak-badge badge-honey" style="font-size: 13px; padding: 6px 14px;" th:text="${#lists.size(auditLogs) + ' bản ghi'}">4 bản ghi</span>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;">
-                    <div th:each="bg : ${aiBudgets}" class="ssak-card" style="padding: 20px; border: 1.5px solid var(--ssak-border); background: #F8FAFC; border-radius: 18px; display: flex; flex-direction: column; gap: 12px;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <div>
-                                <div style="font-weight: 800; font-size: 15px; color: #24363D;" th:text="${bg.serviceName}">OpenAI GPT-4o</div>
-                                <div style="font-size: 12px; color: var(--ssak-text-muted);">Mục đích: Chấm bài viết / Sinh đề</div>
-                            </div>
-                            <span class="ssak-badge badge-mint" th:if="${bg.status == 'NORMAL'}">An toàn</span>
-                            <span class="ssak-badge badge-terracotta" th:if="${bg.status != 'NORMAL'}">Cảnh báo</span>
+                <!-- Search & Filter Toolbar -->
+                <div style="background: #F8FAFC; border: 1.5px solid var(--ssak-border); border-radius: 16px; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                        <div style="position: relative; flex-grow: 1; min-width: 240px;">
+                            <input type="text" id="auditLogSearch" class="form-control ssak-input"
+                                   placeholder="🔍 Tìm theo tên người thực hiện, hành động, nội dung chi tiết..."
+                                   oninput="filterAuditLog()"
+                                   style="height: 40px; font-size: 13.5px; border-radius: 10px; padding-left: 14px;" />
                         </div>
-
-                        <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                            <span style="font-size: 13px; color: var(--ssak-text-muted);">Chi tiêu hiện tại:</span>
-                            <span style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #1F6B56;" th:text="${'$' + bg.currentUsageUsd}">$186.50</span>
+                        <div style="min-width: 210px;">
+                            <select id="auditRoleFilter" class="form-select ssak-input" onchange="filterAuditLog()" style="height: 40px; font-size: 13px; border-radius: 10px;">
+                                <option value="ALL">🛡️ Tất cả vai trò</option>
+                                <option value="ROLE_CONTENT_MANAGER">📝 Content Manager</option>
+                                <option value="ROLE_OPERATION_MANAGER">💼 Operation Manager</option>
+                                <option value="ROLE_ADMIN">🛡️ Administrator</option>
+                            </select>
                         </div>
-
-                        <!-- Progress Bar -->
-                        <div style="width: 100%; height: 8px; background: #E9E6DF; border-radius: 4px; overflow: hidden;">
-                            <div th:style="${'width: ' + bg.usagePercent + '%; height: 100%; background: ' + (bg.usagePercent > bg.alertThresholdPercent ? '#C25E3E' : '#2E7D67') + '; border-radius: 4px;'}"></div>
+                        <div style="min-width: 180px;">
+                            <select id="auditEntityFilter" class="form-select ssak-input" onchange="filterAuditLog()" style="height: 40px; font-size: 13px; border-radius: 10px;">
+                                <option value="ALL">📦 Tất cả đối tượng</option>
+                                <option value="VOCABULARY">📘 Từ vựng</option>
+                                <option value="GRAMMAR">📗 Ngữ pháp</option>
+                                <option value="EXAM">📝 Đề thi</option>
+                                <option value="LEARNER">🎓 Học viên</option>
+                                <option value="ORDER">🛒 Đơn hàng</option>
+                                <option value="PACKAGE_PRICE">💰 Gói VIP</option>
+                                <option value="AI_BUDGET">🤖 Ngân sách AI</option>
+                                <option value="AUTH">🔐 Xác thực</option>
+                                <option value="STAFF">👥 Nhân sự</option>
+                            </select>
                         </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--ssak-text-muted);">
-                            <span th:text="${'Đã dùng: ' + #numbers.formatDecimal(bg.usagePercent, 1, 1) + '%'}">62.2%</span>
-                            <span th:text="${'Hạn mức tháng: $' + bg.monthlyLimitUsd}">$300.00</span>
-                        </div>
-
-                        <div style="border-top: 1px dashed var(--ssak-border); padding-top: 10px; display: flex; gap: 8px; align-items: center;">
-                            <input type="number" th:id="${'limit-' + bg.id}" th:value="${bg.monthlyLimitUsd}" class="ssak-input" style="height: 36px; font-size: 13px; padding: 0 8px; width: 85px;" placeholder="Hạn mức">
-                            <span style="font-size: 12px;">$ | Ngưỡng:</span>
-                            <input type="number" th:id="${'thresh-' + bg.id}" th:value="${bg.alertThresholdPercent}" class="ssak-input" style="height: 36px; font-size: 13px; padding: 0 8px; width: 60px;" placeholder="%">
-                            <span style="font-size: 12px;">%</span>
-                            <button type="button" class="btn-ssak-primary" style="height: 36px; padding: 0 12px; font-size: 12px; margin-left: auto;"
-                                    th:data-id="${bg.id}" onclick="updateAiBudget(this.getAttribute('data-id'))">
-                                Lưu
+                        <div>
+                            <button type="button" class="btn-ssak-outline" onclick="resetAuditFilter()"
+                                    style="height: 40px; padding: 0 14px; font-size: 13px; border-radius: 10px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; cursor: pointer;">
+                                <span>↺</span> Đặt lại
                             </button>
                         </div>
                     </div>
-                </div>
-            </section>
-
-            <!-- TAB 4: AUDIT LOG (Use Case: View Audit Log) -->
-            <section id="pane-audit" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: none; flex-direction: column; gap: 18px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">
-                            📜 Nhật ký Kiểm toán Toàn Hệ thống (System Audit Log)
-                        </h3>
-                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
-                            Ghi lại toàn bộ hành vi của Admin, Content Manager và Operation Manager nhằm mục đích kiểm soát bảo mật.
-                        </p>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--ssak-text-muted);">
+                        <span>⚡ Bộ lọc tức thời — tự động cập nhật ngay khi chọn hoặc nhập</span>
+                        <span>Hiển thị: <strong id="auditLogCount" style="color: #1F6B56;" th:text="${#lists.size(auditLogs) + ' bản ghi'}"></strong></span>
                     </div>
                 </div>
 
+                <!-- Audit Log Table -->
                 <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13.5px;">
                         <thead>
-                            <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase;">
-                                <th style="padding: 10px 8px;">Thời gian</th>
-                                <th style="padding: 10px 8px;">Người thực hiện</th>
-                                <th style="padding: 10px 8px;">Vai trò</th>
-                                <th style="padding: 10px 8px;">Hành động</th>
-                                <th style="padding: 10px 8px;">Thực thể tác động</th>
-                                <th style="padding: 10px 8px;">Chi tiết ghi nhận</th>
+                            <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 11.5px; text-transform: uppercase;">
+                                <th style="padding: 12px 10px; width: 50px;">ID</th>
+                                <th style="padding: 12px 10px;">Thời gian</th>
+                                <th style="padding: 12px 10px;">Người thực hiện</th>
+                                <th style="padding: 12px 10px;">Vai trò</th>
+                                <th style="padding: 12px 10px;">Hành động</th>
+                                <th style="padding: 12px 10px;">Đối tượng</th>
+                                <th style="padding: 12px 10px;">Chi tiết</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="log : ${auditLogs}" style="border-bottom: 1px solid var(--ssak-border);">
-                                <td style="padding: 12px 8px; color: var(--ssak-text-muted); font-size: 12px;" th:text="${log.timestamp}">2026-10-06 08:30:12</td>
-                                <td style="padding: 12px 8px; font-weight: 700; color: #24363D;" th:text="${log.actorName}">Vũ Minh Quân</td>
-                                <td style="padding: 12px 8px;">
-                                    <span class="ssak-badge badge-honey" th:if="${log.actorRole == 'ROLE_ADMIN'}">Admin</span>
-                                    <span class="ssak-badge badge-mint" th:if="${log.actorRole == 'ROLE_CONTENT_MANAGER'}">Content</span>
-                                    <span class="ssak-badge badge-sky" th:if="${log.actorRole == 'ROLE_OPERATION_MANAGER'}">Operation</span>
+                            <tr th:each="log : ${auditLogs}" class="audit-log-row"
+                                th:data-actor="${log.actorName != null ? #strings.toLowerCase(log.actorName) : ''}"
+                                th:data-role="${log.actorRole}"
+                                th:data-action="${log.action != null ? #strings.toLowerCase(log.action) : ''}"
+                                th:data-entity="${log.targetEntity}"
+                                th:data-details="${log.details != null ? #strings.toLowerCase(log.details) : ''}"
+                                style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
+                                <td style="padding: 12px 10px; font-weight: 800; color: var(--ssak-text-muted); font-size: 12px;" th:text="${'#' + log.id}">#1</td>
+                                <td style="padding: 12px 10px; font-size: 12.5px; color: #475569; white-space: nowrap;" th:text="${log.timestamp}">2026-10-06 08:30</td>
+                                <td style="padding: 12px 10px; font-weight: 700; color: #24363D;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span style="width: 30px; height: 30px; border-radius: 50%; background: #E8F5E9; color: #1F6B56; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; flex-shrink: 0;" th:text="${log.actorName != null && !log.actorName.isEmpty() ? #strings.substring(log.actorName, 0, 1) : 'S'}">V</span>
+                                        <span th:text="${log.actorName}">Vũ Minh Quân</span>
+                                    </div>
                                 </td>
-                                <td style="padding: 12px 8px; font-weight: 800;" th:text="${log.action}">LOGIN</td>
-                                <td style="padding: 12px 8px; color: var(--ssak-text-muted);" th:text="${log.targetEntity}">AUTH</td>
-                                <td style="padding: 12px 8px;" th:text="${log.details}">Admin đăng nhập từ IP an toàn</td>
+                                <td style="padding: 12px 10px;">
+                                    <span th:if="${log.actorRole == 'ROLE_ADMIN'}" class="ssak-badge badge-honey" style="font-size: 11px;">🛡️ Admin</span>
+                                    <span th:if="${log.actorRole == 'ROLE_CONTENT_MANAGER'}" class="ssak-badge badge-mint" style="font-size: 11px;">📝 Content</span>
+                                    <span th:if="${log.actorRole == 'ROLE_OPERATION_MANAGER'}" class="ssak-badge badge-sky" style="font-size: 11px;">💼 Operation</span>
+                                    <span th:if="${log.actorRole != 'ROLE_ADMIN' && log.actorRole != 'ROLE_CONTENT_MANAGER' && log.actorRole != 'ROLE_OPERATION_MANAGER'}" class="ssak-badge" style="font-size: 11px; background: #F1F5F9; color: #64748B;" th:text="${log.actorRole}">ROLE</span>
+                                </td>
+                                <td style="padding: 12px 10px;">
+                                    <span style="display: inline-block; padding: 3px 10px; border-radius: 8px; font-size: 11.5px; font-weight: 700; background: #F0F9FF; color: #0369A1; border: 1px solid #BAE6FD;" th:text="${log.action}">LOGIN</span>
+                                </td>
+                                <td style="padding: 12px 10px;">
+                                    <span style="display: inline-block; padding: 3px 10px; border-radius: 8px; font-size: 11.5px; font-weight: 700; background: #F8FAFC; color: #475569; border: 1px solid #E2E8F0;" th:text="${log.targetEntity}">AUTH</span>
+                                </td>
+                                <td style="padding: 12px 10px; max-width: 320px; font-size: 12.5px; color: #475569; line-height: 1.4;">
+                                    <div style="overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" th:text="${log.details}">Chi tiết hành động</div>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-            </section>
 
-            <!-- TAB 5: USE BREAK-GLASS ACCESS (Use Case: Use Break-glass Access) -->
-            <section id="pane-breakglass" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: none; flex-direction: column; gap: 18px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div>
-                        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #9C4A2E;">
-                            🚨 Chế độ Quyền Khẩn cấp (Break-glass Access)
-                        </h3>
-                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
-                            Cơ chế vượt rào phân quyền khẩn cấp chỉ dùng khi hệ thống gặp thảm họa, tấn công mạng hoặc cứu vãn dữ liệu.
-                        </p>
-                    </div>
-                    <span class="ssak-badge badge-terracotta" style="font-size: 12px; font-weight: 800;">Quyền hạn tối cao</span>
-                </div>
-
-                <div style="padding: 18px; border-radius: 16px; background: #FFF1F0; border: 1.5px solid #FFA39E; display: flex; flex-direction: column; gap: 10px;">
-                    <div style="font-weight: 800; font-size: 15px; color: #CF1322;">
-                        ⚠️ CẢNH BÁO QUAN TRỌNG VỀ BẢO MẬT & KIỂM TOÁN
-                    </div>
-                    <div style="font-size: 13px; color: #5C1D11; line-height: 1.6;">
-                        Khi kích hoạt Break-glass, tài khoản Administrator sẽ tạm thời được cấp quyền bypass qua tất cả các chốt chặn duyệt (Auto-approve bypass) và ghi lại toàn bộ hoạt động với mức độ giám sát cao nhất. Mọi thao tác đều được gửi thông báo khẩn cấp tới hội đồng quản trị.
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 12px; align-items: center; margin-top: 8px;">
-                    <input type="text" id="breakGlassReason" class="ssak-input" placeholder="Nhập lý do bắt buộc để kích hoạt Break-glass..." style="flex-grow: 1; height: 46px;">
-                    <button type="button" class="btn-ssak-primary" style="height: 46px; padding: 0 24px; font-weight: 800; background: #C25E3E;" onclick="toggleBreakGlass()">
-                        <span th:if="${!breakGlassActive}">Kích hoạt Break-glass</span>
-                        <span th:if="${breakGlassActive}">Tắt Break-glass</span>
-                    </button>
+                <!-- Empty State -->
+                <div th:if="${#lists.isEmpty(auditLogs)}" style="text-align: center; padding: 48px 20px; color: var(--ssak-text-muted);">
+                    <div style="font-size: 48px; margin-bottom: 12px;">📋</div>
+                    <div style="font-size: 16px; font-weight: 700;">Chưa có nhật ký kiểm toán nào</div>
+                    <div style="font-size: 13px; margin-top: 4px;">Khi nhân sự thực hiện thay đổi trên hệ thống, nhật ký sẽ tự động được ghi lại tại đây.</div>
                 </div>
             </section>
+
 
         </main>
+    </div>
+</div>
+
+<!-- ==================== MODAL: ADD NEW STAFF ==================== -->
+<div id="newStaffModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+    <div class="ssak-card" style="width: 500px; max-width: 90vw; background: #FFFFFF; border-radius: 24px; padding: 32px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 44px; height: 44px; border-radius: 12px; background: #E8F5E9; color: #1F6B56; display: flex; align-items: center; justify-content: center; font-size: 22px;">
+                    👥
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: #24363D;">Thêm tài khoản nhân sự mới</h3>
+                    <span style="font-size: 12px; color: var(--ssak-text-muted);">Tạo quyền truy cập hệ thống cho cán bộ nội bộ</span>
+                </div>
+            </div>
+            <button type="button" onclick="closeNewStaffModal()" style="border: none; background: transparent; font-size: 20px; cursor: pointer; color: var(--ssak-text-muted);">✕</button>
+        </div>
+
+        <form id="newStaffForm" onsubmit="submitNewStaff(event)" style="display: flex; flex-direction: column; gap: 14px;">
+            <div>
+                <label style="display: block; font-size: 12.5px; font-weight: 700; color: #24363D; margin-bottom: 6px;">Họ và tên nhân sự:</label>
+                <input type="text" id="staffFullName" required class="ssak-input" style="height: 42px; font-size: 13.5px;" placeholder="Ví dụ: Hoàng Tuấn Anh">
+            </div>
+            <div>
+                <label style="display: block; font-size: 12.5px; font-weight: 700; color: #24363D; margin-bottom: 6px;">Địa chỉ Email:</label>
+                <input type="email" id="staffEmail" required class="ssak-input" style="height: 42px; font-size: 13.5px;" placeholder="Ví dụ: tuananh@hottopik.com">
+            </div>
+            <div>
+                <label style="display: block; font-size: 12.5px; font-weight: 700; color: #24363D; margin-bottom: 6px;">Mật khẩu ban đầu:</label>
+                <input type="password" id="staffPassword" required minlength="6" class="ssak-input" style="height: 42px; font-size: 13.5px;" placeholder="Tối thiểu 6 ký tự">
+            </div>
+            <div>
+                <label style="display: block; font-size: 12.5px; font-weight: 700; color: #24363D; margin-bottom: 6px;">Vai trò hệ thống:</label>
+                <select id="staffRole" class="form-select ssak-input" style="height: 42px; font-size: 13.5px;">
+                    <option value="CONTENT_MANAGER">📝 Content Manager (Quản lý Nội dung & Đề thi)</option>
+                    <option value="OPERATION_MANAGER">💼 Operation Manager (Quản lý Vận hành, Học viên & Đơn hàng)</option>
+                    <option value="MENTOR">👨‍🏫 Teacher / Mentor (Giáo viên chấm bài)</option>
+                    <option value="ADMIN">🛡️ Administrator (Quản trị viên hệ thống)</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 10px;">
+                <button type="button" onclick="closeNewStaffModal()" class="btn-ssak-light" style="flex: 1; height: 44px; font-size: 14px; font-weight: 700;">Hủy bỏ</button>
+                <button type="submit" class="btn-ssak-primary" style="flex: 1; height: 44px; font-size: 14px; font-weight: 800;">Tạo nhân sự</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== MODAL: STAFF LOCK / UNLOCK ==================== -->
+<div id="staffActionModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+    <div class="ssak-card" style="width: 480px; max-width: 90vw; background: #FFFFFF; border-radius: 24px; padding: 32px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <div id="modalStaffIconBox" style="width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                    🔒
+                </div>
+                <div>
+                    <h3 id="modalStaffTitle" style="margin: 0; font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: #24363D;">Khóa tài khoản nhân sự</h3>
+                    <span id="modalStaffSubtitle" style="font-size: 12px; color: var(--ssak-text-muted);">Bảo vệ an toàn bảo mật hệ thống</span>
+                </div>
+            </div>
+            <button type="button" onclick="closeStaffModal()" style="border: none; background: transparent; font-size: 20px; cursor: pointer; color: var(--ssak-text-muted);">✕</button>
+        </div>
+
+        <div style="background: #F8FAFC; border: 1px solid var(--ssak-border); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px;">
+            <div id="modalStaffAvatar" style="width: 38px; height: 38px; border-radius: 19px; background: #2E7D67; color: #FFFFFF; font-family: var(--font-heading); font-weight: 800; display: flex; align-items: center; justify-content: center;">
+                S
+            </div>
+            <div style="flex-grow: 1;">
+                <div id="modalStaffName" style="font-weight: 800; font-size: 14px; color: #24363D;">Tên nhân sự</div>
+                <div id="modalStaffEmail" style="font-size: 12px; color: var(--ssak-text-muted);">email@hottopik.com</div>
+            </div>
+            <div id="modalStaffBadge"></div>
+        </div>
+
+        <p id="modalStaffDescription" style="margin: 0; font-size: 13.5px; color: #475569; line-height: 1.5;">
+            Nội dung cảnh báo tác động bảo mật.
+        </p>
+
+        <div style="display: flex; gap: 12px; margin-top: 4px;">
+            <button type="button" onclick="closeStaffModal()" class="btn-ssak-light" style="flex: 1; height: 44px; font-size: 14px; font-weight: 700;">Hủy bỏ</button>
+            <button type="button" id="modalStaffConfirmBtn" onclick="confirmStaffAction()" style="flex: 1; height: 44px; font-size: 14px; font-weight: 800; color: #FFFFFF; border: none; border-radius: 12px; cursor: pointer;">
+                Xác nhận
+            </button>
+        </div>
     </div>
 </div>
 
@@ -658,117 +462,168 @@
     align-items: center;
     gap: 12px;
     padding: 12px 14px;
-    border-radius: 12px;
-    color: #CFE9DC;
+    color: #D1E5DE;
     text-decoration: none;
     font-size: 14px;
-    font-weight: 600;
-    transition: all 0.2s ease;
+    font-weight: 700;
+    border-radius: 12px;
+    transition: all 0.15s ease;
 }
 .sidebar-item:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255,255,255,0.08);
     color: #FFFFFF;
-    transform: translateX(3px);
 }
 .sidebar-item.active {
     background: #2E7D67;
     color: #FFFFFF;
-    font-weight: 800;
-    box-shadow: 0 4px 14px rgba(46, 125, 103, 0.35);
+    box-shadow: 0 4px 12px rgba(46, 125, 103, 0.35);
 }
 .sidebar-bottom-link {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 10px 14px;
-    border-radius: 10px;
     color: #A9D9C0;
     text-decoration: none;
     font-size: 13px;
     font-weight: 700;
-    transition: all 0.2s;
+    border-radius: 10px;
+    transition: background 0.15s ease;
 }
 .sidebar-bottom-link:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255,255,255,0.06);
     color: #FFFFFF;
 }
-.sidebar-bottom-link.logout {
-    color: #FFA39E;
-}
 .sidebar-bottom-link.logout:hover {
-    background: rgba(207, 19, 34, 0.15);
+    background: rgba(239, 68, 68, 0.15);
     color: #FF7875;
 }
 </style>
 
 <script th:inline="none">
     const tabMeta = {
-        approvals: {
-            icon: '📥',
-            title: 'Hộp phê duyệt yêu cầu (Decide Approval Requests)',
-            subtitle: 'Xem xét và đưa ra quyết định phê duyệt hoặc từ chối các đề xuất từ Content Manager và Operation Manager.'
-        },
-        learners: {
-            icon: '🎓',
-            title: 'Quản lý Học viên & Thành viên VIP (Manage Learners)',
-            subtitle: 'Xem thông tin học viên, cấp độ mục tiêu, trạng thái gói VIP và khóa/mở khóa tài khoản khi có vi phạm.'
-        },
         staff: {
             icon: '👥',
-            title: 'Quản lý Nhân sự & Phân quyền (Manage Staff & Access Reviews)',
+            title: 'Quản lý Nhân sự & Phân quyền (Staff Management & Access Control)',
             subtitle: 'Kiểm soát danh sách tài khoản nhân sự nội bộ, trạng thái hoạt động và phân quyền chức năng.'
         },
-        aibudget: {
-            icon: '⚙️',
-            title: 'Cấu hình Hệ thống & Ngân sách AI (Manage Configuration & AI Budget)',
-            subtitle: 'Giám sát mức tiêu thụ hạn mức AI hàng tháng, cảnh báo vượt trần chi phí và cấu hình hệ thống.'
-        },
         audit: {
-            icon: '📜',
-            title: 'Nhật ký Kiểm toán Toàn Hệ thống (System Audit Log)',
-            subtitle: 'Ghi lại toàn bộ hành vi của Admin, Content Manager và Operation Manager nhằm mục đích kiểm soát bảo mật.'
-        },
-        breakglass: {
-            icon: '🚨',
-            title: 'Chế độ Quyền Khẩn cấp (Break-glass Access)',
-            subtitle: 'Cơ chế vượt rào phân quyền khẩn cấp chỉ dùng khi hệ thống gặp thảm họa, tấn công mạng hoặc cứu vãn dữ liệu.'
+            icon: '📋',
+            title: 'Nhật ký Kiểm toán Hệ thống (System Audit Log)',
+            subtitle: 'Theo dõi mọi hành động thay đổi, cập nhật của Content Manager, Operation Manager và Admin trên hệ thống.'
         }
     };
 
+    const adminTabNames = ['staff', 'audit'];
+
     function switchAdminTab(tabName) {
-        const tabs = ['approvals', 'learners', 'staff', 'aibudget', 'audit', 'breakglass'];
-        tabs.forEach(t => {
+        adminTabNames.forEach(t => {
+            const nav = document.getElementById('side-nav-' + t);
             const pane = document.getElementById('pane-' + t);
-            const sideNav = document.getElementById('side-nav-' + t);
-            if (pane) {
-                pane.style.display = (t === tabName) ? 'flex' : 'none';
-            }
-            if (sideNav) {
-                if (t === tabName) {
-                    sideNav.classList.add('active');
-                } else {
-                    sideNav.classList.remove('active');
-                }
-            }
+            if (nav) nav.classList.remove('active');
+            if (pane) pane.style.display = 'none';
         });
 
+        const activeNav = document.getElementById('side-nav-' + tabName);
+        const activePane = document.getElementById('pane-' + tabName);
+        if (activeNav) activeNav.classList.add('active');
+        if (activePane) activePane.style.display = 'flex';
+
         if (tabMeta[tabName]) {
-            document.getElementById('currentSectionIcon').innerText = tabMeta[tabName].icon;
-            document.getElementById('currentSectionTitle').innerText = tabMeta[tabName].title;
-            document.getElementById('currentSectionSubtitle').innerText = tabMeta[tabName].subtitle;
+            document.getElementById('currentSectionIcon').textContent = tabMeta[tabName].icon;
+            document.getElementById('currentSectionTitle').textContent = tabMeta[tabName].title;
+            document.getElementById('currentSectionSubtitle').textContent = tabMeta[tabName].subtitle;
         }
     }
 
-    function decideRequest(id, decision) {
-        const note = prompt(decision === 'approve' ? 'Nhập ghi chú phê duyệt (nếu có):' : 'Nhập lý do từ chối:');
-        if (note === null) return;
+    // ==================== LIVE SEARCH & FILTER STAFF ====================
+    function filterAdminStaff() {
+        const query = (document.getElementById('adminStaffSearch').value || '').trim().toLowerCase();
+        const roleFilter = document.getElementById('adminStaffRoleFilter').value;
+        const rows = document.querySelectorAll('.admin-staff-row');
+
+        rows.forEach(row => {
+            const name = row.dataset.name || '';
+            const email = row.dataset.email || '';
+            const uname = row.dataset.username || '';
+            const phone = row.dataset.phone || '';
+            const id = row.dataset.id || '';
+            const role = row.dataset.role || '';
+
+            const matchQuery = !query || name.includes(query) || email.includes(query) || uname.includes(query) || phone.includes(query) || id.includes(query);
+            const matchRole = (roleFilter === 'ALL') || (role === roleFilter);
+
+            row.style.display = (matchQuery && matchRole) ? '' : 'none';
+        });
+    }
+
+    function resetAdminStaffFilter() {
+        document.getElementById('adminStaffSearch').value = '';
+        document.getElementById('adminStaffRoleFilter').value = 'ALL';
+        filterAdminStaff();
+    }
+
+    // ==================== LIVE SEARCH & FILTER AUDIT LOG ====================
+    function filterAuditLog() {
+        const query = (document.getElementById('auditLogSearch').value || '').trim().toLowerCase();
+        const roleFilter = document.getElementById('auditRoleFilter').value;
+        const entityFilter = document.getElementById('auditEntityFilter').value;
+        const rows = document.querySelectorAll('.audit-log-row');
+
+        let visibleCount = 0;
+        rows.forEach(row => {
+            const actor = row.dataset.actor || '';
+            const role = row.dataset.role || '';
+            const action = row.dataset.action || '';
+            const entity = row.dataset.entity || '';
+            const details = row.dataset.details || '';
+
+            const matchQuery = !query || actor.includes(query) || action.includes(query) || details.includes(query) || entity.toLowerCase().includes(query);
+            const matchRole = (roleFilter === 'ALL') || (role === roleFilter);
+            const matchEntity = (entityFilter === 'ALL') || (entity === entityFilter);
+
+            const visible = matchQuery && matchRole && matchEntity;
+            row.style.display = visible ? '' : 'none';
+            if (visible) visibleCount++;
+        });
+
+        const countEl = document.getElementById('auditLogCount');
+        if (countEl) countEl.textContent = visibleCount + ' bản ghi';
+    }
+
+    function resetAuditFilter() {
+        document.getElementById('auditLogSearch').value = '';
+        document.getElementById('auditRoleFilter').value = 'ALL';
+        document.getElementById('auditEntityFilter').value = 'ALL';
+        filterAuditLog();
+    }
+
+    // ==================== STAFF MODAL & TOGGLE ====================
+    let currentTargetStaffId = null;
+
+    function openNewStaffModal() {
+        document.getElementById('newStaffModal').style.display = 'flex';
+    }
+
+    function closeNewStaffModal() {
+        document.getElementById('newStaffModal').style.display = 'none';
+        document.getElementById('newStaffForm').reset();
+    }
+
+    function submitNewStaff(e) {
+        e.preventDefault();
+        const fullName = document.getElementById('staffFullName').value;
+        const email = document.getElementById('staffEmail').value;
+        const password = document.getElementById('staffPassword').value;
+        const role = document.getElementById('staffRole').value;
 
         const formData = new FormData();
-        formData.append('requestId', id);
-        formData.append('decision', decision);
-        formData.append('note', note);
+        formData.append('fullName', fullName);
+        formData.append('email', email);
+        formData.append('password', password);
+        formData.append('role', role);
 
-        fetch('/admin/approval/decide', {
+        fetch('/admin/staff/create', {
             method: 'POST',
             body: formData
         })
@@ -776,19 +631,16 @@
         .then(data => {
             if (data.success) {
                 showSsakToast(data.message);
-                setTimeout(() => window.location.reload(), 800);
+                setTimeout(() => window.location.reload(), 700);
             } else {
                 showSsakToast('Lỗi: ' + data.message);
             }
         })
-        .catch(e => showSsakToast('Có lỗi xảy ra: ' + e));
+        .catch(err => showSsakToast('Có lỗi xảy ra: ' + err));
     }
-
-    let currentTargetStaffId = null;
 
     function openStaffModal(id, name, email, role, currentStatus) {
         currentTargetStaffId = id;
-
         const modal = document.getElementById('staffActionModal');
         const iconBox = document.getElementById('modalStaffIconBox');
         const title = document.getElementById('modalStaffTitle');
@@ -819,35 +671,24 @@
             iconBox.style.background = '#FFF1F0';
             iconBox.style.color = '#CF1322';
             iconBox.innerHTML = '🔒';
-            title.textContent = 'Đình chỉ & Tạm khóa tài khoản nhân sự';
-            subtitle.textContent = 'Thu hồi quyền truy cập cổng quản trị nội bộ';
-            desc.innerHTML = 'Bạn có chắc chắn muốn <strong>tạm khóa</strong> tài khoản của <strong>' + (name || '') + '</strong>? Nhân sự này sẽ <strong>bị tước quyền truy cập</strong> toàn bộ cổng quản lý cho đến khi có quyết định mở khóa.';
+            title.textContent = 'Khóa tài khoản nhân sự';
+            subtitle.textContent = 'Đình chỉ tạm thời quyền truy cập nghiệp vụ';
+            desc.innerHTML = 'Bạn có chắc chắn muốn <strong>khóa tài khoản</strong> của <strong>' + (name || '') + '</strong>? Nhân sự này sẽ bị ngắt phiên làm việc và không thể đăng nhập cho đến khi được mở khóa lại.';
             confirmBtn.style.background = '#CF1322';
             confirmBtn.innerHTML = '🔒 Xác nhận khóa nhân sự';
             staffBadge.innerHTML = '<span class="ssak-badge badge-mint">Đang hoạt động</span>';
         }
 
         modal.style.display = 'flex';
-        setTimeout(() => {
-            const card = document.getElementById('modalStaffCard');
-            if (card) card.style.transform = 'scale(1)';
-        }, 10);
     }
 
     function closeStaffModal() {
-        const modal = document.getElementById('staffActionModal');
-        const card = document.getElementById('modalStaffCard');
-        if (card) card.style.transform = 'scale(0.96)';
-        setTimeout(() => {
-            if (modal) modal.style.display = 'none';
-        }, 150);
+        document.getElementById('staffActionModal').style.display = 'none';
+        currentTargetStaffId = null;
     }
 
-    function executeStaffToggleLock() {
+    function confirmStaffAction() {
         if (!currentTargetStaffId) return;
-        const confirmBtn = document.getElementById('modalStaffConfirmBtn');
-        confirmBtn.disabled = true;
-        confirmBtn.innerHTML = '⏳ Đang xử lý...';
 
         const formData = new FormData();
         formData.append('userId', currentTargetStaffId);
@@ -858,604 +699,49 @@
         })
         .then(r => r.json())
         .then(data => {
-            confirmBtn.disabled = false;
-            closeStaffModal();
             if (data.success) {
+                closeStaffModal();
                 showSsakToast(data.message);
-                const newStatus = data.status;
-                const statusBadge = document.getElementById('staff-status-' + currentTargetStaffId);
-                const toggleBtn = document.getElementById('btn-toggle-staff-' + currentTargetStaffId);
-                if (statusBadge) {
-                    statusBadge.className = 'ssak-badge ' + (newStatus === 'ACTIVE' ? 'badge-mint' : 'badge-terracotta');
-                    statusBadge.textContent = (newStatus === 'ACTIVE' ? 'Đang hoạt động' : 'Tạm khóa');
-                }
-                if (toggleBtn) {
-                    toggleBtn.setAttribute('data-status', newStatus);
-                    if (newStatus === 'LOCKED') {
-                        toggleBtn.innerHTML = '<span style="color: #1F6B56;">🔓 Mở khóa</span>';
-                    } else {
-                        toggleBtn.innerHTML = '<span style="color: #9C4A2E;">🔒 Khóa tài khoản</span>';
-                    }
-                }
+                setTimeout(() => window.location.reload(), 700);
             } else {
                 showSsakToast('Lỗi: ' + data.message);
             }
         })
-        .catch(e => {
-            confirmBtn.disabled = false;
-            showSsakToast('Có lỗi xảy ra: ' + e);
-        });
+        .catch(err => showSsakToast('Có lỗi xảy ra: ' + err));
     }
 
-    function updateAiBudget(id) {
-        const limit = document.getElementById('limit-' + id).value;
-        const thresh = document.getElementById('thresh-' + id).value;
 
-        const formData = new FormData();
-        formData.append('budgetId', id);
-        formData.append('monthlyLimit', limit);
-        formData.append('threshold', thresh);
 
-        fetch('/admin/ai-budget/update', {
-            method: 'POST',
-            body: formData
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                showSsakToast(data.message);
-            } else {
-                showSsakToast('Lỗi: ' + data.message);
-            }
-        })
-        .catch(e => showSsakToast('Có lỗi xảy ra: ' + e));
-    }
-
-    function toggleBreakGlass() {
-        const reason = document.getElementById('breakGlassReason').value;
-        const formData = new FormData();
-        formData.append('reason', reason);
-
-        fetch('/admin/break-glass/toggle', {
-            method: 'POST',
-            body: formData
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                showSsakToast(data.message);
-                setTimeout(() => window.location.reload(), 800);
-            }
-        })
-        .catch(e => showSsakToast('Có lỗi: ' + e));
-    }
-    // ==================== LEARNER MANAGEMENT FUNCTIONS ====================
-    let currentTargetLearnerId = null;
-    let currentTargetLearnerStatus = null;
-    let currentAdminLearnerLockType = 'TEMPORARY';
-    let selectedAdminLearnerDays = 7;
-
-    function openLearnerModal(id, name, email, currentStatus) {
-        currentTargetLearnerId = id;
-        currentTargetLearnerStatus = currentStatus;
-
-        const modal = document.getElementById('learnerActionModal');
-        const iconBox = document.getElementById('modalLearnerIconBox');
-        const title = document.getElementById('modalLearnerTitle');
-        const subtitle = document.getElementById('modalLearnerSubtitle');
-        const userName = document.getElementById('modalLearnerName');
-        const userEmail = document.getElementById('modalLearnerEmail');
-        const userAvatar = document.getElementById('modalLearnerAvatar');
-        const userBadge = document.getElementById('modalLearnerBadge');
-
-        userName.textContent = name || 'Học viên';
-        userEmail.textContent = email || '';
-        userAvatar.textContent = (name && name.length > 0) ? name.charAt(0) : 'U';
-
-        const isLocked = (currentStatus === 'LOCKED');
-        const unlockPane = document.getElementById('modalAdminLearnerUnlockPane');
-        const lockPane = document.getElementById('modalAdminLearnerLockPane');
-
-        if (isLocked) {
-            unlockPane.style.display = 'block';
-            lockPane.style.display = 'none';
-            iconBox.style.background = '#E8F5E9';
-            iconBox.style.color = '#1F6B56';
-            iconBox.innerHTML = '🔓';
-            title.textContent = 'Mở khóa tài khoản học viên';
-            subtitle.textContent = 'Khôi phục toàn bộ quyền truy cập và làm bài thi';
-            userBadge.innerHTML = '<span class="ssak-badge badge-terracotta">Đang bị khóa</span>';
-            const confirmBtn = document.getElementById('modalLearnerConfirmBtn');
-            confirmBtn.style.background = '#1F6B56';
-            confirmBtn.innerHTML = '🔓 Xác nhận mở khóa';
-        } else {
-            unlockPane.style.display = 'none';
-            lockPane.style.display = 'block';
-            iconBox.style.background = '#FFF1F0';
-            iconBox.style.color = '#CF1322';
-            iconBox.innerHTML = '🔒';
-            title.textContent = 'Khóa tài khoản học viên';
-            subtitle.textContent = 'Lựa chọn hình thức tạm khóa hoặc khóa vĩnh viễn';
-            userBadge.innerHTML = '<span class="ssak-badge badge-mint">Đang hoạt động</span>';
-
-            document.getElementById('adminTempLockReason').value = '';
-            document.getElementById('adminPermLockReason').value = '';
-            document.getElementById('adminCustomDaysInput').value = '';
-            selectAdminLearnerDays(7);
-            switchAdminLearnerLockType('TEMPORARY');
+    function showSsakToast(msg) {
+        let t = document.getElementById('ssakToast');
+        if (!t) {
+            t = document.createElement('div');
+            t.id = 'ssakToast';
+            t.style.position = 'fixed';
+            t.style.bottom = '28px';
+            t.style.right = '28px';
+            t.style.background = '#24363D';
+            t.style.color = '#FFFFFF';
+            t.style.padding = '12px 22px';
+            t.style.borderRadius = '12px';
+            t.style.fontSize = '14px';
+            t.style.fontWeight = '700';
+            t.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)';
+            t.style.zIndex = '9999';
+            t.style.transition = 'all 0.2s ease';
+            document.body.appendChild(t);
         }
-
-        modal.style.display = 'flex';
-        setTimeout(() => {
-            const card = document.getElementById('modalLearnerCard');
-            if (card) card.style.transform = 'scale(1)';
-        }, 10);
+        t.textContent = msg;
+        t.style.display = 'block';
+        setTimeout(() => { t.style.display = 'none'; }, 3500);
     }
 
-    function switchAdminLearnerLockType(type) {
-        currentAdminLearnerLockType = type;
-        const tabTemp = document.getElementById('tabAdminLockTemp');
-        const tabPerm = document.getElementById('tabAdminLockPerm');
-        const paneTemp = document.getElementById('paneAdminLockTemp');
-        const panePerm = document.getElementById('paneAdminLockPerm');
-        const confirmBtn = document.getElementById('modalLearnerConfirmBtn');
-
-        if (type === 'TEMPORARY') {
-            tabTemp.style.background = '#FFFFFF';
-            tabTemp.style.borderColor = '#C25E3E';
-            tabTemp.style.color = '#9C4A2E';
-            tabTemp.style.boxShadow = '0 2px 8px rgba(194, 94, 62, 0.12)';
-
-            tabPerm.style.background = '#F8FAFC';
-            tabPerm.style.borderColor = '#E2E8F0';
-            tabPerm.style.color = '#64748B';
-            tabPerm.style.boxShadow = 'none';
-
-            paneTemp.style.display = 'block';
-            panePerm.style.display = 'none';
-
-            confirmBtn.style.background = '#C25E3E';
-            confirmBtn.innerHTML = '🔒 Xác nhận tạm khóa';
-        } else {
-            tabPerm.style.background = '#FFFFFF';
-            tabPerm.style.borderColor = '#CF1322';
-            tabPerm.style.color = '#CF1322';
-            tabPerm.style.boxShadow = '0 2px 8px rgba(207, 19, 34, 0.12)';
-
-            tabTemp.style.background = '#F8FAFC';
-            tabTemp.style.borderColor = '#E2E8F0';
-            tabTemp.style.color = '#64748B';
-            tabTemp.style.boxShadow = 'none';
-
-            paneTemp.style.display = 'none';
-            panePerm.style.display = 'block';
-
-            confirmBtn.style.background = '#CF1322';
-            confirmBtn.innerHTML = '⛔ Xác nhận khóa vĩnh viễn';
-        }
-    }
-
-    function selectAdminLearnerDays(days) {
-        selectedAdminLearnerDays = days;
-        const chips = document.querySelectorAll('.admin-day-chip');
-        chips.forEach(c => {
-            if (parseInt(c.getAttribute('data-days')) === days) {
-                c.style.background = '#1F6B56';
-                c.style.color = '#FFFFFF';
-                c.style.borderColor = '#1F6B56';
-            } else {
-                c.style.background = '#F8FAFC';
-                c.style.color = '#334155';
-                c.style.borderColor = '#CBD5E1';
-            }
-        });
-        const customWrapper = document.getElementById('adminCustomDaysWrapper');
-        if (days === 0) {
-            customWrapper.style.display = 'block';
-            const val = parseInt(document.getElementById('adminCustomDaysInput').value);
-            selectedAdminLearnerDays = (val > 0) ? val : 7;
-        } else {
-            customWrapper.style.display = 'none';
-        }
-    }
-
-    function onAdminCustomDaysChange() {
-        const val = parseInt(document.getElementById('adminCustomDaysInput').value);
-        if (val > 0) {
-            selectedAdminLearnerDays = val;
-        }
-    }
-
-    function closeLearnerModal() {
-        const modal = document.getElementById('learnerActionModal');
-        const card = document.getElementById('modalLearnerCard');
-        if (card) card.style.transform = 'scale(0.96)';
-        setTimeout(() => {
-            if (modal) modal.style.display = 'none';
-        }, 150);
-    }
-
-    function executeLearnerToggleLock() {
-        if (!currentTargetLearnerId) return;
-        const confirmBtn = document.getElementById('modalLearnerConfirmBtn');
-
-        const isLocked = (currentTargetLearnerStatus === 'LOCKED');
-        if (isLocked) {
-            confirmBtn.disabled = true;
-            confirmBtn.innerHTML = '⏳ Đang xử lý...';
-            const formData = new FormData();
-            formData.append('userId', currentTargetLearnerId);
-
-            fetch('/admin/learners/unlock', {
-                method: 'POST',
-                body: formData
-            })
-            .then(r => r.json())
-            .then(data => {
-                confirmBtn.disabled = false;
-                closeLearnerModal();
-                if (data.success) {
-                    showSsakToast(data.message);
-                    setTimeout(() => window.location.reload(), 700);
-                } else {
-                    showSsakToast('Lỗi: ' + data.message);
-                }
-            })
-            .catch(e => {
-                confirmBtn.disabled = false;
-                showSsakToast('Có lỗi: ' + e);
-            });
-        } else {
-            confirmBtn.disabled = true;
-            confirmBtn.innerHTML = '⏳ Đang xử lý...';
-
-            const formData = new FormData();
-            formData.append('userId', currentTargetLearnerId);
-            formData.append('lockType', currentAdminLearnerLockType);
-
-            if (currentAdminLearnerLockType === 'TEMPORARY') {
-                const reason = document.getElementById('adminTempLockReason').value.trim();
-                const days = selectedAdminLearnerDays > 0 ? selectedAdminLearnerDays : 7;
-                formData.append('days', days);
-                formData.append('reason', reason || 'Tạm khóa bởi Admin');
-            } else {
-                const reason = document.getElementById('adminPermLockReason').value.trim();
-                formData.append('reason', reason || 'Khóa vĩnh viễn bởi Admin');
-            }
-
-            fetch('/admin/learners/lock', {
-                method: 'POST',
-                body: formData
-            })
-            .then(r => r.json())
-            .then(data => {
-                confirmBtn.disabled = false;
-                closeLearnerModal();
-                if (data.success) {
-                    showSsakToast(data.message);
-                    setTimeout(() => window.location.reload(), 700);
-                } else {
-                    showSsakToast('Lỗi: ' + data.message);
-                }
-            })
-            .catch(e => {
-                confirmBtn.disabled = false;
-                showSsakToast('Có lỗi: ' + e);
-            });
-        }
-    }
-
-    // ==========================================
-    // INSTANT FILTER & SEARCH: LEARNERS
-    // ==========================================
-    function filterAdminLearners() {
-        const query = (document.getElementById('adminLearnerSearch')?.value || '').trim().toLowerCase();
-        const role = document.getElementById('adminLearnerRoleFilter')?.value || 'ALL';
-        const level = document.getElementById('adminLearnerLevelFilter')?.value || 'ALL';
-        const status = document.getElementById('adminLearnerStatusFilter')?.value || 'ALL';
-
-        const rows = document.querySelectorAll('.admin-learner-row');
-        let visibleCount = 0;
-
-        rows.forEach(row => {
-            const id = (row.getAttribute('data-id') || '').toLowerCase();
-            const name = (row.getAttribute('data-name') || '').toLowerCase();
-            const email = (row.getAttribute('data-email') || '').toLowerCase();
-            const rowRole = row.getAttribute('data-role') || '';
-            const rowLevel = row.getAttribute('data-level') || '';
-            const rowStatus = row.getAttribute('data-status') || '';
-            const isPendingLock = (row.getAttribute('data-pending-lock') === 'true');
-
-            // Text matching
-            let matchText = true;
-            if (query.length > 0) {
-                matchText = name.includes(query) || email.includes(query) || id === query || ('#' + id) === query;
-            }
-
-            // Role matching
-            let matchRole = true;
-            if (role === 'ROLE_VIP') {
-                matchRole = (rowRole === 'ROLE_VIP');
-            } else if (role === 'ROLE_LEARNER') {
-                matchRole = (rowRole !== 'ROLE_VIP');
-            }
-
-            // Level matching
-            let matchLevel = (level === 'ALL' || rowLevel === level);
-
-            // Status matching
-            let matchStatus = true;
-            if (status === 'ACTIVE') {
-                matchStatus = (rowStatus === 'ACTIVE' && !isPendingLock);
-            } else if (status === 'LOCKED') {
-                matchStatus = (rowStatus === 'LOCKED');
-            } else if (status === 'PENDING_LOCK') {
-                matchStatus = isPendingLock;
-            }
-
-            if (matchText && matchRole && matchLevel && matchStatus) {
-                row.style.display = '';
-                visibleCount++;
-            } else {
-                row.style.display = 'none';
-            }
-        });
-
-        const countEl = document.getElementById('adminLearnerCount');
-        if (countEl) countEl.innerText = visibleCount + ' học viên';
-
-        const noResult = document.getElementById('adminLearnerNoResult');
-        if (noResult) noResult.style.display = (visibleCount === 0) ? '' : 'none';
-    }
-
-    function resetAdminLearnerFilter() {
-        if (document.getElementById('adminLearnerSearch')) document.getElementById('adminLearnerSearch').value = '';
-        if (document.getElementById('adminLearnerRoleFilter')) document.getElementById('adminLearnerRoleFilter').value = 'ALL';
-        if (document.getElementById('adminLearnerLevelFilter')) document.getElementById('adminLearnerLevelFilter').value = 'ALL';
-        if (document.getElementById('adminLearnerStatusFilter')) document.getElementById('adminLearnerStatusFilter').value = 'ALL';
-        filterAdminLearners();
-    }
-
-    // ==========================================
-    // INSTANT FILTER & SEARCH: STAFF
-    // ==========================================
-    function filterAdminStaff() {
-        const query = (document.getElementById('adminStaffSearch')?.value || '').trim().toLowerCase();
-        const role = document.getElementById('adminStaffRoleFilter')?.value || 'ALL';
-        const status = document.getElementById('adminStaffStatusFilter')?.value || 'ALL';
-
-        const rows = document.querySelectorAll('.admin-staff-row');
-        let visibleCount = 0;
-
-        rows.forEach(row => {
-            const id = (row.getAttribute('data-id') || '').toLowerCase();
-            const name = (row.getAttribute('data-name') || '').toLowerCase();
-            const email = (row.getAttribute('data-email') || '').toLowerCase();
-            const username = (row.getAttribute('data-username') || '').toLowerCase();
-            const phone = (row.getAttribute('data-phone') || '').toLowerCase();
-            const rowRole = row.getAttribute('data-role') || '';
-            const rowStatus = row.getAttribute('data-status') || '';
-
-            // Text matching
-            let matchText = true;
-            if (query.length > 0) {
-                matchText = name.includes(query) || email.includes(query) || username.includes(query) || phone.includes(query) || id === query || ('#' + id) === query;
-            }
-
-            // Role matching
-            let matchRole = (role === 'ALL' || rowRole === role);
-
-            // Status matching
-            let matchStatus = (status === 'ALL' || rowStatus === status);
-
-            if (matchText && matchRole && matchStatus) {
-                row.style.display = '';
-                visibleCount++;
-            } else {
-                row.style.display = 'none';
-            }
-        });
-
-        const countEl = document.getElementById('adminStaffCount');
-        if (countEl) countEl.innerText = visibleCount + ' nhân sự';
-
-        const noResult = document.getElementById('adminStaffNoResult');
-        if (noResult) noResult.style.display = (visibleCount === 0) ? '' : 'none';
-    }
-
-    function resetAdminStaffFilter() {
-        if (document.getElementById('adminStaffSearch')) document.getElementById('adminStaffSearch').value = '';
-        if (document.getElementById('adminStaffRoleFilter')) document.getElementById('adminStaffRoleFilter').value = 'ALL';
-        if (document.getElementById('adminStaffStatusFilter')) document.getElementById('adminStaffStatusFilter').value = 'ALL';
-        filterAdminStaff();
-    }
-
+    // Auto open tab from URL
     document.addEventListener('DOMContentLoaded', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const tab = urlParams.get('tab');
-        if (tab && tabMeta[tab]) {
-            switchAdminTab(tab);
-        }
-    });
-
-    window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') { closeStaffModal(); closeLearnerModal(); }
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get('tab') || 'staff';
+        switchAdminTab(tab);
     });
 </script>
-
-<!-- Sleek Confirmation Modal for Staff Access Lock/Unlock -->
-<div id="staffActionModal" onclick="if(event.target === this) closeStaffModal()" style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(6px); transition: all 0.2s ease;">
-    <div id="modalStaffCard" style="background: #FFFFFF; width: 100%; max-width: 480px; border-radius: 24px; border: 1.5px solid #E8E5DC; box-shadow: 0 24px 48px -12px rgba(0,0,0,0.25); overflow: hidden; transform: scale(0.96); transition: transform 0.2s ease; margin: 16px;">
-        <!-- Header Banner -->
-        <div style="padding: 24px 28px 18px; border-bottom: 1px solid #F1EEE6; display: flex; align-items: center; gap: 16px;">
-            <div id="modalStaffIconBox" style="width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; background: #FFF1F0;">
-                🔒
-            </div>
-            <div>
-                <h4 id="modalStaffTitle" style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">Xác nhận phân quyền nhân sự</h4>
-                <p id="modalStaffSubtitle" style="margin: 4px 0 0; font-size: 13px; color: #64748B;">Cập nhật trạng thái truy cập hệ thống nội bộ</p>
-            </div>
-        </div>
-
-        <!-- Body with Staff Card -->
-        <div style="padding: 22px 28px; display: flex; flex-direction: column; gap: 16px;">
-            <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 16px; padding: 14px 18px; display: flex; align-items: center; gap: 14px;">
-                <div id="modalStaffAvatar" style="width: 44px; height: 44px; border-radius: 50%; background: #E2E8F0; color: #334155; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; flex-shrink: 0;">
-                    S
-                </div>
-                <div style="flex-grow: 1; min-width: 0;">
-                    <div id="modalStaffName" style="font-weight: 800; font-size: 15px; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Nhân sự</div>
-                    <div id="modalStaffEmail" style="font-size: 12.5px; color: #64748B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">email@hottopik.com</div>
-                </div>
-                <div id="modalStaffBadge">
-                    <span class="ssak-badge badge-mint">Đang hoạt động</span>
-                </div>
-            </div>
-
-            <p id="modalStaffDescription" style="margin: 0; font-size: 13.5px; line-height: 1.6; color: #475569;">
-                Bạn có chắc chắn muốn thực hiện thao tác này đối với nhân sự?
-            </p>
-        </div>
-
-        <!-- Footer Actions -->
-        <div style="padding: 16px 28px 22px; display: flex; justify-content: flex-end; gap: 12px; background: #FAFAFA; border-top: 1px solid #F1EEE6;">
-            <button type="button" onclick="closeStaffModal()" style="height: 42px; padding: 0 18px; border-radius: 12px; border: 1.5px solid #CBD5E1; background: #FFFFFF; font-size: 13.5px; font-weight: 700; color: #475569; cursor: pointer; transition: all 0.15s ease;">
-                Hủy bỏ
-            </button>
-            <button type="button" id="modalStaffConfirmBtn" onclick="executeStaffToggleLock()" style="height: 42px; padding: 0 22px; border-radius: 12px; border: none; font-size: 13.5px; font-weight: 800; color: #FFFFFF; background: #CF1322; cursor: pointer; transition: all 0.15s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.12);">
-                Xác nhận
-            </button>
-        </div>
-    </div>
-</div>
-<!-- Sleek Confirmation Modal for Locking/Unlocking Learners -->
-<div id="learnerActionModal" onclick="if(event.target === this) closeLearnerModal()" style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(6px); transition: all 0.2s ease;">
-    <div id="modalLearnerCard" style="background: #FFFFFF; width: 100%; max-width: 520px; border-radius: 24px; border: 1.5px solid #E8E5DC; box-shadow: 0 24px 48px -12px rgba(0,0,0,0.25); overflow: hidden; transform: scale(0.96); transition: transform 0.2s ease; margin: 16px;">
-        <!-- Header Banner -->
-        <div style="padding: 22px 28px 16px; border-bottom: 1px solid #F1EEE6; display: flex; align-items: center; gap: 14px;">
-            <div id="modalLearnerIconBox" style="width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; background: #FFF1F0;">
-                🔒
-            </div>
-            <div>
-                <h4 id="modalLearnerTitle" style="margin: 0; font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: #24363D;">Khóa tài khoản học viên</h4>
-                <p id="modalLearnerSubtitle" style="margin: 3px 0 0; font-size: 13px; color: #64748B;">Cập nhật quyền hạn truy cập của học viên</p>
-            </div>
-        </div>
-
-        <!-- Body with User Card -->
-        <div style="padding: 20px 28px; display: flex; flex-direction: column; gap: 16px; max-height: 75vh; overflow-y: auto;">
-            <!-- User Summary -->
-            <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 14px; padding: 12px 16px; display: flex; align-items: center; gap: 12px;">
-                <div id="modalLearnerAvatar" style="width: 40px; height: 40px; border-radius: 50%; background: #E8F5E9; color: #1F6B56; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; flex-shrink: 0;">
-                    U
-                </div>
-                <div style="flex-grow: 1; min-width: 0;">
-                    <div id="modalLearnerName" style="font-weight: 800; font-size: 14.5px; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Học viên</div>
-                    <div id="modalLearnerEmail" style="font-size: 12px; color: #64748B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">email@example.com</div>
-                </div>
-                <div id="modalLearnerBadge">
-                    <span class="ssak-badge badge-mint">Đang hoạt động</span>
-                </div>
-            </div>
-
-            <!-- UNLOCK PANE (Shown when current user is LOCKED) -->
-            <div id="modalAdminLearnerUnlockPane" style="display: none;">
-                <div style="padding: 16px; border-radius: 14px; background: #E8F5E9; border: 1.5px solid #C8E6C9; display: flex; gap: 12px; align-items: flex-start;">
-                    <span style="font-size: 22px;">🔓</span>
-                    <div style="font-size: 13.5px; color: #1F6B56; line-height: 1.6;">
-                        Tài khoản hiện đang bị khóa. Khi <strong>Mở khóa</strong>, học viên sẽ ngay lập tức được khôi phục toàn bộ quyền truy cập và lộ trình học tập.
-                    </div>
-                </div>
-            </div>
-
-            <!-- LOCK PANE (Shown when current user is ACTIVE) -->
-            <div id="modalAdminLearnerLockPane" style="display: block;">
-                <!-- Lock Type Tabs -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
-                    <button type="button" id="tabAdminLockTemp" onclick="switchAdminLearnerLockType('TEMPORARY')"
-                            style="padding: 10px 12px; border-radius: 12px; border: 1.5px solid #C25E3E; background: #FFFFFF; color: #9C4A2E; font-size: 13px; font-weight: 800; cursor: pointer; transition: all 0.15s ease; text-align: center;">
-                        ⏱️ Tạm khóa tài khoản
-                    </button>
-                    <button type="button" id="tabAdminLockPerm" onclick="switchAdminLearnerLockType('PERMANENT')"
-                            style="padding: 10px 12px; border-radius: 12px; border: 1.5px solid #E2E8F0; background: #F8FAFC; color: #64748B; font-size: 13px; font-weight: 800; cursor: pointer; transition: all 0.15s ease; text-align: center;">
-                        ⛔ Khóa vĩnh viễn (Trực tiếp)
-                    </button>
-                </div>
-
-                <!-- Subpane: Temporary Lock -->
-                <div id="paneAdminLockTemp" style="display: block;">
-                    <div style="margin-bottom: 14px;">
-                        <label style="display: block; font-size: 12.5px; font-weight: 800; color: #24363D; margin-bottom: 6px;">
-                            Thời hạn tạm khóa:
-                        </label>
-                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                            <button type="button" class="admin-day-chip" data-days="3" onclick="selectAdminLearnerDays(3)"
-                                    style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #CBD5E1; background: #F8FAFC; font-size: 12px; font-weight: 700; cursor: pointer;">
-                                3 ngày
-                            </button>
-                            <button type="button" class="admin-day-chip" data-days="7" onclick="selectAdminLearnerDays(7)"
-                                    style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #1F6B56; background: #1F6B56; color: #FFFFFF; font-size: 12px; font-weight: 700; cursor: pointer;">
-                                7 ngày (Chuẩn)
-                            </button>
-                            <button type="button" class="admin-day-chip" data-days="14" onclick="selectAdminLearnerDays(14)"
-                                    style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #CBD5E1; background: #F8FAFC; font-size: 12px; font-weight: 700; cursor: pointer;">
-                                14 ngày
-                            </button>
-                            <button type="button" class="admin-day-chip" data-days="30" onclick="selectAdminLearnerDays(30)"
-                                    style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #CBD5E1; background: #F8FAFC; font-size: 12px; font-weight: 700; cursor: pointer;">
-                                30 ngày
-                            </button>
-                            <button type="button" class="admin-day-chip" data-days="0" onclick="selectAdminLearnerDays(0)"
-                                    style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #CBD5E1; background: #F8FAFC; font-size: 12px; font-weight: 700; cursor: pointer;">
-                                Tùy chỉnh...
-                            </button>
-                        </div>
-                        <div id="adminCustomDaysWrapper" style="display: none; margin-top: 8px;">
-                            <input type="number" id="adminCustomDaysInput" class="ssak-input" min="1" max="365" placeholder="Nhập số ngày tạm khóa (vd: 45)" oninput="onAdminCustomDaysChange()" style="height: 38px; font-size: 13px;">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label style="display: block; font-size: 12.5px; font-weight: 800; color: #24363D; margin-bottom: 6px;">
-                            Lý do tạm khóa:
-                        </label>
-                        <textarea id="adminTempLockReason" class="ssak-input" rows="3" style="width: 100%; font-size: 13px; line-height: 1.5; padding: 10px 12px; resize: vertical;"
-                                  placeholder="Ghi rõ lý do tạm khóa (được lưu vào Audit log)..."></textarea>
-                    </div>
-                </div>
-
-                <!-- Subpane: Permanent Lock -->
-                <div id="paneAdminLockPerm" style="display: none;">
-                    <div style="padding: 12px 14px; border-radius: 12px; background: #FFF1F0; border: 1.5px solid #FFA39E; margin-bottom: 12px;">
-                        <div style="font-weight: 800; font-size: 12.5px; color: #CF1322; margin-bottom: 4px;">
-                            ⚠️ QUYỀN HẠN QUẢN TRỊ VIÊN
-                        </div>
-                        <div style="font-size: 12px; color: #5C1D11; line-height: 1.5;">
-                            Tài khoản học viên sẽ bị <strong>khóa vĩnh viễn ngay lập tức</strong> theo thẩm quyền quản trị của Administrator.
-                        </div>
-                    </div>
-
-                    <div>
-                        <label style="display: block; font-size: 12.5px; font-weight: 800; color: #24363D; margin-bottom: 6px;">
-                            Lý do khóa vĩnh viễn:
-                        </label>
-                        <textarea id="adminPermLockReason" class="ssak-input" rows="3" style="width: 100%; font-size: 13px; line-height: 1.5; padding: 10px 12px; resize: vertical;"
-                                  placeholder="Ghi rõ lý do quyết định khóa vĩnh viễn..."></textarea>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Footer Actions -->
-        <div style="padding: 16px 28px 20px; display: flex; justify-content: flex-end; gap: 12px; background: #FAFAFA; border-top: 1px solid #F1EEE6;">
-            <button type="button" onclick="closeLearnerModal()" style="height: 42px; padding: 0 18px; border-radius: 12px; border: 1.5px solid #CBD5E1; background: #FFFFFF; font-size: 13.5px; font-weight: 700; color: #475569; cursor: pointer; transition: all 0.15s ease;">
-                Hủy bỏ
-            </button>
-            <button type="button" id="modalLearnerConfirmBtn" onclick="executeLearnerToggleLock()" style="height: 42px; padding: 0 22px; border-radius: 12px; border: none; font-size: 13.5px; font-weight: 800; color: #FFFFFF; background: #C25E3E; cursor: pointer; transition: all 0.15s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.12);">
-                🔒 Xác nhận tạm khóa
-            </button>
-        </div>
-    </div>
-</div>
 </body>
 </html>

@@ -171,3 +171,24 @@ function playSound(type) {
     }
 }
 window.playSound = playSound;
+
+// Sync notification unread count with backend
+document.addEventListener('DOMContentLoaded', function() {
+    const badge = document.getElementById('bellBadge');
+    if (badge) {
+        fetch('/api/notifications/unread-count')
+            .then(r => r.json())
+            .then(d => {
+                if (d && typeof d.count === 'number') {
+                    if (d.count > 0) {
+                        badge.textContent = d.count;
+                        badge.style.display = 'inline-block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            })
+            .catch(() => {});
+    }
+});
+

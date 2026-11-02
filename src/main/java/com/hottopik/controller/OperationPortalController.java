@@ -2,6 +2,7 @@ package com.hottopik.controller;
 
 import com.hottopik.dto.AnnouncementDTO;
 import com.hottopik.dto.ApprovalRequestDTO;
+import com.hottopik.dto.OrderDTO;
 import com.hottopik.dto.UserDTO;
 import com.hottopik.service.AdminSystemService;
 import com.hottopik.service.ApprovalService;
@@ -66,8 +67,10 @@ public class OperationPortalController {
 
         model.addAttribute("orders", operationService.getOrders());
         model.addAttribute("packagePrices", operationService.getPackagePrices());
+        model.addAttribute("compensationHistory", operationService.getCompensationHistory());
         model.addAttribute("reviews", operationService.getReviews());
         model.addAttribute("announcements", operationService.getAnnouncements());
+        model.addAttribute("aiBudgets", adminSystemService.getAiBudgets());
         model.addAttribute("auditLogs", adminSystemService.getAuditLogsForRole("ROLE_OPERATION_MANAGER"));
 
         return "operation/dashboard";
@@ -107,36 +110,27 @@ public class OperationPortalController {
         String targetName = target.getFullName() != null ? target.getFullName() : "Học viên";
 
         if ("PERMANENT".equalsIgnoreCase(lockType)) {
-            // Kiểm tra nếu đã có yêu cầu chờ duyệt
-            if (approvalService.hasPendingPermanentLockRequest(userId)) {
+            // Khóa vĩnh viễn trực tiếp, không cần Admin duyệt
+            boolean okPerm = userService.lockUserPermanently(userId, reason.trim());
+            if (!okPerm) {
                 resp.put("success", false);
-                resp.put("message", "Tài khoản " + targetEmail + " hiện đang có yêu cầu đề xuất khóa vĩnh viễn chờ Admin phê duyệt.");
+                resp.put("message", "Không thể khóa vĩnh viễn tài khoản " + targetEmail + ". Vui lòng thử lại.");
                 return ResponseEntity.ok(resp);
             }
-
-            // Khóa vĩnh viễn: Gửi yêu cầu phê duyệt lên Admin, chưa khóa trực tiếp
-            ApprovalRequestDTO req = approvalService.submitRequest(
-                    currentUser.getFullName(),
-                    "Operation Manager",
-                    "PERMANENT_LOCK_USER",
-                    "Đề xuất khóa vĩnh viễn tài khoản: " + targetEmail,
-                    "Học viên: " + targetName + " (" + targetEmail + " - ID: #" + userId + "). Lý do đề xuất khóa vĩnh viễn: " + reason.trim(),
-                    userId
-            );
 
             adminSystemService.logAction(
                     currentUser.getFullName(),
                     currentUser.getRole(),
-                    "SUBMIT_APPROVAL",
+                    "LOCK_LEARNER_PERMANENT",
                     "LEARNER",
-                    "Gửi yêu cầu đề xuất khóa vĩnh viễn tài khoản " + targetEmail + " lên Admin để phê duyệt. Lý do: " + reason.trim(),
+                    "Khóa vĩnh viễn tài khoản " + targetEmail + " (" + targetName + "). Lý do: " + reason.trim(),
                     "127.0.0.1"
             );
 
             resp.put("success", true);
-            resp.put("pendingApproval", true);
-            resp.put("status", target.getStatus());
-            resp.put("message", "Đã gửi đề xuất khóa vĩnh viễn tài khoản " + targetEmail + " lên Quản trị viên (Admin) để thẩm định và phê duyệt!");
+            resp.put("pendingApproval", false);
+            resp.put("status", "LOCKED");
+            resp.put("message", "Đã khóa vĩnh viễn tài khoản " + targetEmail + " thành công!");
             return ResponseEntity.ok(resp);
         } else {
             // Tạm khóa: Có số ngày, ghi rõ lý do để admin xem được nhật ký hoạt động
@@ -230,9 +224,9 @@ public class OperationPortalController {
         }
     }
 
-    @PostMapping("/orders/request-refund")
+    @PostMapping({"/orders/refund", "/orders/request-refund"})
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> requestRefund(
+    public ResponseEntity<Map<String, Object>> refundOrder(
             @RequestParam("orderId") Long orderId,
             @RequestParam(value = "reason", required = false) String reason,
             HttpSession session) {
@@ -245,30 +239,42 @@ public class OperationPortalController {
             return ResponseEntity.status(403).body(resp);
         }
 
-        boolean ok = operationService.requestRefundApproval(orderId, currentUser.getFullName(), reason);
+        OrderDTO order = operationService.getOrderById(orderId).orElse(null);
+        if (order == null) {
+            resp.put("success", false);
+            resp.put("message", "Không tìm thấy đơn hàng.");
+            return ResponseEntity.ok(resp);
+        }
+
+        String refundRsn = (reason != null && !reason.trim().isEmpty()) ? reason.trim() : "Khách hàng yêu cầu hoàn tiền";
+        boolean ok = operationService.requestRefundApproval(orderId, currentUser.getFullName(), refundRsn);
         if (ok) {
             adminSystemService.logAction(
                     currentUser.getFullName(),
                     currentUser.getRole(),
-                    "SUBMIT_APPROVAL",
-                    "ORDER_REFUND",
-                    "Gửi yêu cầu duyệt hoàn tiền đơn #" + orderId + " lên Admin",
+                    "SUBMIT_REFUND_PROPOSAL",
+                    "ORDER",
+                    "Operation Manager gửi đề nghị hoàn tiền đơn #" + order.getOrderCode() + " lên Admin để phê duyệt. Lý do: " + refundRsn,
                     "127.0.0.1"
             );
             resp.put("success", true);
-            resp.put("message", "Đã gửi yêu cầu duyệt hoàn tiền lên Admin thành công!");
+            resp.put("pendingApproval", true);
+            resp.put("status", "REFUND_REQUESTED");
+            resp.put("message", "Đã gửi đề nghị hoàn tiền đơn hàng #" + order.getOrderCode() + " lên Admin để phê duyệt!");
         } else {
             resp.put("success", false);
-            resp.put("message", "Không tìm thấy đơn hàng.");
+            resp.put("message", "Không thể gửi yêu cầu hoàn tiền.");
         }
         return ResponseEntity.ok(resp);
     }
 
-    @PostMapping("/prices/propose")
+    @PostMapping({"/prices/update", "/prices/propose"})
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> proposePrice(
+    public ResponseEntity<Map<String, Object>> updatePrice(
             @RequestParam("packageId") Long packageId,
-            @RequestParam("proposedPrice") double proposedPrice,
+            @RequestParam(value = "newPrice", required = false) Double newPrice,
+            @RequestParam(value = "proposedPrice", required = false) Double proposedPrice,
+            @RequestParam(value = "reason", required = false) String reason,
             HttpSession session) {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
         Map<String, Object> resp = new HashMap<>();
@@ -279,21 +285,91 @@ public class OperationPortalController {
             return ResponseEntity.status(403).body(resp);
         }
 
-        boolean ok = operationService.proposePackagePrice(packageId, proposedPrice, currentUser.getFullName());
+        double finalPrice = newPrice != null ? newPrice : (proposedPrice != null ? proposedPrice : 0);
+        if (finalPrice <= 0) {
+            resp.put("success", false);
+            resp.put("message", "Mức giá phải lớn hơn 0đ.");
+            return ResponseEntity.badRequest().body(resp);
+        }
+
+        String priceRsn = (reason != null && !reason.trim().isEmpty()) ? reason.trim() : "Điều chỉnh chính sách giá gói";
+        boolean ok = operationService.updatePackagePrice(packageId, finalPrice, currentUser.getFullName());
         if (ok) {
             adminSystemService.logAction(
                     currentUser.getFullName(),
                     currentUser.getRole(),
-                    "SUBMIT_APPROVAL",
+                    "UPDATE_PACKAGE_PRICE",
                     "PACKAGE_PRICE",
-                    "Đề xuất giá mới cho gói ID #" + packageId + ": " + (int)proposedPrice + "đ gửi lên Admin",
+                    "Operation Manager cập nhật giá gói ID #" + packageId + " sang mức " + (int)finalPrice + "đ. Lý do: " + priceRsn,
                     "127.0.0.1"
             );
             resp.put("success", true);
-            resp.put("message", "Đã gửi đề xuất điều chỉnh giá gói lên Admin!");
+            resp.put("pendingApproval", false);
+            resp.put("message", "Đã cập nhật giá mới cho gói VIP thành công!");
         } else {
             resp.put("success", false);
             resp.put("message", "Không tìm thấy gói học.");
+        }
+        return ResponseEntity.ok(resp);
+    }
+
+    @PostMapping({"/vip/compensate", "/vip/propose-compensation"})
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> compensateVip(
+            @RequestParam("userId") Long userId,
+            @RequestParam("days") int days,
+            @RequestParam(value = "bonusCoins", required = false, defaultValue = "0") int bonusCoins,
+            @RequestParam(value = "packageName", required = false) String packageName,
+            @RequestParam("reason") String reason,
+            HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+
+        if (currentUser == null || (!currentUser.isOperationManager() && !currentUser.isAdmin())) {
+            resp.put("success", false);
+            resp.put("message", "Từ chối quyền truy cập.");
+            return ResponseEntity.status(403).body(resp);
+        }
+
+        if (days <= 0) {
+            resp.put("success", false);
+            resp.put("message", "Số ngày cấp bù/gia hạn phải lớn hơn 0.");
+            return ResponseEntity.badRequest().body(resp);
+        }
+
+        if (reason == null || reason.trim().isEmpty()) {
+            resp.put("success", false);
+            resp.put("message", "Vui lòng nhập lý do cấp bù hoặc gia hạn quyền lợi.");
+            return ResponseEntity.badRequest().body(resp);
+        }
+
+        UserDTO target = userService.findById(userId).orElse(null);
+        if (target == null) {
+            resp.put("success", false);
+            resp.put("message", "Không tìm thấy học viên.");
+            return ResponseEntity.ok(resp);
+        }
+
+        boolean ok = operationService.proposeVipCompensation(
+                userId, target.getFullName(), target.getEmail(),
+                days, bonusCoins, packageName, reason.trim(), currentUser.getFullName()
+        );
+
+        if (ok) {
+            adminSystemService.logAction(
+                    currentUser.getFullName(),
+                    currentUser.getRole(),
+                    "SUBMIT_VIP_COMPENSATION_PROPOSAL",
+                    "LEARNER_VIP",
+                    "Operation Manager gửi đề xuất cấp bù " + days + " ngày VIP (" + bonusCoins + " Xu) cho " + target.getEmail() + " lên Admin để phê duyệt. Lý do: " + reason.trim(),
+                    "127.0.0.1"
+            );
+            resp.put("success", true);
+            resp.put("pendingApproval", true);
+            resp.put("message", "Đã gửi đề xuất cấp bù " + days + " ngày VIP (" + bonusCoins + " Xu) cho học viên " + target.getFullName() + " lên Admin để phê duyệt!");
+        } else {
+            resp.put("success", false);
+            resp.put("message", "Không thể gửi đề xuất cấp bù quyền lợi.");
         }
         return ResponseEntity.ok(resp);
     }
@@ -329,6 +405,7 @@ public class OperationPortalController {
             @RequestParam("title") String title,
             @RequestParam("content") String content,
             @RequestParam(value = "audience", defaultValue = "ALL") String audience,
+            @RequestParam(value = "targetUserId", required = false) Long targetUserId,
             HttpSession session) {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
         Map<String, Object> resp = new HashMap<>();
@@ -339,18 +416,76 @@ public class OperationPortalController {
             return ResponseEntity.status(403).body(resp);
         }
 
-        AnnouncementDTO ann = operationService.sendAnnouncement(title, content, audience, currentUser.getFullName());
+        if (title == null || title.trim().isEmpty() || content == null || content.trim().isEmpty()) {
+            resp.put("success", false);
+            resp.put("message", "Vui lòng nhập đầy đủ tiêu đề và nội dung thông báo.");
+            return ResponseEntity.badRequest().body(resp);
+        }
+
+        String targetUserName = null;
+        if (targetUserId != null) {
+            UserDTO u = userService.findById(targetUserId).orElse(null);
+            if (u != null) {
+                targetUserName = u.getFullName() != null ? u.getFullName() : u.getEmail();
+            }
+        }
+
+        AnnouncementDTO ann = operationService.sendAnnouncement(
+                title.trim(), content.trim(), audience, targetUserId, targetUserName, currentUser.getFullName()
+        );
+
         adminSystemService.logAction(
                 currentUser.getFullName(),
                 currentUser.getRole(),
                 "SEND_ANNOUNCEMENT",
                 "ANNOUNCEMENT",
-                "Phát thông báo: \"" + title + "\" tới đối tượng: " + audience,
+                "Phát thông báo: \"" + title + "\" tới nhóm: " + ann.getTargetAudienceLabel() + (targetUserName != null ? " (" + targetUserName + ")" : ""),
                 "127.0.0.1"
         );
         resp.put("success", true);
         resp.put("announcement", ann);
-        resp.put("message", "Đã phát thông báo thành công đến học viên!");
+        resp.put("message", "Đã phát thông báo thành công đến nhóm: " + ann.getTargetAudienceLabel() + "!");
+        return ResponseEntity.ok(resp);
+    }
+
+    @PostMapping("/ai-budget/update")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateAiBudget(
+            @RequestParam("id") Long id,
+            @RequestParam("limit") double limit,
+            @RequestParam("threshold") int threshold,
+            HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+
+        if (currentUser == null || (!currentUser.isOperationManager() && !currentUser.isAdmin())) {
+            resp.put("success", false);
+            resp.put("message", "Từ chối quyền truy cập.");
+            return ResponseEntity.status(403).body(resp);
+        }
+
+        if (limit <= 0 || threshold < 10 || threshold > 100) {
+            resp.put("success", false);
+            resp.put("message", "Hạn mức phải lớn hơn 0$ và ngưỡng cảnh báo từ 10% đến 100%.");
+            return ResponseEntity.badRequest().body(resp);
+        }
+
+        boolean ok = adminSystemService.updateAiBudget(id, limit, threshold);
+        if (ok) {
+            adminSystemService.logAction(
+                    currentUser.getFullName(),
+                    currentUser.getRole(),
+                    "UPDATE_AI_BUDGET",
+                    "AI_SERVICE",
+                    "Operation Manager cập nhật ngân sách dịch vụ AI #" + id + ": Hạn mức $" + (int)limit + ", Ngưỡng " + threshold + "%",
+                    "127.0.0.1"
+            );
+            resp.put("success", true);
+            resp.put("message", "Đã cập nhật hạn mức và ngưỡng cảnh báo ngân sách AI thành công!");
+        } else {
+            resp.put("success", false);
+            resp.put("message", "Không tìm thấy dịch vụ AI tương ứng.");
+        }
         return ResponseEntity.ok(resp);
     }
 

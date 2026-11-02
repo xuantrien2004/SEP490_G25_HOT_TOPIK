@@ -45,4 +45,12 @@ public class AiBudgetDTO implements Serializable {
         if (monthlyLimitUsd <= 0) return 0;
         return (currentUsageUsd / monthlyLimitUsd) * 100.0;
     }
+
+    public double getUsedThisMonth() {
+        return currentUsageUsd;
+    }
+
+    public String getFormattedUsagePercent() {
+        return String.format(java.util.Locale.US, "%.1f", getUsagePercent());
+    }
 }

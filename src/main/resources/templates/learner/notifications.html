@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/head :: head('Thông báo · HOT TOPIK')}"></head>
+<head th:replace="~{fragments/head :: head('Trung tâm thông báo · HOT TOPIK')}"></head>
 <body>
 <div style="min-width: 1280px; max-width: 1440px; min-height: 100vh; margin: 0 auto; background: var(--ssak-bg); font-family: var(--font-body); color: var(--ssak-text-main); display: flex; flex-direction: column;">
 
@@ -14,131 +14,99 @@
         <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid var(--ssak-border); padding-bottom: 20px;">
             <div>
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <h1 style="margin: 0; font-family: var(--font-heading); font-size: 28px; font-weight: 800;">Trung tâm thông báo</h1>
-                    <span id="unreadBadge" class="ssak-badge badge-honey" style="font-size: 13px; font-weight: 800;">3 chưa đọc</span>
+                    <h1 style="margin: 0; font-family: var(--font-heading); font-size: 28px; font-weight: 800;">Trung tâm thông báo cá nhân</h1>
+                    <span id="unreadBadge" class="ssak-badge badge-honey" style="font-size: 13px; font-weight: 800;"
+                          th:text="${unreadCount + ' chưa đọc'}"
+                          th:style="${unreadCount == 0 ? 'display: none;' : ''}">3 chưa đọc</span>
                 </div>
                 <p style="margin: 6px 0 0; font-size: 14px; color: var(--ssak-text-muted);">
-                    Lưu trữ lịch sử thông báo trong 90 ngày gần nhất (Mục 14.3).
+                    Lưu trữ lịch sử thông báo hệ thống, thông báo vận hành theo nhóm và kết quả học tập cá nhân.
                 </p>
             </div>
 
-            <button type="button" class="btn-ssak-outline" onclick="markAllAsRead()" style="height: 40px; padding: 0 18px; font-size: 13px;">
+            <button type="button" class="btn-ssak-outline" onclick="markAllAsRead()" style="height: 40px; padding: 0 18px; font-size: 13px; font-weight: 700;">
                 ✓ Đánh dấu tất cả đã đọc
             </button>
         </div>
 
         <!-- Filter Pills -->
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-            <button type="button" class="notif-filter active" onclick="filterNotifs('all')">Tất cả</button>
-            <button type="button" class="notif-filter" onclick="filterNotifs('study')">📚 Học tập & Lộ trình</button>
-            <button type="button" class="notif-filter" onclick="filterNotifs('writing')">✍️ Chấm Viết</button>
-            <button type="button" class="notif-filter" onclick="filterNotifs('system')">👑 VIP & Hệ thống</button>
+            <button type="button" class="notif-filter active" onclick="filterNotifs('all', this)">Tất cả</button>
+            <button type="button" class="notif-filter" onclick="filterNotifs('unread', this)">🟡 Chưa đọc</button>
+            <button type="button" class="notif-filter" onclick="filterNotifs('ANNOUNCEMENT', this)">📢 Thông báo & Khuyến mãi</button>
+            <button type="button" class="notif-filter" onclick="filterNotifs('STUDY', this)">📚 Học tập & Lộ trình</button>
+            <button type="button" class="notif-filter" onclick="filterNotifs('WRITING', this)">✍️ Chấm Viết</button>
+            <button type="button" class="notif-filter" onclick="filterNotifs('VIP', this)">👑 Quyền lợi VIP</button>
+            <button type="button" class="notif-filter" onclick="filterNotifs('SYSTEM', this)">🔔 Hệ thống</button>
         </div>
 
         <!-- Notifications List -->
         <div id="notificationsContainer" style="display: flex; flex-direction: column; gap: 12px;">
             
-            <!-- Item 1: WRITING_GRADED (Unread) -->
-            <div class="ssak-card notif-item unread" data-type="writing" onclick="openNotif(this, '/bai-cham')">
+            <div th:each="n : ${notifications}"
+                 class="ssak-card notif-item"
+                 th:classappend="${!n.read ? 'unread' : ''}"
+                 th:data-id="${n.id}"
+                 th:data-category="${n.category}"
+                 th:data-read="${n.read ? 'true' : 'false'}"
+                 th:data-url="${n.linkUrl}">
                 <div style="display: flex; gap: 16px; align-items: flex-start;">
-                    <div style="width: 44px; height: 44px; border-radius: 12px; background: var(--ssak-mint); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
-                        ✍️
+                    <!-- Icon Box -->
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: #F1EEE6; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;"
+                         th:styleappend="${n.category == 'VIP' ? 'background: #FEF3C7;' : (n.category == 'WRITING' ? 'background: var(--ssak-mint);' : (n.category == 'STUDY' ? 'background: #E0E7FF;' : 'background: #F1EEE6;'))}">
+                        <span th:text="${n.icon != null ? n.icon : '📢'}">📢</span>
                     </div>
+
+                    <!-- Main content -->
                     <div style="flex-grow: 1;">
-                        <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                            <span style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; color: var(--ssak-text-main);">
-                                Mentor Kim Min-ji đã hoàn thành chấm bài Viết Câu 53
-                            </span>
-                            <span style="font-size: 12px; color: var(--ssak-text-muted);">15 phút trước</span>
+                        <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; color: var(--ssak-text-main);"
+                                      th:text="${n.title}">
+                                    Tiêu đề thông báo
+                                </span>
+                                <!-- Audience badge -->
+                                <span th:if="${n.targetAudience == 'VIP' || n.targetAudience == 'VIP_ONLY'}" class="ssak-badge badge-honey" style="font-size: 11px; padding: 2px 7px;">👑 VIP</span>
+                                <span th:if="${n.targetAudience == 'FREE' || n.targetAudience == 'FREE_ONLY'}" class="ssak-badge" style="background:#E2E8F0; color:#475569; font-size: 11px; padding: 2px 7px;">Cơ bản</span>
+                                <span th:if="${n.targetAudience == 'SPECIFIC'}" class="ssak-badge badge-mint" style="font-size: 11px; padding: 2px 7px;">Gửi riêng bạn</span>
+                            </div>
+                            <span style="font-size: 12px; color: var(--ssak-text-muted);" th:text="${n.createdAt}">Vừa xong</span>
                         </div>
-                        <p style="margin: 4px 0 0; font-size: 14px; color: var(--ssak-text-muted); line-height: 1.5;">
-                            Bài viết biểu đồ số 4 đạt 24/30 điểm (+2 điểm so với điểm AI ước tính). Nhấn để xem nhận xét chi tiết của Mentor và bảng đáp án chuẩn.
+                        <p style="margin: 6px 0 0; font-size: 14px; color: var(--ssak-text-muted); line-height: 1.5;"
+                           th:text="${n.content}">
+                            Nội dung chi tiết thông báo được gửi đến người học.
                         </p>
+                        
+                        <!-- Quick actions -->
+                        <div style="display: flex; align-items: center; gap: 12px; margin-top: 10px;">
+                            <button th:if="${!n.read}" type="button" class="btn-mark-read"
+                                    th:onclick="'markSingleAsRead(' + ${n.id} + ', event)'"
+                                    style="background: transparent; border: 1px solid var(--ssak-border); border-radius: 8px; padding: 3px 10px; font-size: 12px; font-weight: 700; color: #1F6B56; cursor: pointer;">
+                                ✓ Đánh dấu đã đọc
+                            </button>
+                            <a th:if="${n.linkUrl != null && !n.linkUrl.isEmpty()}"
+                               th:href="${n.linkUrl}"
+                               th:onclick="'handleNotifLinkClick(' + ${n.id} + ', event)'"
+                               style="font-size: 12.5px; font-weight: 700; color: var(--ssak-primary); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                                Xem chi tiết →
+                            </a>
+                        </div>
                     </div>
-                    <span class="unread-dot" style="width: 10px; height: 10px; border-radius: 50%; background: var(--ssak-honey); flex-shrink: 0; margin-top: 6px;"></span>
+
+                    <!-- Unread dot indicator -->
+                    <span th:if="${!n.read}" class="unread-dot" style="width: 10px; height: 10px; border-radius: 50%; background: var(--ssak-honey); flex-shrink: 0; margin-top: 6px;"></span>
                 </div>
             </div>
 
-            <!-- Item 2: DAILY_REMINDER (Unread) -->
-            <div class="ssak-card notif-item unread" data-type="study" onclick="openNotif(this, '/hom-nay')">
-                <div style="display: flex; gap: 16px; align-items: flex-start;">
-                    <div style="width: 44px; height: 44px; border-radius: 12px; background: #FEF3C7; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
-                        ⏰
-                    </div>
-                    <div style="flex-grow: 1;">
-                        <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                            <span style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; color: var(--ssak-text-main);">
-                                Nhắc học hôm nay · Duy trì chuỗi 12 ngày
-                            </span>
-                            <span style="font-size: 12px; color: var(--ssak-text-muted);">2 giờ trước</span>
-                        </div>
-                        <p style="margin: 4px 0 0; font-size: 14px; color: var(--ssak-text-muted); line-height: 1.5;">
-                            Bạn còn 1 bài ôn Nghe 17–20 trong Ngày 42 để hoàn thành mục tiêu 20 phút mỗi ngày. Cùng cố lên nhé!
-                        </p>
-                    </div>
-                    <span class="unread-dot" style="width: 10px; height: 10px; border-radius: 50%; background: var(--ssak-honey); flex-shrink: 0; margin-top: 6px;"></span>
+            <!-- Empty state -->
+            <div id="emptyNotifMessage" style="display: none; text-align: center; padding: 60px 20px; background: #FFFFFF; border-radius: 20px; border: 1.5px dashed var(--ssak-border);">
+                <div style="font-size: 40px; margin-bottom: 8px;">📭</div>
+                <div style="font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: var(--ssak-text-main);">
+                    Không có thông báo nào trong mục này
                 </div>
-            </div>
-
-            <!-- Item 3: REPORT_RESOLVED (Unread) -->
-            <div class="ssak-card notif-item unread" data-type="system" onclick="openNotif(this, '/xu')">
-                <div style="display: flex; gap: 16px; align-items: flex-start;">
-                    <div style="width: 44px; height: 44px; border-radius: 12px; background: #E0E7FF; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
-                        🪙
-                    </div>
-                    <div style="flex-grow: 1;">
-                        <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                            <span style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; color: var(--ssak-text-main);">
-                                Báo lỗi câu hỏi đã được xác nhận · +20 Xu
-                            </span>
-                            <span style="font-size: 12px; color: var(--ssak-text-muted);">Hôm qua, 18:30</span>
-                        </div>
-                        <p style="margin: 4px 0 0; font-size: 14px; color: var(--ssak-text-muted); line-height: 1.5;">
-                            Đội ngũ Content Manager đã tiếp nhận và chỉnh sửa giải thích câu hỏi Đọc 12 kỳ 91 bạn đã đóng góp. Số dư hiện tại: 145 Xu.
-                        </p>
-                    </div>
-                    <span class="unread-dot" style="width: 10px; height: 10px; border-radius: 50%; background: var(--ssak-honey); flex-shrink: 0; margin-top: 6px;"></span>
-                </div>
-            </div>
-
-            <!-- Item 4: WEEKLY_SUMMARY (Read) -->
-            <div class="ssak-card notif-item" data-type="study" onclick="openNotif(this, '/lo-trinh/nhin-lai-tuan')">
-                <div style="display: flex; gap: 16px; align-items: flex-start;">
-                    <div style="width: 44px; height: 44px; border-radius: 12px; background: #F1EEE6; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
-                        📊
-                    </div>
-                    <div style="flex-grow: 1;">
-                        <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                            <span style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; color: var(--ssak-text-main);">
-                                Tóm tắt tuần học số 5 · Tiến độ đạt 78%
-                            </span>
-                            <span style="font-size: 12px; color: var(--ssak-text-muted);">3 ngày trước</span>
-                        </div>
-                        <p style="margin: 4px 0 0; font-size: 14px; color: var(--ssak-text-muted); line-height: 1.5;">
-                            Tuần vừa qua bạn đã hoàn thành 14 bài luyện, tỉ lệ đúng tăng 6% so với tuần trước. Nhấn để xem báo cáo chi tiết.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Item 5: PAYMENT_SUCCESS (Read) -->
-            <div class="ssak-card notif-item" data-type="system" onclick="openNotif(this, '/goi-cua-toi')">
-                <div style="display: flex; gap: 16px; align-items: flex-start;">
-                    <div style="width: 44px; height: 44px; border-radius: 12px; background: #F1EEE6; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
-                        👑
-                    </div>
-                    <div style="flex-grow: 1;">
-                        <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                            <span style="font-family: var(--font-heading); font-size: 16px; font-weight: 800; color: var(--ssak-text-main);">
-                                Kích hoạt thành công gói VIP Trọn đời
-                            </span>
-                            <span style="font-size: 12px; color: var(--ssak-text-muted);">15/09/2026</span>
-                        </div>
-                        <p style="margin: 4px 0 0; font-size: 14px; color: var(--ssak-text-muted); line-height: 1.5;">
-                            Cảm ơn bạn đã đồng hành cùng HOT TOPIK! Đơn hàng #ORD-8921 đã thanh toán thành công qua cổng thanh toán VNPay.
-                        </p>
-                    </div>
-                </div>
+                <p style="font-size: 13.5px; color: var(--ssak-text-muted); margin: 6px 0 0;">
+                    Bạn đã cập nhật toàn bộ tin tức mới nhất từ ban điều hành HOT TOPIK.
+                </p>
             </div>
 
         </div>
@@ -173,61 +141,156 @@
 
 .notif-item {
     padding: 20px 24px;
-    cursor: pointer;
+    cursor: default;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border: 1.5px solid var(--ssak-border);
+    border-radius: 16px;
+    background: #FFFFFF;
 }
 .notif-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.05);
 }
 .notif-item.unread {
     background: #FCFBF7;
-    border-left: 4px solid var(--ssak-honey);
+    border-left: 5px solid var(--ssak-honey);
+}
+.btn-mark-read:hover {
+    background: #E8F5E9 !important;
 }
 </style>
 
 <script>
-function filterNotifs(type) {
-    document.querySelectorAll('.notif-filter').forEach(btn => btn.classList.remove('active'));
-    event.currentTarget.classList.add('active');
+let currentFilter = 'all';
+
+function filterNotifs(type, btn) {
+    currentFilter = type;
+    document.querySelectorAll('.notif-filter').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
 
     const items = document.querySelectorAll('.notif-item');
+    let visibleCount = 0;
+
     items.forEach(item => {
-        if (type === 'all' || item.dataset.type === type) {
+        const cat = item.dataset.category || '';
+        const isRead = item.dataset.read === 'true';
+
+        let show = false;
+        if (type === 'all') {
+            show = true;
+        } else if (type === 'unread') {
+            show = !isRead;
+        } else if (type === 'ANNOUNCEMENT') {
+            show = (cat === 'ANNOUNCEMENT' || cat === 'PROMO');
+        } else {
+            show = (cat === type);
+        }
+
+        if (show) {
             item.style.display = 'block';
+            visibleCount++;
         } else {
             item.style.display = 'none';
         }
     });
+
+    const emptyBox = document.getElementById('emptyNotifMessage');
+    if (emptyBox) {
+        emptyBox.style.display = (visibleCount === 0) ? 'block' : 'none';
+    }
 }
 
-function openNotif(element, redirectUrl) {
-    element.classList.remove('unread');
-    const dot = element.querySelector('.unread-dot');
-    if (dot) dot.remove();
-    updateUnreadCount();
-    window.location.href = redirectUrl;
+function markSingleAsRead(id, event) {
+    if (event) event.stopPropagation();
+
+    const formData = new FormData();
+    formData.append('id', id);
+
+    fetch('/thong-bao/read', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const item = document.querySelector(`.notif-item[data-id="${id}"]`);
+            if (item) {
+                item.classList.remove('unread');
+                item.dataset.read = 'true';
+                const dot = item.querySelector('.unread-dot');
+                if (dot) dot.remove();
+                const btn = item.querySelector('.btn-mark-read');
+                if (btn) btn.remove();
+            }
+            updateUnreadUI(data.unreadCount);
+            if (currentFilter === 'unread') {
+                filterNotifs('unread', document.querySelector('.notif-filter.active'));
+            }
+        }
+    })
+    .catch(console.error);
+}
+
+function handleNotifLinkClick(id, event) {
+    markSingleAsRead(id, event);
 }
 
 function markAllAsRead() {
-    document.querySelectorAll('.notif-item.unread').forEach(item => {
-        item.classList.remove('unread');
-        const dot = item.querySelector('.unread-dot');
-        if (dot) dot.remove();
-    });
-    updateUnreadCount();
+    fetch('/thong-bao/read-all', {
+        method: 'POST'
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            document.querySelectorAll('.notif-item.unread').forEach(item => {
+                item.classList.remove('unread');
+                item.dataset.read = 'true';
+                const dot = item.querySelector('.unread-dot');
+                if (dot) dot.remove();
+                const btn = item.querySelector('.btn-mark-read');
+                if (btn) btn.remove();
+            });
+            updateUnreadUI(0);
+            if (currentFilter === 'unread') {
+                filterNotifs('unread', document.querySelector('.notif-filter.active'));
+            }
+        }
+    })
+    .catch(console.error);
 }
 
-function updateUnreadCount() {
-    const remaining = document.querySelectorAll('.notif-item.unread').length;
+function updateUnreadUI(count) {
     const badge = document.getElementById('unreadBadge');
-    if (remaining > 0) {
-        badge.textContent = remaining + ' chưa đọc';
-    } else {
-        badge.textContent = '0 chưa đọc';
-        badge.style.display = 'none';
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count + ' chưa đọc';
+            badge.style.display = 'inline-block';
+        } else {
+            badge.textContent = '0 chưa đọc';
+            badge.style.display = 'none';
+        }
+    }
+    const bell = document.getElementById('bellBadge');
+    if (bell) {
+        if (count > 0) {
+            bell.textContent = count;
+            bell.style.display = 'inline-block';
+        } else {
+            bell.style.display = 'none';
+        }
     }
 }
+
+// Initial check on load
+document.addEventListener('DOMContentLoaded', () => {
+    fetch('/api/notifications/unread-count')
+        .then(r => r.json())
+        .then(d => {
+            if (d && typeof d.count === 'number') {
+                updateUnreadUI(d.count);
+            }
+        })
+        .catch(() => {});
+});
 </script>
 </body>
 </html>

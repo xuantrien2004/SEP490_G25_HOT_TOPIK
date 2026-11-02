@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,6 +28,10 @@ public class LearnerController {
 
     private final UserService userService;
     private final LearnerRoadmapService roadmaps;
+
+    @Autowired(required = false)
+    private com.hottopik.service.NotificationService notificationService;
+
     public LearnerController(UserService userService, LearnerRoadmapService roadmaps) {
         this.userService = userService;
         this.roadmaps = roadmaps;
@@ -204,6 +209,83 @@ public class LearnerController {
         model.addAttribute("pageTitle", "Cài đặt tài khoản & học tập");
         model.addAttribute("activePage", "settings");
         return "learner/settings";
+    }
+
+    @GetMapping({"/thong-bao", "/notifications"})
+    public String notifications(Model model, HttpSession session) {
+        UserDTO user = AuthHelper.getLoggedInUser(session);
+        java.util.List<com.hottopik.dto.NotificationDTO> userNotifs = Collections.emptyList();
+        int unreadCount = 0;
+
+        if (user != null && notificationService != null) {
+            userNotifs = notificationService.getNotificationsForUser(user);
+            unreadCount = (int) userNotifs.stream().filter(n -> !n.isRead()).count();
+        }
+
+        model.addAttribute("pageTitle", "Trung tâm thông báo · HOT TOPIK");
+        model.addAttribute("activePage", "notifications");
+        model.addAttribute("currentUser", user);
+        model.addAttribute("notifications", userNotifs);
+        model.addAttribute("unreadCount", unreadCount);
+        return "learner/notifications";
+    }
+
+    @PostMapping({"/thong-bao/read", "/api/notifications/read"})
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> markNotifAsRead(
+            @RequestParam("id") Long id,
+            HttpSession session) {
+        UserDTO user = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+        if (user == null) {
+            resp.put("success", false);
+            resp.put("message", "Chưa đăng nhập.");
+            return ResponseEntity.status(401).body(resp);
+        }
+
+        if (notificationService != null) {
+            notificationService.markAsRead(id, user.getId());
+            int remaining = notificationService.getUnreadCount(user);
+            resp.put("success", true);
+            resp.put("unreadCount", remaining);
+            return ResponseEntity.ok(resp);
+        }
+        resp.put("success", false);
+        return ResponseEntity.ok(resp);
+    }
+
+    @PostMapping({"/thong-bao/read-all", "/api/notifications/read-all"})
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> markAllNotifsAsRead(HttpSession session) {
+        UserDTO user = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+        if (user == null) {
+            resp.put("success", false);
+            resp.put("message", "Chưa đăng nhập.");
+            return ResponseEntity.status(401).body(resp);
+        }
+
+        if (notificationService != null) {
+            notificationService.markAllAsRead(user.getId(), user);
+            resp.put("success", true);
+            resp.put("unreadCount", 0);
+            return ResponseEntity.ok(resp);
+        }
+        resp.put("success", false);
+        return ResponseEntity.ok(resp);
+    }
+
+    @GetMapping("/api/notifications/unread-count")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getUnreadNotificationCount(HttpSession session) {
+        UserDTO user = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+        if (user == null || notificationService == null) {
+            resp.put("count", 0);
+            return ResponseEntity.ok(resp);
+        }
+        resp.put("count", notificationService.getUnreadCount(user));
+        return ResponseEntity.ok(resp);
     }
 
     @GetMapping({"/xu", "/coins"})

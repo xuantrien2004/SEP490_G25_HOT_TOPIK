@@ -30,6 +30,7 @@ public class UserDTO implements Serializable {
     private String currentLevel;
     private boolean isVip;
     private String vipPackage;
+    private LocalDateTime vipExpireAt;
     private Integer coinBalance = 0;
     private Integer studiedDays = 0;
     private LocalDateTime createdAt;
@@ -193,6 +194,16 @@ public class UserDTO implements Serializable {
 
     public boolean isPendingPermanentLock() { return pendingPermanentLock; }
     public void setPendingPermanentLock(boolean pendingPermanentLock) { this.pendingPermanentLock = pendingPermanentLock; }
+
+    public LocalDateTime getVipExpireAt() { return vipExpireAt; }
+    public void setVipExpireAt(LocalDateTime vipExpireAt) { this.vipExpireAt = vipExpireAt; }
+
+    public String getFormattedVipExpireAt() {
+        if (vipExpireAt == null) {
+            return isVip ? "Trọn đời" : "Chưa kích hoạt";
+        }
+        return vipExpireAt.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+    }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

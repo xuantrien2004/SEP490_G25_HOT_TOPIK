@@ -22,14 +22,17 @@ public class AdminController {
     private final UserService userService;
     private final ApprovalService approvalService;
     private final AdminSystemService adminSystemService;
+    private final com.hottopik.service.OperationService operationService;
 
     @Autowired
     public AdminController(UserService userService,
                            ApprovalService approvalService,
-                           AdminSystemService adminSystemService) {
+                           AdminSystemService adminSystemService,
+                           com.hottopik.service.OperationService operationService) {
         this.userService = userService;
         this.approvalService = approvalService;
         this.adminSystemService = adminSystemService;
+        this.operationService = operationService;
     }
 
     @GetMapping
@@ -54,12 +57,6 @@ public class AdminController {
         model.addAttribute("pendingRequests", approvalService.getPendingRequests());
         model.addAttribute("allRequests", approvalService.getAllRequests());
         model.addAttribute("staffUsers", userService.getStaffUsers());
-        java.util.List<UserDTO> learners = userService.getLearners();
-        for (UserDTO l : learners) {
-            l.setPendingPermanentLock(approvalService.hasPendingPermanentLockRequest(l.getId()));
-        }
-        model.addAttribute("learners", learners);
-        model.addAttribute("aiBudgets", adminSystemService.getAiBudgets());
         model.addAttribute("auditLogs", adminSystemService.getAuditLogs());
         model.addAttribute("breakGlassActive", adminSystemService.isBreakGlassActive());
 
@@ -239,18 +236,81 @@ public class AdminController {
         }
 
         if (success) {
-            //YÊU CẦU KHÓA
-            // Nếu phê duyệt yêu cầu khóa vĩnh viễn học viên -> Thực hiện khóa vĩnh viễn ngay
-            if (approve && "PERMANENT_LOCK_USER".equalsIgnoreCase(req.getRequestType()) && req.getTargetId() != null) {
-                userService.lockUserPermanently(req.getTargetId(), "Khóa vĩnh viễn theo phê duyệt của Admin: " + (note != null ? note : req.getDescription()));
-                adminSystemService.logAction(
-                        currentUser.getFullName(),
-                        currentUser.getRole(),
-                        "LOCK_LEARNER_PERMANENT",
-                        "LEARNER",
-                        "Phê duyệt khóa vĩnh viễn tài khoản học viên ID #" + req.getTargetId() + (note != null ? " - Ghi chú: " + note : ""),
-                        "127.0.0.1"
-                );
+            if (approve) {
+                // 1. Phê duyệt yêu cầu khóa vĩnh viễn học viên
+                if ("PERMANENT_LOCK_USER".equalsIgnoreCase(req.getRequestType()) && req.getTargetId() != null) {
+                    userService.lockUserPermanently(req.getTargetId(), "Khóa vĩnh viễn theo phê duyệt của Admin: " + (note != null ? note : req.getDescription()));
+                    adminSystemService.logAction(
+                            currentUser.getFullName(),
+                            currentUser.getRole(),
+                            "LOCK_LEARNER_PERMANENT",
+                            "LEARNER",
+                            "Phê duyệt khóa vĩnh viễn tài khoản học viên ID #" + req.getTargetId() + (note != null ? " - Ghi chú: " + note : ""),
+                            "127.0.0.1"
+                    );
+                }
+                // 2. Phê duyệt hoàn tiền đơn hàng
+                else if ("REFUND_ORDER".equalsIgnoreCase(req.getRequestType()) && req.getTargetId() != null) {
+                    operationService.directRefundOrder(req.getTargetId(), (note != null ? note : req.getDescription()), currentUser.getFullName());
+                    adminSystemService.logAction(
+                            currentUser.getFullName(),
+                            currentUser.getRole(),
+                            "APPROVE_REFUND_ORDER",
+                            "ORDER",
+                            "Phê duyệt hoàn tiền cho đơn hàng ID #" + req.getTargetId() + (note != null ? " - Ghi chú: " + note : ""),
+                            "127.0.0.1"
+                    );
+                }
+                // 3. Phê duyệt điều chỉnh giá gói học
+                else if ("CHANGE_PACKAGE_PRICE".equalsIgnoreCase(req.getRequestType()) && req.getTargetId() != null) {
+                    try {
+                        double newPrice = Double.parseDouble(req.getPayload());
+                        operationService.updatePackagePrice(req.getTargetId(), newPrice, currentUser.getFullName());
+                        adminSystemService.logAction(
+                                currentUser.getFullName(),
+                                currentUser.getRole(),
+                                "APPROVE_PACKAGE_PRICE",
+                                "PACKAGE_PRICE",
+                                "Phê duyệt điều chỉnh giá mới cho gói ID #" + req.getTargetId() + " mức " + (int)newPrice + "đ",
+                                "127.0.0.1"
+                        );
+                    } catch (Exception ignored) {}
+                }
+                // 4. Phê duyệt cấp bù / gia hạn quyền lợi VIP
+                else if ("VIP_COMPENSATION".equalsIgnoreCase(req.getRequestType()) && req.getTargetId() != null) {
+                    try {
+                        String payload = req.getPayload();
+                        int days = 30;
+                        int coins = 0;
+                        String pkgName = "VIP";
+                        String compReason = req.getDescription();
+
+                        if (payload != null && payload.contains(";")) {
+                            String[] parts = payload.split(";");
+                            if (parts.length > 0) days = Integer.parseInt(parts[0]);
+                            if (parts.length > 1) coins = Integer.parseInt(parts[1]);
+                            if (parts.length > 2) pkgName = parts[2];
+                            if (parts.length > 3) compReason = parts[3];
+                        }
+
+                        UserDTO target = userService.findById(req.getTargetId()).orElse(null);
+                        String tName = target != null ? target.getFullName() : "Học viên";
+                        String tEmail = target != null ? target.getEmail() : "";
+
+                        operationService.applyApprovedVipCompensation(
+                                req.getTargetId(), tName, tEmail, days, coins, pkgName, compReason, currentUser.getFullName(), "Admin"
+                        );
+
+                        adminSystemService.logAction(
+                                currentUser.getFullName(),
+                                currentUser.getRole(),
+                                "APPROVE_VIP_COMPENSATION",
+                                "LEARNER_VIP",
+                                "Phê duyệt cấp bù " + days + " ngày VIP (" + coins + " Xu) cho học viên " + tEmail + (note != null ? " - Ghi chú: " + note : ""),
+                                "127.0.0.1"
+                        );
+                    } catch (Exception ignored) {}
+                }
             }
 
             adminSystemService.logAction(
@@ -302,6 +362,140 @@ public class AdminController {
         } else {
             resp.put("success", false);
             resp.put("message", "Không tìm thấy người dùng.");
+        }
+        return ResponseEntity.ok(resp);
+    }
+
+    @PostMapping("/orders/refund")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> refundOrder(
+            @RequestParam("orderId") Long orderId,
+            @RequestParam(value = "reason", required = false) String reason,
+            HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+
+        if (currentUser == null || !currentUser.isAdmin()) {
+            resp.put("success", false);
+            resp.put("message", "Từ chối quyền truy cập.");
+            return ResponseEntity.status(403).body(resp);
+        }
+
+        boolean ok = operationService.directRefundOrder(orderId, reason, currentUser.getFullName());
+        if (ok) {
+            adminSystemService.logAction(
+                    currentUser.getFullName(),
+                    currentUser.getRole(),
+                    "REFUND_ORDER_DIRECT",
+                    "ORDER",
+                    "Admin hoàn tiền trực tiếp cho đơn #" + orderId + ". Lý do: " + (reason != null ? reason : "Không nêu"),
+                    "127.0.0.1"
+            );
+            resp.put("success", true);
+            resp.put("message", "Đã hoàn tiền đơn hàng #" + orderId + " thành công!");
+        } else {
+            resp.put("success", false);
+            resp.put("message", "Không tìm thấy đơn hàng.");
+        }
+        return ResponseEntity.ok(resp);
+    }
+
+    @PostMapping("/prices/update")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updatePrice(
+            @RequestParam("packageId") Long packageId,
+            @RequestParam("newPrice") double newPrice,
+            HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+
+        if (currentUser == null || !currentUser.isAdmin()) {
+            resp.put("success", false);
+            resp.put("message", "Từ chối quyền truy cập.");
+            return ResponseEntity.status(403).body(resp);
+        }
+
+        if (newPrice <= 0) {
+            resp.put("success", false);
+            resp.put("message", "Mức giá phải lớn hơn 0đ.");
+            return ResponseEntity.badRequest().body(resp);
+        }
+
+        boolean ok = operationService.updatePackagePrice(packageId, newPrice, currentUser.getFullName());
+        if (ok) {
+            adminSystemService.logAction(
+                    currentUser.getFullName(),
+                    currentUser.getRole(),
+                    "UPDATE_PACKAGE_PRICE",
+                    "PACKAGE_PRICE",
+                    "Admin cập nhật giá mới cho gói ID #" + packageId + ": " + (int)newPrice + "đ",
+                    "127.0.0.1"
+            );
+            resp.put("success", true);
+            resp.put("message", "Đã cập nhật giá mới cho gói VIP thành công!");
+        } else {
+            resp.put("success", false);
+            resp.put("message", "Không tìm thấy gói học.");
+        }
+        return ResponseEntity.ok(resp);
+    }
+
+    @PostMapping("/vip/compensate")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> compensateVip(
+            @RequestParam("userId") Long userId,
+            @RequestParam("days") int days,
+            @RequestParam(value = "bonusCoins", required = false, defaultValue = "0") int bonusCoins,
+            @RequestParam(value = "packageName", required = false) String packageName,
+            @RequestParam("reason") String reason,
+            HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+
+        if (currentUser == null || !currentUser.isAdmin()) {
+            resp.put("success", false);
+            resp.put("message", "Từ chối quyền truy cập.");
+            return ResponseEntity.status(403).body(resp);
+        }
+
+        if (days <= 0) {
+            resp.put("success", false);
+            resp.put("message", "Số ngày cấp bù/gia hạn phải lớn hơn 0.");
+            return ResponseEntity.badRequest().body(resp);
+        }
+
+        if (reason == null || reason.trim().isEmpty()) {
+            resp.put("success", false);
+            resp.put("message", "Vui lòng nhập lý do cấp bù hoặc gia hạn quyền lợi.");
+            return ResponseEntity.badRequest().body(resp);
+        }
+
+        UserDTO target = userService.findById(userId).orElse(null);
+        if (target == null) {
+            resp.put("success", false);
+            resp.put("message", "Không tìm thấy học viên.");
+            return ResponseEntity.ok(resp);
+        }
+
+        boolean ok = userService.applyVipCompensation(userId, days, bonusCoins, packageName, reason.trim());
+        if (ok) {
+            operationService.addCompensationRecord(
+                    userId, target.getFullName(), target.getEmail(),
+                    days, bonusCoins, reason.trim(), currentUser.getFullName(), "Admin"
+            );
+            adminSystemService.logAction(
+                    currentUser.getFullName(),
+                    currentUser.getRole(),
+                    "VIP_COMPENSATION",
+                    "LEARNER_VIP",
+                    "Admin cấp bù " + days + " ngày VIP (" + bonusCoins + " Xu) cho học viên " + target.getEmail() + ". Lý do: " + reason.trim(),
+                    "127.0.0.1"
+            );
+            resp.put("success", true);
+            resp.put("message", "Đã cấp bù/gia hạn " + days + " ngày VIP cho học viên " + target.getFullName() + " thành công!");
+        } else {
+            resp.put("success", false);
+            resp.put("message", "Cấp bù quyền lợi thất bại.");
         }
         return ResponseEntity.ok(resp);
     }
