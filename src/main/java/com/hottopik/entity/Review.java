@@ -28,7 +28,7 @@ public class Review {
     @Column(nullable = false)
     private Short rating; // 1 đến 5 sao
 
-    @Column(nullable = false, length = 1000)
+    @Column(nullable = false, length = 1000,columnDefinition = "nvarchar(1000)")
     private String content; // Nội dung đánh giá
 
     @Column(nullable = false, length = 10)

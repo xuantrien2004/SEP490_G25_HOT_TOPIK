@@ -7,6 +7,7 @@ import com.hottopik.repository.ReviewRepository;
 import com.hottopik.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,6 +20,7 @@ public class ReviewService {
     private final UserRepository userRepository;
 
     // Lưu đánh giá mới từ người dùng (Trạng thái mặc định: PENDING)
+    @Transactional
     public Review saveReview(Long userId, ReviewDTO reviewDTO) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
@@ -33,9 +35,10 @@ public class ReviewService {
         return reviewRepository.save(review);
     }
 
-    // Lấy danh sách các đánh giá đã được duyệt (APPROVED) và map sang ReviewDTO để trả về hiển thị công khai
+    // Lấy danh sách các đánh giá đã được duyệt (APPROVED) kèm JOIN FETCH để tránh LazyInitializationException
+    @Transactional(readOnly = true)
     public List<ReviewDTO> getApprovedReviews() {
-        List<Review> approvedReviews = reviewRepository.findByStatusOrderByCreatedAtDesc("APPROVED");
+        List<Review> approvedReviews = reviewRepository.findByStatusWithUser("APPROVED");
 
         return approvedReviews.stream().map(review -> {
             String authorName = (review.getUser() != null) ? review.getUser().getDisplayName() : "Ẩn danh";
@@ -50,16 +53,17 @@ public class ReviewService {
             );
         }).collect(Collectors.toList());
     }
-    // Thêm vào com.hottopik.service.ReviewService.java hiện tại của cậu:
 
+    @Transactional(readOnly = true)
     public double getAverageRating() {
-        List<Review> approved = reviewRepository.findByStatusOrderByCreatedAtDesc("APPROVED");
+        List<Review> approved = reviewRepository.findByStatusWithUser("APPROVED");
         if (approved.isEmpty()) return 5.0; // Mặc định nếu chưa có đánh giá
         double sum = approved.stream().mapToInt(Review::getRating).sum();
         return Math.round((sum / approved.size()) * 10.0) / 10.0; // Làm tròn 1 chữ số thập phân
     }
 
+    @Transactional(readOnly = true)
     public long getTotalApprovedReviewsCount() {
-        return reviewRepository.findByStatusOrderByCreatedAtDesc("APPROVED").size();
+        return reviewRepository.findByStatusWithUser("APPROVED").size();
     }
 }

@@ -1,8 +1,13 @@
 package com.hottopik.service;
 
 import com.hottopik.dto.*;
+import com.hottopik.entity.Review;
+import com.hottopik.entity.User;
+import com.hottopik.repository.ReviewRepository;
+import com.hottopik.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.PostConstruct;
 import java.time.LocalDateTime;
@@ -17,7 +22,6 @@ public class OperationService {
 
     private final Map<Long, OrderDTO> orders = new ConcurrentHashMap<>();
     private final Map<Long, PackagePriceDTO> packagePrices = new ConcurrentHashMap<>();
-    private final Map<Long, ReviewDTO> reviews = new ConcurrentHashMap<>();
     private final Map<Long, AnnouncementDTO> announcements = new ConcurrentHashMap<>();
     private final AtomicLong annIdGen = new AtomicLong(10);
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
@@ -25,9 +29,15 @@ public class OperationService {
     @Autowired
     private ApprovalService approvalService;
 
+    @Autowired
+    private ReviewRepository reviewRepository;
+
+    @Autowired
+    private UserRepository userRepository; // Tiêm UserRepository để lấy dữ liệu User thật từ DB
+
     @PostConstruct
     public void init() {
-        // Seed Orders matching SEP490.sql
+        // Seed Orders giả lập cho phần quản lý đơn hàng
         orders.put(1L, new OrderDTO(1L, "HT-10088", "Nguyễn Hoàng Nam", "viplearner@hottopik.com", "VIP Trọn đời (Lifetime)", 499000.0, "VNPAY", "PAID", "2026-10-06 10:15"));
         orders.put(2L, new OrderDTO(2L, "HT-10089", "Phạm Minh Anh", "learner@hottopik.com", "VIP 3 Tháng", 299000.0, "MOMO", "REFUND_REQUESTED", "2026-10-06 16:40"));
         orders.put(3L, new OrderDTO(3L, "HT-10090", "Lê Văn Cường", "cuong.le@gmail.com", "VIP 1 Tháng", 129000.0, "BANK_TRANSFER", "PENDING", "2026-10-07 09:30"));
@@ -36,11 +46,6 @@ public class OperationService {
         packagePrices.put(1L, new PackagePriceDTO(1L, "PKG-1M", "Gói VIP 1 Tháng", 30, 129000.0, 129000.0, "ACTIVE", "Truy cập mọi tính năng luyện đề & AI 30 ngày"));
         packagePrices.put(2L, new PackagePriceDTO(2L, "PKG-3M", "Gói VIP 3 Tháng", 90, 299000.0, 279000.0, "PROPOSED", "Tiết kiệm 25%, tặng kèm lộ trình bứt tốc TOPIK"));
         packagePrices.put(3L, new PackagePriceDTO(3L, "PKG-LIFE", "Gói VIP Trọn đời", 3650, 499000.0, 499000.0, "ACTIVE", "Sở hữu vĩnh viễn trọn bộ tài nguyên học thi TOPIK"));
-
-        // Seed Reviews matching SEP490.sql
-        reviews.put(1L, new ReviewDTO(1L, "Nguyễn Hoàng Nam", 5, "Hệ thống AI chấm viết rất sát với barem chấm thi TOPIK thật, nhờ vậy mình đã đỗ cấp 5!", true, "2026-10-05 14:00"));
-        reviews.put(2L, new ReviewDTO(2L, "Phạm Minh Anh", 5, "Giao diện Bé Ssak dịu mắt, học từ vựng mỗi ngày không bị áp lực.", true, "2026-10-06 11:20"));
-        reviews.put(3L, new ReviewDTO(3L, "Trần Văn Bình", 4, "Kho từ vựng chia theo chủ đề TOPIK 1-6 rất tiện tra cứu, mong thêm tính năng luyện nghe ngắt quãng.", false, "2026-10-07 08:10"));
 
         // Seed Announcements
         announcements.put(1L, new AnnouncementDTO(1L, "Cập nhật kho từ vựng TOPIK 1-6 chuẩn mới", "Hệ thống vừa cập nhật 800+ từ vựng bám sát đề thi thật tháng 10/2026.", "ALL", "Trần Quốc Tuấn", "2026-10-06 09:00"));
@@ -55,8 +60,29 @@ public class OperationService {
         return new ArrayList<>(packagePrices.values());
     }
 
+    // Lấy danh sách Review từ Database thật khớp với Entity Review & User mới
+    @Transactional(readOnly = true)
     public List<ReviewDTO> getReviews() {
-        return new ArrayList<>(reviews.values());
+        List<Review> entityList = reviewRepository.findAll();
+        List<ReviewDTO> dtos = new ArrayList<>();
+        for (Review r : entityList) {
+            ReviewDTO dto = new ReviewDTO();
+            dto.setId(r.getId());
+
+            // Lấy tên từ quan hệ User
+            String author = (r.getUser() != null && r.getUser().getDisplayName() != null)
+                    ? r.getUser().getDisplayName() : "Học viên HOT TOPIK";
+            dto.setAuthorName(author);
+
+            dto.setRating(r.getRating() != null ? r.getRating().intValue() : 5);
+            dto.setComment(r.getContent());
+
+            dto.setApproved("APPROVED".equalsIgnoreCase(r.getStatus()));
+            dto.setCreatedAt(r.getCreatedAt() != null ? r.getCreatedAt().format(FORMATTER) : "");
+
+            dtos.add(dto);
+        }
+        return dtos;
     }
 
     public List<AnnouncementDTO> getAnnouncements() {
@@ -96,10 +122,18 @@ public class OperationService {
         return false;
     }
 
+    // Toggle trạng thái duyệt review trực tiếp trên Database (Chuyển đổi giữa PENDING và APPROVED)
+    @Transactional
     public boolean toggleReviewApproval(Long reviewId) {
-        ReviewDTO rev = reviews.get(reviewId);
-        if (rev != null) {
-            rev.setApproved(!rev.isApproved());
+        Optional<Review> opt = reviewRepository.findById(reviewId);
+        if (opt.isPresent()) {
+            Review rev = opt.get();
+            if ("APPROVED".equalsIgnoreCase(rev.getStatus())) {
+                rev.setStatus("PENDING");
+            } else {
+                rev.setStatus("APPROVED");
+            }
+            reviewRepository.save(rev);
             return true;
         }
         return false;

@@ -314,6 +314,16 @@ public class OperationPortalController {
 
         boolean ok = operationService.toggleReviewApproval(reviewId);
         if (ok) {
+            // Ghi nhật ký vận hành khi kiểm duyệt/ẩn review
+            adminSystemService.logAction(
+                    currentUser.getFullName(),
+                    currentUser.getRole(),
+                    "MODERATE_REVIEW",
+                    "REVIEW",
+                    "Cập nhật trạng thái hiển thị của đánh giá ID #" + reviewId,
+                    "127.0.0.1"
+            );
+
             resp.put("success", true);
             resp.put("message", "Đã cập nhật hiển thị đánh giá thành công!");
         } else {
