@@ -113,14 +113,35 @@ public class ContentExamController {
     @GetMapping("/templates")
     public String templates(@RequestParam(required = false) Track track,
                             @RequestParam(required = false) Skill skill,
+                            @RequestParam(defaultValue = "0") int page,
                             HttpSession session, Model model) {
         UserDTO u = viewer(session);
         if (u == null) return denied(session);
         common(model, u, "Dạng câu");
-        model.addAttribute("rows", templates.list(track, skill));
+        List<QuestionTemplate> all = templates.list(track, skill);
+        int size = 10;
+        int pages = Math.max(1, (all.size() + size - 1) / size);
+        int safe = Math.min(Math.max(page, 0), pages - 1);
+        int from = all.isEmpty() ? 0 : safe * size;
+        int to = Math.min(from + size, all.size());
+        model.addAttribute("rows", all.subList(from, to));
+        model.addAttribute("page", safe);
+        model.addAttribute("pages", pages);
+        model.addAttribute("totalRows", all.size());
+        model.addAttribute("pageFrom", all.isEmpty() ? 0 : from + 1);
+        model.addAttribute("pageTo", to);
+        model.addAttribute("prevPage", safe > 0 ? templatePage(track, skill, safe - 1) : null);
+        model.addAttribute("nextPage", safe + 1 < pages ? templatePage(track, skill, safe + 1) : null);
         model.addAttribute("trackFilter", track);
         model.addAttribute("skillFilter", skill);
         return "content/exam/templates";
+    }
+
+    private static String templatePage(Track track, Skill skill, int page) {
+        StringBuilder link = new StringBuilder("/content/templates?page=").append(page);
+        if (track != null) link.append("&track=").append(track.name());
+        if (skill != null) link.append("&skill=").append(skill.name());
+        return link.toString();
     }
 
     @GetMapping("/templates/{code}")

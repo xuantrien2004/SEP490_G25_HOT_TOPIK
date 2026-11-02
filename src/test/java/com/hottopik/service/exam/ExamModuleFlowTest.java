@@ -310,6 +310,15 @@ class ExamModuleFlowTest {
 
         UserDTO user = new UserDTO(2L, "content_manager", "content@hottopik.com", "", "Lê Thu Hà",
                 Actor.ROLE_CONTENT, "Content Manager", "ACTIVE", "", "", "TOPIK_6", "TOPIK_5", false, null);
+        mvc.perform(get("/content/templates").sessionAttr(AuthHelper.SESSION_KEY, user))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Trang 1 /")))
+                .andExpect(content().string(containsString("TPL1-LIS-01")))
+                .andExpect(content().string(not(containsString("TPL2-WRI-04"))));
+        mvc.perform(get("/content/templates").param("page", "1").sessionAttr(AuthHelper.SESSION_KEY, user))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Trang trước")))
+                .andExpect(content().string(containsString("Trang 2 /")));
         mvc.perform(get("/content/templates/TPL2-LIS-06").sessionAttr(AuthHelper.SESSION_KEY, user))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Dạng câu")))

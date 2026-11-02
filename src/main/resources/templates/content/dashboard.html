@@ -155,57 +155,47 @@
             <!-- ============================================================== -->
             <section id="pane-overview" style="display: flex; flex-direction: column; gap: 24px;">
                 
-                <!-- 3 KPI Cards: Khi ấn vào số tổng sẽ hiển thị nguồn tương ứng -->
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
-                    
-                    <!-- KPI 1: Tổng số câu hỏi (Click -> chuyển sang Ngân hàng câu hỏi) -->
-                    <div class="ssak-card kpi-clickable-card" onclick="location.href='/content/questions'"
-                         style="padding: 24px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); cursor: pointer; transition: all 0.2s;"
-                         onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='#2E7D67';"
-                         onmouseout="this.style.transform='none'; this.style.borderColor='var(--ssak-border)';">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Tổng câu hỏi hệ thống</span>
-                            <span style="font-size: 24px;">📝</span>
-                        </div>
-                        <div style="font-family: var(--font-heading); font-size: 34px; font-weight: 800; color: #24363D; margin: 8px 0;" th:text="${totalQuestionCount + ' câu'}">8 câu</div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
-                            <span style="color: var(--ssak-text-muted);">Đọc, Nghe & Viết biểu đồ</span>
-                            <span style="color: #2E7D67; font-weight: 800;">Xem nguồn câu hỏi →</span>
-                        </div>
-                    </div>
-
-                    <!-- KPI 2: Báo lỗi cần xử lý (Click -> chuyển sang Xử lý báo lỗi) -->
-                    <div class="ssak-card kpi-clickable-card" onclick="switchContentTab('reports')"
-                         style="padding: 24px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); cursor: pointer; transition: all 0.2s;"
-                         onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='#CF1322';"
-                         onmouseout="this.style.transform='none'; this.style.borderColor='var(--ssak-border)';">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 12px; font-weight: 800; color: #CF1322; text-transform: uppercase;">Báo lỗi cần xử lý</span>
-                            <span style="font-size: 24px;">⚠️</span>
-                        </div>
-                        <div style="font-family: var(--font-heading); font-size: 34px; font-weight: 800; color: #CF1322; margin: 8px 0;" th:text="${pendingReportCount + ' báo cáo'}">2 báo cáo</div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
-                            <span style="color: #CF1322; font-weight: 700;">Học viên phản hồi lỗi nội dung</span>
-                            <span style="color: #CF1322; font-weight: 800;">Xử lý ngay →</span>
-                        </div>
-                    </div>
-
-                    <!-- KPI 3: Tổng đề thi (Click -> chuyển sang Quản lý đề) -->
-                    <div class="ssak-card kpi-clickable-card" onclick="location.href='/content/exams'"
-                         style="padding: 24px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); cursor: pointer; transition: all 0.2s;"
-                         onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='#2F5F7D';"
-                         onmouseout="this.style.transform='none'; this.style.borderColor='var(--ssak-border)';">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Tổng số Đề thi</span>
-                            <span style="font-size: 24px;">📋</span>
-                        </div>
-                        <div style="font-family: var(--font-heading); font-size: 34px; font-weight: 800; color: #2F5F7D; margin: 8px 0;" th:text="${totalExamCount + ' bộ đề'}">4 bộ đề</div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
-                            <span style="color: var(--ssak-text-muted);">Đề thi TOPIK I & II theo dạng</span>
-                            <span style="color: #2F5F7D; font-weight: 800;">Xem danh sách đề →</span>
-                        </div>
-                    </div>
-
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;">
+                    <a class="ssak-card" href="/content/questions" style="padding: 20px; background: #fff; border-radius: 18px; border: 2px solid var(--ssak-border); text-decoration: none; color: inherit;">
+                        <div style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Ngân hàng câu hỏi</div>
+                        <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; margin: 6px 0;" th:text="${totalQuestionCount + ' câu'}">0 câu</div>
+                        <div style="color: #2E7D67; font-weight: 800; font-size: 13px;">Mở ngân hàng →</div>
+                    </a>
+                    <a class="ssak-card" href="/content/exams" style="padding: 20px; background: #fff; border-radius: 18px; border: 2px solid var(--ssak-border); text-decoration: none; color: inherit;">
+                        <div style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Thư viện đề</div>
+                        <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; margin: 6px 0;" th:text="${totalExamCount + ' đề'}">0 đề</div>
+                        <div style="color: #2F5F7D; font-weight: 800; font-size: 13px;">Mở thư viện →</div>
+                    </a>
+                    <a class="ssak-card" href="/content/sources" style="padding: 20px; background: #fff; border-radius: 18px; border: 2px solid var(--ssak-border); text-decoration: none; color: inherit;">
+                        <div style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Bộ đề đang nhập</div>
+                        <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; margin: 6px 0;" th:text="${totalSourceCount + ' bộ'}">0 bộ</div>
+                        <div style="color: #1F6B56; font-weight: 800; font-size: 13px;">Nhập đề mới →</div>
+                    </a>
+                    <a class="ssak-card" href="/content/templates" style="padding: 20px; background: #fff; border-radius: 18px; border: 2px solid var(--ssak-border); text-decoration: none; color: inherit;">
+                        <div style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Dạng câu</div>
+                        <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; margin: 6px 0;" th:text="${totalTemplateCount + ' dạng'}">0 dạng</div>
+                        <div style="color: #1F6B56; font-weight: 800; font-size: 13px;">Xem danh sách →</div>
+                    </a>
+                    <a class="ssak-card" href="/content/vocabulary" style="padding: 20px; background: #fff; border-radius: 18px; border: 2px solid var(--ssak-border); text-decoration: none; color: inherit;">
+                        <div style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Từ vựng</div>
+                        <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; margin: 6px 0;" th:text="${totalVocabCount + ' từ'}">0 từ</div>
+                        <div style="color: #1F6B56; font-weight: 800; font-size: 13px;">Mở kho từ →</div>
+                    </a>
+                    <a class="ssak-card" href="/content/grammar" style="padding: 20px; background: #fff; border-radius: 18px; border: 2px solid var(--ssak-border); text-decoration: none; color: inherit;">
+                        <div style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Ngữ pháp</div>
+                        <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; margin: 6px 0;" th:text="${totalGrammarCount + ' mẫu'}">0 mẫu</div>
+                        <div style="color: #1F6B56; font-weight: 800; font-size: 13px;">Mở kho ngữ pháp →</div>
+                    </a>
+                    <a class="ssak-card" href="/content/hanja" style="padding: 20px; background: #fff; border-radius: 18px; border: 2px solid var(--ssak-border); text-decoration: none; color: inherit;">
+                        <div style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Hán Việt</div>
+                        <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; margin: 6px 0;" th:text="${totalHanjaCount + ' chữ'}">0 chữ</div>
+                        <div style="color: #1F6B56; font-weight: 800; font-size: 13px;">Mở kho Hán Việt →</div>
+                    </a>
+                    <a class="ssak-card" href="javascript:void(0)" onclick="switchContentTab('reports')" style="padding: 20px; background: #fff; border-radius: 18px; border: 2px solid var(--ssak-border); text-decoration: none; color: inherit;">
+                        <div style="font-size: 12px; font-weight: 800; color: #CF1322; text-transform: uppercase;">Báo lỗi cần xử lý</div>
+                        <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; color: #CF1322; margin: 6px 0;" th:text="${pendingReportCount + ' báo cáo'}">0 báo cáo</div>
+                        <div style="color: #CF1322; font-weight: 800; font-size: 13px;">Xử lý ngay →</div>
+                    </a>
                 </div>
 
 
@@ -238,6 +228,7 @@
                             <h4 style="margin: 0; font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #24363D;">Nhật ký hoạt động gần đây</h4>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <p th:if="${#lists.isEmpty(auditLogs)}" style="margin: 0; color: var(--ssak-text-muted);">Chưa có thao tác nào.</p>
                             <div th:each="log : ${auditLogs}" style="padding: 10px 14px; background: #F8FAFC; border-radius: 12px; border: 1px solid var(--ssak-border); display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
                                 <span style="font-weight: 700; color: #24363D;" th:text="${log.details}">Thao tác hệ thống</span>
                                 <span style="color: var(--ssak-text-muted);" th:text="${log.timestamp}">2026-10-15</span>

@@ -30,6 +30,10 @@
                 <a th:href="@{/content/templates(track='TOPIK_II', skill='WRITING')}" th:classappend="${trackFilter != null and trackFilter.name() == 'TOPIK_II' and skillFilter != null and skillFilter.name() == 'WRITING'} ? 'active'">TOPIK II · Viết</a>
             </div>
 
+            <div class="cm-toolbar" th:if="${totalRows > 0}">
+                <div class="grow cm-muted" th:text="${'Đang xem ' + pageFrom + '–' + pageTo + ' / ' + totalRows + ' dạng câu'}">Đang xem 1–10 / 42 dạng câu</div>
+            </div>
+
             <div class="cm-table-wrap">
                 <table class="cm-table">
                     <thead>
@@ -60,6 +64,12 @@
                     </tbody>
                 </table>
             </div>
+
+            <nav class="cm-pager" th:if="${pages > 1}" aria-label="Phân trang dạng câu">
+                <a th:if="${prevPage != null}" th:href="${prevPage}">Trang trước</a>
+                <span th:text="${'Trang ' + (page + 1) + ' / ' + pages}">Trang 1 / 5</span>
+                <a th:if="${nextPage != null}" th:href="${nextPage}">Trang sau</a>
+            </nav>
         </main>
     </div>
 </div>

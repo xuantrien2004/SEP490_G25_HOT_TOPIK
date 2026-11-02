@@ -8,9 +8,12 @@ import com.hottopik.service.AdminSystemService;
 import com.hottopik.service.ContentManagementService;
 import com.hottopik.service.GrammarGroupService;
 import com.hottopik.service.GrammarService;
+import com.hottopik.service.HanjaService;
 import com.hottopik.service.VocabularyService;
+import com.hottopik.repository.exam.ExamSourceRepository;
 import com.hottopik.service.exam.ExamComposerService;
 import com.hottopik.service.exam.QuestionBankService;
+import com.hottopik.service.exam.QuestionTemplateService;
 import com.hottopik.service.UserService;
 import com.hottopik.util.AuthHelper;
 import com.hottopik.util.GrammarStatus;
@@ -37,6 +40,9 @@ public class ContentPortalController {
     private final UserService userService;
     private final GrammarService grammarService;
     private final GrammarGroupService grammarGroupService;
+    private final QuestionTemplateService questionTemplates;
+    private final ExamSourceRepository examSources;
+    private final HanjaService hanjaService;
 
     @Autowired
     public ContentPortalController(ContentManagementService contentService,
@@ -46,7 +52,10 @@ public class ContentPortalController {
                                    ExamComposerService examComposer,
                                    UserService userService,
                                    GrammarService grammarService,
-                                   GrammarGroupService grammarGroupService) {
+                                   GrammarGroupService grammarGroupService,
+                                   QuestionTemplateService questionTemplates,
+                                   ExamSourceRepository examSources,
+                                   HanjaService hanjaService) {
         this.contentService = contentService;
         this.vocabularyService = vocabularyService;
         this.adminSystemService = adminSystemService;
@@ -55,6 +64,9 @@ public class ContentPortalController {
         this.userService = userService;
         this.grammarService = grammarService;
         this.grammarGroupService = grammarGroupService;
+        this.questionTemplates = questionTemplates;
+        this.examSources = examSources;
+        this.hanjaService = hanjaService;
     }
 
     @GetMapping
@@ -79,6 +91,9 @@ public class ContentPortalController {
         model.addAttribute("totalQuestionCount", contentService.getTotalQuestionCount());
         model.addAttribute("pendingReportCount", contentService.getPendingReportCount());
         model.addAttribute("totalExamCount", examComposer.libraryCounts().values().stream().mapToLong(Long::longValue).sum());
+        model.addAttribute("totalTemplateCount", questionTemplates.list(null, null).size());
+        model.addAttribute("totalSourceCount", examSources.count());
+        model.addAttribute("totalHanjaCount", hanjaService.getTotalRootsCount());
         model.addAttribute("reports", contentService.getReports());
         model.addAttribute("auditLogs", adminSystemService.getAuditLogsForRole("ROLE_CONTENT_MANAGER"));
 
