@@ -19,15 +19,22 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class VocabularyService {
+
+    private static final Logger log = LoggerFactory.getLogger(VocabularyService.class);
 
     @Autowired(required = false)
     private VocabularyRepository vocabularyRepository;
 
     @Autowired(required = false)
     private TopicRepository topicRepository;
+
+    @Autowired(required = false)
+    private VocabularySyncService syncService;
 
     private final Map<Long, VocabularyDTO> vocabMap = new ConcurrentHashMap<>();
     private final Map<String, TopicDTO> topicMap = new ConcurrentHashMap<>();
@@ -48,6 +55,25 @@ public class VocabularyService {
         this.vocabularyRepository = vocabularyRepository;
         this.topicRepository = topicRepository;
         initDatabaseSync();
+    }
+
+    public VocabularyService(VocabularyRepository vocabularyRepository, TopicRepository topicRepository, VocabularySyncService syncService) {
+        this(vocabularyRepository, topicRepository);
+        this.syncService = syncService;
+    }
+
+    public void setSyncService(VocabularySyncService syncService) {
+        this.syncService = syncService;
+    }
+
+    public void broadcastChange(String action, Map<String, Object> payload) {
+        if (syncService != null) {
+            try {
+                syncService.broadcast(action, payload);
+            } catch (Exception e) {
+                // Ignore broadcast exception in background
+            }
+        }
     }
 
     @PostConstruct
@@ -366,7 +392,7 @@ public class VocabularyService {
                 result.add(t);
             }
         }
-        result.sort(Comparator.comparing(TopicDTO::getName));
+        result.sort(Comparator.comparing(t -> t.getId() != null ? t.getId() : 0L));
         return result;
     }
 
@@ -404,6 +430,7 @@ public class VocabularyService {
             t.setId(saved.getId());
         }
 
+        broadcastChange("TOPIC_CHANGED", Map.of("actionType", "CREATE", "level", level, "name", cleanName));
         return t;
     }
 
@@ -447,6 +474,7 @@ public class VocabularyService {
             }
         }
 
+        broadcastChange("TOPIC_CHANGED", Map.of("actionType", "UPDATE", "level", level, "oldName", oldName, "name", cleanNew));
         return existing;
     }
 
@@ -476,7 +504,9 @@ public class VocabularyService {
             vocabMap.remove(id);
         }
 
-        return Math.max(deletedInDb, toRemove.size());
+        int count = Math.max(deletedInDb, toRemove.size());
+        broadcastChange("TOPIC_CHANGED", Map.of("actionType", "DELETE", "level", level, "name", name, "deletedWords", count));
+        return count;
     }
 
     public int getWordCountInTopic(int level, String name) {
@@ -508,6 +538,66 @@ public class VocabularyService {
             }
         }
         return null;
+    }
+
+    /**
+     * Tìm từ vựng bị trùng lặp: Trùng 100% tiếng Hàn VÀ cùng loại từ.
+     * Dùng để ngăn chặn việc nhập trùng từ vựng mới hoặc sửa thành từ đã có.
+     *
+     * @param excludeId ID bỏ qua (dùng khi chỉnh sửa chính từ vựng đó)
+     * @param word Từ tiếng Hàn cần kiểm tra
+     * @param wordType Loại từ (Danh từ, Động từ, Tính từ, v.v.)
+     * @return VocabularyDTO nếu tìm thấy bản ghi trùng, hoặc null nếu không trùng
+     */
+    public VocabularyDTO findDuplicate(Long excludeId, String word, String wordType) {
+        if (word == null || word.trim().isEmpty()) {
+            return null;
+        }
+        String cleanWord = word.trim().toLowerCase();
+        String cleanPos = (wordType != null && !wordType.trim().isEmpty()) ? wordType.trim().toLowerCase() : "danh từ";
+
+        // 1. Kiểm tra trong bộ nhớ (vocabMap)
+        for (VocabularyDTO v : vocabMap.values()) {
+            if (excludeId != null && v.getId() != null && v.getId().equals(excludeId)) {
+                continue;
+            }
+            String vWord = v.getWord() != null ? v.getWord().trim().toLowerCase() : "";
+            String vPos = (v.getWordType() != null && !v.getWordType().trim().isEmpty()) ? v.getWordType().trim().toLowerCase() : "danh từ";
+            if (vWord.equals(cleanWord) && vPos.equals(cleanPos)) {
+                return v;
+            }
+        }
+
+        // 2. Kiểm tra trong Database (vocabularyRepository) nếu có
+        if (vocabularyRepository != null) {
+            try {
+                String searchPos = (wordType != null && !wordType.trim().isEmpty()) ? wordType.trim() : "Danh từ";
+                List<Vocabulary> matches = vocabularyRepository.findDuplicates(word.trim(), searchPos);
+                for (Vocabulary entity : matches) {
+                    if (excludeId != null && entity.getId().equals(excludeId)) {
+                        continue;
+                    }
+                    VocabularyDTO inMap = vocabMap.get(entity.getId());
+                    if (inMap != null) {
+                        return inMap;
+                    }
+                    return new VocabularyDTO(
+                            entity.getId(), entity.getWord(), entity.getRomanization(), entity.getMeaningVi(),
+                            entity.getPos(), entity.getLevel() != null ? entity.getLevel().intValue() : 1,
+                            entity.getTopic(), entity.getAudioUrl(), entity.getExampleKr(), entity.getExampleVi(),
+                            entity.getStatus(), null, null
+                    );
+                }
+            } catch (Exception e) {
+                // Ignore DB query errors in standalone/test environments
+            }
+        }
+
+        return null;
+    }
+
+    public boolean existsDuplicate(Long excludeId, String word, String wordType) {
+        return findDuplicate(excludeId, word, wordType) != null;
     }
 
     public boolean existsWordInLevel(Integer level, String word) {
@@ -602,30 +692,21 @@ public class VocabularyService {
             existingInMap = vocabMap.get(dto.getId());
         }
 
-        // TỰ ĐỘNG CHỐNG TRÙNG LẶP:
-        // Nếu không truyền ID (tạo mới), kiểm tra xem từ này đã tồn tại trong cùng cấp TOPIK chưa.
-        // Nếu đã tồn tại, tự động lấy bản ghi đã có để cập nhật thông tin, không tạo ra bản ghi thứ 2!
-        if (entity == null && existingInMap == null && dto.getTopikLevel() != null && dto.getWord() != null && !dto.getWord().trim().isEmpty()) {
-            String cleanWord = dto.getWord().trim();
-            short lvl = dto.getTopikLevel().shortValue();
-
-            if (vocabularyRepository != null) {
-                entity = vocabularyRepository.findFirstByLevelAndWord(lvl, cleanWord).orElse(null);
-                if (entity != null) {
-                    dto.setId(entity.getId());
-                    existingInMap = vocabMap.get(entity.getId());
-                }
-            }
-
-            if (existingInMap == null) {
-                existingInMap = findWordInMap(dto.getTopikLevel(), cleanWord);
-                if (existingInMap != null) {
-                    dto.setId(existingInMap.getId());
-                }
-            }
+        // KIỂM TRA TRÙNG LẶP:
+        // Khi nhập từ vựng mới (hoặc chỉnh sửa), nếu từ nào trùng 100% tiếng Hàn và cùng loại từ
+        // thì sẽ báo là đã tồn tại và không cho nhập!
+        boolean isNew = (dto.getId() == null || dto.getId() <= 0);
+        VocabularyDTO duplicate = findDuplicate(dto.getId(), dto.getWord(), dto.getWordType());
+        if (duplicate != null) {
+            String cleanPos = (dto.getWordType() != null && !dto.getWordType().trim().isEmpty()) ? dto.getWordType().trim() : "Danh từ";
+            String action = isNew ? "thêm mới" : "cập nhật";
+            throw new IllegalArgumentException("Từ vựng \"" + (dto.getWord() != null ? dto.getWord().trim() : "") 
+                    + "\" với loại từ \"" + cleanPos 
+                    + "\" đã tồn tại trong hệ thống (TOPIK Cấp " + duplicate.getTopikLevel() 
+                    + " · Chủ đề " + duplicate.getTopic() + ")! Không thể " + action + " từ trùng lặp.");
         }
 
-        if (entity == null && existingInMap == null) {
+        if (isNew) {
             // Thêm mới vào Database
             entity = Vocabulary.builder()
                     .word(dto.getWord() != null ? dto.getWord().trim() : "")
@@ -652,9 +733,17 @@ public class VocabularyService {
             dto.setUpdatedAt(now);
             dto.setTopikLevelName(VocabularyDTO.formatTopikName(dto.getTopikLevel()));
             vocabMap.put(dto.getId(), dto);
+            // Broadcast VOCAB_SAVED (CREATE)
+            broadcastChange("VOCAB_SAVED", Map.of(
+                    "id", dto.getId(),
+                    "word", dto.getWord() != null ? dto.getWord() : "",
+                    "level", dto.getTopikLevel() != null ? dto.getTopikLevel() : 0,
+                    "topic", dto.getTopic() != null ? dto.getTopic() : "",
+                    "status", dto.getStatus() != null ? dto.getStatus() : "ACTIVE"
+            ));
             return dto;
         } else {
-            // Cập nhật từ vựng trong Database (Ghi đè thông tin mới nhất vào bản ghi cũ, giữ duy nhất 1 từ)
+            // Cập nhật từ vựng trong Database
             if (entity != null && vocabularyRepository != null) {
                 entity.setWord(dto.getWord() != null ? dto.getWord().trim() : entity.getWord());
                 entity.setRomanization(dto.getRomanization() != null ? dto.getRomanization().trim() : entity.getRomanization());
@@ -675,6 +764,7 @@ public class VocabularyService {
                 vocabularyRepository.save(entity);
             }
 
+            VocabularyDTO result;
             if (existingInMap != null) {
                 existingInMap.setWord(dto.getWord() != null ? dto.getWord().trim() : existingInMap.getWord());
                 existingInMap.setRomanization(dto.getRomanization());
@@ -690,13 +780,22 @@ public class VocabularyService {
                     existingInMap.setStatus(dto.getStatus());
                 }
                 existingInMap.setUpdatedAt(now);
-                return existingInMap;
+                result = existingInMap;
             } else {
                 dto.setUpdatedAt(now);
                 dto.setTopikLevelName(VocabularyDTO.formatTopikName(dto.getTopikLevel()));
                 vocabMap.put(dto.getId(), dto);
-                return dto;
+                result = dto;
             }
+            // Broadcast VOCAB_SAVED (UPDATE)
+            broadcastChange("VOCAB_SAVED", Map.of(
+                    "id", result.getId() != null ? result.getId() : 0L,
+                    "word", result.getWord() != null ? result.getWord() : "",
+                    "level", result.getTopikLevel() != null ? result.getTopikLevel() : 0,
+                    "topic", result.getTopic() != null ? result.getTopic() : "",
+                    "status", result.getStatus() != null ? result.getStatus() : "ACTIVE"
+            ));
+            return result;
         }
     }
 
@@ -714,6 +813,13 @@ public class VocabularyService {
                     vocabularyRepository.save(entity);
                 });
             }
+            broadcastChange("VOCAB_TOGGLED", Map.of(
+                    "id", id,
+                    "status", newStatus,
+                    "level", v.getTopikLevel() != null ? v.getTopikLevel() : 0,
+                    "topic", v.getTopic() != null ? v.getTopic() : "",
+                    "word", v.getWord() != null ? v.getWord() : ""
+            ));
             return true;
         }
         return false;
@@ -729,7 +835,6 @@ public class VocabularyService {
         return count;
     }
 
-    @Transactional
     public int toggleTopicStatus(int level, String topic, boolean active) {
         if (topic == null || topic.trim().isEmpty()) return 0;
         String newStatus = active ? "ACTIVE" : "INACTIVE";
@@ -741,14 +846,22 @@ public class VocabularyService {
         }
 
         if (topicRepository != null) {
-            topicRepository.findFirstByLevelAndName(level, topic).ifPresent(entity -> {
-                entity.setStatus(newStatus);
-                topicRepository.save(entity);
-            });
+            try {
+                topicRepository.findFirstByLevelAndName(level, topic).ifPresent(entity -> {
+                    entity.setStatus(newStatus);
+                    topicRepository.save(entity);
+                });
+            } catch (Exception ex) {
+                log.warn("Lỗi cập nhật topic trong database: {}", ex.getMessage());
+            }
         }
 
         if (vocabularyRepository != null) {
-            vocabularyRepository.updateStatusByLevelAndTopic((short) level, topic, newStatus);
+            try {
+                vocabularyRepository.updateStatusByLevelAndTopic((short) level, topic, newStatus);
+            } catch (Exception ex) {
+                log.warn("Lỗi cập nhật trạng thái từ vựng trong database: {}", ex.getMessage());
+            }
         }
 
         int count = 0;
@@ -759,10 +872,15 @@ public class VocabularyService {
                 count++;
             }
         }
+        broadcastChange("TOPIC_TOGGLED", Map.of(
+                "level", level,
+                "topic", topic,
+                "active", active,
+                "affectedCount", count
+        ));
         return count;
     }
 
-    @Transactional
     public int toggleTopikLevelStatus(int level, boolean active) {
         String newStatus = active ? "ACTIVE" : "INACTIVE";
         levelStatusMap.put(level, active);
@@ -771,11 +889,23 @@ public class VocabularyService {
         for (TopicDTO t : topicMap.values()) {
             if (t.getTopikLevel() != null && t.getTopikLevel() == level) {
                 t.setStatus(newStatus);
+                if (topicRepository != null) {
+                    try {
+                        topicRepository.findFirstByLevelAndName(level, t.getName()).ifPresent(entity -> {
+                            entity.setStatus(newStatus);
+                            topicRepository.save(entity);
+                        });
+                    } catch (Exception ignored) {}
+                }
             }
         }
 
         if (vocabularyRepository != null) {
-            vocabularyRepository.updateStatusByLevel((short) level, newStatus);
+            try {
+                vocabularyRepository.updateStatusByLevel((short) level, newStatus);
+            } catch (Exception ex) {
+                log.warn("Lỗi cập nhật cấp độ từ vựng trong database: {}", ex.getMessage());
+            }
         }
 
         int count = 0;
@@ -786,19 +916,23 @@ public class VocabularyService {
                 count++;
             }
         }
+        broadcastChange("LEVEL_TOGGLED", Map.of(
+                "level", level,
+                "active", active,
+                "affectedCount", count
+        ));
         return count;
     }
 
     /**
      * Nhập hàng loạt từ vựng (Bulk import Excel):
      * Tự động chống trùng lặp:
-     * 1. Nếu trong file Excel có các từ bị trùng nhau -> chỉ lấy từ đầu tiên, tự động loại bỏ các từ xuất hiện sau.
-     * 2. Nếu từ đã tồn tại trong CSDL/hệ thống -> tự động bỏ qua, chỉ giữ lại đúng 1 từ duy nhất đã có!
+     * 1. Nếu trong file Excel có các từ bị trùng 100% tiếng Hàn & loại từ -> chỉ lấy từ đầu tiên, tự động loại bỏ các từ xuất hiện sau.
+     * 2. Nếu từ đã tồn tại trong CSDL/hệ thống (trùng 100% tiếng Hàn & loại từ) -> tự động bỏ qua, chỉ giữ lại đúng 1 từ duy nhất đã có!
      */
     @Transactional
-    public int bulkCreate(List<VocabularyDTO> list) {
-        if (list == null || list.isEmpty()) return 0;
-        int count = 0;
+    public List<VocabularyDTO> bulkCreateEntities(List<VocabularyDTO> list) {
+        if (list == null || list.isEmpty()) return Collections.emptyList();
         String now = LocalDateTime.now().format(FORMATTER);
 
         // Tập hợp để lọc các từ bị lặp lại trong chính file Excel (chỉ giữ từ đầu tiên)
@@ -811,8 +945,9 @@ public class VocabularyService {
                 continue;
             }
             String cleanWord = item.getWord().trim();
+            String cleanPos = (item.getWordType() != null && !item.getWordType().trim().isEmpty()) ? item.getWordType().trim() : "Danh từ";
             int lvl = item.getTopikLevel() != null ? item.getTopikLevel() : 1;
-            String key = lvl + "_" + cleanWord.toLowerCase();
+            String key = cleanWord.toLowerCase() + "_" + cleanPos.toLowerCase();
 
             // 1. Nếu từ này bị trùng trong cùng đợt import (xuất hiện ở dòng sau) -> Bỏ qua
             if (seenInBatch.contains(key)) {
@@ -821,10 +956,7 @@ public class VocabularyService {
             seenInBatch.add(key);
 
             // 2. Nếu từ này đã tồn tại trong CSDL hoặc trong hệ thống -> Bỏ qua, chỉ giữ 1 từ đã tồn tại
-            if (vocabularyRepository != null && vocabularyRepository.existsByLevelAndWord((short) lvl, cleanWord)) {
-                continue;
-            }
-            if (findWordInMap(lvl, cleanWord) != null) {
+            if (findDuplicate(null, cleanWord, cleanPos) != null) {
                 continue;
             }
 
@@ -850,7 +982,7 @@ public class VocabularyService {
             Vocabulary entity = Vocabulary.builder()
                     .word(cleanWord)
                     .romanization(item.getRomanization().trim())
-                    .pos(item.getWordType() != null ? item.getWordType().trim() : "Danh từ")
+                    .pos(cleanPos)
                     .meaningVi(item.getMeaning() != null ? item.getMeaning().trim() : "")
                     .level((short) lvl)
                     .topic(topicName)
@@ -863,9 +995,9 @@ public class VocabularyService {
 
             entitiesToSave.add(entity);
             dtoListToSave.add(item);
-            count++;
         }
 
+        List<VocabularyDTO> resultList = new ArrayList<>();
         if (vocabularyRepository != null && !entitiesToSave.isEmpty()) {
             List<Vocabulary> saved = vocabularyRepository.saveAll(entitiesToSave);
             for (int i = 0; i < saved.size(); i++) {
@@ -877,6 +1009,7 @@ public class VocabularyService {
                 d.setStatus(s.getStatus());
                 d.setTopikLevelName(VocabularyDTO.formatTopikName(d.getTopikLevel()));
                 vocabMap.put(s.getId(), d);
+                resultList.add(d);
             }
         } else {
             for (VocabularyDTO item : dtoListToSave) {
@@ -886,10 +1019,39 @@ public class VocabularyService {
                 item.setUpdatedAt(now);
                 item.setTopikLevelName(VocabularyDTO.formatTopikName(item.getTopikLevel()));
                 vocabMap.put(newId, item);
+                resultList.add(item);
             }
         }
 
-        return count;
+        broadcastChange("BULK_CREATED", Map.of("count", resultList.size(), "items", resultList));
+        return resultList;
+    }
+
+    @Transactional
+    public int bulkCreate(List<VocabularyDTO> list) {
+        return bulkCreateEntities(list).size();
+    }
+
+    /**
+     * Xóa từ vựng theo ID — xóa khỏi vocabMap và DB, sau đó broadcast sự kiện VOCAB_DELETED
+     */
+    @Transactional
+    public boolean deleteVocabularyById(Long id) {
+        VocabularyDTO dto = vocabMap.remove(id);
+        if (vocabularyRepository != null) {
+            try {
+                if (vocabularyRepository.existsById(id)) {
+                    vocabularyRepository.deleteById(id);
+                }
+            } catch (Exception e) {
+                // Bỏ qua lỗi nếu từ không tồn tại trong DB
+            }
+        }
+        if (dto != null) {
+            broadcastChange("VOCAB_DELETED", Map.of("id", id));
+            return true;
+        }
+        return false;
     }
 
     public List<String> getAllTopics() {
@@ -927,10 +1089,24 @@ public class VocabularyService {
     // CÁC HÀM PHỤC VỤ NGƯỜI DÙNG XEM TỪ VỰNG
     // ==========================================
 
+    public boolean isLevelActive(int level) {
+        return levelStatusMap.getOrDefault(level, true);
+    }
+
     /**
-     * Lấy danh sách từ vựng ACTIVE của chủ đề và cấp độ để người dùng học
+     * Lấy danh sách từ vựng ACTIVE của chủ đề và cấp độ để người dùng học.
+     * Nếu cấp độ đang ẩn hoặc chủ đề đang ẩn, trả về rỗng.
      */
     public List<VocabularyDTO> getVocabulariesForLearner(Integer level, String topic) {
+        if (level != null && !isLevelActive(level)) {
+            return Collections.emptyList();
+        }
+        if (level != null && topic != null && !topic.trim().isEmpty() && !"ALL".equalsIgnoreCase(topic)) {
+            TopicDTO t = topicMap.get(topicKey(level, topic));
+            if (t != null && !t.isActive()) {
+                return Collections.emptyList();
+            }
+        }
         return vocabMap.values().stream()
                 .filter(v -> "ACTIVE".equalsIgnoreCase(v.getStatus()))
                 .filter(v -> level == null || (v.getTopikLevel() != null && v.getTopikLevel().equals(level)))
@@ -940,19 +1116,37 @@ public class VocabularyService {
     }
 
     /**
-     * Lấy danh sách chủ đề theo cấp độ kèm số từ active cho người dùng
+     * Lấy danh sách chủ đề ACTIVE theo cấp độ cho người dùng học.
+     * Nếu cấp độ đang bị ẩn, trả về danh sách rỗng để người học không thấy gì.
      */
     public List<TopicDTO> getTopicsForLearner(Integer level) {
-        return getTopicsByLevel(level != null ? level : 1);
+        if (level == null) level = 1;
+        if (!isLevelActive(level)) {
+            return Collections.emptyList();
+        }
+        int lvl = level;
+        return topicMap.values().stream()
+                .filter(t -> t.getTopikLevel() != null && t.getTopikLevel() == lvl)
+                .filter(TopicDTO::isActive)
+                .map(t -> {
+                    long activeCount = vocabMap.values().stream()
+                            .filter(v -> v.getTopikLevel() != null && v.getTopikLevel() == lvl 
+                                    && t.getName().equalsIgnoreCase(v.getTopic()) 
+                                    && "ACTIVE".equalsIgnoreCase(v.getStatus()))
+                            .count();
+                    return new TopicDTO(t.getId(), t.getName(), t.getTopikLevel(), t.getDescription(), (int) activeCount, (int) activeCount, t.getStatus());
+                })
+                .sorted(Comparator.comparing(t -> t.getId() != null ? t.getId() : 0L))
+                .collect(Collectors.toList());
     }
 
     /**
-     * Lấy tất cả chủ đề gom nhóm theo từng cấp TOPIK (1 đến 6) cho trang Lý thuyết
+     * Lấy tất cả chủ đề ACTIVE gom nhóm theo từng cấp TOPIK (1 đến 6) cho trang Lý thuyết của người học
      */
     public Map<Integer, List<TopicDTO>> getAllTopicsGroupedByLevel() {
         Map<Integer, List<TopicDTO>> map = new HashMap<>();
         for (int l = 1; l <= 6; l++) {
-            map.put(l, getTopicsByLevel(l));
+            map.put(l, getTopicsForLearner(l));
         }
         return map;
     }

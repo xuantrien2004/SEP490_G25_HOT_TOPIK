@@ -14,6 +14,13 @@ import java.util.Optional;
 @Repository
 public interface VocabularyRepository extends JpaRepository<Vocabulary, Long> {
 
+    Optional<Vocabulary> findFirstByWordAndPos(String word, String pos);
+
+    boolean existsByWordAndPos(String word, String pos);
+
+    @Query("SELECT v FROM Vocabulary v WHERE LOWER(TRIM(v.word)) = LOWER(TRIM(:word)) AND LOWER(TRIM(v.pos)) = LOWER(TRIM(:pos))")
+    List<Vocabulary> findDuplicates(@Param("word") String word, @Param("pos") String pos);
+
     Optional<Vocabulary> findByWord(String word);
 
     Optional<Vocabulary> findFirstByWordAndHanja(String word, String hanja);

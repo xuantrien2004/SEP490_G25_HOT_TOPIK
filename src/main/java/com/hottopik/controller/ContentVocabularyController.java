@@ -6,12 +6,15 @@ import com.hottopik.dto.TopikLevelSummaryDTO;
 import com.hottopik.dto.UserDTO;
 import com.hottopik.dto.VocabularyDTO;
 import com.hottopik.service.VocabularyService;
+import com.hottopik.service.VocabularySyncService;
 import com.hottopik.util.KoreanRomanizer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import jakarta.servlet.http.HttpSession;
 import java.util.*;
@@ -21,10 +24,12 @@ import java.util.*;
 public class ContentVocabularyController {
 
     private final VocabularyService vocabularyService;
+    private final VocabularySyncService syncService;
 
     @Autowired
-    public ContentVocabularyController(VocabularyService vocabularyService) {
+    public ContentVocabularyController(VocabularyService vocabularyService, VocabularySyncService syncService) {
         this.vocabularyService = vocabularyService;
+        this.syncService = syncService;
     }
 
     @GetMapping
@@ -180,19 +185,40 @@ public class ContentVocabularyController {
     @ResponseBody
     public ResponseEntity<?> toggleTopic(@RequestBody Map<String, Object> body) {
         try {
-            int level = Integer.parseInt(body.get("level").toString());
-            String name = body.get("name").toString().trim();
-            boolean active = Boolean.parseBoolean(body.get("active").toString());
+            Object levelObj = body.get("level");
+            Object nameObj = body.get("name");
+            Object activeObj = body.get("active");
+            if (levelObj == null || nameObj == null || activeObj == null) {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Thiếu tham số bắt buộc (level, name, active)."));
+            }
+            int level = Integer.parseInt(levelObj.toString());
+            String name = nameObj.toString().trim();
+            boolean active = Boolean.parseBoolean(activeObj.toString());
 
             int affected = vocabularyService.toggleTopicStatus(level, name, active);
-            String state = active ? "Kích hoạt" : "Ẩn";
+            String actionVerb = active ? "bật" : "tắt";
             return ResponseEntity.ok(Map.of(
                     "success", true,
+                    "newActive", active,
                     "affectedCount", affected,
-                    "message", "Đã " + state + " chủ đề \"" + name + "\" (" + affected + " từ)!"
+                    "message", "Đã " + actionVerb + " chủ đề \"" + name + "\" thành công!"
             ));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Lỗi khi đổi trạng thái chủ đề!"));
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Lỗi khi đổi trạng thái chủ đề: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/delete/{id}")
+    @ResponseBody
+    public ResponseEntity<?> deleteVocabulary(@PathVariable("id") Long id) {
+        try {
+            boolean deleted = vocabularyService.deleteVocabularyById(id);
+            if (!deleted) {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Không tìm thấy từ vựng có ID " + id));
+            }
+            return ResponseEntity.ok(Map.of("success", true, "message", "Đã xóa từ vựng thành công!"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Lỗi khi xóa từ vựng: " + e.getMessage()));
         }
     }
 
@@ -231,21 +257,31 @@ public class ContentVocabularyController {
         }
 
         boolean isNew = (dto.getId() == null || dto.getId() <= 0);
-        boolean existedBefore = false;
-        if (isNew && dto.getTopikLevel() != null && dto.getWord() != null) {
-            existedBefore = vocabularyService.existsWordInLevel(dto.getTopikLevel(), dto.getWord());
+
+        // KIỂM TRA TRÙNG LẶP: Nếu trùng 100% tiếng Hàn và cùng loại từ thì báo đã tồn tại và không cho nhập
+        VocabularyDTO duplicate = vocabularyService.findDuplicate(dto.getId(), dto.getWord(), dto.getWordType());
+        if (duplicate != null) {
+            String cleanPos = (dto.getWordType() != null && !dto.getWordType().trim().isEmpty()) ? dto.getWordType().trim() : "Danh từ";
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "duplicate", true,
+                    "existingId", duplicate.getId(),
+                    "message", "Từ vựng \"" + dto.getWord().trim() + "\" với loại từ \"" + cleanPos + "\" đã tồn tại trong hệ thống (TOPIK Cấp " + duplicate.getTopikLevel() + " · Chủ đề " + duplicate.getTopic() + ")! Không thể thêm từ trùng lặp."
+            ));
         }
 
-        VocabularyDTO saved = vocabularyService.saveOrUpdate(dto);
-
-        String message;
-        if (isNew && existedBefore) {
-            message = "Từ vựng \"" + saved.getWord() + "\" đã tồn tại trong TOPIK " + saved.getTopikLevel() + "! Hệ thống đã tự động cập nhật thông tin (chỉ lưu 1 từ duy nhất).";
-        } else if (isNew) {
-            message = "Thêm mới từ vựng thành công!";
-        } else {
-            message = "Cập nhật từ vựng thành công!";
+        VocabularyDTO saved;
+        try {
+            saved = vocabularyService.saveOrUpdate(dto);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "duplicate", true,
+                    "message", e.getMessage()
+            ));
         }
+
+        String message = isNew ? "Thêm mới từ vựng thành công!" : "Cập nhật từ vựng thành công!";
 
         return ResponseEntity.ok(Map.of(
                 "success", true,
@@ -277,26 +313,45 @@ public class ContentVocabularyController {
         }
 
         int affected = 0;
-        String desc = "";
 
         if ("LEVEL".equalsIgnoreCase(request.getType())) {
             try {
                 int level = Integer.parseInt(request.getTarget());
                 affected = vocabularyService.toggleTopikLevelStatus(level, request.isActive());
-                desc = "cấp " + VocabularyDTO.formatTopikName(level) + " (" + affected + " từ)";
+                String actionVerb = request.isActive() ? "bật" : "tắt";
+                return ResponseEntity.ok(Map.of(
+                        "success", true,
+                        "newActive", request.isActive(),
+                        "affectedCount", affected,
+                        "message", "Đã " + actionVerb + " toàn bộ chủ đề " + VocabularyDTO.formatTopikName(level) + " thành công!"
+                ));
             } catch (NumberFormatException e) {
                 return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Cấp TOPIK không hợp lệ."));
+            } catch (Exception e) {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Lỗi khi đổi trạng thái: " + e.getMessage()));
+            }
+        } else if ("TOPIC".equalsIgnoreCase(request.getType()) || "TOPIC_VOCAB".equalsIgnoreCase(request.getType())) {
+            try {
+                String topicName = request.getTarget();
+                Integer level = request.getLevel();
+                if (level != null) {
+                    affected = vocabularyService.toggleTopicStatus(level, topicName, request.isActive());
+                } else {
+                    affected = vocabularyService.toggleTopicStatus(topicName, request.isActive());
+                }
+                String actionVerb = request.isActive() ? "bật" : "tắt";
+                return ResponseEntity.ok(Map.of(
+                        "success", true,
+                        "newActive", request.isActive(),
+                        "affectedCount", affected,
+                        "message", "Đã " + actionVerb + " toàn bộ từ vựng thuộc chủ đề \"" + topicName + "\" thành công!"
+                ));
+            } catch (Exception e) {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Lỗi khi đổi trạng thái: " + e.getMessage()));
             }
         } else {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Loại đối tượng không hỗ trợ: " + request.getType()));
         }
-
-        String stateText = request.isActive() ? "Kích hoạt" : "Ẩn";
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "affectedCount", affected,
-                "message", "Đã " + stateText + " toàn bộ " + desc + " thành công!"
-        ));
     }
 
     @PostMapping("/bulk-create")
@@ -307,12 +362,13 @@ public class ContentVocabularyController {
         }
 
         int totalInput = list.size();
-        int count = vocabularyService.bulkCreate(list);
+        List<VocabularyDTO> created = vocabularyService.bulkCreateEntities(list);
+        int count = created.size();
         int skipped = totalInput - count;
 
         String msg;
         if (skipped > 0) {
-            msg = "Đã nhập thành công " + count + " từ mới! (Đã tự động loại bỏ " + skipped + " từ bị trùng lặp)";
+            msg = "Đã nhập thành công " + count + " từ mới! (Đã tự động loại bỏ " + skipped + " từ bị trùng 100% tiếng Hàn & loại từ)";
         } else {
             msg = "Đã tạo thành công " + count + " từ vựng vào hệ thống!";
         }
@@ -321,7 +377,61 @@ public class ContentVocabularyController {
                 "success", true,
                 "count", count,
                 "skipped", skipped,
+                "data", created,
                 "message", msg
         ));
+    }
+
+    @GetMapping("/check-duplicate")
+    @ResponseBody
+    public ResponseEntity<?> checkDuplicate(
+            @RequestParam("word") String word,
+            @RequestParam(value = "wordType", required = false, defaultValue = "Danh từ") String wordType,
+            @RequestParam(value = "excludeId", required = false) Long excludeId) {
+        VocabularyDTO duplicate = vocabularyService.findDuplicate(excludeId, word, wordType);
+        if (duplicate != null) {
+            return ResponseEntity.ok(Map.of(
+                    "duplicate", true,
+                    "existingId", duplicate.getId(),
+                    "message", "Từ vựng \"" + duplicate.getWord() + "\" (" + duplicate.getWordType() + ") đã tồn tại trong TOPIK " + duplicate.getTopikLevel() + " · Chủ đề " + duplicate.getTopic() + "!"
+            ));
+        }
+        return ResponseEntity.ok(Map.of("duplicate", false));
+    }
+
+    @PostMapping("/check-duplicates-batch")
+    @ResponseBody
+    public ResponseEntity<?> checkDuplicatesBatch(@RequestBody List<Map<String, Object>> items) {
+        if (items == null || items.isEmpty()) {
+            return ResponseEntity.ok(Map.of("duplicates", List.of()));
+        }
+        List<Map<String, Object>> duplicates = new ArrayList<>();
+        for (Map<String, Object> item : items) {
+            String word = (String) item.get("word");
+            String wordType = (String) item.get("wordType");
+            Object indexObj = item.get("index");
+            int index = indexObj instanceof Number ? ((Number) indexObj).intValue() : -1;
+
+            if (word == null || word.trim().isEmpty()) continue;
+
+            VocabularyDTO dup = vocabularyService.findDuplicate(null, word, wordType);
+            if (dup != null) {
+                duplicates.add(Map.of(
+                        "index", index,
+                        "word", word,
+                        "existingId", dup.getId(),
+                        "topikLevel", dup.getTopikLevel(),
+                        "topic", dup.getTopic() != null ? dup.getTopic() : "",
+                        "message", "Đã có trong TOPIK " + dup.getTopikLevel() + " · " + (dup.getTopic() != null ? dup.getTopic() : "")
+                ));
+            }
+        }
+        return ResponseEntity.ok(Map.of("duplicates", duplicates));
+    }
+
+    @GetMapping(value = "/sync/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @ResponseBody
+    public SseEmitter syncStream() {
+        return syncService != null ? syncService.createEmitter() : new SseEmitter();
     }
 }

@@ -6,29 +6,35 @@
 <!-- Navbar -->
 <div th:replace="~{fragments/navbar :: navbar('theory')}"></div>
 
-<main class="container my-4" style="max-width: 1200px;">
-    <!-- Đầu trang: Tiêu đề, Cấp, Số từ, Danh sách chủ đề -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-        <div>
-            <a th:href="@{/ly-thuyet}" class="text-decoration-none fw-bold small text-muted">
+<main class="container my-4" style="max-width: 1360px;">
+    <!-- Đầu trang: Tiêu đề, Cấp, Số từ, Danh sách chủ đề (Cố định vị trí trên cùng 1 hàng ngang, không bị nhảy dòng khi đổi chủ đề) -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; gap: 20px; flex-wrap: nowrap;">
+        <div style="min-width: 0; flex-grow: 1; flex-shrink: 1;">
+            <a th:href="@{/ly-thuyet}" class="text-decoration-none fw-bold small text-muted d-inline-block mb-1">
                 ‹ Sổ tay Lý thuyết · Từ vựng
             </a>
-            <div class="d-flex align-items-center gap-3 mt-1 flex-wrap">
-                <h1 style="font-family: var(--font-heading); font-size: 28px; font-weight: 800; margin: 0;">
-                    Chủ đề: <span th:text="${currentTopic}">Môi trường & Biến đổi khí hậu</span>
+            <div style="display: flex; align-items: center; gap: 10px; margin-top: 2px;">
+                <h1 style="font-family: var(--font-heading); font-size: 26px; font-weight: 800; margin: 0; color: #24363D; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    <span th:if="${currentTopic != null and !currentTopic.isEmpty()}">
+                        Chủ đề: <span id="currentTopicDisplay" th:text="${currentTopic}">Môi trường & Biến đổi khí hậu</span>
+                    </span>
+                    <span th:if="${currentTopic == null or currentTopic.isEmpty()}" th:text="${currentLevelName}">
+                        TOPIK Cấp 1
+                    </span>
                 </h1>
-                <span class="badge bg-success" style="background: var(--ssak-primary) !important;" th:text="${currentLevelName}">TOPIK Cấp 1</span>
+                <span class="badge bg-success" style="background: var(--ssak-primary) !important; font-size: 11.5px; padding: 5px 10px; border-radius: 8px; flex-shrink: 0;" th:text="${currentLevelName}">TOPIK Cấp 1</span>
             </div>
-            <div class="text-muted small mt-1">
-                Tổng cộng <strong th:text="${vocabList != null ? vocabList.size() : 0}">0</strong> từ vựng được phát hành từ Content Manager
+            <div class="text-muted small mt-1" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                Tổng cộng <strong id="totalVocabCountBadge" th:text="${vocabList != null ? vocabList.size() : 0}">0</strong> từ vựng được phát hành từ Content Manager
+                <span class="text-success ms-2 small fw-bold">⚡ Tự động đồng bộ thời gian thực</span>
             </div>
         </div>
 
-        <!-- Các nút tác vụ: Chuyển chủ đề & Học bằng thẻ / Quiz -->
-        <div class="d-flex align-items-center gap-2 flex-wrap">
+        <!-- Các nút tác vụ: Luôn cố định bên phải trên cùng một hàng ngang không bao giờ bị rơi xuống dòng -->
+        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: nowrap;">
             <!-- Dropdown đổi chủ đề khác trong cấp này -->
             <div class="dropdown" th:if="${levelTopics != null and !levelTopics.empty}">
-                <button class="btn btn-ssak-light dropdown-toggle px-3 py-2 rounded-pill fw-bold" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 13.5px;">
+                <button class="btn btn-ssak-light dropdown-toggle px-3 py-2 rounded-pill fw-bold" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 13.5px; white-space: nowrap;">
                     📂 Đổi chủ đề (<span th:text="${levelTopics.size()}">0</span>)
                 </button>
                 <ul class="dropdown-menu shadow-sm" style="max-height: 320px; overflow-y: auto; border-radius: 12px;">
@@ -42,109 +48,151 @@
                 </ul>
             </div>
 
+            <!-- Nút mở Sổ từ chưa thuộc -->
+            <a th:href="@{/tu-chua-thuoc}" class="btn btn-outline-danger px-3 py-2 rounded-pill fw-bold text-decoration-none shadow-sm" style="font-size: 13.5px; white-space: nowrap;">
+                📚 Sổ chưa thuộc (<span id="unlearnedCountNav">0</span>)
+            </a>
+
             <!-- Học bằng thẻ (Flashcard) -->
-            <a th:href="@{/ly-thuyet/the(topic=${currentTopic}, level=${currentLevel})}" class="btn-ssak-primary px-4 py-2 rounded-pill fw-bold text-decoration-none shadow-sm" style="font-size: 14px;">
-                <i class="bi bi-card-text me-2"></i>Học bằng thẻ (<span th:text="${vocabList != null ? vocabList.size() : 0}">0</span>)
+            <a th:href="@{/ly-thuyet/the(topic=${currentTopic}, level=${currentLevel})}" class="btn-ssak-primary px-3 py-2 rounded-pill fw-bold text-decoration-none shadow-sm" style="font-size: 13.5px; white-space: nowrap;">
+                <i class="bi bi-card-text me-1"></i>Học thẻ (<span id="countCardLink" th:text="${vocabList != null ? vocabList.size() : 0}">0</span>)
             </a>
 
             <!-- Làm Quiz -->
-            <a th:href="@{/ly-thuyet/quiz(topic=${currentTopic}, level=${currentLevel})}" class="btn-ssak-outline px-4 py-2 rounded-pill fw-bold text-decoration-none shadow-sm" style="font-size: 14px; background: #fff;">
-                <i class="bi bi-question-circle me-2"></i>Làm Quiz
+            <a th:href="@{/ly-thuyet/quiz(topic=${currentTopic}, level=${currentLevel})}" class="btn-ssak-outline px-3 py-2 rounded-pill fw-bold text-decoration-none shadow-sm" style="font-size: 13.5px; background: #fff; white-space: nowrap;">
+                <i class="bi bi-question-circle me-1"></i>Làm Quiz
             </a>
         </div>
     </div>
 
-    <!-- Thanh "Đã chọn n từ · Học nhanh" hiện khi tích chọn từ -->
-    <div id="quickLearnBar" class="alert p-3 rounded-4 mb-4 border d-flex justify-content-between align-items-center shadow-sm d-none" 
-         style="background: #E3F2EA; border-color: var(--ssak-primary) !important;">
+    <!-- Thanh "Đã chọn n từ · Tự chọn dồn vào ôn tập riêng" hiện khi tích chọn từ -->
+    <div id="quickLearnBar" class="alert p-3 rounded-4 mb-4 border d-flex justify-content-between align-items-center shadow-sm d-none flex-wrap gap-2" 
+         style="background: #E8F5EE; border-color: var(--ssak-primary) !important;">
         <div class="fw-bold text-success" style="color: var(--ssak-primary-dark) !important;">
-            <i class="bi bi-check-circle-fill me-2"></i>Đã chọn <span id="selectedCount">0</span> từ · Học nhanh
+            <i class="bi bi-check-circle-fill me-2"></i>Đã chọn <span id="selectedCount">0</span> từ vựng
         </div>
-        <div class="d-flex gap-2">
-            <a th:href="@{/ly-thuyet/the(topic=${currentTopic}, level=${currentLevel})}" class="btn btn-sm btn-success rounded-pill px-3 fw-bold" style="background: var(--ssak-primary) !important;">
-                Học thẻ các từ đã chọn
-            </a>
-            <a th:href="@{/ly-thuyet/quiz(topic=${currentTopic}, level=${currentLevel})}" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-bold">
-                Làm Quiz các từ đã chọn
-            </a>
+        <div class="d-flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold" onclick="addSelectedToUnlearned()">
+                ⭐ Dồn vào Sổ từ chưa thuộc
+            </button>
+            <button type="button" class="btn btn-sm btn-success rounded-pill px-3 fw-bold" style="background: var(--ssak-primary) !important;" onclick="reviewSelectedFlashcards()">
+                🎴 Ôn Flashcard các từ đã chọn
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-bold" onclick="reviewSelectedQuiz()">
+                ❓ Quiz các từ đã chọn
+            </button>
         </div>
     </div>
 
     <!-- Khung Bảng danh sách từ vựng -->
     <div class="p-4 rounded-4 bg-white border shadow-sm">
-        <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
             <div class="btn-group btn-group-sm" role="group">
                 <button type="button" class="btn btn-outline-secondary active" id="btnFilterAll" onclick="filterVocabTable('all')">
-                    Tất cả (<span th:text="${vocabList != null ? vocabList.size() : 0}">0</span>)
+                    Tất cả (<span id="filterAllCount" th:text="${vocabList != null ? vocabList.size() : 0}">0</span>)
                 </button>
             </div>
 
             <div class="small text-muted">
-                * Bấm vào biểu tượng loa <i class="bi bi-volume-up-fill text-primary"></i> để nghe phát âm tiếng Hàn
+                * Bấm biểu tượng ⭐ để dồn từ vào <strong>Sổ chưa thuộc</strong> · Bấm biểu tượng 🔊 để nghe phát âm
             </div>
         </div>
 
-        <!-- Trạng thái trống (Chưa có từ) -->
-        <div th:if="${vocabList == null or vocabList.empty}" class="text-center py-5">
+        <!-- Trạng thái trống (Không có chủ đề nào hoặc Không có từ vựng nào) -->
+        <div id="vocabEmptyAlert" th:if="${vocabList == null or vocabList.empty}" class="text-center py-5">
             <div th:replace="~{fragments/ssak :: mascot('think', 'sprout', 120, 'Bé Ssak')}"></div>
-            <h4 class="mt-3 fw-bold text-muted">Chủ đề này chưa có từ vựng nào!</h4>
-            <p class="text-muted small">Content Manager đang chuẩn bị nội dung cho chủ đề này. Bạn có thể chọn chủ đề khác hoặc quay lại sau nhé.</p>
+            <h4 class="mt-3 fw-bold text-muted" id="vocabEmptyTitle"
+                th:text="${(levelTopics == null or levelTopics.empty) ? (currentLevelName + ' không có chủ đề nào') : ('Chủ đề ' + currentTopic + ' không có từ vựng nào')}">
+                Chủ đề này chưa có từ vựng nào!
+            </h4>
+            <p class="text-muted small">Nội dung đang được chuẩn bị hoặc tạm ẩn. Khi có cập nhật mới từ Content Manager, trang sẽ tự động đồng bộ ngay mà bạn không cần F5.</p>
             <a th:href="@{/ly-thuyet}" class="btn-ssak-primary rounded-pill px-4 py-2 text-decoration-none fw-bold mt-2">
                 ← Quay lại danh mục Lý thuyết
             </a>
         </div>
 
-        <!-- Bảng từ vựng lấy trực tiếp từ Database -->
-        <div class="table-responsive" th:if="${vocabList != null and !vocabList.empty}">
-            <table class="table table-hover align-middle mb-0">
+        <!-- Bảng từ vựng: Cố định 1 format duy nhất cho mọi chủ đề -->
+        <div class="table-responsive" id="vocabTableContainer" th:style="${vocabList == null or vocabList.empty ? 'display:none;' : ''}">
+            <table class="table table-hover align-middle mb-0" style="table-layout: fixed; width: 100%;">
+                <colgroup>
+                    <col style="width: 48px;">
+                    <col style="width: 25%;">
+                    <col style="width: 37%;">
+                    <col style="width: 12%;">
+                    <col style="width: 10%;">
+                    <col style="width: 16%;">
+                </colgroup>
                 <thead style="background: var(--ssak-bg);">
                     <tr>
-                        <th style="width: 40px;"><input type="checkbox" class="form-check-input" onclick="toggleSelectAll(this)"></th>
-                        <th style="width: 25%;">Từ vựng & Phiên âm</th>
-                        <th style="width: 35%;">Nghĩa tiếng Việt & Ví dụ</th>
-                        <th style="width: 15%;">Từ loại</th>
-                        <th style="width: 15%;">Trạng thái</th>
-                        <th style="width: 10%; text-align: center;">Nghe</th>
+                        <th style="width: 48px; text-align: center; padding: 12px 6px;"><input type="checkbox" class="form-check-input" onclick="toggleSelectAll(this)"></th>
+                        <th style="width: 25%; padding: 12px 14px;">Từ vựng & Phiên âm</th>
+                        <th style="width: 37%; padding: 12px 14px;">Nghĩa tiếng Việt & Ví dụ</th>
+                        <th style="width: 12%; padding: 12px 10px;">Từ loại</th>
+                        <th style="width: 10%; text-align: center; padding: 12px 6px;">Nghe</th>
+                        <th style="width: 16%; text-align: center; padding: 12px 6px;">Sổ chưa thuộc</th>
                     </tr>
                 </thead>
                 <tbody id="vocabTableBody">
-                    <tr th:each="vocab, iter : ${vocabList}" class="vocab-row">
-                        <td><input type="checkbox" class="form-check-input word-check" th:value="${vocab.id}" onchange="updateSelectedCount()"></td>
-                        <td>
+                    <tr th:each="vocab, iter : ${vocabList}" class="vocab-row" th:id="${'row-student-vocab-' + vocab.id}">
+                        <td style="text-align: center; padding: 14px 6px;"><input type="checkbox" class="form-check-input word-check" th:value="${vocab.id}" onchange="updateSelectedCount()"></td>
+                        <td style="padding: 14px; overflow-wrap: break-word;">
                             <strong style="font-family: var(--font-korean); font-size: 18px; color: #24363D;" th:text="${vocab.word}">한국어</strong>
                             <small class="text-muted d-block" th:text="'[' + ${vocab.romanization} + ']'"></small>
                         </td>
-                        <td>
+                        <td style="padding: 14px; overflow-wrap: break-word;">
                             <div class="fw-bold" style="color: #24363D;" th:text="${vocab.meaning}">Tiếng Hàn Quốc</div>
                             <!-- Câu ví dụ tiếng Hàn & Dịch -->
                             <div th:if="${vocab.exampleKr != null and !vocab.exampleKr.isEmpty()}" 
-                                 class="mt-1 p-2 rounded-3 border" style="background: #F8FBF9; font-size: 12.5px; border-color: #E2ECE7 !important;">
+                                 class="mt-1" style="font-size: 12.5px; color: #555;">
                                 <div style="font-family: var(--font-korean); color: #1F6B56; font-weight: 600;" th:text="${vocab.exampleKr}"></div>
                                 <div class="text-muted" th:text="${vocab.exampleVi}" th:if="${vocab.exampleVi != null and !vocab.exampleVi.isEmpty()}"></div>
                             </div>
                         </td>
-                        <td>
+                        <td style="padding: 14px 10px;">
                             <span class="badge bg-light text-dark border" th:text="${vocab.wordType}">Danh từ</span>
                         </td>
-                        <td>
-                            <span class="badge bg-success" style="background: #2E7D67 !important;" th:if="${vocab.status == 'ACTIVE'}">Đã phát hành</span>
-                            <span class="badge bg-secondary" th:unless="${vocab.status == 'ACTIVE'}" th:text="${vocab.status}">Ẩn</span>
-                        </td>
-                        <td class="text-center">
+                        <td class="text-center" style="padding: 14px 6px;">
                             <button class="btn btn-sm btn-light rounded-circle text-primary" 
                                     th:attr="onclick='speakKorean(\'' + ${vocab.word} + '\', \'' + ${vocab.audioUrl != null ? vocab.audioUrl : ''} + '\')'"
                                     title="Nghe phát âm chuẩn">
                                 <i class="bi bi-volume-up-fill fs-6"></i>
                             </button>
                         </td>
+                        <td class="text-center" style="padding: 14px 6px;">
+                            <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-2 py-1 text-dark fw-bold btn-unlearned-toggle"
+                                    th:id="${'btn-unlearned-' + vocab.id}"
+                                    th:data-id="${vocab.id}"
+                                    th:data-word="${vocab.word}"
+                                    th:data-rom="${vocab.romanization}"
+                                    th:data-mean="${vocab.meaning}"
+                                    th:data-type="${vocab.wordType}"
+                                    th:data-level="${currentLevel}"
+                                    th:data-topic="${currentTopic}"
+                                    th:data-kr="${vocab.exampleKr}"
+                                    th:data-vi="${vocab.exampleVi}"
+                                    th:data-audio="${vocab.audioUrl}"
+                                    onclick="toggleUnlearnedWord(this)"
+                                    title="Đánh dấu từ chưa thuộc để dồn vào ôn tập riêng">
+                                ⭐ Lưu sổ
+                            </button>
+                        </td>
                     </tr>
                 </tbody>
             </table>
         </div>
+
+        <!-- Phân trang từ vựng cho học viên (10 từ vựng / 1 trang, thứ tự tăng dần, thu gọn có số 1 và số cuối) -->
+        <div id="studentVocabPaginationContainer" style="padding: 16px 20px; border-top: 1px solid var(--ssak-border, #E8E5DC); display: flex; justify-content: space-between; align-items: center; background: #FAF9F5; border-radius: 0 0 16px 16px;">
+            <!-- Rendered by JS -->
+        </div>
     </div>
 </main>
 
-<script>
+<script th:inline="javascript">
+    const currentLevel = /*[[${currentLevel}]]*/ 1;
+    const currentTopic = /*[[${currentTopic}]]*/ 'Gia đình';
+    let currentVocabList = /*[[${vocabList}]]*/ [];
+
     function updateSelectedCount() {
         const checked = document.querySelectorAll('.word-check:checked');
         const count = checked.length;
@@ -162,30 +210,457 @@
         updateSelectedCount();
     }
 
-    function filterVocabTable(type) {
-        document.querySelectorAll('.vocab-row').forEach(r => r.style.display = '');
+    // ==========================================
+    // PHÂN TRANG TỪ VỰNG HỌC VIÊN (10 TỪ VỰNG / 1 TRANG)
+    // ==========================================
+    const STUDENT_VOCAB_PAGE_SIZE = 10;
+    let currentStudentVocabPage = 1;
+
+    function renderCompactPagination(containerId, currentPage, totalPages, onPageClickFnName, totalItems, pageSize, itemLabel) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        if (totalItems === 0) {
+            container.style.display = 'none';
+            return;
+        }
+        
+        container.style.display = 'flex';
+        
+        const startIdx = (currentPage - 1) * pageSize + 1;
+        const endIdx = Math.min(totalItems, currentPage * pageSize);
+        
+        const infoHtml = `
+            <div style="font-size: 13px; font-weight: 700; color: #53646C;">
+                Hiển thị <strong>${startIdx}</strong> - <strong>${endIdx}</strong> trong tổng số <strong>${totalItems}</strong> ${itemLabel}
+            </div>
+        `;
+        
+        if (totalPages <= 1) {
+            container.innerHTML = infoHtml + '<div></div>';
+            return;
+        }
+        
+        const pages = [];
+        if (totalPages <= 7) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else {
+            pages.push(1);
+            let start = Math.max(2, currentPage - 1);
+            let end = Math.min(totalPages - 1, currentPage + 1);
+            
+            if (currentPage <= 3) {
+                start = 2;
+                end = Math.min(4, totalPages - 1);
+            } else if (currentPage >= totalPages - 2) {
+                start = Math.max(2, totalPages - 3);
+                end = totalPages - 1;
+            }
+            
+            if (start > 2) pages.push('...');
+            for (let i = start; i <= end; i++) pages.push(i);
+            if (end < totalPages - 1) pages.push('...');
+            pages.push(totalPages);
+        }
+        
+        let btnHtml = '<div style="display: flex; align-items: center; gap: 6px;">';
+        
+        // Nút Trước
+        if (currentPage > 1) {
+            btnHtml += `<button type="button" class="btn btn-sm btn-light" style="padding: 4px 12px; height: 34px; font-size: 13px; font-weight: 700; border-radius: 8px; border: 1px solid #D0D0C8; background: #FFFFFF; color: #1F6B56; cursor: pointer;" onclick="${onPageClickFnName}(${currentPage - 1})">‹ Trước</button>`;
+        } else {
+            btnHtml += `<button type="button" class="btn btn-sm btn-light" style="padding: 4px 12px; height: 34px; font-size: 13px; font-weight: 700; border-radius: 8px; border: 1px solid #E8E5DC; background: #FAF9F5; color: #A0AAB0; cursor: not-allowed;" disabled>‹ Trước</button>`;
+        }
+        
+        // Các nút số trang
+        pages.forEach(p => {
+            if (p === '...') {
+                btnHtml += `<span style="padding: 0 4px; font-size: 14px; font-weight: 800; color: #8C9BA2;">…</span>`;
+            } else if (p === currentPage) {
+                btnHtml += `<button type="button" class="btn btn-sm" style="min-width: 34px; height: 34px; padding: 0 8px; font-size: 13px; font-weight: 800; border-radius: 8px; border: 1.5px solid #2E7D67; background: #2E7D67; color: #FFFFFF; cursor: default;">${p}</button>`;
+            } else {
+                btnHtml += `<button type="button" class="btn btn-sm btn-light" style="min-width: 34px; height: 34px; padding: 0 8px; font-size: 13px; font-weight: 700; border-radius: 8px; border: 1px solid #D0D0C8; background: #FFFFFF; color: #24363D; cursor: pointer; transition: all 0.15s ease;" onmouseover="this.style.borderColor='#2E7D67'; this.style.color='#2E7D67';" onmouseout="this.style.borderColor='#D0D0C8'; this.style.color='#24363D';" onclick="${onPageClickFnName}(${p})">${p}</button>`;
+            }
+        });
+        
+        // Nút Sau
+        if (currentPage < totalPages) {
+            btnHtml += `<button type="button" class="btn btn-sm btn-light" style="padding: 4px 12px; height: 34px; font-size: 13px; font-weight: 700; border-radius: 8px; border: 1px solid #D0D0C8; background: #FFFFFF; color: #1F6B56; cursor: pointer;" onclick="${onPageClickFnName}(${currentPage + 1})">Sau ›</button>`;
+        } else {
+            btnHtml += `<button type="button" class="btn btn-sm btn-light" style="padding: 4px 12px; height: 34px; font-size: 13px; font-weight: 700; border-radius: 8px; border: 1px solid #E8E5DC; background: #FAF9F5; color: #A0AAB0; cursor: not-allowed;" disabled>Sau ›</button>`;
+        }
+        
+        btnHtml += '</div>';
+        container.innerHTML = infoHtml + btnHtml;
     }
 
-    // Phát âm tiếng Hàn chuẩn dùng Web Speech API hoặc audioUrl
+    function renderStudentVocabPage(page = 1) {
+        const rows = Array.from(document.querySelectorAll('#vocabTableBody tr.vocab-row'));
+        const total = rows.length;
+        const totalPages = Math.max(1, Math.ceil(total / STUDENT_VOCAB_PAGE_SIZE));
+        
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+        currentStudentVocabPage = page;
+        
+        const startIdx = (page - 1) * STUDENT_VOCAB_PAGE_SIZE;
+        const endIdx = startIdx + STUDENT_VOCAB_PAGE_SIZE;
+        
+        rows.forEach((row, idx) => {
+            if (idx >= startIdx && idx < endIdx) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        renderCompactPagination('studentVocabPaginationContainer', currentStudentVocabPage, totalPages, 'renderStudentVocabPage', total, STUDENT_VOCAB_PAGE_SIZE, 'từ vựng');
+    }
+
+    function filterVocabTable(type) {
+        renderStudentVocabPage(1);
+    }
+
+    // Phát âm tiếng Hàn chuẩn dùng Web Speech API kết hợp Google Korean TTS trực tuyến
     function speakKorean(word, audioUrl) {
-        if (audioUrl && audioUrl.trim() !== '') {
-            const audio = new Audio(audioUrl);
-            audio.play().catch(() => playSpeech(word));
-        } else {
-            playSpeech(word);
+        if (!word || !word.trim()) return;
+        word = word.trim();
+        if (audioUrl && typeof audioUrl === 'string' && audioUrl.trim() !== '' && audioUrl !== 'null' && audioUrl !== 'undefined') {
+            let normalizedUrl = audioUrl.trim();
+            if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://') && !normalizedUrl.startsWith('/')) {
+                normalizedUrl = '/' + normalizedUrl;
+            }
+            try {
+                const audio = new Audio(normalizedUrl);
+                audio.play().catch(() => playSpeech(word));
+                return;
+            } catch (e) {
+                console.log("Audio URL fallback to TTS:", e);
+            }
         }
+        playSpeech(word);
     }
 
     function playSpeech(word) {
         if ('speechSynthesis' in window) {
-            const utterance = new SpeechSynthesisUtterance(word);
-            utterance.lang = 'ko-KR';
-            utterance.rate = 0.9;
-            window.speechSynthesis.speak(utterance);
-        } else {
-            alert('🔊 Phát âm: ' + word);
+            try {
+                const utterance = new SpeechSynthesisUtterance(word);
+                utterance.lang = 'ko-KR';
+                utterance.rate = 0.9;
+
+                const voices = window.speechSynthesis.getVoices();
+                const koVoice = voices.find(v => v.lang && (v.lang.startsWith('ko') || v.lang.includes('KR')));
+                if (koVoice) utterance.voice = koVoice;
+
+                let hasSpoken = false;
+                utterance.onstart = function() { hasSpoken = true; };
+                utterance.onerror = function() { playOnlineKoreanTTS(word); };
+
+                if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+                window.speechSynthesis.speak(utterance);
+
+                setTimeout(() => {
+                    if (!hasSpoken && !window.speechSynthesis.speaking) {
+                        playOnlineKoreanTTS(word);
+                    }
+                }, 600);
+                return;
+            } catch (e) {
+                console.warn('[TTS] Web Speech failed:', e);
+            }
+        }
+        playOnlineKoreanTTS(word);
+    }
+
+    function playOnlineKoreanTTS(word) {
+        try {
+            const url = '/api/tts?text=' + encodeURIComponent(word);
+            const audio = new Audio(url);
+            audio.play().catch(e => {
+                console.warn('[TTS] Backend audio failed, trying direct:', e);
+                const directUrl = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=ko&client=tw-ob&q=' + encodeURIComponent(word);
+                new Audio(directUrl).play().catch(() => {});
+            });
+        } catch (err) {
+            console.error('[TTS] Error creating Audio:', err);
         }
     }
+
+    // ==========================================
+    // SỔ TỪ CHƯA THUỘC (UNLEARNED WORDS MANAGEMENT)
+    // ==========================================
+    function updateUnlearnedButtonsStatus() {
+        if (!window.HotTopikSync) return;
+        const unlearned = window.HotTopikSync.unlearned;
+        document.querySelectorAll('.btn-unlearned-toggle').forEach(btn => {
+            const id = btn.getAttribute('data-id');
+            const has = unlearned.has(id);
+            if (has) {
+                btn.className = 'btn btn-sm btn-warning rounded-pill px-2 py-1 text-dark fw-bold btn-unlearned-toggle';
+                btn.innerHTML = '⭐ Đã lưu';
+            } else {
+                btn.className = 'btn btn-sm btn-outline-warning rounded-pill px-2 py-1 text-dark fw-bold btn-unlearned-toggle';
+                btn.innerHTML = '⭐ Lưu sổ';
+            }
+        });
+
+        const navCount = document.getElementById('unlearnedCountNav');
+        if (navCount) navCount.innerText = unlearned.count();
+    }
+
+    function toggleUnlearnedWord(btn) {
+        if (!window.HotTopikSync) return;
+        const unlearned = window.HotTopikSync.unlearned;
+        const id = btn.getAttribute('data-id');
+        const word = btn.getAttribute('data-word');
+
+        if (unlearned.has(id)) {
+            unlearned.remove(id);
+            btn.className = 'btn btn-sm btn-outline-warning rounded-pill px-2 py-1 text-dark fw-bold btn-unlearned-toggle';
+            btn.innerHTML = '⭐ Lưu sổ';
+            showSsakToast("Đã bỏ từ \"" + word + "\" khỏi Sổ từ chưa thuộc!");
+        } else {
+            unlearned.add({
+                id: id,
+                word: word,
+                romanization: btn.getAttribute('data-rom'),
+                meaning: btn.getAttribute('data-mean'),
+                wordType: btn.getAttribute('data-type'),
+                topikLevel: currentLevel,
+                topic: currentTopic,
+                exampleKr: btn.getAttribute('data-kr'),
+                exampleVi: btn.getAttribute('data-vi'),
+                audioUrl: btn.getAttribute('data-audio')
+            }, 'Từ chủ đề: ' + currentTopic);
+            btn.className = 'btn btn-sm btn-warning rounded-pill px-2 py-1 text-dark fw-bold btn-unlearned-toggle';
+            btn.innerHTML = '⭐ Đã lưu';
+            showSsakToast("⭐ Đã thêm từ \"" + word + "\" vào Sổ từ chưa thuộc để ôn tập riêng!");
+        }
+        updateUnlearnedButtonsStatus();
+    }
+
+    function addSelectedToUnlearned() {
+        const checked = document.querySelectorAll('.word-check:checked');
+        if (checked.length === 0 || !window.HotTopikSync) return;
+        const unlearned = window.HotTopikSync.unlearned;
+        let countAdded = 0;
+
+        checked.forEach(chk => {
+            const id = chk.value;
+            const item = currentVocabList.find(v => String(v.id) === String(id));
+            if (item) {
+                const added = unlearned.add({
+                    id: item.id,
+                    word: item.word,
+                    romanization: item.romanization,
+                    meaning: item.meaning,
+                    wordType: item.wordType,
+                    topikLevel: currentLevel,
+                    topic: currentTopic,
+                    exampleKr: item.exampleKr,
+                    exampleVi: item.exampleVi,
+                    audioUrl: item.audioUrl
+                }, 'Tự chọn dồn từ: ' + currentTopic);
+                if (added) countAdded++;
+            }
+        });
+
+        updateUnlearnedButtonsStatus();
+        showSsakToast("⭐ Đã dồn " + countAdded + " từ được chọn vào Sổ từ chưa thuộc!");
+    }
+
+    function reviewSelectedFlashcards() {
+        const checked = document.querySelectorAll('.word-check:checked');
+        if (checked.length === 0) return;
+        const selectedIds = Array.from(checked).map(c => c.value);
+        const selectedList = currentVocabList.filter(v => selectedIds.includes(String(v.id)));
+        localStorage.setItem('hottopik_review_session', JSON.stringify(selectedList));
+        window.location.href = '/ly-thuyet/the?mode=custom';
+    }
+
+    function reviewSelectedQuiz() {
+        const checked = document.querySelectorAll('.word-check:checked');
+        if (checked.length < 2) {
+            alert("Vui lòng chọn ít nhất 2 từ để tạo bài Quiz ôn tập riêng!");
+            return;
+        }
+        const selectedIds = Array.from(checked).map(c => c.value);
+        const selectedList = currentVocabList.filter(v => selectedIds.includes(String(v.id)));
+        localStorage.setItem('hottopik_review_session', JSON.stringify(selectedList));
+        window.location.href = '/ly-thuyet/quiz?mode=custom';
+    }
+
+    // ==========================================
+    // REAL-TIME SYNCHRONIZATION WITH CONTENT MANAGER
+    // ==========================================
+    window.addEventListener('hottopik:vocab-sync', function(e) {
+        const ev = e.detail;
+        if (!ev) return;
+
+        // Nếu thay đổi thuộc cấp hoặc chủ đề hiện tại (hoặc thay đổi diện rộng)
+        if (!ev.level || ev.level == currentLevel) {
+            syncLearnerVocabTable();
+        }
+    });
+
+    window.addEventListener('pageshow', function() {
+        syncLearnerVocabTable();
+    });
+
+    function syncLearnerVocabTable() {
+        // Đồng bộ danh sách từ vựng hiện tại
+        fetch('/api/theory/vocabularies?level=' + currentLevel + '&topic=' + encodeURIComponent(currentTopic))
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    currentVocabList = data;
+                    renderLearnerTableBody(data);
+                }
+            })
+            .catch(err => console.error('[VocabSync] Learner vocab sync failed:', err));
+
+        // Đồng bộ danh sách chủ đề của cấp hiện tại (cập nhật dropdown và tiêu đề khi ẩn/bật)
+        fetch('/api/theory/topics?level=' + currentLevel)
+            .then(res => res.json())
+            .then(topics => {
+                if (Array.isArray(topics)) {
+                    updateTopicDropdown(topics);
+                }
+            })
+            .catch(err => console.error('[VocabSync] Learner topic sync failed:', err));
+    }
+
+    function updateTopicDropdown(topics) {
+        const dropdownMenu = document.querySelector('.dropdown-menu');
+        const dropdownBtn = document.querySelector('.dropdown button');
+        if (!dropdownMenu) return;
+        if (!topics || topics.length === 0) {
+            if (dropdownBtn) dropdownBtn.style.display = 'none';
+            const emptyTitle = document.getElementById('vocabEmptyTitle');
+            if (emptyTitle) {
+                emptyTitle.innerText = 'TOPIK ' + currentLevel + ' không có chủ đề nào';
+            }
+            return;
+        }
+        if (dropdownBtn) dropdownBtn.style.display = 'inline-block';
+        dropdownMenu.innerHTML = '';
+        topics.forEach(t => {
+            const li = document.createElement('li');
+            const isActive = (t.name === currentTopic);
+            li.innerHTML = `
+                <a class="dropdown-item py-2 ${isActive ? 'fw-bold active' : ''}"
+                   href="/ly-thuyet/tu-vung?topic=${encodeURIComponent(t.name)}&level=${currentLevel}">
+                    <span>${escapeHtml(t.name)}</span>
+                    <small class="text-muted ms-2">(${t.activeCount || 0} từ)</small>
+                </a>
+            `;
+            dropdownMenu.appendChild(li);
+        });
+    }
+
+    function renderLearnerTableBody(vocabList) {
+        const tbody = document.getElementById('vocabTableBody');
+        const countBadge = document.getElementById('totalVocabCountBadge');
+        const filterCount = document.getElementById('filterAllCount');
+        const cardCount = document.getElementById('countCardLink');
+        const emptyAlert = document.getElementById('vocabEmptyAlert');
+        const container = document.getElementById('vocabTableContainer');
+
+        if (countBadge) countBadge.innerText = vocabList.length;
+        if (filterCount) filterCount.innerText = vocabList.length;
+        if (cardCount) cardCount.innerText = vocabList.length;
+
+        if (vocabList.length === 0) {
+            if (emptyAlert) {
+                emptyAlert.style.display = 'block';
+                const emptyTitle = document.getElementById('vocabEmptyTitle');
+                if (emptyTitle) {
+                    emptyTitle.innerText = currentTopic 
+                        ? ('Chủ đề ' + currentTopic + ' không có từ vựng nào') 
+                        : ('TOPIK ' + currentLevel + ' không có chủ đề nào');
+                }
+            }
+            if (container) container.style.display = 'none';
+            return;
+        }
+
+        if (emptyAlert) emptyAlert.style.display = 'none';
+        if (container) container.style.display = 'block';
+
+        tbody.innerHTML = '';
+        const unlearned = window.HotTopikSync ? window.HotTopikSync.unlearned : null;
+
+        vocabList.forEach(vocab => {
+            const isSaved = unlearned ? unlearned.has(vocab.id) : false;
+            const tr = document.createElement('tr');
+            tr.className = 'vocab-row';
+            tr.id = 'row-student-vocab-' + vocab.id;
+            tr.innerHTML = `
+                <td style="text-align: center; padding: 14px 6px;"><input type="checkbox" class="form-check-input word-check" value="${vocab.id}" onchange="updateSelectedCount()"></td>
+                <td style="padding: 14px; overflow-wrap: break-word;">
+                    <strong style="font-family: var(--font-korean); font-size: 18px; color: #24363D;">${escapeHtml(vocab.word)}</strong>
+                    <small class="text-muted d-block">[${escapeHtml(vocab.romanization || '')}]</small>
+                </td>
+                <td style="padding: 14px; overflow-wrap: break-word;">
+                    <div class="fw-bold" style="color: #24363D;">${escapeHtml(vocab.meaning)}</div>
+                    ${vocab.exampleKr ? `
+                        <div class="mt-1" style="font-size: 12.5px; color: #555;">
+                            <div style="font-family: var(--font-korean); color: #1F6B56; font-weight: 600;">${escapeHtml(vocab.exampleKr)}</div>
+                            <div class="text-muted">${escapeHtml(vocab.exampleVi || '')}</div>
+                        </div>
+                    ` : ''}
+                </td>
+                <td style="padding: 14px 10px;">
+                    <span class="badge bg-light text-dark border">${escapeHtml(vocab.wordType || 'Danh từ')}</span>
+                </td>
+                <td class="text-center" style="padding: 14px 6px;">
+                    <button class="btn btn-sm btn-light rounded-circle text-primary" 
+                            onclick="speakKorean('${escapeJs(vocab.word)}', '${escapeJs(vocab.audioUrl)}')"
+                            title="Nghe phát âm chuẩn">
+                        <i class="bi bi-volume-up-fill fs-6"></i>
+                    </button>
+                </td>
+                <td class="text-center" style="padding: 14px 6px;">
+                    <button type="button" class="btn btn-sm ${isSaved ? 'btn-warning' : 'btn-outline-warning'} rounded-pill px-2 py-1 text-dark fw-bold btn-unlearned-toggle"
+                            id="btn-unlearned-${vocab.id}"
+                            data-id="${vocab.id}"
+                            data-word="${escapeHtml(vocab.word)}"
+                            data-rom="${escapeHtml(vocab.romanization)}"
+                            data-mean="${escapeHtml(vocab.meaning)}"
+                            data-type="${escapeHtml(vocab.wordType)}"
+                            data-level="${currentLevel}"
+                            data-topic="${escapeHtml(currentTopic)}"
+                            data-kr="${escapeHtml(vocab.exampleKr)}"
+                            data-vi="${escapeHtml(vocab.exampleVi)}"
+                            data-audio="${escapeHtml(vocab.audioUrl)}"
+                            onclick="toggleUnlearnedWord(this)"
+                            title="Đánh dấu từ chưa thuộc để dồn vào ôn tập riêng">
+                        ⭐ ${isSaved ? 'Đã lưu' : 'Lưu sổ'}
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        updateUnlearnedButtonsStatus();
+        renderStudentVocabPage(1);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
+    }
+
+    function escapeJs(str) {
+        if (!str) return '';
+        return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        updateUnlearnedButtonsStatus();
+        renderStudentVocabPage(1);
+    });
+    window.addEventListener('hottopik:unlearned-changed', updateUnlearnedButtonsStatus);
 </script>
 
 <div th:replace="~{fragments/footer :: footer}"></div>
