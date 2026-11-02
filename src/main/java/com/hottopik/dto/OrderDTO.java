@@ -14,6 +14,9 @@ public class OrderDTO implements Serializable {
     private String paymentMethod;
     private String status; // PAID, PENDING, REFUND_REQUESTED, REFUNDED
     private String createdAt;
+    private String refundReason;
+    private String refundedAt;
+    private String refundedBy;
 
     public OrderDTO() {}
 
@@ -57,4 +60,13 @@ public class OrderDTO implements Serializable {
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+
+    public String getRefundReason() { return refundReason; }
+    public void setRefundReason(String refundReason) { this.refundReason = refundReason; }
+
+    public String getRefundedAt() { return refundedAt; }
+    public void setRefundedAt(String refundedAt) { this.refundedAt = refundedAt; }
+
+    public String getRefundedBy() { return refundedBy; }
+    public void setRefundedBy(String refundedBy) { this.refundedBy = refundedBy; }
 }

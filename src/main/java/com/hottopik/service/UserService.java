@@ -177,6 +177,7 @@ public class UserService {
         u9006.setBio("Học viên VIP đang ôn thi nâng cao kỹ năng Viết & Đọc để đạt học bổng GKS.");
         u9006.setDailyGoalMinutes(45);
         u9006.setTimezone("Asia/Ho_Chi_Minh");
+        u9006.setVipExpireAt(LocalDateTime.now().plusMonths(6));
         users.put(9006L, u9006);
     }
 
@@ -663,6 +664,9 @@ public class UserService {
             if (mem.getPhone() != null && !mem.getPhone().isEmpty()) dto.setPhone(mem.getPhone());
             if (mem.getBio() != null) dto.setBio(mem.getBio());
             if (mem.getSpecialty() != null) dto.setSpecialty(mem.getSpecialty());
+            dto.setVip(mem.isVip());
+            if (mem.getVipPackage() != null) dto.setVipPackage(mem.getVipPackage());
+            if (mem.getVipExpireAt() != null) dto.setVipExpireAt(mem.getVipExpireAt());
         }
         return dto;
     }
@@ -877,6 +881,70 @@ public class UserService {
             return lockUserTemporarily(id, 7, "Khóa tài khoản bởi ban điều hành/quản trị viên");
         }
     }
+
+    /**
+     * Cấp bù hoặc gia hạn quyền lợi VIP trực tiếp cho học viên
+     */
+    @Transactional
+    public boolean applyVipCompensation(Long userId, int days, Integer bonusCoins, String packageName, String reason) {
+        if (userId == null || days <= 0) return false;
+        boolean updated = false;
+
+        // 1. Cập nhật in-memory
+        UserDTO mem = users.get(userId);
+        if (mem != null) {
+            mem.setVip(true);
+            if (packageName != null && !packageName.trim().isEmpty()) {
+                mem.setVipPackage(packageName);
+            } else if (mem.getVipPackage() == null) {
+                mem.setVipPackage("VIP Tiêu chuẩn");
+            }
+            LocalDateTime currentExpiry = mem.getVipExpireAt();
+            if (currentExpiry != null && currentExpiry.isAfter(LocalDateTime.now())) {
+                mem.setVipExpireAt(currentExpiry.plusDays(days));
+            } else {
+                mem.setVipExpireAt(LocalDateTime.now().plusDays(days));
+            }
+            if (bonusCoins != null && bonusCoins > 0) {
+                mem.setCoinBalance(mem.getCoinBalance() + bonusCoins);
+            }
+            updated = true;
+        }
+
+        // 2. Cập nhật Database nếu có
+        try {
+            Optional<User> uOpt = userRepository.findById(userId);
+            if (uOpt.isPresent()) {
+                User u = uOpt.get();
+                if (bonusCoins != null && bonusCoins > 0) {
+                    u.setCoinBalance((u.getCoinBalance() != null ? u.getCoinBalance() : 0) + bonusCoins);
+                    userRepository.save(u);
+                }
+                updated = true;
+            }
+        } catch (Exception ex) {
+            log.warn("Lỗi lưu thông tin cấp bù VIP vào DB: {}", ex.getMessage());
+        }
+
+        return updated;
+    }
+
+    /**
+     * Thu hồi quyền lợi VIP khi đơn hàng bị hoàn tiền
+     */
+    @Transactional
+    public boolean revokeOrDowngradeVip(Long userId, String reason) {
+        if (userId == null) return false;
+        UserDTO mem = users.get(userId);
+        if (mem != null) {
+            mem.setVip(false);
+            mem.setVipPackage(null);
+            mem.setVipExpireAt(null);
+            return true;
+        }
+        return false;
+    }
+
 
     /**
      * Đổi mật khẩu cho người dùng đang đăng nhập

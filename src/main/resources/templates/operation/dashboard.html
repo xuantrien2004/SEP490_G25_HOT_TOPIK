@@ -63,6 +63,13 @@
                 <span class="ssak-badge badge-sky" style="font-size: 11px; padding: 2px 7px;" th:text="${#lists.size(packagePrices)}">3</span>
             </a>
 
+            <!-- Tab: VIP Compensation & Extension -->
+            <a href="javascript:void(0)" onclick="switchOperationTab('compensation')" id="side-nav-compensation" class="sidebar-item">
+                <span style="font-size: 17px;">🎁</span>
+                <span style="flex-grow: 1;">Cấp bù & Gia hạn VIP</span>
+                <span class="ssak-badge badge-mint" style="font-size: 11px; padding: 2px 7px;" th:text="${#lists.size(compensationHistory)}">2</span>
+            </a>
+
             <!-- Tab 4: Moderate Reviews -->
             <a href="javascript:void(0)" onclick="switchOperationTab('reviews')" id="side-nav-reviews" class="sidebar-item">
                 <span style="font-size: 17px;">⭐</span>
@@ -75,6 +82,13 @@
                 <span style="font-size: 17px;">📢</span>
                 <span style="flex-grow: 1;">Phát Thông báo</span>
                 <span class="ssak-badge badge-mint" style="font-size: 11px; padding: 2px 7px;" th:text="${#lists.size(announcements)}">2</span>
+            </a>
+
+            <!-- Tab: AI Budget Management -->
+            <a href="javascript:void(0)" onclick="switchOperationTab('aiBudget')" id="side-nav-aiBudget" class="sidebar-item">
+                <span style="font-size: 17px;">🤖</span>
+                <span style="flex-grow: 1;">Ngân sách AI</span>
+                <span class="ssak-badge badge-sky" style="font-size: 11px; padding: 2px 7px;" th:text="${#lists.size(aiBudgets)}">3</span>
             </a>
 
             <!-- Tab 6: Audit Log -->
@@ -215,7 +229,6 @@
                                 <option value="ALL">⚡ Tất cả trạng thái</option>
                                 <option value="ACTIVE">🟢 Đang hoạt động</option>
                                 <option value="LOCKED">🔴 Đang bị khóa</option>
-                                <option value="PENDING_LOCK">⏳ Chờ Admin duyệt khóa</option>
                             </select>
                         </div>
                         <!-- Reset Button -->
@@ -275,17 +288,21 @@
                                 </td>
                                 <td style="padding: 14px 10px;">
                                     <span th:id="${'learner-status-' + u.id}" class="ssak-badge"
-                                          th:classappend="${u.pendingPermanentLock ? 'badge-honey' : (u.status == 'ACTIVE' ? 'badge-mint' : (u.status == 'PENDING_VERIFY' ? 'badge-honey' : 'badge-terracotta'))}"
-                                          th:text="${u.pendingPermanentLock ? '⏳ Chờ Admin duyệt khóa' : (u.status == 'ACTIVE' ? 'Đang hoạt động' : (u.status == 'PENDING_VERIFY' ? 'Chờ kích hoạt' : (u.permanentlyLocked ? 'Khóa vĩnh viễn' : 'Tạm khóa')))}">
+                                          th:classappend="${u.status == 'ACTIVE' ? 'badge-mint' : (u.status == 'PENDING_VERIFY' ? 'badge-honey' : 'badge-terracotta')}"
+                                          th:text="${u.status == 'ACTIVE' ? 'Đang hoạt động' : (u.status == 'PENDING_VERIFY' ? 'Chờ kích hoạt' : (u.permanentlyLocked ? 'Khóa vĩnh viễn' : 'Tạm khóa'))}">
                                         Hoạt động
                                     </span>
-                                    <div th:if="${!u.pendingPermanentLock && u.status == 'LOCKED' && u.formattedLockedUntil != null && !u.permanentlyLocked}" style="font-size: 11px; color: #9C4A2E; margin-top: 3px;" th:text="${'Đến: ' + u.formattedLockedUntil}"></div>
+                                    <div th:if="${u.status == 'LOCKED' && u.formattedLockedUntil != null && !u.permanentlyLocked}" style="font-size: 11px; color: #9C4A2E; margin-top: 3px;" th:text="${'Đến: ' + u.formattedLockedUntil}"></div>
                                 </td>
                                 <td style="padding: 14px 10px; text-align: right;" th:id="${'learner-action-cell-' + u.id}">
-                                    <span th:if="${u.pendingPermanentLock}" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 10px; background: #FFFBE6; border: 1px solid #FFE58F; font-size: 12px; font-weight: 700; color: #D48806;">
-                                        ⏳ Đang chờ duyệt
-                                    </span>
-                                    <button th:if="${!u.pendingPermanentLock}" type="button" class="btn-ssak-light" style="height: 34px; padding: 0 14px; font-size: 12.5px; font-weight: 800; border-radius: 10px; cursor: pointer; transition: all 0.15s ease;"
+                                    <button type="button" class="btn-ssak-primary" style="height: 34px; padding: 0 12px; font-size: 12px; margin-right: 6px;"
+                                            th:data-id="${u.id}"
+                                            th:data-name="${u.fullName}"
+                                            th:data-email="${u.email}"
+                                            onclick="openQuickOpCompensation(this.getAttribute('data-id'), this.getAttribute('data-name'), this.getAttribute('data-email'))">
+                                        🎁 Cấp bù VIP
+                                    </button>
+                                    <button type="button" class="btn-ssak-light" style="height: 34px; padding: 0 14px; font-size: 12.5px; font-weight: 800; border-radius: 10px; cursor: pointer; transition: all 0.15s ease;"
                                             th:id="${'btn-toggle-learner-' + u.id}"
                                             th:data-id="${u.id}"
                                             th:data-name="${u.fullName}"
@@ -293,7 +310,7 @@
                                             th:data-status="${u.status}"
                                             onclick="openLearnerModal(this.getAttribute('data-id'), this.getAttribute('data-name'), this.getAttribute('data-email'), this.getAttribute('data-status'))">
                                         <span th:if="${u.status == 'LOCKED'}" style="color: #1F6B56;">🔓 Mở khóa</span>
-                                        <span th:if="${u.status != 'LOCKED'}" style="color: #9C4A2E;">🔒 Khóa tài khoản</span>
+                                        <span th:if="${u.status != 'LOCKED'}" style="color: #9C4A2E;">🔒 Khóa</span>
                                     </button>
                                 </td>
                             </tr>
@@ -344,17 +361,25 @@
                                 <td style="padding: 14px 10px; font-weight: 800; color: #1F6B56;" th:text="${#numbers.formatDecimal(ord.amount, 0, 'POINT', 0, 'COMMA') + 'đ'}">499.000đ</td>
                                 <td style="padding: 14px 10px;" th:text="${ord.paymentMethod}">VNPAY</td>
                                 <td style="padding: 14px 10px;">
-                                    <span class="ssak-badge badge-mint" th:if="${ord.status == 'PAID'}">Đã thanh toán</span>
-                                    <span class="ssak-badge badge-terracotta" th:if="${ord.status == 'REFUND_REQUESTED'}">⏳ Đang gửi duyệt hoàn tiền</span>
-                                    <span class="ssak-badge badge-honey" th:if="${ord.status == 'PENDING'}">Chờ thanh toán</span>
+                                    <span class="ssak-badge badge-mint" th:if="${ord.status == 'PAID'}">✅ Đã thanh toán</span>
+                                    <span class="ssak-badge badge-terracotta" th:if="${ord.status == 'REFUNDED'}">↩️ Đã hoàn tiền</span>
+                                    <span class="ssak-badge badge-honey" th:if="${ord.status == 'PENDING'}">⏳ Chờ thanh toán</span>
+                                    <div th:if="${ord.refundReason != null}" style="font-size: 11px; color: #9C4A2E; margin-top: 3px;" th:text="${'Lý do: ' + ord.refundReason}"></div>
                                 </td>
                                 <td style="padding: 14px 10px; text-align: right;">
                                     <button th:if="${ord.status == 'PAID'}" type="button" class="btn-ssak-outline" style="height: 32px; padding: 0 12px; font-size: 12px; color: #9C4A2E; border-color: #FFA39E;"
-                                            th:data-id="${ord.id}" onclick="requestRefund(this.getAttribute('data-id'))">
-                                        📤 Gửi duyệt hoàn tiền
+                                            th:data-id="${ord.id}"
+                                            th:data-code="${ord.orderCode}"
+                                            th:data-name="${ord.customerName}"
+                                            th:data-amount="${#numbers.formatDecimal(ord.amount, 0, 'POINT', 0, 'COMMA')}"
+                                            onclick="openOpRefundModal(this.getAttribute('data-id'), this.getAttribute('data-code'), this.getAttribute('data-name'), this.getAttribute('data-amount'))">
+                                        💸 Hoàn tiền ngay
                                     </button>
-                                    <span th:if="${ord.status == 'REFUND_REQUESTED'}" style="font-size: 12px; color: #7A5A12; font-weight: 700;">
-                                        Chờ Admin phê duyệt hoàn tiền
+                                    <span th:if="${ord.status == 'REFUNDED'}" style="font-size: 12px; color: var(--ssak-text-muted);">
+                                        Hoàn tất lúc <span th:text="${ord.refundedAt != null ? ord.refundedAt : 'Gần đây'}"></span>
+                                    </span>
+                                    <span th:if="${ord.status == 'PENDING'}" style="font-size: 12px; color: var(--ssak-text-muted);">
+                                        Chưa thanh toán
                                     </span>
                                 </td>
                             </tr>
@@ -368,10 +393,10 @@
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <h3 style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">
-                            🏷️ Đề xuất Bảng giá Gói VIP (Propose Package Prices)
+                            🏷️ Quản lý & Điều chỉnh Giá gói VIP (Package Prices)
                         </h3>
                         <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
-                            Đề xuất mức giá ưu đãi theo chiến dịch. Đề xuất sẽ được gửi lên Admin để phê duyệt trước khi áp dụng ra ngoài trang chủ.
+                            Điều chỉnh mức giá ưu đãi gói VIP áp dụng trực tiếp ra ngoài hệ thống.
                         </p>
                     </div>
                 </div>
@@ -380,8 +405,7 @@
                     <div th:each="pkg : ${packagePrices}" class="ssak-card" style="padding: 22px; border: 1.5px solid var(--ssak-border); background: #F8FAFC; border-radius: 18px; display: flex; flex-direction: column; gap: 12px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="font-weight: 800; font-size: 16px; color: #24363D;" th:text="${pkg.name}">Gói VIP 1 Tháng</span>
-                            <span class="ssak-badge badge-mint" th:if="${pkg.proposalStatus == 'ACTIVE'}">Giá hiện hành</span>
-                            <span class="ssak-badge badge-honey" th:if="${pkg.proposalStatus == 'PROPOSED'}">Đã gửi đề xuất</span>
+                            <span class="ssak-badge badge-mint">Đang áp dụng</span>
                         </div>
                         <div style="font-size: 13px; color: var(--ssak-text-muted);" th:text="${pkg.description}">Mô tả gói</div>
 
@@ -391,14 +415,107 @@
                         </div>
 
                         <div style="border-top: 1px dashed var(--ssak-border); padding-top: 12px; display: flex; flex-direction: column; gap: 8px;">
-                            <label style="font-size: 12px; font-weight: 700; color: var(--ssak-text-muted);">Đề xuất mức giá mới (VNĐ):</label>
+                            <label style="font-size: 12px; font-weight: 700; color: var(--ssak-text-muted);">Điều chỉnh giá mới (VNĐ):</label>
                             <div style="display: flex; gap: 8px;">
-                                <input type="number" th:id="${'prop-price-' + pkg.id}" th:value="${pkg.proposedPrice}" class="ssak-input" style="height: 38px; font-size: 13px;" placeholder="Ví dụ: 279000">
+                                <input type="number" th:id="${'op-prop-price-' + pkg.id}" th:value="${pkg.currentPrice}" class="ssak-input" style="height: 38px; font-size: 13px;" placeholder="Nhập giá mới">
                                 <button type="button" class="btn-ssak-primary" style="height: 38px; padding: 0 14px; font-size: 12px; font-weight: 800; white-space: nowrap;"
-                                        th:data-id="${pkg.id}" onclick="proposePackagePrice(this.getAttribute('data-id'))">
-                                    Gửi đề xuất
+                                        th:data-id="${pkg.id}" onclick="updateOpPackagePrice(this.getAttribute('data-id'))">
+                                    Lưu giá ngay
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: VIP COMPENSATION & EXTENSION -->
+            <section id="pane-compensation" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: none; flex-direction: column; gap: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">
+                            🎁 Cấp bù & Gia hạn Quyền lợi VIP (VIP Compensation & Extension)
+                        </h3>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
+                            Thực hiện cấp bù ngày học VIP, gia hạn thời gian gói học và tặng Xu thưởng cho học viên khi có sự cố kỹ thuật hoặc tri ân đặc biệt.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 24px;">
+                    <!-- Left: Direct Compensation Form -->
+                    <div style="background: #F8FAFC; border: 1.5px solid var(--ssak-border); border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 16px;">
+                        <h4 style="margin: 0; font-family: var(--font-heading); font-size: 16px; font-weight: 800; color: #1F6B56;">
+                            ⚡ Thực hiện cấp bù / gia hạn quyền lợi
+                        </h4>
+
+                        <div>
+                            <label style="display: block; font-size: 12.5px; font-weight: 700; color: #24363D; margin-bottom: 6px;">Chọn học viên nhận quyền lợi:</label>
+                            <select id="opCompUserId" class="form-select ssak-input" style="height: 42px; font-size: 13.5px; border-radius: 12px;">
+                                <option th:each="l : ${learners}" th:value="${l.id}" th:text="${l.fullName + ' (' + l.email + ')'}"></option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label style="display: block; font-size: 12.5px; font-weight: 700; color: #24363D; margin-bottom: 6px;">Số ngày VIP gia hạn / cấp bù:</label>
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                <button type="button" class="btn-ssak-chip-op" onclick="selectOpCompDays(7, this)" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #1F6B56; background: #1F6B56; color: #FFFFFF; font-size: 12px; font-weight: 700;">+7 ngày</button>
+                                <button type="button" class="btn-ssak-chip-op" onclick="selectOpCompDays(14, this)" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #CBD5E1; background: #FFFFFF; color: #475569; font-size: 12px; font-weight: 700;">+14 ngày</button>
+                                <button type="button" class="btn-ssak-chip-op" onclick="selectOpCompDays(30, this)" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #CBD5E1; background: #FFFFFF; color: #475569; font-size: 12px; font-weight: 700;">+30 ngày</button>
+                                <button type="button" class="btn-ssak-chip-op" onclick="selectOpCompDays(90, this)" style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #CBD5E1; background: #FFFFFF; color: #475569; font-size: 12px; font-weight: 700;">+90 ngày</button>
+                            </div>
+                            <input type="number" id="opCompDays" value="7" min="1" max="1000" class="ssak-input" style="height: 38px; font-size: 13px; margin-top: 8px;" placeholder="Nhập số ngày">
+                        </div>
+
+                        <div>
+                            <label style="display: block; font-size: 12.5px; font-weight: 700; color: #24363D; margin-bottom: 6px;">Tặng kèm Xu học tập (Coins):</label>
+                            <input type="number" id="opCompCoins" value="50" min="0" max="10000" class="ssak-input" style="height: 38px; font-size: 13px;" placeholder="Ví dụ: 50">
+                        </div>
+
+                        <div>
+                            <label style="display: block; font-size: 12.5px; font-weight: 700; color: #24363D; margin-bottom: 6px;">Lý do cấp bù / gia hạn (bắt buộc):</label>
+                            <textarea id="opCompReason" class="ssak-input" rows="3" style="width: 100%; font-size: 13px; line-height: 1.5; padding: 10px 12px; resize: vertical;" placeholder="Ví dụ: Bồi thường sự cố gián đoạn kết nối máy chủ ngày 05/10..."></textarea>
+                        </div>
+
+                        <button type="button" class="btn-ssak-primary" onclick="submitOpCompensation()" style="height: 44px; font-size: 14px; font-weight: 800; border-radius: 12px; margin-top: 4px;">
+                            🎁 Xác nhận Cấp bù & Gia hạn ngay
+                        </button>
+                    </div>
+
+                    <!-- Right: Compensation History Table -->
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <h4 style="margin: 0; font-family: var(--font-heading); font-size: 16px; font-weight: 800; color: #24363D;">
+                            📜 Lịch sử cấp bù & gia hạn gần đây
+                        </h4>
+                        <div style="overflow-x: auto; max-height: 520px; overflow-y: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 13.5px;">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase;">
+                                        <th style="padding: 10px 8px;">Học viên</th>
+                                        <th style="padding: 10px 8px;">Quyền lợi cấp</th>
+                                        <th style="padding: 10px 8px;">Lý do</th>
+                                        <th style="padding: 10px 8px;">Người thực hiện</th>
+                                        <th style="padding: 10px 8px;">Thời gian</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="comp : ${compensationHistory}" style="border-bottom: 1px solid var(--ssak-border);">
+                                        <td style="padding: 12px 8px;">
+                                            <div style="font-weight: 700; color: #24363D;" th:text="${comp.userName}">Học viên</div>
+                                            <div style="font-size: 11px; color: var(--ssak-text-muted);" th:text="${comp.userEmail}">email@hottopik.com</div>
+                                        </td>
+                                        <td style="padding: 12px 8px;">
+                                            <span class="ssak-badge badge-mint" th:text="${'+' + comp.daysGranted + ' ngày VIP'}">+7 ngày VIP</span>
+                                            <span th:if="${comp.coinsGranted > 0}" class="ssak-badge badge-honey" th:text="${'+' + comp.coinsGranted + ' Xu'}">+50 Xu</span>
+                                        </td>
+                                        <td style="padding: 12px 8px; max-width: 200px; font-size: 12.5px;" th:text="${comp.reason}">Sự cố hệ thống</td>
+                                        <td style="padding: 12px 8px; font-size: 12px;">
+                                            <span style="font-weight: 700;" th:text="${comp.actorName}">Operation Manager</span>
+                                            <div style="font-size: 11px; color: var(--ssak-text-muted);" th:text="${comp.actorRole}">Vận hành</div>
+                                        </td>
+                                        <td style="padding: 12px 8px; font-size: 12px; color: var(--ssak-text-muted);" th:text="${comp.createdAt}">2026-10-06</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -465,27 +582,49 @@
                 </div>
 
                 <div style="background: #F8FAFC; border: 1.5px solid var(--ssak-border); border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 14px;">
-                    <div>
-                        <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px; color: #24363D;">Tiêu đề thông báo:</label>
-                        <input type="text" id="annTitle" class="ssak-input" placeholder="Ví dụ: Ưu đãi 20% gói VIP chào đón kỳ thi TOPIK tháng 11" style="height: 44px;">
-                    </div>
-                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px;">
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; align-items: end;">
                         <div>
-                            <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px; color: #24363D;">Nội dung chi tiết:</label>
-                            <input type="text" id="annContent" class="ssak-input" placeholder="Nội dung gửi đến chuông thông báo học viên..." style="height: 44px;">
+                            <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px; color: #24363D;">Tiêu đề thông báo <span style="color: #CF1322;">(*)</span>:</label>
+                            <input type="text" id="annTitle" class="ssak-input" placeholder="Ví dụ: Ưu đãi 20% gói VIP chào đón kỳ thi TOPIK tháng 11" style="height: 44px;">
                         </div>
                         <div>
-                            <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px; color: #24363D;">Đối tượng nhận:</label>
-                            <select id="annAudience" class="ssak-input" style="height: 44px;">
-                                <option value="ALL">Tất cả học viên (ALL)</option>
-                                <option value="VIP_ONLY">Chỉ thành viên VIP</option>
-                                <option value="BASIC_ONLY">Học viên thường (Basic)</option>
+                            <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px; color: #24363D;">Nhóm người nhận <span style="color: #CF1322;">(*)</span>:</label>
+                            <select id="annAudience" class="ssak-input" style="height: 44px;" onchange="onAudienceChange()">
+                                <option value="ALL">📣 Tất cả học viên (ALL)</option>
+                                <option value="VIP">👑 Chỉ thành viên VIP</option>
+                                <option value="FREE">🎓 Học viên Cơ bản (Free)</option>
+                                <option value="TOPIK_I">📚 Luyện thi TOPIK I (cấp 1-2)</option>
+                                <option value="TOPIK_II">🏆 Luyện thi TOPIK II (cấp 3-6)</option>
+                                <option value="SPECIFIC">🎯 Gửi riêng 1 học viên</option>
                             </select>
                         </div>
                     </div>
+
+                    <!-- Specific Learner Picker (hidden unless SPECIFIC selected) -->
+                    <div id="annSpecificUserRow" style="display: none;">
+                        <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px; color: #24363D;">Chọn học viên nhận thông báo riêng:</label>
+                        <select id="annTargetUserId" class="ssak-input" style="height: 44px;">
+                            <option value="">-- Chọn học viên --</option>
+                            <option th:each="l : ${learners}" th:value="${l.id}" th:text="${l.fullName + ' (' + l.email + ')'}">
+                                Học viên
+                            </option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px; color: #24363D;">Nội dung thông báo <span style="color: #CF1322;">(*)</span>:</label>
+                        <textarea id="annContent" class="ssak-input" rows="3" style="width: 100%; font-size: 13px; line-height: 1.6; padding: 10px 14px; resize: vertical;" placeholder="Mô tả chi tiết nội dung thông báo gửi đến chuông thông báo học viên..."></textarea>
+                    </div>
+
+                    <!-- Audience Preview Badge -->
+                    <div style="display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #EEF9F5; border-radius: 10px; border: 1px solid #C3E8D7;">
+                        <span style="font-size: 13px; color: #1F6B56; font-weight: 700;">📌 Thông báo sẽ gửi tới:</span>
+                        <span id="annAudiencePreview" style="font-size: 13px; font-weight: 800; color: #1F6B56;">Tất cả học viên</span>
+                    </div>
+
                     <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
                         <button type="button" class="btn-ssak-primary" style="height: 42px; padding: 0 24px; font-size: 13px; font-weight: 800;" onclick="submitAnnouncement()">
-                            Phát thông báo ngay
+                            📢 Phát thông báo ngay
                         </button>
                     </div>
                 </div>
@@ -494,15 +633,88 @@
                 <div style="border-top: 1px dashed var(--ssak-border); padding-top: 16px;">
                     <div style="font-weight: 800; font-size: 14px; margin-bottom: 10px; color: #24363D;">Các thông báo đã phát gần đây:</div>
                     <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <div th:each="ann : ${announcements}" style="padding: 14px 18px; border-radius: 12px; background: #F8FAFC; border: 1px solid var(--ssak-border); display: flex; justify-content: space-between; align-items: center;">
-                            <div>
+                        <div th:each="ann : ${announcements}" style="padding: 14px 18px; border-radius: 12px; background: #F8FAFC; border: 1px solid var(--ssak-border); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
+                            <div style="flex-grow: 1; min-width: 0;">
                                 <div style="font-weight: 800; font-size: 14px; color: #24363D;" th:text="${ann.title}">Tiêu đề thông báo</div>
-                                <div style="font-size: 13px; color: var(--ssak-text-muted); margin-top: 2px;" th:text="${ann.content}">Nội dung</div>
+                                <div style="font-size: 13px; color: var(--ssak-text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" th:text="${ann.content}">Nội dung</div>
+                                <div style="font-size: 11.5px; color: var(--ssak-text-muted); margin-top: 4px;" th:text="${'Bởi: ' + ann.authorName}">Bởi: Operation Manager</div>
                             </div>
                             <div style="text-align: right; flex-shrink: 0;">
-                                <span class="ssak-badge badge-mint" style="font-size: 11px;" th:text="${ann.targetAudience}">ALL</span>
+                                <span class="ssak-badge badge-mint" style="font-size: 11px; white-space: nowrap;" th:text="${ann.targetAudienceLabel}">Tất cả học viên</span>
                                 <div style="font-size: 11px; color: var(--ssak-text-muted); margin-top: 4px;" th:text="${ann.sentAt}">2026-10-06</div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: AI BUDGET MANAGEMENT (Quản lý Ngân sách AI) -->
+            <section id="pane-aiBudget" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: none; flex-direction: column; gap: 20px;">
+                <div>
+                    <h3 style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">
+                        🤖 Quản lý Ngân sách Dịch vụ AI (AI Budget Management)
+                    </h3>
+                    <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
+                        Kiểm soát hạn mức chi tiêu và ngưỡng cảnh báo theo từng dịch vụ AI. Điều chỉnh kịp thời để tránh vượt ngân sách vận hành.
+                    </p>
+                </div>
+
+                <!-- AI Budget Cards Grid -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;">
+                    <div th:each="budget : ${aiBudgets}" class="ssak-card" style="padding: 22px; border: 1.5px solid var(--ssak-border); border-radius: 20px; display: flex; flex-direction: column; gap: 14px;"
+                         th:style="${budget.status == 'WARNING' ? 'border-color: #FFA39E; background: #FFF8F7;' : 'background: #F8FAFC;'}">
+
+                        <!-- Service Header -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                            <div style="font-family: var(--font-heading); font-size: 14.5px; font-weight: 800; color: #24363D; line-height: 1.3;"
+                                 th:text="${budget.serviceName}">OpenAI GPT-4o</div>
+                            <span class="ssak-badge badge-mint" th:if="${budget.status == 'NORMAL'}" style="font-size: 11px; white-space: nowrap;">✅ Bình thường</span>
+                            <span class="ssak-badge badge-honey" th:if="${budget.status == 'WARNING'}" style="font-size: 11px; white-space: nowrap;">⚠️ Cảnh báo</span>
+                        </div>
+
+                        <!-- Usage Bar -->
+                        <div>
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; margin-bottom: 6px;">
+                                <span style="color: var(--ssak-text-muted);">Đã dùng tháng này:</span>
+                                <span th:style="${budget.status == 'WARNING' ? 'color: #CF1322;' : 'color: #1F6B56;'}">
+                                    <span th:text="${'$' + budget.currentUsageUsd}">$186.5</span>
+                                    <span style="color: var(--ssak-text-muted);" th:text="${' / $' + budget.monthlyLimitUsd}"> / $300</span>
+                                </span>
+                            </div>
+                            <div style="height: 8px; background: #E2E8F0; border-radius: 4px; overflow: hidden;">
+                                <div th:style="|width: ${budget.usagePercent}%; height: 100%; border-radius: 4px; background: ${budget.status == 'WARNING' ? '#FF7875' : '#6CC49F'}; transition: width 0.4s ease;|"></div>
+                            </div>
+                            <div style="font-size: 11.5px; color: var(--ssak-text-muted); margin-top: 4px;" th:text="${budget.formattedUsagePercent + '% hạn mức đã sử dụng'}">62.2% hạn mức đã sử dụng</div>
+                        </div>
+
+                        <!-- Edit Controls -->
+                        <div style="border-top: 1px dashed var(--ssak-border); padding-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                <div>
+                                    <label style="font-size: 11.5px; font-weight: 700; color: var(--ssak-text-muted); display: block; margin-bottom: 4px;">Hạn mức (USD/tháng):</label>
+                                    <input type="number" th:id="${'ai-limit-' + budget.id}" th:value="${budget.monthlyLimitUsd}" class="ssak-input" step="10" min="10" style="height: 36px; font-size: 12.5px;">
+                                </div>
+                                <div>
+                                    <label style="font-size: 11.5px; font-weight: 700; color: var(--ssak-text-muted); display: block; margin-bottom: 4px;">Ngưỡng cảnh báo (%):</label>
+                                    <input type="number" th:id="${'ai-threshold-' + budget.id}" th:value="${budget.alertThresholdPercent}" class="ssak-input" min="10" max="100" style="height: 36px; font-size: 12.5px;">
+                                </div>
+                            </div>
+                            <button type="button" class="btn-ssak-primary" style="height: 36px; padding: 0 14px; font-size: 12px; font-weight: 800; width: 100%;"
+                                    th:data-id="${budget.id}" onclick="updateAiBudget(this.getAttribute('data-id'))">
+                                💾 Cập nhật ngân sách
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Banner -->
+                <div style="background: #EEF9F5; border: 1.5px solid #C3E8D7; border-radius: 14px; padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
+                    <span style="font-size: 28px;">💡</span>
+                    <div>
+                        <div style="font-weight: 800; font-size: 13.5px; color: #1F6B56;">Hướng dẫn quản lý ngân sách AI</div>
+                        <div style="font-size: 12.5px; color: #2D6B57; margin-top: 3px; line-height: 1.5;">
+                            Khi mức sử dụng đạt <strong>ngưỡng cảnh báo</strong>, hệ thống sẽ chuyển trạng thái dịch vụ sang ⚠️ <strong>Cảnh báo</strong> và gửi thông báo tới ban vận hành.
+                            Hãy điều chỉnh <em>Hạn mức</em> hoặc <em>Ngưỡng cảnh báo</em> kịp thời để tránh gián đoạn dịch vụ AI.
                         </div>
                     </div>
                 </div>
@@ -606,12 +818,17 @@
         orders: {
             icon: '💳',
             title: 'Quản lý Đơn hàng & Hoàn tiền (Manage Orders & Refunds)',
-            subtitle: 'Theo dõi giao dịch mua gói VIP. Khi có đơn cần hoàn tiền, gửi yêu cầu phê duyệt lên Administrator.'
+            subtitle: 'Theo dõi giao dịch mua gói VIP và thực hiện hoàn tiền trực tiếp cho học viên khi cần thiết.'
         },
         prices: {
             icon: '🏷️',
-            title: 'Đề xuất Bảng giá Gói VIP (Propose Package Prices)',
-            subtitle: 'Đề xuất mức giá ưu đãi theo chiến dịch. Đề xuất sẽ được gửi lên Admin để phê duyệt trước khi áp dụng.'
+            title: 'Quản lý & Điều chỉnh Giá gói VIP (Package Prices)',
+            subtitle: 'Điều chỉnh mức giá ưu đãi gói VIP áp dụng trực tiếp ra ngoài hệ thống.'
+        },
+        compensation: {
+            icon: '🎁',
+            title: 'Cấp bù & Gia hạn Quyền lợi VIP (VIP Compensation & Extension)',
+            subtitle: 'Thực hiện cấp bù ngày học VIP, gia hạn thời gian gói học và tặng Xu thưởng cho học viên.'
         },
         reviews: {
             icon: '⭐',
@@ -621,7 +838,12 @@
         announcements: {
             icon: '📢',
             title: 'Phát Thông báo Hệ thống (Send Announcements)',
-            subtitle: 'Gửi thông báo đẩy về kỳ thi, ưu đãi hoặc cập nhật tài nguyên học tập tới học viên.'
+            subtitle: 'Gửi thông báo đẩy về kỳ thi, ưu đãi hoặc cập nhật tài nguyên học tập tới từng nhóm học viên.'
+        },
+        aiBudget: {
+            icon: '🤖',
+            title: 'Quản lý Ngân sách Dịch vụ AI (AI Budget Management)',
+            subtitle: 'Kiểm soát hạn mức chi tiêu và ngưỡng cảnh báo theo từng dịch vụ AI để tránh vượt ngân sách vận hành.'
         },
         audit: {
             icon: '📜',
@@ -631,7 +853,7 @@
     };
 
     function switchOperationTab(tabName) {
-        const tabs = ['users', 'orders', 'prices', 'reviews', 'announcements', 'audit'];
+        const tabs = ['users', 'orders', 'prices', 'compensation', 'reviews', 'announcements', 'aiBudget', 'audit'];
         tabs.forEach(t => {
             const pane = document.getElementById('pane-' + t);
             const sideNav = document.getElementById('side-nav-' + t);
@@ -699,7 +921,7 @@
             iconBox.style.color = '#CF1322';
             iconBox.innerHTML = '🔒';
             title.textContent = 'Khóa tài khoản học viên';
-            subtitle.textContent = 'Lựa chọn hình thức tạm khóa hoặc đề xuất khóa vĩnh viễn';
+            subtitle.textContent = 'Lựa chọn hình thức tạm khóa hoặc khóa vĩnh viễn tài khoản học viên';
             userBadge.innerHTML = '<span class="ssak-badge badge-mint">Đang hoạt động</span>';
 
             // Reset form
@@ -756,7 +978,7 @@
             panePerm.style.display = 'block';
 
             confirmBtn.style.background = '#8C3B1E';
-            confirmBtn.innerHTML = '📨 Gửi yêu cầu Admin duyệt';
+            confirmBtn.innerHTML = '🔒 Xác nhận khóa vĩnh viễn';
         }
     }
 
@@ -837,7 +1059,7 @@
             if (currentLockType === 'TEMPORARY') {
                 const reason = document.getElementById('tempLockReason').value.trim();
                 if (!reason) {
-                    alert('Vui lòng nhập lý do tạm khóa để ghi nhận vào nhật ký hoạt động hệ thống gửi Admin!');
+                    alert('Vui lòng nhập lý do tạm khóa để ghi nhận vào nhật ký hoạt động hệ thống!');
                     document.getElementById('tempLockReason').focus();
                     return;
                 }
@@ -875,13 +1097,13 @@
                 // PERMANENT: Gửi yêu cầu Admin duyệt
                 const reason = document.getElementById('permLockReason').value.trim();
                 if (!reason) {
-                    alert('Vui lòng nêu rõ lý do đề xuất khóa vĩnh viễn để gửi Admin xem xét và phê duyệt!');
+                    alert('Vui lòng nêu rõ lý do khóa vĩnh viễn để ghi vào nhật ký hoạt động hệ thống!');
                     document.getElementById('permLockReason').focus();
                     return;
                 }
 
                 confirmBtn.disabled = true;
-                confirmBtn.innerHTML = '⏳ Đang gửi yêu cầu...';
+                confirmBtn.innerHTML = '⏳ Đang xử lý khóa...';
 
                 const formData = new FormData();
                 formData.append('userId', currentTargetUserId);
@@ -898,18 +1120,7 @@
                     closeLearnerModal();
                     if (data.success) {
                         showSsakToast(data.message);
-                        if (data.pendingApproval) {
-                            const statusBadge = document.getElementById('learner-status-' + currentTargetUserId);
-                            if (statusBadge) {
-                                statusBadge.className = 'ssak-badge badge-honey';
-                                statusBadge.innerText = '⏳ Chờ Admin duyệt khóa';
-                            }
-                            const actionCell = document.getElementById('learner-action-cell-' + currentTargetUserId);
-                            if (actionCell) {
-                                actionCell.innerHTML = '<span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 10px; background: #FFFBE6; border: 1px solid #FFE58F; font-size: 12px; font-weight: 700; color: #D48806;">⏳ Đang chờ duyệt</span>';
-                            }
-                        }
-                        setTimeout(() => window.location.reload(), 900);
+                        setTimeout(() => window.location.reload(), 700);
                     } else {
                         showSsakToast('Lỗi: ' + data.message);
                     }
@@ -922,23 +1133,44 @@
         }
     }
 
-    function requestRefund(id) {
-        const reason = prompt('Nhập lý do gửi duyệt hoàn tiền đơn hàng này lên Admin:');
-        if (reason === null) return;
+    let currentOpRefundOrderId = null;
+
+    function openOpRefundModal(orderId, orderCode, customerName, amount) {
+        currentOpRefundOrderId = orderId;
+        document.getElementById('opRefundOrderCode').innerText = '#' + orderCode;
+        document.getElementById('opRefundCustomerName').innerText = customerName;
+        document.getElementById('opRefundAmount').innerText = amount + 'đ';
+        document.getElementById('opRefundReason').value = '';
+        document.getElementById('opOrderRefundModal').style.display = 'flex';
+    }
+
+    function closeOpRefundModal() {
+        document.getElementById('opOrderRefundModal').style.display = 'none';
+        currentOpRefundOrderId = null;
+    }
+
+    function executeOpRefund() {
+        if (!currentOpRefundOrderId) return;
+        const reason = document.getElementById('opRefundReason').value.trim();
+        if (!reason) {
+            alert('Vui lòng nhập lý do hoàn tiền để lưu vết kiểm toán.');
+            return;
+        }
 
         const formData = new FormData();
-        formData.append('orderId', id);
+        formData.append('orderId', currentOpRefundOrderId);
         formData.append('reason', reason);
 
-        fetch('/operation/orders/request-refund', {
+        fetch('/operation/orders/refund', {
             method: 'POST',
             body: formData
         })
         .then(r => r.json())
         .then(data => {
+            closeOpRefundModal();
             if (data.success) {
                 showSsakToast(data.message);
-                setTimeout(() => window.location.reload(), 800);
+                setTimeout(() => window.location.reload(), 700);
             } else {
                 showSsakToast('Lỗi: ' + data.message);
             }
@@ -946,18 +1178,20 @@
         .catch(e => showSsakToast('Có lỗi: ' + e));
     }
 
-    function proposePackagePrice(id) {
-        const price = document.getElementById('prop-price-' + id).value;
-        if (!price || price <= 0) {
-            alert('Vui lòng nhập mức giá đề xuất hợp lệ.');
+    function updateOpPackagePrice(pkgId) {
+        const input = document.getElementById('op-prop-price-' + pkgId);
+        if (!input) return;
+        const newPrice = input.value;
+        if (!newPrice || newPrice <= 0) {
+            alert('Vui lòng nhập giá hợp lệ.');
             return;
         }
 
         const formData = new FormData();
-        formData.append('packageId', id);
-        formData.append('proposedPrice', price);
+        formData.append('packageId', pkgId);
+        formData.append('newPrice', newPrice);
 
-        fetch('/operation/prices/propose', {
+        fetch('/operation/prices/update', {
             method: 'POST',
             body: formData
         })
@@ -965,7 +1199,71 @@
         .then(data => {
             if (data.success) {
                 showSsakToast(data.message);
-                setTimeout(() => window.location.reload(), 800);
+                setTimeout(() => window.location.reload(), 700);
+            } else {
+                showSsakToast('Lỗi: ' + data.message);
+            }
+        })
+        .catch(e => showSsakToast('Có lỗi: ' + e));
+    }
+
+    function selectOpCompDays(days, btn) {
+        document.getElementById('opCompDays').value = days;
+        const buttons = document.querySelectorAll('.btn-ssak-chip-op');
+        buttons.forEach(b => {
+            b.style.background = '#FFFFFF';
+            b.style.color = '#475569';
+            b.style.borderColor = '#CBD5E1';
+        });
+        if (btn) {
+            btn.style.background = '#1F6B56';
+            btn.style.color = '#FFFFFF';
+            btn.style.borderColor = '#1F6B56';
+        }
+    }
+
+    function openQuickOpCompensation(userId, name, email) {
+        switchOperationTab('compensation');
+        const sel = document.getElementById('opCompUserId');
+        if (sel) {
+            sel.value = userId;
+        }
+    }
+
+    function submitOpCompensation() {
+        const userId = document.getElementById('opCompUserId').value;
+        const days = document.getElementById('opCompDays').value;
+        const coins = document.getElementById('opCompCoins').value || 0;
+        const reason = document.getElementById('opCompReason').value.trim();
+
+        if (!userId) {
+            alert('Vui lòng chọn học viên nhận quyền lợi.');
+            return;
+        }
+        if (!days || days <= 0) {
+            alert('Vui lòng nhập số ngày cấp bù hợp lệ.');
+            return;
+        }
+        if (!reason) {
+            alert('Vui lòng nhập lý do cấp bù / gia hạn để lưu vết vận hành.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('userId', userId);
+        formData.append('days', days);
+        formData.append('coins', coins);
+        formData.append('reason', reason);
+
+        fetch('/operation/vip/compensate', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showSsakToast(data.message);
+                setTimeout(() => window.location.reload(), 700);
             } else {
                 showSsakToast('Lỗi: ' + data.message);
             }
@@ -993,13 +1291,37 @@
         .catch(e => showSsakToast('Có lỗi: ' + e));
     }
 
-    function submitAnnouncement() {
-        const title = document.getElementById('annTitle').value;
-        const content = document.getElementById('annContent').value;
-        const audience = document.getElementById('annAudience').value;
+    // Announcement audience labels for preview
+    const audienceLabels = {
+        'ALL': 'Tất cả học viên',
+        'VIP': 'Chỉ thành viên VIP',
+        'FREE': 'Học viên Cơ bản (Free)',
+        'TOPIK_I': 'Học viên luyện TOPIK I (cấp 1-2)',
+        'TOPIK_II': 'Học viên luyện TOPIK II (cấp 3-6)',
+        'SPECIFIC': 'Gửi riêng 1 học viên'
+    };
 
-        if (!title.trim() || !content.trim()) {
+    function onAudienceChange() {
+        const audience = document.getElementById('annAudience').value;
+        const specificRow = document.getElementById('annSpecificUserRow');
+        const preview = document.getElementById('annAudiencePreview');
+        specificRow.style.display = (audience === 'SPECIFIC') ? '' : 'none';
+        if (preview) preview.textContent = audienceLabels[audience] || audience;
+    }
+
+    function submitAnnouncement() {
+        const title = document.getElementById('annTitle').value.trim();
+        const content = document.getElementById('annContent').value.trim();
+        const audience = document.getElementById('annAudience').value;
+        const targetUserIdEl = document.getElementById('annTargetUserId');
+        const targetUserId = (audience === 'SPECIFIC' && targetUserIdEl) ? targetUserIdEl.value : '';
+
+        if (!title || !content) {
             alert('Vui lòng nhập đầy đủ tiêu đề và nội dung thông báo.');
+            return;
+        }
+        if (audience === 'SPECIFIC' && !targetUserId) {
+            alert('Vui lòng chọn học viên nhận thông báo riêng.');
             return;
         }
 
@@ -1007,6 +1329,7 @@
         formData.append('title', title);
         formData.append('content', content);
         formData.append('audience', audience);
+        if (targetUserId) formData.append('targetUserId', targetUserId);
 
         fetch('/operation/announcements/send', {
             method: 'POST',
@@ -1018,7 +1341,48 @@
                 showSsakToast(data.message);
                 document.getElementById('annTitle').value = '';
                 document.getElementById('annContent').value = '';
+                if (targetUserIdEl) targetUserIdEl.value = '';
+                document.getElementById('annAudience').value = 'ALL';
+                onAudienceChange();
                 setTimeout(() => window.location.reload(), 900);
+            } else {
+                showSsakToast('Lỗi: ' + data.message);
+            }
+        })
+        .catch(e => showSsakToast('Có lỗi: ' + e));
+    }
+
+    function updateAiBudget(id) {
+        const limitInput = document.getElementById('ai-limit-' + id);
+        const thresholdInput = document.getElementById('ai-threshold-' + id);
+        if (!limitInput || !thresholdInput) return;
+
+        const limit = parseFloat(limitInput.value);
+        const threshold = parseInt(thresholdInput.value);
+
+        if (isNaN(limit) || limit <= 0) {
+            alert('Hạn mức phải lớn hơn 0$.');
+            return;
+        }
+        if (isNaN(threshold) || threshold < 10 || threshold > 100) {
+            alert('Ngưỡng cảnh báo phải từ 10% đến 100%.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('id', id);
+        formData.append('limit', limit);
+        formData.append('threshold', threshold);
+
+        fetch('/operation/ai-budget/update', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showSsakToast(data.message);
+                setTimeout(() => window.location.reload(), 700);
             } else {
                 showSsakToast('Lỗi: ' + data.message);
             }
@@ -1161,7 +1525,7 @@
                     </button>
                     <button type="button" id="tabLockPerm" onclick="switchLockType('PERMANENT')"
                             style="padding: 10px 12px; border-radius: 12px; border: 1.5px solid #E2E8F0; background: #F8FAFC; color: #64748B; font-size: 13px; font-weight: 800; cursor: pointer; transition: all 0.15s ease; text-align: center;">
-                        🚫 Đề xuất khóa vĩnh viễn
+                        🚫 Khóa vĩnh viễn
                     </button>
                 </div>
 
@@ -1212,20 +1576,20 @@
                     </div>
                 </div>
 
-                <!-- Subpane: Permanent Lock Proposal -->
+                <!-- Subpane: Permanent Lock -->
                 <div id="paneLockPerm" style="display: none;">
                     <div style="padding: 12px 14px; border-radius: 12px; background: #FFF1F0; border: 1.5px solid #FFA39E; margin-bottom: 12px;">
                         <div style="font-weight: 800; font-size: 12.5px; color: #CF1322; margin-bottom: 4px;">
-                            ⚠️ YÊU CẦU PHÊ DUYỆT TỪ ADMIN
+                            ⚠️ KHÓA VĨNH VIỄN — KHÔNG THỂ HOÀN TÁC
                         </div>
                         <div style="font-size: 12px; color: #5C1D11; line-height: 1.5;">
-                            Khóa vĩnh viễn là thao tác chấm dứt vĩnh viễn quyền học tập của học viên. Yêu cầu này sẽ được tạo thành <strong>Phiếu duyệt (Approval Request)</strong> gửi lên <strong>Quản trị viên (Admin)</strong> xem xét và phê duyệt trước khi có hiệu lực.
+                            Khóa vĩnh viễn là thao tác chấm dứt vĩnh viễn quyền học tập của học viên. Hành động này được thực hiện <strong>trực tiếp ngay lập tức</strong> bởi Operation Manager và <strong>không cần Admin phê duyệt</strong>.
                         </div>
                     </div>
 
                     <div>
                         <label style="display: block; font-size: 12.5px; font-weight: 800; color: #24363D; margin-bottom: 6px;">
-                            Lý do đề xuất khóa vĩnh viễn <span style="color: #CF1322;">(*)</span>:
+                            Lý do khóa vĩnh viễn <span style="color: #CF1322;">(*)</span>:
                         </label>
                         <textarea id="permLockReason" class="ssak-input" rows="3" style="width: 100%; font-size: 13px; line-height: 1.5; padding: 10px 12px; resize: vertical;"
                                   placeholder="Mô tả hành vi vi phạm nghiêm trọng (gian lận có tổ chức, cố ý hack đề thi, chia sẻ bán lại tài khoản)..."></textarea>
@@ -1241,6 +1605,63 @@
             </button>
             <button type="button" id="modalConfirmBtn" onclick="executeLearnerAction()" style="height: 42px; padding: 0 22px; border-radius: 12px; border: none; font-size: 13.5px; font-weight: 800; color: #FFFFFF; background: #C25E3E; cursor: pointer; transition: all 0.15s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.12);">
                 🔒 Xác nhận tạm khóa
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Sleek Modal for Order Refunds (Operation Manager) -->
+<div id="opOrderRefundModal" onclick="if(event.target === this) closeOpRefundModal()" style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(6px); transition: all 0.2s ease;">
+    <div style="background: #FFFFFF; width: 100%; max-width: 520px; border-radius: 24px; border: 1.5px solid #E8E5DC; box-shadow: 0 24px 48px -12px rgba(0,0,0,0.25); overflow: hidden; margin: 16px;">
+        <!-- Header Banner -->
+        <div style="padding: 22px 28px 16px; border-bottom: 1px solid #F1EEE6; display: flex; align-items: center; gap: 14px;">
+            <div style="width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; background: #FFF1F0; color: #CF1322;">
+                💸
+            </div>
+            <div>
+                <h4 style="margin: 0; font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: #24363D;">Xác nhận Hoàn tiền Đơn hàng VIP</h4>
+                <p style="margin: 3px 0 0; font-size: 13px; color: #64748B;">Thực hiện hủy đơn và hoàn tiền trực tiếp cho học viên</p>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div style="padding: 20px 28px; display: flex; flex-direction: column; gap: 16px;">
+            <!-- Order Details Card -->
+            <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 14px; padding: 14px 18px; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 12.5px; color: #64748B; font-weight: 700;">Mã đơn hàng:</span>
+                    <span id="opRefundOrderCode" style="font-weight: 800; color: #1F6B56; font-size: 14px;">#HT-10088</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 12.5px; color: #64748B; font-weight: 700;">Khách hàng / Học viên:</span>
+                    <span id="opRefundCustomerName" style="font-weight: 800; color: #24363D; font-size: 14px;">Học viên</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 12.5px; color: #64748B; font-weight: 700;">Số tiền hoàn trả:</span>
+                    <span id="opRefundAmount" style="font-weight: 800; color: #CF1322; font-size: 16px;">0đ</span>
+                </div>
+            </div>
+
+            <!-- Refund Reason Textarea -->
+            <div>
+                <label style="display: block; font-size: 12.5px; font-weight: 800; color: #24363D; margin-bottom: 6px;">
+                    Lý do hoàn tiền <span style="color: #CF1322;">(*)</span>:
+                </label>
+                <textarea id="opRefundReason" class="ssak-input" rows="3" style="width: 100%; font-size: 13px; line-height: 1.5; padding: 10px 12px; resize: vertical;"
+                          placeholder="Nhập lý do hoàn tiền (vd: Học viên chuyển khoản nhầm gói, khiếu nại chưa kích hoạt được quyền lợi, yêu cầu hoàn tiền trong 7 ngày)..."></textarea>
+                <div style="margin-top: 6px; font-size: 11.5px; color: #64748B; display: flex; align-items: center; gap: 5px;">
+                    <span>ℹ️</span> Thao tác hoàn tiền sẽ được ghi nhận vào <strong>Nhật ký vận hành (Audit Log)</strong>.
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div style="padding: 16px 28px 20px; display: flex; justify-content: flex-end; gap: 12px; background: #FAFAFA; border-top: 1px solid #F1EEE6;">
+            <button type="button" onclick="closeOpRefundModal()" style="height: 42px; padding: 0 18px; border-radius: 12px; border: 1.5px solid #CBD5E1; background: #FFFFFF; font-size: 13.5px; font-weight: 700; color: #475569; cursor: pointer; transition: all 0.15s ease;">
+                Hủy bỏ
+            </button>
+            <button type="button" onclick="executeOpRefund()" style="height: 42px; padding: 0 22px; border-radius: 12px; border: none; font-size: 13.5px; font-weight: 800; color: #FFFFFF; background: #CF1322; cursor: pointer; transition: all 0.15s ease; box-shadow: 0 4px 12px rgba(207,19,34,0.25);">
+                💸 Xác nhận hoàn tiền
             </button>
         </div>
     </div>
