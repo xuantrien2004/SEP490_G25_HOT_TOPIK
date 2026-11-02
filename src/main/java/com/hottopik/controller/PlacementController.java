@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
 public class PlacementController {
 
     private static final Logger log = LoggerFactory.getLogger(PlacementController.class);
-    static final String DATABASE_NOT_READY = "Chưa mở được bài kiểm tra. Database đang chạy chưa khớp bản mới. Hãy chạy profile local (cổng 8490), hoặc tạo database trống HotTopik_2 rồi chạy script db/hottopik_sqlserver.sql.";
+    static final String DATABASE_NOT_READY = "Chưa mở được bài kiểm tra vì database local thiếu bảng lưu lượt làm. Không phải vì chưa có câu hỏi. Tắt app rồi chạy lại profile local.";
 
     private final PlacementService placement;
     private final UserService users;
@@ -96,7 +96,7 @@ public class PlacementController {
             return "redirect:/placement?paper=" + safe(paper);
         } catch (DataAccessException e) {
             log.warn("Không mở được bài kiểm tra trình độ: {}", e.toString());
-            flash.addFlashAttribute("placementError", DATABASE_NOT_READY);
+            flash.addFlashAttribute("placementError", databaseMessage(e));
             return "redirect:/placement";
         }
     }
@@ -119,7 +119,7 @@ public class PlacementController {
             return "redirect:/onboarding";
         } catch (DataAccessException e) {
             log.warn("Không mở được bài làm trình độ: {}", e.toString());
-            flash.addFlashAttribute("placementError", DATABASE_NOT_READY);
+            flash.addFlashAttribute("placementError", databaseMessage(e));
             return "redirect:/placement";
         }
     }
@@ -321,10 +321,18 @@ public class PlacementController {
         return attempt;
     }
 
+    static String databaseMessage(Exception e) {
+        Throwable root = e;
+        while (root.getCause() != null && root.getCause() != root) root = root.getCause();
+        String detail = root.getMessage() == null ? "" : root.getMessage().replaceAll("\\s+", " ").trim();
+        if (detail.length() > 160) detail = detail.substring(0, 160);
+        return detail.isBlank() ? DATABASE_NOT_READY : DATABASE_NOT_READY + " " + detail;
+    }
+
     private String placementDown(Model model, UserDTO user, Exception e) {
         log.warn("Không mở được bài kiểm tra trình độ: {}", e.toString());
         model.addAttribute("pageTitle", "Bài kiểm tra trình độ");
-        model.addAttribute("placementError", DATABASE_NOT_READY);
+        model.addAttribute("placementError", databaseMessage(e));
         model.addAttribute("currentUser", user);
         return "placement/intro";
     }

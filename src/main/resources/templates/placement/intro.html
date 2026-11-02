@@ -12,7 +12,7 @@
         <p class="mb-1">20 câu · 200 điểm</p>
         <p class="text-muted mb-4">10 Nghe · 10 Đọc</p>
         <div th:if="${!sheet.ready}" class="alert alert-warning text-start">
-            Bài chưa sẵn sàng. Content Manager cần chốt đủ 20 câu.
+            Chưa có đủ câu hỏi trong ngân hàng đánh giá. Cần 10 câu Nghe và 10 câu Đọc.
         </div>
         <form th:if="${sheet.ready}" method="post" th:action="@{/placement/start}">
             <input type="hidden" name="paper" th:value="${sheet.paper.name()}">
