@@ -340,7 +340,12 @@ public class ContentExamController {
         boolean manual = job.map(importService::isManual).orElse(false);
         model.addAttribute("manual", manual);
         if (manual) {
-            fillManualEntry(model, s, importService.cards(id), card, skill, type, nos, focus, issues);
+            try {
+                fillManualEntry(model, s, importService.cards(id), card, skill, type, nos, focus, issues);
+            } catch (ExamDomainException e) {
+                ra.addFlashAttribute("flashError", e.getMessage());
+                return "redirect:/content/sources";
+            }
         }
         List<ExamImportService.PaperSlot> slots = manual ? List.of() : importService.paper(id);
         if (manual) {

@@ -169,6 +169,9 @@ public class LearnerExamService {
                 .map(i -> {
                     Question q = i.getQuestion();
                     QuestionGroup g = q.getGroup();
+                    if (g == null) {
+                        throw new ExamDomainException("Đề này còn câu chưa gắn nhóm nghe hoặc đọc, nên chưa mở được.");
+                    }
                     String key = "q" + i.getId();
                     return new QuestionView(key, i.getSection(), i.getSection().getLabel() + " · Câu " + i.getNo(),
                             QuestionTypeCatalog.resolve(exam.getTrack(), i.getSection(), i.getNo()).map(QuestionTypeDef::instructionKo).orElse(""),

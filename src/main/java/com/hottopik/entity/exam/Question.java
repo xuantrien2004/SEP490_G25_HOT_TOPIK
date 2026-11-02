@@ -121,7 +121,11 @@ public class Question {
     private LocalDateTime updatedAt;
 
     public List<String> options() {
-        return List.of(option1, option2, option3, option4);
+        return List.of(text(option1), text(option2), text(option3), text(option4));
+    }
+
+    private static String text(String value) {
+        return value == null ? "" : value;
     }
 
     /** Tỉ lệ đúng (%), null khi chưa có lượt làm. */

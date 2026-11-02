@@ -17,7 +17,10 @@ import com.hottopik.service.exam.PlacementRules;
 import com.hottopik.service.exam.PlacementRules.Paper;
 import com.hottopik.util.AuthHelper;
 import jakarta.servlet.http.HttpSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.dao.DataAccessException;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -42,6 +45,9 @@ import java.util.stream.Collectors;
 
 @Controller
 public class PlacementController {
+
+    private static final Logger log = LoggerFactory.getLogger(PlacementController.class);
+    static final String DATABASE_NOT_READY = "Chưa mở được bài kiểm tra. Database đang chạy chưa khớp bản mới. Hãy chạy profile local (cổng 8490), hoặc tạo database trống HotTopik_2 rồi chạy script db/hottopik_sqlserver.sql.";
 
     private final PlacementService placement;
     private final UserService users;
@@ -73,6 +79,8 @@ public class PlacementController {
             model.addAttribute("placementError", e.getMessage());
             model.addAttribute("currentUser", user);
             return "placement/intro";
+        } catch (DataAccessException e) {
+            return placementDown(model, user, e);
         }
     }
 
@@ -86,6 +94,10 @@ public class PlacementController {
         } catch (ExamDomainException e) {
             flash.addFlashAttribute("placementError", e.getMessage());
             return "redirect:/placement?paper=" + safe(paper);
+        } catch (DataAccessException e) {
+            log.warn("Không mở được bài kiểm tra trình độ: {}", e.toString());
+            flash.addFlashAttribute("placementError", DATABASE_NOT_READY);
+            return "redirect:/placement";
         }
     }
 
@@ -105,6 +117,10 @@ public class PlacementController {
         } catch (ExamDomainException e) {
             flash.addFlashAttribute("placementError", e.getMessage());
             return "redirect:/onboarding";
+        } catch (DataAccessException e) {
+            log.warn("Không mở được bài làm trình độ: {}", e.toString());
+            flash.addFlashAttribute("placementError", DATABASE_NOT_READY);
+            return "redirect:/placement";
         }
     }
 
@@ -303,6 +319,14 @@ public class PlacementController {
             throw new ExamDomainException("Bài kiểm tra này không thuộc tài khoản đang đăng nhập.");
         }
         return attempt;
+    }
+
+    private String placementDown(Model model, UserDTO user, Exception e) {
+        log.warn("Không mở được bài kiểm tra trình độ: {}", e.toString());
+        model.addAttribute("pageTitle", "Bài kiểm tra trình độ");
+        model.addAttribute("placementError", DATABASE_NOT_READY);
+        model.addAttribute("currentUser", user);
+        return "placement/intro";
     }
 
     private static String safe(String paper) {

@@ -259,6 +259,20 @@ class PlacementFlowTest {
         placement.save(paper.name(), plan);
     }
 
+    @Test
+    void oldExamLinkOpensTheLibraryInsteadOfAnErrorPage() throws Exception {
+        mvc.perform(get("/lam-bai/mock-91-resume").sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/exam"))
+                .andExpect(flash().attribute("examError", org.hamcrest.Matchers.containsString("không mở được")));
+        mvc.perform(get("/ket-qua/att-mock-83").sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/exam"));
+        mvc.perform(get("/lam-bai/ATT-8921"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/exam"));
+    }
+
     private void copy(Question donor, ExamSource target) {
         QuestionGroup origin = donor.getGroup();
         QuestionGroup group = new QuestionGroup();

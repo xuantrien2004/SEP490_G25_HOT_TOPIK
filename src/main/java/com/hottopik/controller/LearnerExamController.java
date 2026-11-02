@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
@@ -115,6 +116,13 @@ public class LearnerExamController {
     @ExceptionHandler(ExamDomainException.class)
     public String domainError(ExamDomainException e, RedirectAttributes flash) {
         flash.addFlashAttribute("examError", e.getMessage());
+        return "redirect:/exam";
+    }
+
+    /** Nút mẫu cũ trỏ tới mã kiểu mock-91-resume. Spring không đổi được sang số nên trước đây ra trang lỗi. */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public String unknownExam(RedirectAttributes flash) {
+        flash.addFlashAttribute("examError", "Đề này không mở được vì mã bài không còn trong hệ thống. Hãy chọn một đề trong thư viện.");
         return "redirect:/exam";
     }
 
