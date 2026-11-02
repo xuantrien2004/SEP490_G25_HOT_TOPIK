@@ -9,7 +9,7 @@
 
 - **Backend:** Java 25, Spring Boot 3.5.16 (Spring MVC, Spring Data JPA, DevTools)
 - **Frontend:** Thymeleaf Template Engine, HTML5, CSS3, JavaScript ES6+, Bootstrap 5.3 & Bootstrap Icons
-- **Database:** Microsoft SQL Server (tương thích cơ sở dữ liệu `FALL2026_SEP490_G25` trong file `HOT_TOPIK_3.sql`)
+- **Database:** Microsoft SQL Server 2019+ (`HotTopik_2`, script `db/hottopik_sqlserver.sql`). Profile `local` dùng H2, không chạy script này.
 - **Build Tool:** Maven (sẵn Maven Wrapper `./mvnw`, `mvnw.cmd`)
 
 ---
@@ -114,17 +114,12 @@ Sau khi ứng dụng khởi động thành công, mở trình duyệt truy cập
 
 ## 🗄️ Cấu hình Database SQL Server
 
-File script cơ sở dữ liệu gốc nằm tại: `D:\SEP490_G25\HOT_TOPIK_3.sql` (tên database: `FALL2026_SEP490_G25`).
+Schema hiện tại nằm ở `db/hottopik_sqlserver.sql`. Database tên `HotTopik_2`, collation `Vietnamese_100_CI_AS`, khớp entity JPA (không phải script Database v5).
 
-1. Chạy script SQL Server Management Studio (SSMS) để tạo database:
-   ```sql
-   CREATE DATABASE FALL2026_SEP490_G25;
-   -- Sau đó chạy toàn bộ nội dung file HOT_TOPIK_3.sql
-   ```
-2. Mở file `D:\SEP490_G25\HotTopik\src\main\resources\application.properties`:
-   - Bỏ comment các dòng cấu hình DataSource SQL Server.
-   - Nhập đúng username (`sa`) và mật khẩu SQL Server của máy bạn.
-   - Bỏ dòng `spring.autoconfigure.exclude` để kích hoạt kết nối database thực tế.
+1. Mở file đó trong SSMS, chọn login có default schema `dbo`, rồi Execute. Script tự tạo `HotTopik_2` nếu chưa có. Không chèn dữ liệu mẫu.
+2. Nếu máy đang có `HotTopik_2` kiểu v5 (`question_options`, `roadmaps`, `source_exams`, …), backup trước. Script sẽ dừng và không tự DROP. Muốn làm mới thì bỏ comment khối `DROP DATABASE` ở đầu file, chạy riêng khối đó, rồi Execute lại cả file.
+3. `src/main/resources/application.properties` đã trỏ `databaseName=HotTopik_2`, `ddl-auto=update`. Sửa user/mật khẩu SQL Server cho đúng máy, rồi chạy không cần profile `local` (cổng 8080). Lần chạy đầu ứng dụng tự thêm dạng câu, khuôn, ngữ pháp, Hán tự, lộ trình và đề mẫu.
+4. Profile `local` (`mvnw spring-boot:run -Dspring-boot.run.profiles=local`, cổng 8490) dùng H2 trong `./data`. Không áp script SQL Server cho profile này.
 
 ---
 
@@ -194,11 +189,9 @@ Content Manager tạo bản nháp, đổi thứ tự, rồi gửi Admin duyệt.
 Thư mục `samples/` có sẵn 3 bộ đề mẫu hợp lệ (TOPIK II × 2, TOPIK I × 1), mỗi bộ gồm file `.xlsx` và file `_media.zip`
 (mp3/ảnh giả). Sinh lại bằng: `./mvnw test -Dtest=SampleFilesGenerator -Dsamples.out=samples`.
 
-### Chạy với SQL Server của nhóm
+### Chạy với SQL Server
 
-DB nhóm dùng `ddl-auto=none`, nên chạy script `db/exam_module_sqlserver.sql` một lần để tạo 9 bảng mới
-(`question_types`, `exam_sources`, `import_jobs`, `media_assets`, `question_groups`, `questions`, `writing_prompts`,
-`exams`, `exam_items`). File upload lưu ở `hottopik.storage.dir` (mặc định `./data/storage`).
+Chạy một lần `db/hottopik_sqlserver.sql` trên database trống `HotTopik_2` (xem mục cấu hình phía trên). `ddl-auto=update` chỉ vá thêm cột khi schema đã đúng; không biến schema v5 thành schema này. `db/exam_module_sqlserver.sql` đã lỗi thời và sẽ dừng nếu bị Execute. File upload lưu ở `hottopik.storage.dir` (mặc định `./data/storage`).
 
 ### Luồng nghiệp vụ
 
