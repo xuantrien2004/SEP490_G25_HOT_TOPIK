@@ -3,10 +3,10 @@
 <head th:replace="~{fragments/head :: head('Cổng Quản lý Vận hành (Operation Manager) · HOT TOPIK')}"></head>
 <body>
 <div style="min-height: 100vh; background: #F4F3EF; font-family: var(--font-body); color: var(--ssak-text-main); display: flex;">
-    
+
     <!-- ==================== LEFT SIDEBAR (THANH TÁC VỤ BÊN TRÁI) ==================== -->
     <aside style="width: 275px; background: #24363D; color: #FFFFFF; display: flex; flex-direction: column; flex-shrink: 0; min-height: 100vh; position: sticky; top: 0; z-index: 100; box-shadow: 4px 0 16px rgba(0,0,0,0.08);">
-        
+
         <!-- Sidebar Brand / Logo -->
         <div style="padding: 24px 24px 18px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;">
             <a th:href="@{/operation}" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #FFFFFF;">
@@ -99,7 +99,7 @@
 
     <!-- ==================== RIGHT MAIN CONTENT AREA ==================== -->
     <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0;">
-        
+
         <!-- Top Header Bar inside Content -->
         <header style="height: 68px; padding: 0 40px; background: #FFFFFF; border-bottom: 2px solid var(--ssak-border); display: flex; align-items: center; justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 12px;">
@@ -126,7 +126,7 @@
 
         <!-- Main Workspace -->
         <main style="padding: 28px 40px; display: flex; flex-direction: column; gap: 24px; flex-grow: 1;">
-            
+
             <!-- 4 Metric KPI Cards -->
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
                 <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border);">
@@ -235,73 +235,73 @@
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                         <thead>
-                            <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase;">
-                                <th style="padding: 12px 10px;">ID</th>
-                                <th style="padding: 12px 10px;">Họ tên học viên</th>
-                                <th style="padding: 12px 10px;">Email đăng nhập</th>
-                                <th style="padding: 12px 10px;">Loại tài khoản</th>
-                                <th style="padding: 12px 10px;">Cấp độ mục tiêu</th>
-                                <th style="padding: 12px 10px;">Gói VIP</th>
-                                <th style="padding: 12px 10px;">Trạng thái</th>
-                                <th style="padding: 12px 10px; text-align: right;">Thao tác vận hành</th>
-                            </tr>
+                        <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase;">
+                            <th style="padding: 12px 10px;">ID</th>
+                            <th style="padding: 12px 10px;">Họ tên học viên</th>
+                            <th style="padding: 12px 10px;">Email đăng nhập</th>
+                            <th style="padding: 12px 10px;">Loại tài khoản</th>
+                            <th style="padding: 12px 10px;">Cấp độ mục tiêu</th>
+                            <th style="padding: 12px 10px;">Gói VIP</th>
+                            <th style="padding: 12px 10px;">Trạng thái</th>
+                            <th style="padding: 12px 10px; text-align: right;">Thao tác vận hành</th>
+                        </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="u : ${learners}" th:id="${'row-learner-' + u.id}" class="op-learner-row"
-                                th:data-id="${u.id}"
-                                th:data-name="${u.fullName != null ? #strings.toLowerCase(u.fullName) : ''}"
-                                th:data-email="${u.email != null ? #strings.toLowerCase(u.email) : ''}"
-                                th:data-role="${u.role}"
-                                th:data-level="${u.targetLevel}"
-                                th:data-status="${u.status}"
-                                th:data-pending-lock="${u.pendingPermanentLock}"
-                                style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
-                                <td style="padding: 14px 10px; font-weight: 800;" th:text="${u.id}">4</td>
-                                <td style="padding: 14px 10px; font-weight: 700; color: #24363D;">
-                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                        <span style="width: 32px; height: 32px; border-radius: 50%; background: #E8F5E9; color: #1F6B56; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px;" th:text="${u.fullName != null && !u.fullName.isEmpty() ? #strings.substring(u.fullName, 0, 1) : 'U'}">N</span>
-                                        <span th:text="${u.fullName}">Nguyễn Hoàng Nam</span>
-                                    </div>
-                                </td>
-                                <td style="padding: 14px 10px; font-weight: 500;" th:text="${u.email}">viplearner@hottopik.com</td>
-                                <td style="padding: 14px 10px;">
-                                    <span class="ssak-badge badge-honey" th:if="${u.role == 'ROLE_VIP'}">👑 VIP Member</span>
-                                    <span class="ssak-badge badge-mint" th:if="${u.role != 'ROLE_VIP'}">🎓 Học viên</span>
-                                </td>
-                                <td style="padding: 14px 10px; font-weight: 700;" th:text="${u.targetLevel}">TOPIK_5</td>
-                                <td style="padding: 14px 10px;">
-                                    <span th:if="${u.vip}" style="color: #7A5A12; font-weight: 800;" th:text="${u.vipPackage}">Trọn đời</span>
-                                    <span th:if="${!u.vip}" style="color: var(--ssak-text-muted);">Gói miễn phí</span>
-                                </td>
-                                <td style="padding: 14px 10px;">
+                        <tr th:each="u : ${learners}" th:id="${'row-learner-' + u.id}" class="op-learner-row"
+                            th:data-id="${u.id}"
+                            th:data-name="${u.fullName != null ? #strings.toLowerCase(u.fullName) : ''}"
+                            th:data-email="${u.email != null ? #strings.toLowerCase(u.email) : ''}"
+                            th:data-role="${u.role}"
+                            th:data-level="${u.targetLevel}"
+                            th:data-status="${u.status}"
+                            th:data-pending-lock="${u.pendingPermanentLock}"
+                            style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
+                            <td style="padding: 14px 10px; font-weight: 800;" th:text="${u.id}">4</td>
+                            <td style="padding: 14px 10px; font-weight: 700; color: #24363D;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="width: 32px; height: 32px; border-radius: 50%; background: #E8F5E9; color: #1F6B56; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px;" th:text="${u.fullName != null && !u.fullName.isEmpty() ? #strings.substring(u.fullName, 0, 1) : 'U'}">N</span>
+                                    <span th:text="${u.fullName}">Nguyễn Hoàng Nam</span>
+                                </div>
+                            </td>
+                            <td style="padding: 14px 10px; font-weight: 500;" th:text="${u.email}">viplearner@hottopik.com</td>
+                            <td style="padding: 14px 10px;">
+                                <span class="ssak-badge badge-honey" th:if="${u.role == 'ROLE_VIP'}">👑 VIP Member</span>
+                                <span class="ssak-badge badge-mint" th:if="${u.role != 'ROLE_VIP'}">🎓 Học viên</span>
+                            </td>
+                            <td style="padding: 14px 10px; font-weight: 700;" th:text="${u.targetLevel}">TOPIK_5</td>
+                            <td style="padding: 14px 10px;">
+                                <span th:if="${u.vip}" style="color: #7A5A12; font-weight: 800;" th:text="${u.vipPackage}">Trọn đời</span>
+                                <span th:if="${!u.vip}" style="color: var(--ssak-text-muted);">Gói miễn phí</span>
+                            </td>
+                            <td style="padding: 14px 10px;">
                                     <span th:id="${'learner-status-' + u.id}" class="ssak-badge"
                                           th:classappend="${u.pendingPermanentLock ? 'badge-honey' : (u.status == 'ACTIVE' ? 'badge-mint' : (u.status == 'PENDING_VERIFY' ? 'badge-honey' : 'badge-terracotta'))}"
                                           th:text="${u.pendingPermanentLock ? '⏳ Chờ Admin duyệt khóa' : (u.status == 'ACTIVE' ? 'Đang hoạt động' : (u.status == 'PENDING_VERIFY' ? 'Chờ kích hoạt' : (u.permanentlyLocked ? 'Khóa vĩnh viễn' : 'Tạm khóa')))}">
                                         Hoạt động
                                     </span>
-                                    <div th:if="${!u.pendingPermanentLock && u.status == 'LOCKED' && u.formattedLockedUntil != null && !u.permanentlyLocked}" style="font-size: 11px; color: #9C4A2E; margin-top: 3px;" th:text="${'Đến: ' + u.formattedLockedUntil}"></div>
-                                </td>
-                                <td style="padding: 14px 10px; text-align: right;" th:id="${'learner-action-cell-' + u.id}">
+                                <div th:if="${!u.pendingPermanentLock && u.status == 'LOCKED' && u.formattedLockedUntil != null && !u.permanentlyLocked}" style="font-size: 11px; color: #9C4A2E; margin-top: 3px;" th:text="${'Đến: ' + u.formattedLockedUntil}"></div>
+                            </td>
+                            <td style="padding: 14px 10px; text-align: right;" th:id="${'learner-action-cell-' + u.id}">
                                     <span th:if="${u.pendingPermanentLock}" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 10px; background: #FFFBE6; border: 1px solid #FFE58F; font-size: 12px; font-weight: 700; color: #D48806;">
                                         ⏳ Đang chờ duyệt
                                     </span>
-                                    <button th:if="${!u.pendingPermanentLock}" type="button" class="btn-ssak-light" style="height: 34px; padding: 0 14px; font-size: 12.5px; font-weight: 800; border-radius: 10px; cursor: pointer; transition: all 0.15s ease;"
-                                            th:id="${'btn-toggle-learner-' + u.id}"
-                                            th:data-id="${u.id}"
-                                            th:data-name="${u.fullName}"
-                                            th:data-email="${u.email}"
-                                            th:data-status="${u.status}"
-                                            onclick="openLearnerModal(this.getAttribute('data-id'), this.getAttribute('data-name'), this.getAttribute('data-email'), this.getAttribute('data-status'))">
-                                        <span th:if="${u.status == 'LOCKED'}" style="color: #1F6B56;">🔓 Mở khóa</span>
-                                        <span th:if="${u.status != 'LOCKED'}" style="color: #9C4A2E;">🔒 Khóa tài khoản</span>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr id="opLearnerNoResult" style="display: none;">
-                                <td colspan="8" style="text-align: center; padding: 36px 20px; color: var(--ssak-text-muted); font-size: 13.5px;">
-                                    🔍 Không tìm thấy học viên nào phù hợp với điều kiện tìm kiếm và bộ lọc.
-                                </td>
-                            </tr>
+                                <button th:if="${!u.pendingPermanentLock}" type="button" class="btn-ssak-light" style="height: 34px; padding: 0 14px; font-size: 12.5px; font-weight: 800; border-radius: 10px; cursor: pointer; transition: all 0.15s ease;"
+                                        th:id="${'btn-toggle-learner-' + u.id}"
+                                        th:data-id="${u.id}"
+                                        th:data-name="${u.fullName}"
+                                        th:data-email="${u.email}"
+                                        th:data-status="${u.status}"
+                                        onclick="openLearnerModal(this.getAttribute('data-id'), this.getAttribute('data-name'), this.getAttribute('data-email'), this.getAttribute('data-status'))">
+                                    <span th:if="${u.status == 'LOCKED'}" style="color: #1F6B56;">🔓 Mở khóa</span>
+                                    <span th:if="${u.status != 'LOCKED'}" style="color: #9C4A2E;">🔒 Khóa tài khoản</span>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr id="opLearnerNoResult" style="display: none;">
+                            <td colspan="8" style="text-align: center; padding: 36px 20px; color: var(--ssak-text-muted); font-size: 13.5px;">
+                                🔍 Không tìm thấy học viên nào phù hợp với điều kiện tìm kiếm và bộ lọc.
+                            </td>
+                        </tr>
                         </tbody>
                     </table>
                 </div>
@@ -323,41 +323,41 @@
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                         <thead>
-                            <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase;">
-                                <th style="padding: 12px 10px;">Mã đơn</th>
-                                <th style="padding: 12px 10px;">Học viên</th>
-                                <th style="padding: 12px 10px;">Gói dịch vụ</th>
-                                <th style="padding: 12px 10px;">Số tiền</th>
-                                <th style="padding: 12px 10px;">Phương thức</th>
-                                <th style="padding: 12px 10px;">Trạng thái</th>
-                                <th style="padding: 12px 10px; text-align: right;">Quy trình gửi duyệt (Approval)</th>
-                            </tr>
+                        <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase;">
+                            <th style="padding: 12px 10px;">Mã đơn</th>
+                            <th style="padding: 12px 10px;">Học viên</th>
+                            <th style="padding: 12px 10px;">Gói dịch vụ</th>
+                            <th style="padding: 12px 10px;">Số tiền</th>
+                            <th style="padding: 12px 10px;">Phương thức</th>
+                            <th style="padding: 12px 10px;">Trạng thái</th>
+                            <th style="padding: 12px 10px; text-align: right;">Quy trình gửi duyệt (Approval)</th>
+                        </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="ord : ${orders}" style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
-                                <td style="padding: 14px 10px; font-weight: 800;" th:text="${'#' + ord.orderCode}">#HT-10088</td>
-                                <td style="padding: 14px 10px;">
-                                    <div style="font-weight: 700; color: #24363D;" th:text="${ord.customerName}">Nguyễn Hoàng Nam</div>
-                                    <div style="font-size: 12px; color: var(--ssak-text-muted);" th:text="${ord.customerEmail}">viplearner@hottopik.com</div>
-                                </td>
-                                <td style="padding: 14px 10px; font-weight: 700;" th:text="${ord.packageName}">VIP Trọn đời</td>
-                                <td style="padding: 14px 10px; font-weight: 800; color: #1F6B56;" th:text="${#numbers.formatDecimal(ord.amount, 0, 'POINT', 0, 'COMMA') + 'đ'}">499.000đ</td>
-                                <td style="padding: 14px 10px;" th:text="${ord.paymentMethod}">VNPAY</td>
-                                <td style="padding: 14px 10px;">
-                                    <span class="ssak-badge badge-mint" th:if="${ord.status == 'PAID'}">Đã thanh toán</span>
-                                    <span class="ssak-badge badge-terracotta" th:if="${ord.status == 'REFUND_REQUESTED'}">⏳ Đang gửi duyệt hoàn tiền</span>
-                                    <span class="ssak-badge badge-honey" th:if="${ord.status == 'PENDING'}">Chờ thanh toán</span>
-                                </td>
-                                <td style="padding: 14px 10px; text-align: right;">
-                                    <button th:if="${ord.status == 'PAID'}" type="button" class="btn-ssak-outline" style="height: 32px; padding: 0 12px; font-size: 12px; color: #9C4A2E; border-color: #FFA39E;"
-                                            th:data-id="${ord.id}" onclick="requestRefund(this.getAttribute('data-id'))">
-                                        📤 Gửi duyệt hoàn tiền
-                                    </button>
-                                    <span th:if="${ord.status == 'REFUND_REQUESTED'}" style="font-size: 12px; color: #7A5A12; font-weight: 700;">
+                        <tr th:each="ord : ${orders}" style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
+                            <td style="padding: 14px 10px; font-weight: 800;" th:text="${'#' + ord.orderCode}">#HT-10088</td>
+                            <td style="padding: 14px 10px;">
+                                <div style="font-weight: 700; color: #24363D;" th:text="${ord.customerName}">Nguyễn Hoàng Nam</div>
+                                <div style="font-size: 12px; color: var(--ssak-text-muted);" th:text="${ord.customerEmail}">viplearner@hottopik.com</div>
+                            </td>
+                            <td style="padding: 14px 10px; font-weight: 700;" th:text="${ord.packageName}">VIP Trọn đời</td>
+                            <td style="padding: 14px 10px; font-weight: 800; color: #1F6B56;" th:text="${#numbers.formatDecimal(ord.amount, 0, 'POINT', 0, 'COMMA') + 'đ'}">499.000đ</td>
+                            <td style="padding: 14px 10px;" th:text="${ord.paymentMethod}">VNPAY</td>
+                            <td style="padding: 14px 10px;">
+                                <span class="ssak-badge badge-mint" th:if="${ord.status == 'PAID'}">Đã thanh toán</span>
+                                <span class="ssak-badge badge-terracotta" th:if="${ord.status == 'REFUND_REQUESTED'}">⏳ Đang gửi duyệt hoàn tiền</span>
+                                <span class="ssak-badge badge-honey" th:if="${ord.status == 'PENDING'}">Chờ thanh toán</span>
+                            </td>
+                            <td style="padding: 14px 10px; text-align: right;">
+                                <button th:if="${ord.status == 'PAID'}" type="button" class="btn-ssak-outline" style="height: 32px; padding: 0 12px; font-size: 12px; color: #9C4A2E; border-color: #FFA39E;"
+                                        th:data-id="${ord.id}" onclick="requestRefund(this.getAttribute('data-id'))">
+                                    📤 Gửi duyệt hoàn tiền
+                                </button>
+                                <span th:if="${ord.status == 'REFUND_REQUESTED'}" style="font-size: 12px; color: #7A5A12; font-weight: 700;">
                                         Chờ Admin phê duyệt hoàn tiền
                                     </span>
-                                </td>
-                            </tr>
+                            </td>
+                        </tr>
                         </tbody>
                     </table>
                 </div>
@@ -420,32 +420,32 @@
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                         <thead>
-                            <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase;">
-                                <th style="padding: 12px 10px;">Học viên</th>
-                                <th style="padding: 12px 10px;">Đánh giá</th>
-                                <th style="padding: 12px 10px;">Nội dung bình luận</th>
-                                <th style="padding: 12px 10px;">Thời gian</th>
-                                <th style="padding: 12px 10px;">Trạng thái hiển thị</th>
-                                <th style="padding: 12px 10px; text-align: right;">Kiểm duyệt</th>
-                            </tr>
+                        <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase;">
+                            <th style="padding: 12px 10px;">Học viên</th>
+                            <th style="padding: 12px 10px;">Đánh giá</th>
+                            <th style="padding: 12px 10px;">Nội dung bình luận</th>
+                            <th style="padding: 12px 10px;">Thời gian</th>
+                            <th style="padding: 12px 10px;">Trạng thái hiển thị</th>
+                            <th style="padding: 12px 10px; text-align: right;">Kiểm duyệt</th>
+                        </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="rev : ${reviews}" style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
-                                <td style="padding: 14px 10px; font-weight: 700; color: #24363D;" th:text="${rev.authorName}">Học viên</td>
-                                <td style="padding: 14px 10px; color: #F4C45A; font-weight: 800;" th:text="${'★'.repeat(rev.rating)}">★★★★★</td>
-                                <td style="padding: 14px 10px; max-width: 420px;" th:text="${rev.comment}">Nội dung review</td>
-                                <td style="padding: 14px 10px; font-size: 12px; color: var(--ssak-text-muted);" th:text="${rev.createdAt}">2026-10-05</td>
-                                <td style="padding: 14px 10px;">
-                                    <span class="ssak-badge badge-mint" th:if="${rev.approved}">Đang hiển thị</span>
-                                    <span class="ssak-badge badge-honey" th:if="${!rev.approved}">Chờ duyệt</span>
-                                </td>
-                                <td style="padding: 14px 10px; text-align: right;">
-                                    <button type="button" class="btn-ssak-light" style="height: 32px; padding: 0 12px; font-size: 12px;"
-                                            th:data-id="${rev.id}" onclick="toggleReviewApprove(this.getAttribute('data-id'))">
-                                        <span th:text="${rev.approved ? 'Ẩn review' : 'Duyệt hiển thị'}">Duyệt hiển thị</span>
-                                    </button>
-                                </td>
-                            </tr>
+                        <tr th:each="rev : ${reviews}" style="border-bottom: 1px solid var(--ssak-border); transition: background 0.15s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
+                            <td style="padding: 14px 10px; font-weight: 700; color: #24363D;" th:text="${rev.authorName}">Học viên</td>
+                            <td style="padding: 14px 10px; color: #F4C45A; font-weight: 800;" th:text="${'★'.repeat(rev.rating)}">★★★★★</td>
+                            <td style="padding: 14px 10px; max-width: 420px;" th:text="${rev.comment}">Nội dung review</td>
+                            <td style="padding: 14px 10px; font-size: 12px; color: var(--ssak-text-muted);" th:text="${rev.createdAt}">2026-10-05</td>
+                            <td style="padding: 14px 10px;">
+                                <span class="ssak-badge badge-mint" th:if="${rev.approved}">Đang hiển thị</span>
+                                <span class="ssak-badge badge-honey" th:if="${!rev.approved}">Chờ duyệt</span>
+                            </td>
+                            <td style="padding: 14px 10px; text-align: right;">
+                                <button type="button" class="btn-ssak-light" style="height: 32px; padding: 0 12px; font-size: 12px;"
+                                        th:data-id="${rev.id}" onclick="toggleReviewApprove(this.getAttribute('data-id'))">
+                                    <span th:text="${rev.approved ? 'Ẩn review' : 'Duyệt hiển thị'}">Duyệt hiển thị</span>
+                                </button>
+                            </td>
+                        </tr>
                         </tbody>
                     </table>
                 </div>
@@ -522,22 +522,22 @@
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                         <thead>
-                            <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase;">
-                                <th style="padding: 10px 8px;">Thời gian</th>
-                                <th style="padding: 10px 8px;">Người thực hiện</th>
-                                <th style="padding: 10px 8px;">Hành động</th>
-                                <th style="padding: 10px 8px;">Thực thể</th>
-                                <th style="padding: 10px 8px;">Chi tiết ghi nhận</th>
-                            </tr>
+                        <tr style="border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 12px; text-transform: uppercase;">
+                            <th style="padding: 10px 8px;">Thời gian</th>
+                            <th style="padding: 10px 8px;">Người thực hiện</th>
+                            <th style="padding: 10px 8px;">Hành động</th>
+                            <th style="padding: 10px 8px;">Thực thể</th>
+                            <th style="padding: 10px 8px;">Chi tiết ghi nhận</th>
+                        </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="log : ${auditLogs}" style="border-bottom: 1px solid var(--ssak-border);">
-                                <td style="padding: 12px 8px; color: var(--ssak-text-muted); font-size: 12px;" th:text="${log.timestamp}">2026-10-06 16:45:00</td>
-                                <td style="padding: 12px 8px; font-weight: 700; color: #24363D;" th:text="${log.actorName}">Trần Quốc Tuấn</td>
-                                <td style="padding: 12px 8px; font-weight: 800;" th:text="${log.action}">APPROVE_ORDER</td>
-                                <td style="padding: 12px 8px; color: var(--ssak-text-muted);" th:text="${log.targetEntity}">ORDER</td>
-                                <td style="padding: 12px 8px;" th:text="${log.details}">Xác nhận thanh toán đơn #HT-10088</td>
-                            </tr>
+                        <tr th:each="log : ${auditLogs}" style="border-bottom: 1px solid var(--ssak-border);">
+                            <td style="padding: 12px 8px; color: var(--ssak-text-muted); font-size: 12px;" th:text="${log.timestamp}">2026-10-06 16:45:00</td>
+                            <td style="padding: 12px 8px; font-weight: 700; color: #24363D;" th:text="${log.actorName}">Trần Quốc Tuấn</td>
+                            <td style="padding: 12px 8px; font-weight: 800;" th:text="${log.action}">APPROVE_ORDER</td>
+                            <td style="padding: 12px 8px; color: var(--ssak-text-muted);" th:text="${log.targetEntity}">ORDER</td>
+                            <td style="padding: 12px 8px;" th:text="${log.details}">Xác nhận thanh toán đơn #HT-10088</td>
+                        </tr>
                         </tbody>
                     </table>
                 </div>
@@ -548,52 +548,52 @@
 </div>
 
 <style>
-.sidebar-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    border-radius: 12px;
-    color: #CFE9DC;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 600;
-    transition: all 0.2s ease;
-}
-.sidebar-item:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #FFFFFF;
-    transform: translateX(3px);
-}
-.sidebar-item.active {
-    background: #2E7D67;
-    color: #FFFFFF;
-    font-weight: 800;
-    box-shadow: 0 4px 14px rgba(46, 125, 103, 0.35);
-}
-.sidebar-bottom-link {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    border-radius: 10px;
-    color: #A9D9C0;
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 700;
-    transition: all 0.2s;
-}
-.sidebar-bottom-link:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #FFFFFF;
-}
-.sidebar-bottom-link.logout {
-    color: #FFA39E;
-}
-.sidebar-bottom-link.logout:hover {
-    background: rgba(207, 19, 34, 0.15);
-    color: #FF7875;
-}
+    .sidebar-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        color: #CFE9DC;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    .sidebar-item:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #FFFFFF;
+        transform: translateX(3px);
+    }
+    .sidebar-item.active {
+        background: #2E7D67;
+        color: #FFFFFF;
+        font-weight: 800;
+        box-shadow: 0 4px 14px rgba(46, 125, 103, 0.35);
+    }
+    .sidebar-bottom-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        color: #A9D9C0;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 700;
+        transition: all 0.2s;
+    }
+    .sidebar-bottom-link:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #FFFFFF;
+    }
+    .sidebar-bottom-link.logout {
+        color: #FFA39E;
+    }
+    .sidebar-bottom-link.logout:hover {
+        background: rgba(207, 19, 34, 0.15);
+        color: #FF7875;
+    }
 </style>
 
 <script th:inline="none">
@@ -817,21 +817,21 @@
                 method: 'POST',
                 body: formData
             })
-            .then(r => r.json())
-            .then(data => {
-                confirmBtn.disabled = false;
-                closeLearnerModal();
-                if (data.success) {
-                    showSsakToast(data.message);
-                    setTimeout(() => window.location.reload(), 700);
-                } else {
-                    showSsakToast('Lỗi: ' + data.message);
-                }
-            })
-            .catch(e => {
-                confirmBtn.disabled = false;
-                showSsakToast('Có lỗi: ' + e);
-            });
+                .then(r => r.json())
+                .then(data => {
+                    confirmBtn.disabled = false;
+                    closeLearnerModal();
+                    if (data.success) {
+                        showSsakToast(data.message);
+                        setTimeout(() => window.location.href = '/operation?tab=users', 700);
+                    } else {
+                        showSsakToast('Lỗi: ' + data.message);
+                    }
+                })
+                .catch(e => {
+                    confirmBtn.disabled = false;
+                    showSsakToast('Có lỗi: ' + e);
+                });
         } else {
             // Khóa
             if (currentLockType === 'TEMPORARY') {
@@ -856,21 +856,21 @@
                     method: 'POST',
                     body: formData
                 })
-                .then(r => r.json())
-                .then(data => {
-                    confirmBtn.disabled = false;
-                    closeLearnerModal();
-                    if (data.success) {
-                        showSsakToast(data.message);
-                        setTimeout(() => window.location.reload(), 700);
-                    } else {
-                        showSsakToast('Lỗi: ' + data.message);
-                    }
-                })
-                .catch(e => {
-                    confirmBtn.disabled = false;
-                    showSsakToast('Có lỗi: ' + e);
-                });
+                    .then(r => r.json())
+                    .then(data => {
+                        confirmBtn.disabled = false;
+                        closeLearnerModal();
+                        if (data.success) {
+                            showSsakToast(data.message);
+                            setTimeout(() => window.location.href = '/operation?tab=users', 700);
+                        } else {
+                            showSsakToast('Lỗi: ' + data.message);
+                        }
+                    })
+                    .catch(e => {
+                        confirmBtn.disabled = false;
+                        showSsakToast('Có lỗi: ' + e);
+                    });
             } else {
                 // PERMANENT: Gửi yêu cầu Admin duyệt
                 const reason = document.getElementById('permLockReason').value.trim();
@@ -892,32 +892,32 @@
                     method: 'POST',
                     body: formData
                 })
-                .then(r => r.json())
-                .then(data => {
-                    confirmBtn.disabled = false;
-                    closeLearnerModal();
-                    if (data.success) {
-                        showSsakToast(data.message);
-                        if (data.pendingApproval) {
-                            const statusBadge = document.getElementById('learner-status-' + currentTargetUserId);
-                            if (statusBadge) {
-                                statusBadge.className = 'ssak-badge badge-honey';
-                                statusBadge.innerText = '⏳ Chờ Admin duyệt khóa';
+                    .then(r => r.json())
+                    .then(data => {
+                        confirmBtn.disabled = false;
+                        closeLearnerModal();
+                        if (data.success) {
+                            showSsakToast(data.message);
+                            if (data.pendingApproval) {
+                                const statusBadge = document.getElementById('learner-status-' + currentTargetUserId);
+                                if (statusBadge) {
+                                    statusBadge.className = 'ssak-badge badge-honey';
+                                    statusBadge.innerText = '⏳ Chờ Admin duyệt khóa';
+                                }
+                                const actionCell = document.getElementById('learner-action-cell-' + currentTargetUserId);
+                                if (actionCell) {
+                                    actionCell.innerHTML = '<span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 10px; background: #FFFBE6; border: 1px solid #FFE58F; font-size: 12px; font-weight: 700; color: #D48806;">⏳ Đang chờ duyệt</span>';
+                                }
                             }
-                            const actionCell = document.getElementById('learner-action-cell-' + currentTargetUserId);
-                            if (actionCell) {
-                                actionCell.innerHTML = '<span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 10px; background: #FFFBE6; border: 1px solid #FFE58F; font-size: 12px; font-weight: 700; color: #D48806;">⏳ Đang chờ duyệt</span>';
-                            }
+                            setTimeout(() => window.location.href = '/operation?tab=users', 900);
+                        } else {
+                            showSsakToast('Lỗi: ' + data.message);
                         }
-                        setTimeout(() => window.location.reload(), 900);
-                    } else {
-                        showSsakToast('Lỗi: ' + data.message);
-                    }
-                })
-                .catch(e => {
-                    confirmBtn.disabled = false;
-                    showSsakToast('Có lỗi: ' + e);
-                });
+                    })
+                    .catch(e => {
+                        confirmBtn.disabled = false;
+                        showSsakToast('Có lỗi: ' + e);
+                    });
             }
         }
     }
@@ -934,16 +934,16 @@
             method: 'POST',
             body: formData
         })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                showSsakToast(data.message);
-                setTimeout(() => window.location.reload(), 800);
-            } else {
-                showSsakToast('Lỗi: ' + data.message);
-            }
-        })
-        .catch(e => showSsakToast('Có lỗi: ' + e));
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showSsakToast(data.message);
+                    setTimeout(() => window.location.href = '/operation?tab=orders', 800);
+                } else {
+                    showSsakToast('Lỗi: ' + data.message);
+                }
+            })
+            .catch(e => showSsakToast('Có lỗi: ' + e));
     }
 
     function proposePackagePrice(id) {
@@ -961,16 +961,16 @@
             method: 'POST',
             body: formData
         })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                showSsakToast(data.message);
-                setTimeout(() => window.location.reload(), 800);
-            } else {
-                showSsakToast('Lỗi: ' + data.message);
-            }
-        })
-        .catch(e => showSsakToast('Có lỗi: ' + e));
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showSsakToast(data.message);
+                    setTimeout(() => window.location.href = '/operation?tab=prices', 800);
+                } else {
+                    showSsakToast('Lỗi: ' + data.message);
+                }
+            })
+            .catch(e => showSsakToast('Có lỗi: ' + e));
     }
 
     function toggleReviewApprove(id) {
@@ -981,16 +981,17 @@
             method: 'POST',
             body: formData
         })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                showSsakToast(data.message);
-                setTimeout(() => window.location.reload(), 600);
-            } else {
-                showSsakToast('Lỗi: ' + data.message);
-            }
-        })
-        .catch(e => showSsakToast('Có lỗi: ' + e));
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showSsakToast(data.message);
+                    // Giữ nguyên tab đánh giá (reviews) sau khi reload
+                    setTimeout(() => window.location.href = '/operation?tab=reviews', 600);
+                } else {
+                    showSsakToast('Lỗi: ' + data.message);
+                }
+            })
+            .catch(e => showSsakToast('Có lỗi: ' + e));
     }
 
     function submitAnnouncement() {
@@ -1012,18 +1013,18 @@
             method: 'POST',
             body: formData
         })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                showSsakToast(data.message);
-                document.getElementById('annTitle').value = '';
-                document.getElementById('annContent').value = '';
-                setTimeout(() => window.location.reload(), 900);
-            } else {
-                showSsakToast('Lỗi: ' + data.message);
-            }
-        })
-        .catch(e => showSsakToast('Có lỗi: ' + e));
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showSsakToast(data.message);
+                    document.getElementById('annTitle').value = '';
+                    document.getElementById('annContent').value = '';
+                    setTimeout(() => window.location.href = '/operation?tab=announcements', 900);
+                } else {
+                    showSsakToast('Lỗi: ' + data.message);
+                }
+            })
+            .catch(e => showSsakToast('Có lỗi: ' + e));
     }
 
     // ==========================================
