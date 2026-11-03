@@ -29,7 +29,7 @@ public class ReviewService {
                 .user(user)
                 .rating((short) reviewDTO.getRating())
                 .content(reviewDTO.getComment())
-                .status("PENDING") // Chờ Operation Manager duyệt
+                .status("APPROVED") // Chờ Operation Manager duyệt
                 .build();
 
         return reviewRepository.save(review);

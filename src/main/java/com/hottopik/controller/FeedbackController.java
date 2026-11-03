@@ -27,8 +27,7 @@ public class FeedbackController {
 
             reviewService.saveReview(currentUserId, reviewDTO);
 
-            return ResponseEntity.ok().body(new ApiResponse(true, "Cảm ơn cậu đã gửi đánh giá! Ý kiến đang chờ kiểm duyệt."));
-        } catch (Exception e) {
+            return ResponseEntity.ok().body(new ApiResponse(true, "Cảm ơn cậu đã gửi đánh giá! Đánh giá của cậu đã được đăng tải thành công."));        } catch (Exception e) {
             return ResponseEntity.badRequest().body(new ApiResponse(false, "Lỗi: " + e.getMessage()));
         }
     }

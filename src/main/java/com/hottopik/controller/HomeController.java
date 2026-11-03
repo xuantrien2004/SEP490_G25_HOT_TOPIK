@@ -2,11 +2,16 @@ package com.hottopik.controller;
 
 import com.hottopik.entity.Review;
 import com.hottopik.repository.ReviewRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -16,20 +21,59 @@ public class HomeController {
     @Autowired
     private ReviewRepository reviewRepository; // Tiêm ReviewRepository vào đây
 
+    @Transactional(readOnly = true) // Thêm Transactional để hỗ trợ Lazy Loading User khi load review
     @GetMapping("/")
-    public String index(Model model) {
+    public String index(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "rating", required = false) Integer rating,
+            Model model
+    ) {
+        int pageSize = 5; // Cố định mỗi trang hiển thị 5 review dọc
+        Pageable pageable = PageRequest.of(page, pageSize, Sort.by("createdAt").descending());
+
+        Page<Review> reviewPage;
+
+        // Kiểm tra nếu có lọc theo số sao hay không
+        if (rating != null) {
+            // Lưu ý: Cậu cần đảm bảo ReviewRepository có hàm findByStatusAndRating(String status, Short rating, Pageable pageable)
+            // hoặc chuyển rating thành kiểu Short tùy theo khai báo trong Entity Review của cậu.
+            reviewPage = reviewRepository.findByStatusAndRating("APPROVED", rating.shortValue(), pageable);
+        } else {
+            reviewPage = reviewRepository.findByStatusWithUserPage("APPROVED", pageable);
+        }
+
+        // Tính toán tổng số lượng review và điểm trung bình dựa trên toàn bộ review đã duyệt (để hiển thị thống kê chính xác)
+        List<Review> allApprovedReviews = reviewRepository.findByStatusWithUser("APPROVED");
+        double avgRating = 5.0;
+        int totalReviews = allApprovedReviews.size();
+
+        if (totalReviews > 0) {
+            double sum = 0;
+            for (Review r : allApprovedReviews) {
+                sum += (r.getRating() != null ? r.getRating() : 5);
+            }
+            avgRating = Math.round((sum / totalReviews) * 10.0) / 10.0;
+        }
+
+        // 3. Đưa vào Model để trang guest/home hiển thị phân trang
+        model.addAttribute("approvedReviews", reviewPage.getContent());
+        model.addAttribute("currentPage", reviewPage.getNumber());
+        model.addAttribute("totalPages", reviewPage.getTotalPages());
+        model.addAttribute("selectedRating", rating);
+
+        model.addAttribute("avgRating", avgRating);
+        model.addAttribute("totalReviews", totalReviews);
+
         model.addAttribute("pageTitle", "HOT TOPIK — Nền tảng luyện thi TOPIK chuẩn Hàn Quốc");
         model.addAttribute("activePage", "home");
         return "guest/home";
     }
 
-    @Transactional(readOnly = true) // Thêm dòng này để giữ transaction cho phép Lazy Loading User
+    @Transactional(readOnly = true) // Giữ transaction cho phép Lazy Loading User
     @GetMapping({"/ve-topik", "/about-topik"})
     public String aboutTopik(Model model) {
-        // 1. Lấy danh sách review kèm sẵn User bằng JOIN FETCH
         List<Review> approvedReviews = reviewRepository.findByStatusWithUser("APPROVED");
 
-        // 2. Tính toán điểm trung bình (avgRating) và tổng số lượng (totalReviews)
         double avgRating = 5.0;
         int totalReviews = approvedReviews.size();
 
@@ -41,7 +85,6 @@ public class HomeController {
             avgRating = Math.round((sum / totalReviews) * 10.0) / 10.0;
         }
 
-        // 3. Đưa vào Model để trang topik/index hiển thị
         model.addAttribute("approvedReviews", approvedReviews);
         model.addAttribute("avgRating", avgRating);
         model.addAttribute("totalReviews", totalReviews);
