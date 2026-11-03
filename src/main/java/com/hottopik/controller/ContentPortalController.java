@@ -239,9 +239,6 @@ public class ContentPortalController {
             model.addAttribute("currentLevel", level);
             model.addAttribute("currentLevelName", "TOPIK " + (level <= 2 ? "I · Cấp " + level : "II · Cấp " + level));
 
-            // ==========================================
-            // ĐẶT ĐOẠN CODE CỦA BẠN VÀO ĐÂY:
-            // ==========================================
             List<GrammarTypeDTO> grammarTypes = grammarGroupService.getGroupsByLevel(level.shortValue()).stream().map(g ->
                     new GrammarTypeDTO(
                             g.getId(),
@@ -254,7 +251,6 @@ public class ContentPortalController {
             ).collect(java.util.stream.Collectors.toList());
 
             model.addAttribute("grammarTypes", grammarTypes);
-            // ==========================================
 
         } else {
             model.addAttribute("viewMode", "GRAMMAR_LIST");
@@ -267,7 +263,13 @@ public class ContentPortalController {
 
             model.addAttribute("currentGrammarType", group != null ? group.getNameVi() : "Chi tiết nhóm");
             model.addAttribute("currentLevelName", "TOPIK " + level);
-            model.addAttribute("grammars", grammarService.filterGrammars(level.shortValue(), groupId, status, keyword));
+
+            // Gọi qua service để lấy danh sách kèm theo ví dụ (tránh lỗi Lazy Loading)
+            if (status != null && !status.isEmpty()) {
+                model.addAttribute("grammars", grammarService.getGrammarsByGroupIdAndStatusWithExamples(groupId, status));
+            } else {
+                model.addAttribute("grammars", grammarService.getGrammarsByGroupIdWithExamples(groupId));
+            }
         }
 
         model.addAttribute("selectedLevel", level);
