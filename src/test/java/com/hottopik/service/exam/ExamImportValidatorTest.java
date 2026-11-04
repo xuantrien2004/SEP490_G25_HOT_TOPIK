@@ -70,6 +70,14 @@ class ExamImportValidatorTest {
     }
 
     @Test
+    void emptyQuestionTextDoesNotBlockImport() throws IOException {
+        var sample=SampleExamFactory.full(Track.TOPIK_I,1);
+        byte[] excel=edit(sample.excel(),sheet -> set(sheet,1,"prompt_ko",""));
+        var result=validate(excel,Track.TOPIK_I,media(sample));
+        assertEquals(0,result.errorCount(),()->result.issues().toString());
+    }
+
+    @Test
     void detectsBadAnswerDuplicateOptionsAndWrongType() throws IOException {
         SampleExamFactory.Sample s = SampleExamFactory.full(Track.TOPIK_I, 1);
         byte[] bad = edit(s.excel(), sh -> {

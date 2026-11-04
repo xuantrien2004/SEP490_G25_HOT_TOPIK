@@ -23,6 +23,10 @@
         <a th:href="@{/luyen-tap}" th:classappend="${activePage == 'practice' || activePage == 'luyen-tap' ? 'active' : ''}" class="ssak-nav-item">
             <i class="bi bi-pencil-square me-1" style="font-size: 13px;"></i>Luyện tập
         </a>
+        <a th:href="@{/bai-cham}" th:classappend="${activePage == 'mentor-reviews' ? 'active' : ''}" class="ssak-nav-item"
+           th:if="${session.LOGGED_IN_USER != null}">
+            <i class="bi bi-person-video3 me-1" style="font-size: 13px;"></i>Bài viết GV
+        </a>
         <a th:href="@{/de-thi}" th:classappend="${activePage == 'exam' || activePage == 'de-thi' ? 'active' : ''}" class="ssak-nav-item">
             <i class="bi bi-file-earmark-check me-1" style="font-size: 13px;"></i>Đề thi
         </a>
@@ -110,10 +114,10 @@
                 <div id="userDropdownMenu" class="ssak-dropdown-menu" style="right: 0; top: 44px; width: 230px; padding: 8px;">
                     <div style="padding: 8px 12px; border-bottom: 1px solid var(--ssak-border); margin-bottom: 6px;">
                         <div class="fw-bold" style="font-size: 13.5px; color: var(--ssak-text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" th:text="${session.LOGGED_IN_USER.displayName}">Phạm Minh Anh</div>
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 3px;">
-                            <small class="text-muted" style="font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" th:text="${session.LOGGED_IN_USER.email}">learner@hottopik.com</small>
-                            <span class="badge bg-secondary" style="font-size: 10px; font-weight: 800;" th:text="${session.LOGGED_IN_USER.role}">STUDENT</span>
-                        </div>
+<!--                        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 3px;">-->
+<!--                            <small class="text-muted" style="font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" th:text="${session.LOGGED_IN_USER.email}">learner@hottopik.com</small>-->
+<!--                            <span class="badge bg-secondary" style="font-size: 10px; font-weight: 800;" th:text="${session.LOGGED_IN_USER.role}">STUDENT</span>-->
+<!--                        </div>-->
                     </div>
 
                     <!-- Lối tắt vào các Cổng nghiệp vụ theo Role -->
@@ -136,7 +140,6 @@
 
                     <a class="ssak-user-drop-item" th:href="@{/ho-so}"><i class="bi bi-person me-2 text-primary"></i>Hồ sơ Học viên</a>
                     <a class="ssak-user-drop-item" th:href="@{/xu}"><i class="bi bi-coin me-2 text-warning"></i>Kho Xu của bạn</a>
-                    <a class="ssak-user-drop-item" th:href="@{/bai-cham}"><i class="bi bi-journal-check me-2 text-success"></i>Bài Viết gửi Mentor</a>
                     <a class="ssak-user-drop-item" th:href="@{/goi-cua-toi}"><i class="bi bi-gem me-2 text-danger"></i>Gói VIP của tôi</a>
                     <a class="ssak-user-drop-item" th:href="@{/cai-dat}"><i class="bi bi-gear me-2 text-secondary"></i>Cài đặt học tập</a>
                     <div style="height: 1px; background: var(--ssak-border); margin: 4px 0;"></div>

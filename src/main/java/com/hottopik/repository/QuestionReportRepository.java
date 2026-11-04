@@ -16,6 +16,9 @@ public interface QuestionReportRepository extends JpaRepository<QuestionReport, 
     List<QuestionReport> findByStatusOrderByCreatedAtDesc(String status);
     long countByStatus(String status);
 
+    /*
+     * Khóa một báo lỗi trong transaction xử lý/từ chối; sau khóa service kiểm tra OPEN để một báo lỗi không được xử lý hai lần.
+     */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from QuestionReport r where r.id = :id")
     Optional<QuestionReport> findForUpdate(@Param("id") Long id);

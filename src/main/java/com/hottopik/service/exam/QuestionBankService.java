@@ -44,14 +44,19 @@ public class QuestionBankService {
     private final ExamItemRepository examItems;
     private final ApprovalService approvals;
     private final AdminSystemService audit;
+    private final com.hottopik.service.QuestionCorrectionService corrections;
+    private final com.hottopik.repository.exam.QuestionGroupRepository groups;
+    private final com.hottopik.repository.exam.MediaAssetRepository media;
 
     public QuestionBankService(QuestionRepository questions, WritingPromptRepository writingPrompts,
-                               ExamItemRepository examItems, ApprovalService approvals, AdminSystemService audit) {
+                               ExamItemRepository examItems, ApprovalService approvals, AdminSystemService audit, com.hottopik.service.QuestionCorrectionService corrections, com.hottopik.repository.exam.QuestionGroupRepository groups, com.hottopik.repository.exam.MediaAssetRepository media) {
         this.questions = questions;
         this.writingPrompts = writingPrompts;
         this.examItems = examItems;
         this.approvals = approvals;
         this.audit = audit;
+        this.corrections = corrections;
+        this.groups=groups; this.media=media;
     }
 
     @Transactional(readOnly = true)
@@ -145,10 +150,85 @@ public class QuestionBankService {
         return questions.findById(id).orElseThrow(() -> new ExamDomainException("Không tìm thấy câu hỏi #" + id + "."));
     }
 
+    @Transactional(readOnly = true)
+    public Map<String, Object> writingDetail(Long id) {
+        WritingPrompt p = writingPrompts.findById(id).orElseThrow(() -> new ExamDomainException("Không tìm thấy câu Viết."));
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("id", p.getId()); detail.put("code", p.getCode()); detail.put("no", p.getNo());
+        detail.put("promptKo", p.getPromptKo()); detail.put("keys1", p.getKeys1()); detail.put("keys2", p.getKeys2());
+        detail.put("chartJson", p.getChartJson()); detail.put("chartImage", p.getChartImage());
+        detail.put("modelAnswer", p.getModelAnswer()); detail.put("rubricNote", p.getRubricNote());
+        detail.put("source", p.getSource() == null ? null : p.getSource().getName());
+        detail.put("sourceId", p.getSource() == null ? null : p.getSource().getId());
+        return detail;
+    }
+
     @Transactional
-    public void update(Long id, String prompt, List<String> options, Integer answer, String explanation, String reason, Actor actor) {
+    public void updateWriting(Long id, WritingPrompt form, Actor actor) {
         requireContent(actor);
-        Question q = get(id);
+        WritingPrompt p = writingPrompts.findForUpdate(id).orElseThrow(() -> new ExamDomainException("Không tìm thấy câu Viết."));
+        String[] values = {form.getPromptKo(), form.getKeys1(), form.getKeys2(), form.getChartJson(), form.getChartImage(), form.getModelAnswer(), form.getRubricNote()};
+        int[] limits = {4000, 1000, 1000, 2000, 255, 4000, 2000};
+        for (int i = 0; i < values.length; i++)
+            if (values[i] != null && values[i].length() > limits[i]) throw new ExamDomainException("Nội dung vượt quá độ dài cho phép.");
+        if (p.getNo() <= 52 && (form.getKeys1() == null || form.getKeys1().isBlank() || form.getKeys2() == null || form.getKeys2().isBlank()))
+            throw new ExamDomainException("Câu 51–52 cần đáp án cho cả hai chỗ trống.");
+        if (form.getChartJson() != null && !form.getChartJson().isBlank()) {
+            try {
+                if (!new com.fasterxml.jackson.databind.ObjectMapper().readTree(form.getChartJson()).isArray())
+                    throw new ExamDomainException("Dữ liệu biểu đồ phải là một mảng JSON.");
+            } catch (java.io.IOException ex) { throw new ExamDomainException("Dữ liệu biểu đồ không hợp lệ."); }
+        }
+        String image = form.getChartImage() == null || form.getChartImage().isBlank() ? null : form.getChartImage().trim();
+        boolean imageChanged = !Objects.equals(image, p.getChartImage());
+        if (imageChanged && image != null && (p.getSource() == null || media.findBySourceIdAndFilename(p.getSource().getId(), image)
+                .filter(a -> a.getKind() == MediaKind.IMAGE).isEmpty())) throw new ExamDomainException("Không tìm thấy ảnh trong nguồn đề của câu Viết.");
+        var before = corrections.snapshot(p);
+        boolean keysChanged = p.getNo() <= 52 && (!Objects.equals(p.getKeys1(), form.getKeys1()) || !Objects.equals(p.getKeys2(), form.getKeys2()));
+        p.setPromptKo(Objects.toString(form.getPromptKo(), "").trim());
+        if (p.getNo() <= 52) { p.setKeys1(form.getKeys1()); p.setKeys2(form.getKeys2()); }
+        p.setChartImage(image); p.setChartJson(form.getChartJson());
+        p.setModelAnswer(Objects.toString(form.getModelAnswer(), "").trim()); p.setRubricNote(form.getRubricNote());
+        corrections.recordWriting(p, before, null, imageChanged ? "IMAGE" : keysChanged ? "ANSWER" : "CONTENT", "Content Manager cập nhật câu Viết.");
+        log(actor, "UPDATE_WRITING_QUESTION", "Sửa câu Viết " + p.getCode());
+    }
+
+    @Transactional
+    /*
+     * Sửa MC dùng chung: bắt buộc CM, đủ 4 phương án khác nhau và đáp án 1..4; đổi đáp án cần lý do ít nhất 5 ký tự.
+     * Gán lại nội dung/giải thích, tính contentHash và audit; entity trong transaction được JPA lưu qua dirty checking.
+     */
+    public void update(Long id, String prompt, List<String> options, Integer answer, String explanation, String reason, Actor actor) {
+        update(id,prompt,options,answer,explanation,reason,actor,null,"CONTENT","RECALCULATE");
+    }
+    @Transactional
+    public void update(Long id, String prompt, List<String> options, Integer answer, String explanation, String reason, Actor actor, Long reportId, String correctionType, String scorePolicy) {
+        update(id,prompt,options,answer,explanation,reason,actor,reportId,correctionType,scorePolicy,null);
+    }
+    public record GroupChange(String passage,String script,String image,String audio) {}
+    @Transactional
+    public void update(Long id, String prompt, List<String> options, Integer answer, String explanation, String reason, Actor actor, Long reportId, String correctionType, String scorePolicy, GroupChange groupChange) {
+        requireContent(actor);
+        Question existing=get(id);
+        QuestionGroup group=groups.findForUpdate(existing.getGroup().getId()).orElseThrow();
+        List<Question> groupQuestions=group.getQuestions().stream().sorted(Comparator.comparing(Question::getId)).map(q -> questions.findForUpdate(q.getId()).orElseThrow()).toList();
+        Question q=groupQuestions.stream().filter(it->id.equals(it.getId())).findFirst().orElseThrow();
+        Map<Long,com.hottopik.service.QuestionReportService.ReportQuestion> originals=new LinkedHashMap<>();
+        groupQuestions.forEach(it->originals.put(it.getId(),corrections.snapshot(it)));
+        if(groupChange!=null) {
+            String image=groupChange.image()==null?group.getImageFile():groupChange.image().trim();
+            String audio=groupChange.audio()==null?group.getAudioFile():groupChange.audio().trim();
+            boolean imageChanged=!Objects.toString(image,"").equals(Objects.toString(group.getImageFile(),""));
+            boolean audioChanged=!Objects.toString(audio,"").equals(Objects.toString(group.getAudioFile(),""));
+            if(imageChanged)validateMedia(group,image,MediaKind.IMAGE);
+            if(audioChanged)validateMedia(group,audio,MediaKind.AUDIO);
+            if(groupChange.passage()!=null && groupChange.passage().length()>4000 || groupChange.script()!=null && groupChange.script().length()>4000)throw new ExamDomainException("Đoạn văn và phụ đề tối đa 4000 ký tự.");
+            if(groupChange.passage()!=null)group.setPassageKo(groupChange.passage().isBlank()?null:groupChange.passage().trim());
+            if(groupChange.script()!=null)group.setScriptKo(groupChange.script().isBlank()?null:groupChange.script().trim());
+            if(imageChanged)correctionType="IMAGE";
+            if(audioChanged)correctionType="AUDIO";
+            group.setImageFile(image==null||image.isBlank()?null:image);group.setAudioFile(audio==null||audio.isBlank()?null:audio);
+        }
         if (prompt == null || prompt.isBlank()) throw new ExamDomainException("Câu hỏi không được để trống.");
         if (options == null || options.size() != 4 || options.stream().anyMatch(o -> o == null || o.isBlank())) {
             throw new ExamDomainException("Cần đủ 4 phương án.");
@@ -170,7 +250,16 @@ public class QuestionBankService {
         q.setExplanationVi(explanation == null || explanation.isBlank() ? null : explanation.trim());
         q.setContentHash(ExamImportValidator.contentHash(q.getPromptKo(), q.getGroup().getPassageKo(),
                 q.getGroup().getScriptKo(), q.options().toArray(String[]::new)));
+        for(Question affected:groupQuestions) {
+            affected.setContentHash(ExamImportValidator.contentHash(affected.getPromptKo(), group.getPassageKo(),group.getScriptKo(),affected.options().toArray(String[]::new)));
+            corrections.record(affected,originals.get(affected.getId()),affected.getId().equals(id)?reportId:null,correctionType,scorePolicy,reason);
+        }
         log(actor, "UPDATE_QUESTION", "Sửa câu " + q.getCode() + (answerChanged ? " (đổi đáp án → " + answer + ": " + reason.trim() + ")" : ""));
+    }
+
+    private void validateMedia(QuestionGroup group,String filename,MediaKind kind) {
+        if(filename==null || filename.isBlank())return;
+        if(group.getSource()==null || media.findBySourceIdAndFilename(group.getSource().getId(),filename).filter(a->a.getKind()==kind).isEmpty())throw new ExamDomainException("Không tìm thấy file "+filename+" trong nguồn đề.");
     }
 
     @Transactional

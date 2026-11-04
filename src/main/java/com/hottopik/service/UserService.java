@@ -241,6 +241,8 @@ public class UserService {
                     return Optional.empty();
                 }
             }
+            // DB hoạt động nhưng không có tài khoản: không đăng nhập bằng ID mẫu không tồn tại trong users.
+            return Optional.empty();
         } catch (Exception ex) {
             log.warn("Không thể kết nối DB để xác thực, chuyển sang chế độ in-memory fallback: {}", ex.getMessage());
         }
@@ -654,6 +656,10 @@ public class UserService {
         dto.setLockedUntil(u.getLockedUntil());
         dto.setLockReason(u.getLockReason());
         dto.setTimezone(u.getTimezone() != null ? u.getTimezone() : "Asia/Ho_Chi_Minh");
+        boolean vip = userRepository.countActiveSubscriptions(u.getId(),
+                LocalDateTime.now(java.time.ZoneOffset.UTC)) > 0;
+        dto.setVip(vip);
+        dto.setVipPackage(vip ? "VIP" : null);
         dto.setDailyGoalMinutes(u.getDailyGoalMinutes() != null ? u.getDailyGoalMinutes().intValue() : 20);
         if (u.getCreatedAt() != null) {
             dto.setCreatedAt(u.getCreatedAt());

@@ -17,7 +17,12 @@
         </a>
     </div>
 
+    <!--
+        report.status chọn banner đang chờ/đã sửa/từ chối và ghi chú tương ứng.
+        historyQuestionUrl nếu có dẫn đến anchor của câu trong lượt đã nộp, không khởi tạo bài mới.
+    -->
     <!-- Banner Kết quả xử lý Báo lỗi -->
+    <a th:if="${historyQuestionUrl != null}" th:href="${historyQuestionUrl}" class="btn btn-success mb-4">Xem câu đã báo lỗi trong lịch sử bài làm →</a>
     <div class="bg-white border rounded-4 p-4 p-md-5 shadow-sm mb-4"
          th:style="${report.status == 'RESOLVED' ? 'border-color: #A9D9C0 !important;' : (report.status == 'REJECTED' ? 'border-color: #FFA39E !important;' : 'border-color: #FDE68A !important;')}">
 
@@ -26,7 +31,7 @@
             <div class="d-flex align-items-center gap-2">
                 <span class="badge" style="font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 20px;"
                       th:classappend="${report.status == 'RESOLVED' ? 'bg-success text-white' : (report.status == 'REJECTED' ? 'bg-danger text-white' : 'bg-warning text-dark')}"
-                      th:text="${report.status == 'RESOLVED' ? '✅ Đã khắc phục & Thưởng +5 Xu' : (report.status == 'REJECTED' ? '❌ Đã từ chối báo lỗi' : '⏳ Đang chờ Content Manager rà soát')}">
+                      th:text="${report.status == 'RESOLVED' ? '✅ Đã khắc phục & Thưởng +5 Xu' : (report.status == 'REJECTED' ? '❌ Đã từ chối báo lỗi' : '⏳ Đang chờ rà soát')}">
                     Trạng thái
                 </span>
                 <span class="badge bg-light text-muted border" th:text="${'Mã phản hồi: #REP-' + report.id}">#REP-1</span>
@@ -55,12 +60,12 @@
             <div class="d-flex align-items-center justify-content-between mb-2">
                 <div class="d-flex align-items-center gap-2">
                     <span style="font-size: 22px;">🎉</span>
-                    <strong class="text-success" style="font-size: 16px;">Content Manager đã tiếp nhận & sửa chữa câu hỏi!</strong>
+                    <strong class="text-success" style="font-size: 16px;">Đã được tiếp nhận & sửa chữa câu hỏi!</strong>
                 </div>
                 <span class="badge bg-success text-white fw-bold px-3 py-2 rounded-pill">+5 Xu Thưởng</span>
             </div>
             <p class="mb-2 text-dark" style="font-size: 15px; line-height: 1.6;">
-                <strong>Phương án sửa đổi / ghi chú của Content Manager:</strong>
+                <strong>Phương án sửa đổi / ghi chú:</strong>
             </p>
             <div class="p-3 bg-white rounded-3 border text-dark" style="font-size: 14.5px; line-height: 1.6;"
                  th:text="${report.resolutionNote != null and !report.resolutionNote.isBlank() ? report.resolutionNote : 'Đã sửa câu hỏi và cập nhật đáp án chuẩn xác trong ngân hàng câu hỏi.'}">
@@ -75,7 +80,7 @@
              style="background: #FFF1F0; border-color: #FFA39E !important;">
             <div class="d-flex align-items-center gap-2 mb-2">
                 <span style="font-size: 22px;">ℹ️</span>
-                <strong class="text-danger" style="font-size: 16px;">Content Manager đã kiểm tra lại: Câu hỏi không có lỗi</strong>
+                <strong class="text-danger" style="font-size: 16px;">Đã được kiểm tra lại: Câu hỏi không có lỗi</strong>
             </div>
             <p class="mb-2 text-dark" style="font-size: 15px; line-height: 1.6;">
                 <strong>Lý do từ chối từ Ban Quản lý Nội dung:</strong>
@@ -92,13 +97,14 @@
         <div th:if="${report.status == 'OPEN'}" class="p-4 rounded-3 border bg-light mb-4 text-center">
             <span style="font-size: 32px;">⏳</span>
             <h5 class="fw-bold mt-2">Báo cáo đang chờ Ban Quản lý kiểm tra</h5>
-            <p class="text-muted mb-0 small">Content Manager sẽ kiểm tra lại câu hỏi này trong thời gian sớm nhất. Bạn sẽ nhận được thông báo ngay khi có kết quả.</p>
+            <p class="text-muted mb-0 small">Câu hỏi này sẽ được kiểm tra trong thời gian sớm nhất. Bạn sẽ nhận được thông báo ngay khi có kết quả.</p>
         </div>
 
     </div>
 
+    <th:block th:if="${report.status == 'RESOLVED'}" th:insert="~{report/correction :: comparison}"></th:block>
     <!-- KHU VỰC HIỂN THỊ CÂU HỎI LIÊN QUAN (NỘI DUNG SAU KHI SỬA HOẶC NỘI DUNG GỐC) -->
-    <section class="bg-white border rounded-4 p-4 shadow-sm mb-4">
+    <section th:if="${beforeQuestion == null}" class="bg-white border rounded-4 p-4 shadow-sm mb-4">
         <div class="d-flex justify-content-between align-items-center pb-3 mb-3 border-bottom">
             <h2 class="h5 fw-bold mb-0 d-flex align-items-center gap-2">
                 <span>🔗 Nội dung câu hỏi liên quan</span>

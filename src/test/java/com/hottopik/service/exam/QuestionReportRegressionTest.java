@@ -6,6 +6,12 @@ import com.hottopik.repository.UserRepository;
 import com.hottopik.repository.exam.QuestionRepository;
 import com.hottopik.repository.exam.WritingPromptRepository;
 import com.hottopik.service.QuestionReportService;
+import com.hottopik.service.ReportAttemptService;
+import com.hottopik.entity.exam.PracticeAttempt;
+import com.hottopik.entity.exam.ExamAttempt;
+import com.hottopik.repository.exam.PracticeAttemptRepository;
+import com.hottopik.repository.exam.ExamAttemptRepository;
+import com.hottopik.repository.exam.ExamRepository;
 import com.hottopik.util.AuthHelper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +38,10 @@ class QuestionReportRegressionTest {
     @Autowired QuestionRepository questions;
     @Autowired WritingPromptRepository writing;
     @Autowired QuestionReportService reports;
+    @Autowired ReportAttemptService reportAttempts;
+    @Autowired PracticeAttemptRepository practices;
+    @Autowired ExamAttemptRepository attempts;
+    @Autowired ExamRepository exams;
 
     private UserDTO user(long id, String role) {
         UserDTO u = new UserDTO();
@@ -152,6 +162,71 @@ class QuestionReportRegressionTest {
         assertEquals(1, reports.getUserNotifications(owner.getId()).size());
         mvc.perform(get("/bao-loi/{id}", id).sessionAttr(AuthHelper.SESSION_KEY, learner))
                 .andExpect(status().isOk()).andExpect(content().string(containsString("Hướng dẫn chấm đã được sửa")));
+    }
+
+    @Test
+    void resolvedReportsLinkOnlyToTheExactOwnedCompletedAttempt() throws Exception {
+        User owner = users.save(User.builder().email(UUID.randomUUID() + "@example.com")
+                .passwordHash("test-only").displayName("History reporter").build());
+        UserDTO learner = user(owner.getId(), "STUDENT");
+        var q = questions.findAll().get(0);
+        PracticeAttempt practice = new PracticeAttempt();
+        practice.setUserId(owner.getId());
+        practice.setUserEmail(learner.getEmail());
+        practice.setTrack(q.getTrack());
+        practice.setSkill(q.getSkill());
+        practice.setTypeCode(q.getTypeCode());
+        practice.setQuestionIds(q.getId().toString());
+        practice.setTotal(1);
+        practice = practices.saveAndFlush(practice);
+        final Long practiceId = practice.getId();
+        var submitted = mvc.perform(post("/api/question-reports").sessionAttr(AuthHelper.SESSION_KEY, learner)
+                        .param("questionId", q.getId().toString()).param("questionKind", "MC")
+                        .param("attemptId", practiceId.toString()).param("attemptKind", "PRACTICE")
+                        .param("issueType", "Nội dung").param("details", "Kiểm tra câu đã làm"))
+                .andExpect(status().isOk()).andReturn();
+        long id = new ObjectMapper().readTree(submitted.getResponse().getContentAsString()).path("reportId").asLong();
+        assertNull(reportAttempts.historyLink(reports.getReportById(id).orElseThrow()));
+        reports.rejectReport(id, "Đã kiểm tra nội dung", "CM");
+        assertNull(reportAttempts.historyLink(reports.getReportById(id).orElseThrow()), "Unfinished attempts have no history result");
+        practice.setCompletedAt(java.time.LocalDateTime.now());
+        practices.saveAndFlush(practice);
+        String expected = "/practice/result/" + practiceId + "#question-" + q.getId();
+        assertEquals(expected, reportAttempts.historyLink(reports.getReportById(id).orElseThrow()));
+        mvc.perform(get("/bao-loi/{id}", id).sessionAttr(AuthHelper.SESSION_KEY, learner))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("href=\"" + expected + "\"")));
+        mvc.perform(get("/practice/result/{id}", practiceId).sessionAttr(AuthHelper.SESSION_KEY, learner))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("id=\"question-" + q.getId() + "\"")));
+        mvc.perform(post("/api/question-reports").sessionAttr(AuthHelper.SESSION_KEY, user(99887, "STUDENT"))
+                        .param("questionId", q.getId().toString()).param("attemptId", practiceId.toString())
+                        .param("attemptKind", "PRACTICE").param("issueType", "Nội dung").param("details", "Không có quyền"))
+                .andExpect(status().isBadRequest());
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> reportAttempts.validate(owner.getId(), practiceId, "PRACTICE", Long.MAX_VALUE, "MC", null));
+        long legacyId = submit(learner, q.getId(), "MC");
+        reports.resolveReport(legacyId, "Đã kiểm tra", "CM");
+        assertNull(reportAttempts.historyLink(reports.getReportById(legacyId).orElseThrow()), "Never guess an attempt for legacy reports");
+
+        Long examId = exams.findAll().stream().map(e -> exams.findForComposerById(e.getId()).orElseThrow())
+                .filter(e -> !e.getItems().isEmpty()).findFirst().orElseThrow().getId();
+        Long examQuestionId = exams.findForComposerById(examId).orElseThrow().getItems().get(0).getQuestion().getId();
+        ExamAttempt examAttempt = new ExamAttempt();
+        examAttempt.setExam(exams.findById(examId).orElseThrow());
+        examAttempt.setUserId(owner.getId());
+        examAttempt.setCompletedAt(java.time.LocalDateTime.now());
+        examAttempt = attempts.saveAndFlush(examAttempt);
+        final Long attemptId = examAttempt.getId();
+        reportAttempts.validate(owner.getId(), attemptId, "EXAM", examQuestionId, "MC", examId);
+        long examReportId = submit(learner, examQuestionId, "MC");
+        var examReport = reports.getReportById(examReportId).orElseThrow();
+        examReport.setAttemptId(attemptId);
+        examReport.setAttemptKind("EXAM");
+        examReport.setStatus("RESOLVED");
+        assertEquals("/ket-qua/" + attemptId + "#question-" + examQuestionId, reportAttempts.historyLink(examReport));
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> reportAttempts.validate(owner.getId() + 1, attemptId, "EXAM", examQuestionId, "MC", examId));
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> reportAttempts.validate(owner.getId(), attemptId, "EXAM", examQuestionId, "MC", Long.MAX_VALUE));
     }
 
     @Test

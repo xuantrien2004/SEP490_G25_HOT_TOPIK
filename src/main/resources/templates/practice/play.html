@@ -1,285 +1,34 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="vi">
 <head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
-<body style="background: var(--ssak-bg, #F4F3EF); color: var(--ssak-text-main, #24363D); font-family: var(--font-body, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);">
-
+<body style="background:#F8F6EF;color:#24363D;font-family:var(--font-body)">
 <div th:replace="~{fragments/navbar :: navbar('practice')}"></div>
-
-<main class="container py-4" style="max-width: 1080px; min-height: 85vh;">
-
-    <!-- Top Sticky Bar: Tên dạng + Tiến độ + Timer -->
-    <div class="sticky-top bg-white border rounded-4 p-3 mb-4 shadow-sm" style="top: 16px; z-index: 1020;">
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-            <div>
-                <div class="d-flex align-items-center gap-2 mb-1">
-                    <span class="badge text-bg-light border fw-bold text-dark" th:text="${type.code}">I-N1</span>
-                    <span class="badge bg-success-subtle text-success-emphasis border border-success" th:text="${type.track.label}">TOPIK I</span>
-                    <span class="badge bg-primary-subtle text-primary-emphasis border border-primary" th:text="${type.skill.label}">Nghe</span>
-                </div>
-                <h1 class="h5 fw-bold mb-0 text-dark" th:text="${type.name}">Chọn câu trả lời phù hợp</h1>
-            </div>
-
-            <div class="d-flex align-items-center gap-4">
-                <!-- Đồng hồ bấm giờ -->
-                <div class="d-flex align-items-center gap-2 bg-light border px-3 py-2 rounded-3">
-                    <span style="font-size: 18px;">⏱️</span>
-                    <div>
-                        <div class="small text-muted" style="font-size: 11px;">Thời gian</div>
-                        <div class="fw-bold font-monospace text-dark" id="timerDisplay" style="font-size: 16px;">00:00</div>
-                    </div>
-                </div>
-
-                <!-- Tiến độ -->
-                <div class="d-flex align-items-center gap-2 bg-light border px-3 py-2 rounded-3">
-                    <span style="font-size: 18px;">📝</span>
-                    <div>
-                        <div class="small text-muted" style="font-size: 11px;">Tiến độ</div>
-                        <div class="fw-bold text-dark" style="font-size: 16px;">
-                            <span id="answeredCount">0</span> / <span th:text="${questions.size()}">10</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Nút nộp bài trên header -->
-                <button type="button" class="btn btn-success fw-bold px-4 py-2 rounded-3" onclick="confirmSubmit()">
-                    Nộp bài ✓
-                </button>
-            </div>
+<th:block th:replace="~{fragments/question-player :: assets}"></th:block>
+<main class="container-fluid py-4" style="max-width:1440px;min-height:85vh">
+    <header class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div><a th:href="@{/practice/prepare(typeCode=${type.code})}">← Tạm dừng</a>
+            <h1 class="h4 mt-2 mb-1" th:text="${type.name}"></h1>
+            <span th:text="${type.track.label + ' · ' + type.skill.label}"></span>
         </div>
-    </div>
-
-    <!-- Hướng dẫn làm bài của dạng -->
-    <div th:if="${type.instructionKo != null and !type.instructionKo.isBlank()}"
-         class="p-3 mb-4 rounded-3 border"
-         style="background: #FFFDF0; border-color: #FDE68A !important;">
-        <div class="d-flex align-items-center gap-2 text-warning-emphasis fw-bold mb-1" style="font-size: 13px;">
-            <span>💡 HƯỚNG DẪN DẠNG BÀI:</span>
-        </div>
-        <div class="fw-medium text-dark" style="font-size: 15px;" th:text="${type.learnerInstructionKo()}"></div>
-    </div>
-
-    <!-- Form làm bài -->
-    <form id="practiceForm" method="post" th:action="@{/practice/submit/{id}(id=${attempt.id})}">
-
-        <div class="d-flex flex-column gap-4">
-            <!-- Vòng lặp từng câu hỏi -->
-            <div th:each="q, iter : ${questions}" class="bg-white border rounded-4 p-4 shadow-sm question-card"
-                 th:id="'question-' + ${q.id}" th:attr="data-qid=${q.id}">
-
-                <!-- Câu header -->
-                <div class="d-flex justify-content-between align-items-center pb-3 mb-3 border-bottom">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="badge rounded-circle d-flex align-items-center justify-content-center"
-                              style="width: 32px; height: 32px; background: #1F6B56; color: #FFFFFF; font-size: 15px; font-weight: 700;"
-                              th:text="${iter.count}">1</span>
-                        <span class="fw-bold text-dark" style="font-size: 16px;" th:text="'Câu hỏi ' + ${iter.count}">Câu hỏi 1</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="badge bg-light text-muted border" th:text="'Câu gốc #' + ${q.no}">Câu gốc #1</span>
-                        <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 rounded-3 px-2 py-1"
-                                style="font-size: 12px; font-weight: 600; border-color: #FFA39E; color: #CF1322;"
-                                th:attr="data-qid=${q.id}, data-code=${type.code + ' - Câu ' + iter.count}, data-prompt=${q.prompt}, data-examtitle=${'Luyện tập: ' + type.name}, data-no=${q.no}"
-                                onclick="openReportModalFromBtn(this)"
-                                title="Báo lỗi nội dung câu hỏi này cho Content Manager">
-                            <span>🚩</span>
-                            <span>Báo lỗi</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Đoạn Audio (cho bài nghe) -->
-                <div th:if="${q.audio != null}" class="p-3 mb-3 rounded-3 border bg-light d-flex align-items-center gap-3">
-                    <span style="font-size: 24px;">🎧</span>
-                    <div class="flex-grow-1">
-                        <div class="small fw-bold text-muted mb-1">File âm thanh câu hỏi:</div>
-                        <audio controls class="w-100" preload="metadata">
-                            <source th:src="${q.audio}" type="audio/mpeg">
-                            Trình duyệt không hỗ trợ thẻ audio.
-                        </audio>
-                    </div>
-                </div>
-
-                <!-- Đoạn văn Passage (cho bài đọc / nghe có đoạn chung) -->
-                <div th:if="${q.passage != null and !q.passage.isBlank()}"
-                     class="p-4 mb-3 rounded-3 border"
-                     style="background: #F8FAFC; border-color: #CBD5E1 !important; line-height: 1.8; font-size: 16px;">
-                    <div class="small fw-bold text-primary-emphasis mb-2">📄 ĐOẠN VĂN:</div>
-                    <div style="white-space: pre-line;" th:text="${q.passage}"></div>
-                </div>
-
-                <!-- Hình ảnh minh họa (nếu có) -->
-                <div th:if="${q.image != null}" class="mb-3 text-center">
-                    <img th:src="${q.image}" alt="Hình ảnh câu hỏi" class="img-fluid rounded-3 border" style="max-height: 280px;">
-                </div>
-
-                <!-- Đề bài câu hỏi (Prompt) -->
-                <div class="mb-4" style="font-size: 17px; font-weight: 600; line-height: 1.6;" th:text="${q.prompt}">
-                    여기는 어디입니까?
-                </div>
-
-                <!-- 4 Lựa chọn trắc nghiệm -->
-                <div class="d-flex flex-column gap-2 options-container">
-                    <label th:each="opt, oIter : ${q.options}"
-                           class="option-item d-flex align-items-center gap-3 p-3 rounded-3 border cursor-pointer transition-all">
-                        <input type="radio" th:name="'answer_' + ${q.id}" th:value="${oIter.count}"
-                               class="form-check-input mt-0 answer-radio"
-                               th:onchange="'updateAnswerStatus(' + ${q.id} + ')'"
-                               style="width: 20px; height: 20px; cursor: pointer;">
-                        <span class="option-no fw-bold d-flex align-items-center justify-content-center rounded-circle border"
-                              style="width: 26px; height: 26px; font-size: 13px;"
-                              th:text="${oIter.count == 1 ? '①' : (oIter.count == 2 ? '②' : (oIter.count == 3 ? '③' : '④'))}">①</span>
-                        <span class="option-text fw-medium" style="font-size: 15px;" th:text="${opt}">Đáp án</span>
-                    </label>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- Thanh điều hướng và nút nộp bài dưới chân -->
-        <div class="bg-white border rounded-4 p-4 mt-4 shadow-sm d-flex flex-wrap align-items-center justify-content-between gap-3">
-            <!-- Ma trận câu hỏi nhanh -->
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-                <span class="small fw-bold text-muted me-2">Nhảy nhanh:</span>
-                <button type="button" th:each="q, iter : ${questions}"
-                        th:id="'matrix-btn-' + ${q.id}"
-                        th:onclick="'scrollToQuestion(' + ${q.id} + ')'"
-                        class="btn btn-sm btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center matrix-btn"
-                        style="width: 34px; height: 34px; font-weight: 700;"
-                        th:text="${iter.count}">1</button>
-            </div>
-
-            <!-- Nút Nộp bài -->
-            <button type="button" class="btn btn-success btn-lg fw-bold px-5 py-3 rounded-3 shadow-sm" onclick="confirmSubmit()">
-                Hoàn thành & Nộp bài ✓
-            </button>
-        </div>
-
+        <strong id="timerDisplay" class="font-monospace">00:00</strong>
+    </header>
+    <!--
+        Form nộp bài giữ endpoint cũ; data-report-attempt-* cho modal biết chính xác lượt báo lỗi.
+        Fragment chung chỉ đổi phần trình bày; submit vẫn gửi answer_<questionId> cho PracticeController.
+    -->
+    <form id="practiceForm" method="post" th:action="@{/practice/submit/{id}(id=${attempt.id})}"
+          data-report-attempt-kind="PRACTICE" th:attr="data-report-attempt-id=${attempt.id}">
+        <div th:replace="~{fragments/question-player :: player(${playerQuestions}, false, ${null}, ${'Luyện tập: ' + type.name})}"></div>
     </form>
-
 </main>
-
-<!-- Modal Xác nhận nộp bài -->
-<div class="modal fade" id="submitConfirmModal" tabindex="-1" aria-labelledby="submitConfirmModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-4 border-0 shadow">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold" id="submitConfirmModalLabel">Xác nhận nộp bài</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body py-4">
-                <div class="text-center mb-3">
-                    <span style="font-size: 48px;">📑</span>
-                </div>
-                <div id="modalSubmitText" class="text-center fs-6">
-                    Bạn đã sẵn sàng nộp bài luyện tập này chưa?
-                </div>
-            </div>
-            <div class="modal-footer border-0 pt-0 d-flex justify-content-center gap-2">
-                <button type="button" class="btn btn-outline-secondary px-4 py-2 rounded-3" data-bs-dismiss="modal">Làm tiếp</button>
-                <button type="button" class="btn btn-success fw-bold px-4 py-2 rounded-3" onclick="doSubmit()">Đồng ý nộp bài</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal và Script Báo lỗi câu hỏi -->
 <div th:replace="~{fragments/report-modal :: reportModal}"></div>
 <div th:replace="~{fragments/report-modal :: reportScript}"></div>
-
 <div th:replace="~{fragments/footer :: footer}"></div>
-
-<style>
-    .cursor-pointer { cursor: pointer; }
-    .option-item:hover {
-        background-color: #F0FDF4;
-        border-color: #86EFAC !important;
-    }
-    .option-item.selected {
-        background-color: #DCFCE7 !important;
-        border-color: #22C55E !important;
-        box-shadow: 0 0 0 1px #22C55E;
-    }
-    .option-item.selected .option-no {
-        background-color: #1F6B56;
-        color: #FFFFFF;
-        border-color: #1F6B56 !important;
-    }
-    .matrix-btn.answered {
-        background-color: #1F6B56 !important;
-        color: #FFFFFF !important;
-        border-color: #1F6B56 !important;
-    }
-</style>
-
-<script th:inline="javascript">
-    // Timer đếm giờ
+<script>
     let seconds = 0;
-    const timerDisplay = document.getElementById('timerDisplay');
     setInterval(() => {
         seconds++;
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        timerDisplay.textContent = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+        document.getElementById('timerDisplay').textContent = String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
     }, 1000);
-
-    // Cập nhật trạng thái câu hỏi khi chọn đáp án
-    const totalQuestions = /*[[${questions.size()}]]*/ 10;
-
-    function updateAnswerStatus(qid) {
-        // Highlight option được chọn
-        const card = document.getElementById('question-' + qid);
-        const options = card.querySelectorAll('.option-item');
-        options.forEach(opt => {
-            const radio = opt.querySelector('input[type="radio"]');
-            if (radio && radio.checked) {
-                opt.classList.add('selected');
-            } else {
-                opt.classList.remove('selected');
-            }
-        });
-
-        // Đánh dấu ô ma trận
-        const matrixBtn = document.getElementById('matrix-btn-' + qid);
-        if (matrixBtn) matrixBtn.classList.add('answered');
-
-        // Đếm số câu đã làm
-        let count = 0;
-        document.querySelectorAll('.question-card').forEach(c => {
-            if (c.querySelector('input[type="radio"]:checked')) count++;
-        });
-        document.getElementById('answeredCount').textContent = count;
-    }
-
-    // Cuộn tới câu hỏi
-    function scrollToQuestion(qid) {
-        const el = document.getElementById('question-' + qid);
-        if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    }
-
-    // Xác nhận nộp bài
-    function confirmSubmit() {
-        let answered = 0;
-        document.querySelectorAll('.question-card').forEach(c => {
-            if (c.querySelector('input[type="radio"]:checked')) answered++;
-        });
-
-        const modalText = document.getElementById('modalSubmitText');
-        if (answered < totalQuestions) {
-            const remain = totalQuestions - answered;
-            modalText.innerHTML = `Bạn còn <strong class="text-danger">${remain} câu</strong> chưa trả lời.<br/>Bạn có chắc chắn muốn nộp bài ngay bây giờ?`;
-        } else {
-            modalText.innerHTML = `Bạn đã hoàn thành đầy đủ <strong>${totalQuestions}/${totalQuestions} câu hỏi</strong>.<br/>Bạn có muốn nộp bài để xem điểm số và lời giải thích?`;
-        }
-
-        const modal = new bootstrap.Modal(document.getElementById('submitConfirmModal'));
-        modal.show();
-    }
-
-    function doSubmit() {
-        document.getElementById('practiceForm').submit();
-    }
 </script>
-</body>
-</html>
+</body></html>

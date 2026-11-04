@@ -2,16 +2,14 @@ package com.hottopik.controller;
 
 import com.hottopik.dto.UserDTO;
 import com.hottopik.service.UserService;
-import com.hottopik.util.AuthHelper;
-import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import com.hottopik.entity.exam.StudyPlan;
 import com.hottopik.entity.exam.Track;
+import com.hottopik.service.ProgressService;
 import com.hottopik.service.exam.ExamDomainException;
 import com.hottopik.service.exam.LearnerRoadmapService;
 import com.hottopik.util.AuthHelper;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,9 +25,11 @@ public class LearnerController {
 
     private final UserService userService;
     private final LearnerRoadmapService roadmaps;
-    public LearnerController(UserService userService, LearnerRoadmapService roadmaps) {
+    private final ProgressService progressService;
+    public LearnerController(UserService userService, LearnerRoadmapService roadmaps, ProgressService progressService) {
         this.userService = userService;
         this.roadmaps = roadmaps;
+        this.progressService = progressService;
     }
 
     @GetMapping({"/trang-chu", "/learner/home"})
@@ -51,11 +51,18 @@ public class LearnerController {
     }
 
     @GetMapping({"/tien-do", "/progress"})
-    public String progress(Model model) {
-        model.addAttribute("pageTitle", "Phân tích tiến độ học tập");
+    public String progress(Model model, HttpSession session) {
+        model.addAttribute("pageTitle", "Ph\u00e2n t\u00edch ti\u1ebfn \u0111\u1ed9 h\u1ecdc t\u1eadp");
         model.addAttribute("activePage", "progress");
+        UserDTO user = AuthHelper.getLoggedInUser(session);
+        if (user != null) {
+            ProgressService.ProgressData pd = progressService.load(user.getId());
+            model.addAttribute("progressData", pd);
+            model.addAttribute("currentUser", user);
+        }
         return "progress/index";
     }
+
 
     @GetMapping({"/lich-su", "/history"})
     public String history(Model model) {
@@ -211,13 +218,6 @@ public class LearnerController {
         model.addAttribute("pageTitle", "Xu của bạn & Đổi quà");
         model.addAttribute("activePage", "coins");
         return "learner/coins";
-    }
-
-    @GetMapping({"/bai-cham", "/mentor-reviews"})
-    public String mentorReviews(Model model) {
-        model.addAttribute("pageTitle", "Bài Viết gửi Mentor chấm");
-        model.addAttribute("activePage", "mentor-reviews");
-        return "learner/mentor-reviews";
     }
 
     private static Track trackFor(HttpSession session) {

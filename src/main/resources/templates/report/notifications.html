@@ -23,6 +23,9 @@
         </div>
 
         <div th:unless="${#lists.isEmpty(notifications)}" class="d-flex flex-column gap-3">
+            <!--
+                Danh sách do server lọc theo người dùng; n.read quyết định nền/nhãn Mới, n.link dẫn đến báo lỗi tương ứng.
+            -->
             <div th:each="n : ${notifications}"
                  class="p-3 rounded-3 border transition-all d-flex justify-content-between align-items-start gap-3"
                  th:style="${!n.read ? 'background: #F0FDF4; border-color: #86EFAC !important;' : 'background: #FFFFFF;'}"
@@ -56,6 +59,7 @@
 <div th:replace="~{fragments/footer :: footer}"></div>
 
 <script>
+    // Đánh dấu từng thông báo khi bấm xem; keepalive giúp request tiếp tục lúc chuyển sang trang chi tiết.
     function markRead(id) {
         fetch('/api/notifications/' + id + '/read', { method: 'POST', keepalive: true });
     }

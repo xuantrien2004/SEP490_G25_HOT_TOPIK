@@ -1,0 +1,88 @@
+<!DOCTYPE html><html xmlns:th="http://www.thymeleaf.org" lang="vi"><body>
+<section th:fragment="history(s)" th:if="${s != null and s.appealUsed}"
+         style="margin-top:16px;padding:24px;border-radius:20px;background:#FFFFFF;border:2px solid #E6E1D3;">
+
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <span style="font-size:18px;">📋</span>
+        <h2 style="margin:0;font-size:17px;font-weight:800;color:#24363D;">Lịch sử khiếu nại điểm số</h2>
+    </div>
+
+    <!-- Lý do khiếu nại -->
+    <div style="padding:12px 14px;border-radius:12px;background:#FBF0D3;border:1.5px solid #E0A33A;margin-bottom:16px;">
+        <span style="font-size:12px;font-weight:800;color:#7A5A12;text-transform:uppercase;letter-spacing:.4px;">⚠️ Lý do khiếu nại</span>
+        <p style="margin:6px 0 0;font-size:14px;color:#3D2B00;white-space:pre-wrap;" th:text="${s.appealReason}">Lý do khiếu nại...</p>
+    </div>
+
+    <!-- So sánh điểm: Trước / Sau -->
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;">
+
+        <!-- Trước khi khiếu nại -->
+        <div style="padding:16px 18px;border-radius:16px;background:#F8F6EF;border:2px solid #E6E1D3;">
+            <div style="font-size:11px;font-weight:800;color:#5C6E72;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Trước khi khiếu nại</div>
+            <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:10px;">
+                <span style="font-size:36px;font-weight:800;color:#5C6E72;" th:text="${s.originalScore}">25</span>
+                <span style="font-size:16px;font-weight:700;color:#9BA8AB;" th:text="${'/ ' + s.maxScore + ' điểm'}">/ 30 điểm</span>
+            </div>
+            <p style="margin:0;font-size:13px;color:#5C6E72;line-height:1.6;white-space:pre-wrap;" th:text="${s.originalFeedback}">Nhận xét cũ...</p>
+        </div>
+
+        <!-- Mũi tên -->
+        <div style="text-align:center;font-size:22px;color:#B0A898;">→</div>
+
+        <!-- Sau khi xử lý -->
+        <div th:if="${s.appealResolved}"
+             th:style="${s.totalScore != null and s.originalScore != null and s.totalScore > s.originalScore}
+                       ? 'padding:16px 18px;border-radius:16px;background:#E3F2EA;border:2px solid #A7D7BE;'
+                       : (s.totalScore != null and s.originalScore != null and s.totalScore < s.originalScore
+                          ? 'padding:16px 18px;border-radius:16px;background:#FFF1F0;border:2px solid #FFA39E;'
+                          : 'padding:16px 18px;border-radius:16px;background:#F8F6EF;border:2px solid #E6E1D3;')">
+            <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;"
+                 th:style="${s.totalScore != null and s.originalScore != null and s.totalScore > s.originalScore}
+                           ? 'color:#1F6B56;'
+                           : (s.totalScore != null and s.originalScore != null and s.totalScore < s.originalScore
+                              ? 'color:#CF1322;' : 'color:#5C6E72;')">
+                Sau khi xử lý khiếu nại
+            </div>
+
+            <!-- Điểm mới + chênh lệch -->
+            <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px;">
+                <span style="font-size:36px;font-weight:800;"
+                      th:style="${s.totalScore != null and s.originalScore != null and s.totalScore > s.originalScore}
+                                ? 'color:#1F6B56;' : (s.totalScore != null and s.originalScore != null and s.totalScore < s.originalScore ? 'color:#CF1322;' : 'color:#5C6E72;')"
+                      th:text="${s.totalScore}">27</span>
+                <span style="font-size:16px;font-weight:700;color:#9BA8AB;" th:text="${'/ ' + s.maxScore + ' điểm'}">/ 30 điểm</span>
+                <!-- Badge chênh lệch -->
+                <span th:if="${s.totalScore != null and s.originalScore != null and s.totalScore > s.originalScore}"
+                      style="font-size:12px;font-weight:800;padding:2px 8px;border-radius:6px;background:#2E7D67;color:#fff;"
+                      th:text="${'+' + (s.totalScore - s.originalScore)}">+2</span>
+                <span th:if="${s.totalScore != null and s.originalScore != null and s.totalScore < s.originalScore}"
+                      style="font-size:12px;font-weight:800;padding:2px 8px;border-radius:6px;background:#CF1322;color:#fff;"
+                      th:text="${(s.totalScore - s.originalScore)}">-1</span>
+                <span th:if="${s.totalScore != null and s.originalScore != null and s.totalScore == s.originalScore}"
+                      style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px;background:#ECE7DA;color:#5C6E72;">Giữ nguyên</span>
+            </div>
+
+            <!-- Nhận xét mới -->
+            <p style="margin:0 0 8px;font-size:13px;line-height:1.6;white-space:pre-wrap;"
+               th:style="${s.totalScore != null and s.originalScore != null and s.totalScore > s.originalScore} ? 'color:#1F6B56;' : 'color:#5C6E72;'"
+               th:text="${s.overallFeedback}">Nhận xét sau khiếu nại...</p>
+
+            <!-- Lời nhắn GV nếu có -->
+            <div th:if="${s.appealMessage != null and !#strings.isEmpty(s.appealMessage)}"
+                 style="padding:10px 12px;border-radius:10px;background:rgba(0,0,0,.04);font-size:13px;color:#24363D;margin-top:6px;">
+                <span style="font-weight:800;">💬 Lời nhắn:</span>
+                <span th:text="${s.appealMessage}"></span>
+            </div>
+        </div>
+
+        <!-- Đang chờ xử lý -->
+        <div th:unless="${s.appealResolved}"
+             style="padding:16px 18px;border-radius:16px;background:#F8F6EF;border:2px dashed #E0A33A;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;">
+            <span style="font-size:28px;">⏳</span>
+            <span style="font-size:14px;font-weight:700;color:#7A5A12;">Đang chờ xử lý</span>
+            <p style="margin:0;font-size:12px;color:#B08840;">Giáo viên thứ hai đang chấm thẩm định lại. Bạn sẽ nhận thông báo khi có kết quả.</p>
+        </div>
+    </div>
+
+</section>
+</body></html>

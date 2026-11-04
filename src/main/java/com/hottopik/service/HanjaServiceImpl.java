@@ -353,6 +353,10 @@ public class HanjaServiceImpl implements HanjaService {
         }
     }
 
+    /*
+     * Ghép HanjaRoot với Vocabulary qua bảng nối HanjaRootWord thành relatedWords cho giao diện.
+     * Đây là mapper dùng chung: chỉ kiểm tra v != null, chưa lọc trạng thái từ liên quan; khác bộ lọc quiz phía dưới.
+     */
     private HanjaRootDTO convertToDTO(HanjaRoot root) {
         List<HanjaWordDTO> relatedWords = new ArrayList<>();
         List<HanjaRootWord> links = hanjaRootWordRepository.findByHanjaRootId(root.getId());
@@ -1073,6 +1077,9 @@ public class HanjaServiceImpl implements HanjaService {
 
     @Override
     @Transactional(readOnly = true)
+    /*
+     * Lọc trạng thái ACTIVE ở cấp gốc và tìm theo query; convertToDTO dựng đủ dữ liệu để click gốc có thể hiển thị ngay.
+     */
     public List<HanjaRootDTO> getActiveHanjaRoots(String query) {
         // Only return ACTIVE roots for learner view
         List<HanjaRoot> roots = hanjaRootRepository.searchRoots(query, "ACTIVE");
@@ -1085,6 +1092,11 @@ public class HanjaServiceImpl implements HanjaService {
 
     @Override
     @Transactional(readOnly = true)
+    /*
+     * Quiz lấy gốc ACTIVE và từ liên quan ACTIVE có tiếng Hàn/nghĩa, tạo danh sách ứng viên và kho nghĩa nhiễu.
+     * Shuffle ứng viên rồi lấy tối đa count; không tạo/lưu bản ghi lượt làm hoặc điểm vào DB.
+     * Một Vocabulary có thể liên kết nhiều gốc nên danh sách hiện chưa bảo đảm không lặp vocabularyId.
+     */
     public List<HanjaQuizQuestionDTO> getRandomQuizQuestions(int count) {
         // Collect all active words with their roots
         List<HanjaRoot> activeRoots = hanjaRootRepository.searchRoots(null, "ACTIVE");
@@ -1131,6 +1143,11 @@ public class HanjaServiceImpl implements HanjaService {
         for (HanjaQuizQuestionDTO q : questions) {
             String correct = q.getCorrectMeaning();
 
+            /*
+             * Phần dưới loại nghĩa bằng đáp án đúng rồi lấy tối đa 3 nghĩa nhiễu; thiếu thì điền dấu —.
+             * Lưu ý code hiện không distinct các nghĩa nhiễu: chú thích unique cũ không có bước bảo đảm tương ứng.
+             * Trộn 4 lựa chọn, lưu correctChoiceIndex theo chỉ số 0..3 để frontend tự kiểm tra.
+             */
             // Pick 3 unique decoys (different from correct answer)
             List<String> decoyPool = new ArrayList<>(allMeanings);
             decoyPool.remove(correct);
@@ -1164,6 +1181,9 @@ public class HanjaServiceImpl implements HanjaService {
 
     @Override
     @Transactional(readOnly = true)
+    /*
+     * Thống kê kho dùng chung: totalRoots/totalWords là tổng DB, activeRoots riêng gốc ACTIVE; không phải tiến độ cá nhân.
+     */
     public Map<String, Object> getLearnerStats() {
         Map<String, Object> stats = new LinkedHashMap<>();
         stats.put("totalRoots", hanjaRootRepository.count());

@@ -168,6 +168,23 @@ public class ExamImportService {
         return new MediaUploadReport(stored, rejected);
     }
 
+    /** Tên riêng cho mỗi lần tải: hai câu dùng ảnh cùng tên gốc không ghi đè ảnh của nhau. */
+    @Transactional
+    public String uploadQuestionImage(Long sourceId, MultipartFile file, Actor actor) throws IOException {
+        requireContent(actor);
+        ExamSource source = draftSource(sourceId);
+        if (file == null || file.isEmpty()) throw new ExamDomainException("Chưa chọn ảnh.");
+        if (!MediaStorageService.isImage(file.getOriginalFilename()))
+            throw new ExamDomainException("Chỉ nhận ảnh PNG, JPG, JPEG, WEBP hoặc GIF.");
+        String filename = "question-" + UUID.randomUUID() + "." + MediaStorageService.extension(file.getOriginalFilename());
+        List<String> rejected = new ArrayList<>();
+        try (InputStream in = file.getInputStream()) {
+            if (!storeOne(source, filename, file.getSize(), in, rejected))
+                throw new ExamDomainException(String.join("; ", rejected));
+        }
+        return filename;
+    }
+
     private int unzip(ExamSource source, MultipartFile zip, List<String> rejected) throws IOException {
         int stored = 0;
         try (ZipInputStream zin = new ZipInputStream(zip.getInputStream())) {
@@ -595,7 +612,7 @@ public class ExamImportService {
                     && !sizes.containsKey(ExamImportValidator.key(card.imageFile))) {
                 issues.add(ImportIssue.error("CARD", index, skill, index, "Chưa tải ảnh " + card.imageFile + "."));
             }
-            if (template.isPassageRequired() && blank(card.passageKo)) {
+            if (template.getSkill() != Skill.WRITING && template.isPassageRequired() && blank(card.passageKo)) {
                 issues.add(ImportIssue.error("CARD", index, skill, index, "Bài " + index + " thiếu đoạn văn dùng chung."));
             }
             if (template.getScriptScope() == ResourceScope.GROUP && blank(card.scriptKo)) {
@@ -606,10 +623,9 @@ public class ExamImportService {
             for (ParsedWorkbook.ManualAsk ask : card.asks) {
                 askNo++;
                 String where = "Bài " + index + ", câu " + askNo;
-                if (template.isPromptRequired() && blank(ask.promptKo)) {
-                    issues.add(ImportIssue.error("CARD", index, skill, index, where + " thiếu câu hỏi.").forQuestion(ask.no));
-                }
-                if (template.getOptionCount() != null) {
+                boolean writing = template.getSkill() == Skill.WRITING;
+                int writingNo = ask.no != null ? ask.no : officialWritingNo(template);
+                if (!writing && template.getOptionCount() != null) {
                     String[] options = ask.options == null ? new String[4] : ask.options;
                     for (int i = 0; i < 4; i++) {
                         String option = i < options.length ? options[i] : null;
@@ -630,11 +646,15 @@ public class ExamImportService {
                                 where + " chưa có giải thích tiếng Việt. Điền sau cũng được."));
                     }
                 }
-                if (template.getAnswerType() == AnswerType.ACCEPT_KEYS && (blank(ask.keys1) || blank(ask.keys2))) {
+                // Form Viết lấy cấu trúc theo số câu, kể cả khi khuôn cũ còn cấu hình ACCEPT_KEYS cho 53/54.
+                boolean needsKeys = writing ? writingNo == 51 || writingNo == 52
+                        : template.getAnswerType() == AnswerType.ACCEPT_KEYS;
+                if (needsKeys && (blank(ask.keys1) || blank(ask.keys2))) {
                     issues.add(ImportIssue.error("CARD", index, skill, index, where + " thiếu đáp án chấp nhận cho cả hai chỗ trống.").forQuestion(ask.no));
                 }
-                if (template.getAnswerType() == AnswerType.FREE_TEXT && blank(ask.modelAnswer)) {
-                    issues.add(ImportIssue.error("CARD", index, skill, index, where + " thiếu bài mẫu.").forQuestion(ask.no));
+                if (template.getSkill() == Skill.WRITING && !blank(ask.chart)
+                        && !ask.chart.trim().startsWith("[") && !sizes.containsKey(ExamImportValidator.key(ask.chart))) {
+                    issues.add(ImportIssue.error("CARD", index, skill, index, where + " chưa tải ảnh " + ask.chart + ".").forQuestion(ask.no));
                 }
             }
         }
@@ -782,7 +802,7 @@ public class ExamImportService {
                 out.add(new LearnerBai(slot.key(), Skill.WRITING, slot.typeCode(), slot.typeName(),
                         instructionOf(source.getTrack(), Skill.WRITING, slot.no()),
                         "Phần Viết · 4 câu · 100 điểm", guide, true,
-                        "", slot.image(), "", "",
+                        "", slot.chart().startsWith("[") ? "" : slot.chart(), slot.passage(), "",
                         List.of(new LearnerAsk(slot.no(), slot.prompt(), "", "", "", "", "", explain))));
                 continue;
             }
@@ -832,7 +852,7 @@ public class ExamImportService {
                 String explain = writing
                         ? joinNonBlank(ask.explanationVi, joinNonBlank(ask.modelAnswer, ask.rubricNote))
                         : nz(ask.explanationVi);
-                asks.add(new LearnerAsk(running, nz(ask.promptKo), nz(at(options, 0)), nz(at(options, 1)),
+                asks.add(new LearnerAsk(writing && ask.no != null ? ask.no : running, nz(ask.promptKo), nz(at(options, 0)), nz(at(options, 1)),
                         nz(at(options, 2)), nz(at(options, 3)), answer, explain));
             }
             if (asks.isEmpty()) continue;
@@ -840,9 +860,14 @@ public class ExamImportService {
             boolean guide = !code.equals(lastCode);
             lastCode = code;
             String points = "Phần " + skill.getLabel() + " · " + asks.size() + " câu trong bài này";
+            String image = nz(card.imageFile);
+            if (writing && card.asks.size() == 1 && !blank(card.asks.get(0).chart)) {
+                String chart = card.asks.get(0).chart.trim();
+                image = chart.startsWith("[") ? "" : chart;
+            }
             out.add(new LearnerBai(card.id, skill, code, template == null ? "Bài" : template.getName(),
                     template == null ? "" : template.getDescription(), points, guide, writing,
-                    nz(card.audioFile), nz(card.imageFile), nz(card.passageKo), nz(card.scriptKo), asks));
+                    nz(card.audioFile), image, nz(card.passageKo), nz(card.scriptKo), asks));
         }
         return out;
     }
@@ -868,7 +893,7 @@ public class ExamImportService {
         QuestionRow row = wb.questions.stream()
                 .filter(q -> q.skill == type.skill() && Objects.equals(q.no, no)).findFirst().orElse(null);
         String[] opts = row == null || row.options == null ? new String[4] : row.options;
-        boolean filled = row != null && !blank(row.promptKo);
+        boolean filled = row != null;
         return new PaperSlot(type.skill().name() + "-" + no, type.skill(), no, type.code(), type.name(), false, filled,
                 row == null ? "" : nz(row.promptKo),
                 nz(opts.length > 0 ? opts[0] : null), nz(opts.length > 1 ? opts[1] : null),
@@ -884,11 +909,11 @@ public class ExamImportService {
     private static PaperSlot writingSlot(ParsedWorkbook wb, int no, List<String> problems) {
         WritingRow row = wb.writings.stream().filter(w -> Objects.equals(w.no, no)).findFirst().orElse(null);
         QuestionTypeDef type = QuestionTypeCatalog.resolve(Track.TOPIK_II, Skill.WRITING, no).orElse(null);
-        boolean filled = row != null && !blank(row.promptKo);
+        boolean filled = row != null;
         return new PaperSlot("WRITING-" + no, Skill.WRITING, no,
                 type == null ? "" : type.code(), type == null ? "Viết" : type.name(), true, filled,
                 row == null ? "" : nz(row.promptKo), "", "", "", "", "",
-                "", "", "", "", "",
+                "", "", "", row == null ? "" : nz(row.passageKo), "",
                 row == null ? "" : nz(row.keys1), row == null ? "" : nz(row.keys2),
                 row == null ? "" : nz(row.chartJson), row == null ? "" : nz(row.modelAnswer),
                 row == null ? "" : nz(row.rubricNote),
@@ -945,6 +970,7 @@ public class ExamImportService {
         row.no = form.no();
         row.noRaw = String.valueOf(form.no());
         row.promptKo = keep(row.promptKo, form.prompt());
+        row.passageKo = keep(row.passageKo, form.passage());
         row.keys1 = keep(row.keys1, form.keys1());
         row.keys2 = keep(row.keys2, form.keys2());
         row.chartJson = keep(row.chartJson, form.chart());
@@ -1046,7 +1072,7 @@ public class ExamImportService {
             q.setSkill(row.skill);
             q.setOriginalNo(row.no);
             q.setGroup(group);
-            q.setPromptKo(row.promptKo);
+            q.setPromptKo(nz(row.promptKo));
             q.setOption1(row.options[0]);
             q.setOption2(row.options[1]);
             q.setOption3(row.options[2]);
@@ -1072,12 +1098,12 @@ public class ExamImportService {
                 WritingPrompt p = new WritingPrompt();
                 p.setSource(source);
                 p.setNo(w.no);
-                p.setPromptKo(w.promptKo);
+                p.setPromptKo(joinNonBlank(w.passageKo, w.promptKo));
                 p.setKeys1(w.keys1);
                 p.setKeys2(w.keys2);
                 if (w.chartJson != null && w.chartJson.trim().startsWith("[")) p.setChartJson(w.chartJson.trim());
                 else p.setChartImage(w.chartJson);
-                p.setModelAnswer(w.modelAnswer);
+                p.setModelAnswer(nz(w.modelAnswer));
                 p.setRubricNote(w.rubricNote);
                 p.setStatus(QuestionStatus.ACTIVE);
                 p.setCode(Codes.temporary());
@@ -1115,7 +1141,7 @@ public class ExamImportService {
                     prompt.setSource(source);
                     int official = officialWritingNo(template);
                     prompt.setNo(ask.no != null ? ask.no : (official > 0 ? official : 50 + writingSeq));
-                    prompt.setPromptKo(blank(ask.promptKo) ? template.getName() : ask.promptKo);
+                    prompt.setPromptKo(joinNonBlank(card.passageKo, ask.promptKo));
                     prompt.setKeys1(ask.keys1);
                     prompt.setKeys2(ask.keys2);
                     String chart = !blank(ask.chart) ? ask.chart : card.imageFile;
@@ -1123,8 +1149,7 @@ public class ExamImportService {
                     else prompt.setChartImage(emptyToNull(chart));
                     String model = emptyToNull(ask.modelAnswer);
                     if (model == null) model = joinNonBlank(ask.keys1, ask.keys2);
-                    if (model == null || model.isBlank()) model = prompt.getPromptKo();
-                    prompt.setModelAnswer(model);
+                    prompt.setModelAnswer(nz(model));
                     prompt.setRubricNote(ask.rubricNote);
                     prompt.setStatus(QuestionStatus.ACTIVE);
                     prompt.setCode(Codes.temporary());
@@ -1156,7 +1181,7 @@ public class ExamImportService {
                 question.setSkill(template.getSkill());
                 question.setOriginalNo(no);
                 question.setGroup(group);
-                question.setPromptKo(blank(ask.promptKo) ? template.getName() : ask.promptKo);
+                question.setPromptKo(nz(ask.promptKo));
                 question.setOption1(optionAt(ask, 0));
                 question.setOption2(optionAt(ask, 1));
                 question.setOption3(optionAt(ask, 2));
@@ -1267,6 +1292,14 @@ public class ExamImportService {
 
     public List<MediaAsset> mediaOf(Long sourceId) {
         return media.findBySourceIdOrderByFilenameAsc(sourceId);
+    }
+
+    /** Ảnh tải riêng bởi uploadQuestionImage không thuộc kho file dùng chung, kể cả bản ảnh đã thay thế. */
+    public List<MediaAsset> sharedMediaOf(Long sourceId) {
+        return mediaOf(sourceId).stream()
+                .filter(asset -> !(asset.getKind() == MediaKind.IMAGE && asset.getFilename().matches(
+                        "question-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(?i:png|jpg|jpeg|webp|gif)")))
+                .toList();
     }
 
     public Optional<MediaAsset> findMedia(Long sourceId, String filename) {

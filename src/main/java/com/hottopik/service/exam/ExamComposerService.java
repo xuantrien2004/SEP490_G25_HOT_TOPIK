@@ -517,6 +517,23 @@ public class ExamComposerService {
         log(actor, "SUBMIT_EXAM_PUBLISH", "Gửi duyệt phát hành " + e.getName() + " (yêu cầu #" + req.getId() + ")");
     }
 
+    /**
+     * Content Manager tu kich hoat de (khong can Admin duyet).
+     * Chi ap dung cho Full Mock; kiem tra khung de truoc khi phat hanh.
+     */
+    @Transactional
+    public void publishDirectly(Long examId, Actor actor) {
+        requireContent(actor);
+        Exam e = editable(examId);
+        if (e.getKind() != ExamKind.FULL) throw new ExamDomainException("Chi Full Mock moi duoc kich hoat phat hanh.");
+        ExamFrame f = frame(examId);
+        if (!f.check().isOk()) {
+            throw new ExamDomainException("Khung de chua dat, chua kich hoat duoc. Xem muc Kiem tra khung de.");
+        }
+        publish(e, actor);
+        log(actor, "CM_PUBLISH_EXAM", "Content Manager kich hoat phat hanh " + e.getName());
+    }
+
     @Transactional
     public void requestArchive(Long examId, String reason, Actor actor) {
         requireContent(actor);
@@ -618,15 +635,19 @@ public class ExamComposerService {
                 .collect(Collectors.toMap(Exam::getKind, c -> c));
         for (QuestionTypeCatalog.Section s : QuestionTypeCatalog.sections(e.getTrack())) {
             ExamKind kind = ExamKind.valueOf(s.skill().name());
-            List<ExamItem> selected = kind == ExamKind.WRITING ? List.of() : MiniTestSelector.select(e, s.skill());
+            List<ExamItem> selected = kind == ExamKind.WRITING ? List.of()
+                    : e.getItems().stream().filter(i -> i.getSection() == s.skill())
+                            .sorted(Comparator.comparingInt(ExamItem::getNo)).toList();
             if (kind == ExamKind.WRITING) {
                 if (!e.hasFullWritingSet() || e.writingPrompts().stream().anyMatch(p -> p.getStatus() != QuestionStatus.ACTIVE)) continue;
             } else if (selected.isEmpty()) continue;
             Exam mini = children.get(kind);
             boolean fresh = mini == null;
             if (fresh) mini = new Exam();
-            boolean rebuild = fresh || ((!MiniTestSelector.compact(mini) || !MiniTestSelector.fromParent(mini, e))
-                    && !attempts.existsByExamId(mini.getId()));
+            boolean rebuild = fresh || (!attempts.existsByExamId(mini.getId()) && (kind == ExamKind.WRITING
+                    ? (!MiniTestSelector.compact(mini) || !MiniTestSelector.fromParent(mini, e))
+                    : (mini.getItems().stream().filter(i -> i.getSection() == s.skill()).count() != selected.size()
+                        || !MiniTestSelector.fromParent(mini, e))));
             mini.setKind(kind);
             mini.setTrack(e.getTrack());
             mini.setParent(e);
@@ -649,8 +670,7 @@ public class ExamComposerService {
                     mini.getItems().clear();
                     exams.flush();
                 }
-                for (ExamItem it : selected) mini.getItems().add(new ExamItem(mini, it.getSection(), it.getNo(),
-                        QuestionTypeCatalog.resolve(e.getTrack(), s.skill(), it.getNo()).orElseThrow().code(), it.getQuestion()));
+                for (ExamItem it : selected) mini.getItems().add(new ExamItem(mini, it.getSection(), it.getNo(), it.getTypeCode(), it.getQuestion()));
                 int parentMinutes = s.skill() == Skill.LISTENING ? e.getListeningMinutes() : e.getReadingMinutes();
                 int minutes = Math.max(5, (int) Math.ceil((double) parentMinutes * selected.size() / s.count()));
                 if (kind == ExamKind.LISTENING) mini.setListeningMinutes(minutes);
@@ -699,3 +719,6 @@ public class ExamComposerService {
         audit.logAction(actor.name(), actor.role(), action, "EXAM", details, "127.0.0.1");
     }
 }
+
+
+

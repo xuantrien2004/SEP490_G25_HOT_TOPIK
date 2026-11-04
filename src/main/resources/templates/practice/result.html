@@ -5,7 +5,7 @@
 
 <div th:replace="~{fragments/navbar :: navbar('practice')}"></div>
 
-<main class="container py-4" style="max-width: 1080px; min-height: 85vh;">
+<main class="container py-4" style="max-width: 1080px; min-height: 85vh;" data-report-attempt-kind="PRACTICE" th:attr="data-report-attempt-id=${result.attempt.id}">
 
     <div th:if="${roadmapLinked}" class="alert alert-success">Kết quả bài làm đã được tính vào lộ trình học tập của bạn!</div>
     <div th:if="${practiceError}" class="alert alert-warning" th:text="${practiceError}"></div>
@@ -116,9 +116,15 @@
             </div>
 
             <div class="d-flex flex-column gap-4">
+                <!--
+                    Mỗi AnswerView có câu gốc, lựa chọn người học và correct; template tô màu, hiển thị giải thích.
+                    ID question-<bankId> là điểm đến liên kết từ trang phản hồi báo lỗi; đây không phải chỉ số trong danh sách.
+                -->
                 <div th:each="a, iter : ${result.answers}"
+                     th:id="${'question-' + a.question.id}"
                      class="bg-white border rounded-4 p-4 shadow-sm answer-review-card"
                      th:attr="data-correct=${a.correct}">
+                    <p th:if="${creditedAnswers.containsKey(#strings.toString(a.question.id))}" class="alert alert-info">Câu hỏi đã được sửa; bài làm này được công nhận điểm câu đó.</p>
 
                     <!-- Câu Header -->
                     <div class="d-flex justify-content-between align-items-center pb-3 mb-3 border-bottom">

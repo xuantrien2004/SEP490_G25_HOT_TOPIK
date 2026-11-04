@@ -41,6 +41,7 @@ public class ParsedWorkbook {
         public Integer no;
         public String noRaw;
         public String promptKo;
+        public String passageKo;
         public String keys1;
         public String keys2;
         public String chartJson;

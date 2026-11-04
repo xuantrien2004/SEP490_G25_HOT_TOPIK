@@ -116,6 +116,9 @@ public class TheoryController {
         return "theory/unlearned";
     }
 
+    /*
+     * Nạp gốc ACTIVE và thống kê vào model; Thymeleaf nhúng JSON cho theory/hanja.html. Nếu service lỗi, trang nhận danh sách/thống kê rỗng.
+     */
     @GetMapping({"/ly-thuyet/han-viet", "/theory/hanja"})
     public String hanja(Model model) {
         model.addAttribute("pageTitle", "Cầu nối Hán Việt · 32 gốc từ");

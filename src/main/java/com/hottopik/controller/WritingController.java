@@ -24,6 +24,7 @@ public class WritingController {
     private final WritingSubmissionService writingSubmissionService;
     private final UserService userService;
     private final WritingPromptRepository writingPromptRepository;
+    @Autowired private com.hottopik.service.exam.ExamImportService imports;
 
     @Autowired
     public WritingController(WritingSubmissionService writingSubmissionService,
@@ -35,7 +36,11 @@ public class WritingController {
     }
 
     /**
-     * VietV2: Writing practice for Câu 51, 52, 53, 54 with AI evaluation & send to Mentor
+     * Luyện Viết câu 51–54: nộp bài, đối chiếu đáp án mẫu và gửi Giáo viên.
+     */
+    /*
+     * Luồng Viết riêng: lấy WritingPrompt ACTIVE theo số 51..54; ưu tiên promptId hợp lệ, sau đó random hoặc đề mới nhất.
+     * Truyền currentPrompt/bankPrompts sang writing/index; không có đề thì template chỉ hiện cảnh báo.
      */
     @GetMapping("/writing")
     public String writing(@RequestParam(value = "question", defaultValue = "53") int question,
@@ -67,143 +72,202 @@ public class WritingController {
         }
         model.addAttribute("bankPrompts", bankPrompts);
         model.addAttribute("currentPrompt", currentPrompt);
+        if(currentPrompt!=null && currentPrompt.getChartJson()!=null && !currentPrompt.getChartJson().isBlank()) {
+            try {
+                var rows = new com.fasterxml.jackson.databind.ObjectMapper().readTree(currentPrompt.getChartJson());
+                List<Map<String,String>> chartRows=new ArrayList<>();
+                for(var row:rows)chartRows.add(Map.of("label",row.isArray()?row.path(0).asText():row.path("label").asText(),"value",row.isArray()?row.path(1).asText():row.path("value").asText()));
+                model.addAttribute("writingChart",chartRows);
+            }
+            catch(Exception ex){model.addAttribute("writingChart",null);}
+        }
 
         // Submissions count for current user
         String email = currentUser != null ? currentUser.getEmail() : "learner@hottopik.com";
-        List<WritingSubmissionDTO> mySubs = writingSubmissionService.getSubmissionsByLearner(email);
+        List<WritingSubmissionDTO> mySubs = currentUser == null ? List.of() : writingSubmissionService.getSubmissionsByLearner(currentUser.getId());
         long gradedCount = mySubs.stream().filter(s -> "graded".equalsIgnoreCase(s.getStatus())).count();
         model.addAttribute("mySubmissionsCount", mySubs.size());
         model.addAttribute("myGradedCount", gradedCount);
+
+        // Load draft for this question (if any)
+        if (currentUser != null && currentPrompt != null) {
+            WritingSubmissionDTO draft = writingSubmissionService.getDraft(currentUser.getId(), question);
+            if (draft != null) {
+                model.addAttribute("draftAnswer", draft.getStudentAnswer());
+                model.addAttribute("draftId", draft.getId());
+            }
+        }
 
         return "writing/index";
     }
 
     /**
+     * Auto-save draft: AJAX POST /writing/draft
+     */
+    @PostMapping("/writing/draft")
+    @org.springframework.web.bind.annotation.ResponseBody
+    public org.springframework.http.ResponseEntity<?> saveDraft(
+            @RequestParam Long promptId,
+            @RequestParam(defaultValue = "") String answer,
+            HttpSession session) {
+        UserDTO user = AuthHelper.getLoggedInUser(session);
+        if (user == null) return org.springframework.http.ResponseEntity.status(401).build();
+        try {
+            WritingSubmissionDTO draft = writingSubmissionService.saveDraft(user, promptId, answer);
+            return org.springframework.http.ResponseEntity.ok(Map.of("id", draft.getId(), "status", "draft"));
+        } catch (Exception ex) {
+            return org.springframework.http.ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    /**
+     * Xem chi tiết bài luyện Viết đã nộp (chưa gửi GV) — route /writing/history?id=XX
+     */
+    @GetMapping("/writing/history")
+    public String history(@RequestParam String id, Model model, HttpSession session,
+                          RedirectAttributes flash) {
+        UserDTO user = AuthHelper.getLoggedInUser(session);
+        if (user == null) return "redirect:/login";
+        WritingSubmissionDTO sub = writingSubmissionService.owned(id, user.getId());
+        // Nếu bài đã được gửi GV → chuyển sang trang feedback
+        if (!"submitted".equalsIgnoreCase(sub.getStatus()) && !"draft".equalsIgnoreCase(sub.getStatus())) {
+            return "redirect:/writing/feedback?id=" + id;
+        }
+        model.addAttribute("currentUser", user);
+        model.addAttribute("pageTitle", "Chi tiết bài luyện Viết · HOT TOPIK");
+        model.addAttribute("activePage", "mentor-reviews");
+        model.addAttribute("sub", sub);
+        model.addAttribute("canSendTeacher", WritingSubmissionService.hasAnswer(sub.getQuestionNo(), sub.getStudentAnswer()));
+        return "writing/history";
+    }
+
+    /**
      * BaiChamV2: Student viewing their submissions and graded feedback from Teacher / Mentor
      */
-    @GetMapping("/writing/feedback")
+
+    @GetMapping({"/writing/feedback", "/mentor-reviews", "/bai-cham"})
     public String feedback(@RequestParam(value = "id", required = false) String id,
+                           @RequestParam(value = "page", defaultValue = "0") int page,
                            Model model,
                            HttpSession session) {
 
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
-        String email = currentUser != null ? currentUser.getEmail() : "learner@hottopik.com";
-        List<WritingSubmissionDTO> mySubs = writingSubmissionService.getSubmissionsByLearner(email);
+        if (currentUser == null) return "redirect:/login";
+        // Chỉ hiện bài đã gửi GV (waiting/claimed/graded/appeal), mới nhất trước
+        List<WritingSubmissionDTO> allSubs = writingSubmissionService.getSubmissionsByLearner(currentUser.getId()).stream()
+                .filter(s -> (!"submitted".equalsIgnoreCase(s.getStatus()) || (s.getRejectReason() != null && !s.getRejectReason().isBlank())) && !"draft".equalsIgnoreCase(s.getStatus())).toList();
 
-        // If no submissions for learner yet, also include mock sub-105 for demo display
-        if (mySubs.isEmpty()) {
-            Optional<WritingSubmissionDTO> demoSub = writingSubmissionService.getById("sub-105");
-            demoSub.ifPresent(mySubs::add);
+        // Group by examAttemptId (null = luyện tập riêng lẻ)
+        // Key: examAttemptId (null → dùng id bài), Value: list câu trong cùng đề
+        java.util.LinkedHashMap<String, List<WritingSubmissionDTO>> grouped = new java.util.LinkedHashMap<>();
+        for (WritingSubmissionDTO s : allSubs) {
+            String key = s.getExamAttemptId() != null ? "exam-" + s.getExamAttemptId() : "solo-" + s.getId();
+            grouped.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(s);
         }
+        List<java.util.Map.Entry<String, List<WritingSubmissionDTO>>> groups = new java.util.ArrayList<>(grouped.entrySet());
+
+        // Phân trang: 10 group mỗi trang
+        int pageSize = 10;
+        int totalPages = Math.max(1, (int) Math.ceil((double) groups.size() / pageSize));
+        page = Math.max(0, Math.min(page, totalPages - 1));
+        List<java.util.Map.Entry<String, List<WritingSubmissionDTO>>> pageGroups =
+                groups.subList(page * pageSize, Math.min((page + 1) * pageSize, groups.size()));
 
         WritingSubmissionDTO currentSub = null;
         if (id != null && !id.trim().isEmpty()) {
-            currentSub = writingSubmissionService.getById(id).orElse(null);
-        }
-        if (currentSub == null && !mySubs.isEmpty()) {
-            // Prefer graded first, or the latest
-            currentSub = mySubs.stream()
-                    .filter(s -> "graded".equalsIgnoreCase(s.getStatus()))
-                    .findFirst()
-                    .orElse(mySubs.get(0));
+            currentSub = writingSubmissionService.owned(id, currentUser.getId());
+            if (("submitted".equalsIgnoreCase(currentSub.getStatus()) && (currentSub.getRejectReason() == null || currentSub.getRejectReason().isBlank())) || "draft".equalsIgnoreCase(currentSub.getStatus())) {
+                return "redirect:/writing/history?id=" + id;
+            }
+        } else if (!allSubs.isEmpty()) {
+            currentSub = allSubs.get(0);
         }
 
         model.addAttribute("currentUser", currentUser);
-        model.addAttribute("pageTitle", "Bài Viết Giáo viên chấm · HOT TOPIK");
-        model.addAttribute("activePage", "writing");
-        model.addAttribute("mySubmissions", mySubs);
+        model.addAttribute("pageTitle", "Bài viết gửi Giáo viên · HOT TOPIK");
+        model.addAttribute("activePage", "mentor-reviews");
+        model.addAttribute("mySubmissions", allSubs);
+        model.addAttribute("groupedSubs", pageGroups);
         model.addAttribute("sub", currentSub);
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", totalPages);
+        model.addAttribute("canSendTeacher", currentSub != null && WritingSubmissionService.hasAnswer(currentSub.getQuestionNo(), currentSub.getStudentAnswer()));
 
         return "writing/feedback";
     }
 
-    /**
-     * Learner submits essay to Teacher / Mentor
-     */
-    @PostMapping("/writing/submit-mentor")
-    public String submitToMentor(@RequestParam("questionNo") int questionNo,
-                                 @RequestParam("prompt") String prompt,
-                                 @RequestParam("answer") String answer,
-                                 HttpSession session,
-                                 RedirectAttributes redirectAttributes) {
 
-        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
-        String name = currentUser != null ? currentUser.getFullName() : "Phạm Minh Anh";
-        String email = currentUser != null ? currentUser.getEmail() : "learner@hottopik.com";
-
-        int wordCount = answer != null ? answer.trim().length() : 0;
-        boolean hasChart = (questionNo == 53);
-        List<ChartItem> chartItems = null;
-        if (hasChart) {
-            chartItems = Arrays.asList(
-                    new ChartItem("운동", 35, "105px"),
-                    new ChartItem("여행", 26, "78px"),
-                    new ChartItem("게임", 24, "72px"),
-                    new ChartItem("독서", 9, "27px")
-            );
-        }
-
-        WritingSubmissionDTO newSub = writingSubmissionService.submitNewEssay(
-                name, email, questionNo, prompt, answer, wordCount, hasChart, chartItems
-        );
-
-        redirectAttributes.addFlashAttribute("successMessage",
-                "Đã gửi bài viết câu " + questionNo + " thành công cho Giáo viên chấm! Giáo viên sẽ hoàn tất chấm và nhận xét trong vòng 48 giờ.");
-
-        return "redirect:/writing/feedback?id=" + newSub.getId();
+    @GetMapping("/writing/prompt/{id}/chart")
+    public org.springframework.http.ResponseEntity<org.springframework.core.io.Resource> promptChart(@PathVariable Long id,HttpSession session) throws java.io.IOException {
+        if(AuthHelper.getLoggedInUser(session)==null)throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED);
+        var p=writingPromptRepository.findById(id).filter(w->w.getStatus()==QuestionStatus.ACTIVE).orElseThrow(()->new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND));
+        return chart(p);
     }
-
-    /**
-     * Learner asks a follow-up question to the teacher
-     */
+    @GetMapping("/writing/submission/{id}/chart")
+    public org.springframework.http.ResponseEntity<org.springframework.core.io.Resource> submissionChart(@PathVariable String id,HttpSession session) throws java.io.IOException {
+        UserDTO user=AuthHelper.getLoggedInUser(session);if(user==null)throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED);
+        var sub=user.isMentor()||user.isAdmin()?writingSubmissionService.getById(id).orElseThrow():writingSubmissionService.owned(id,user.getId());
+        return chart(sub.getSourceId(),sub.getChartFilename());
+    }
+    private org.springframework.http.ResponseEntity<org.springframework.core.io.Resource> chart(WritingPrompt p) throws java.io.IOException {
+        return chart(p.getSource()==null?null:p.getSource().getId(),p.getChartImage());
+    }
+    private org.springframework.http.ResponseEntity<org.springframework.core.io.Resource> chart(Long sourceId,String filename) throws java.io.IOException {
+        if(sourceId==null || filename==null)return org.springframework.http.ResponseEntity.notFound().build();
+        var asset=imports.findMedia(sourceId,filename);if(asset.isEmpty())return org.springframework.http.ResponseEntity.notFound().build();
+        var file=imports.mediaPath(asset.get());if(!java.nio.file.Files.exists(file))return org.springframework.http.ResponseEntity.notFound().build();
+        var type=java.nio.file.Files.probeContentType(file);
+        return org.springframework.http.ResponseEntity.ok().contentType(org.springframework.http.MediaType.parseMediaType(type==null?"application/octet-stream":type)).body(new org.springframework.core.io.FileSystemResource(file));
+    }
+    @PostMapping({"/writing/submit", "/writing/submit-mentor"})
+    public String submit(@RequestParam Long promptId, @RequestParam String answer,
+                         @RequestParam(defaultValue="false") boolean teacher,
+                         jakarta.servlet.http.HttpServletRequest request, HttpSession session, RedirectAttributes flash) {
+        UserDTO user=AuthHelper.getLoggedInUser(session);
+        if(user==null) return "redirect:/login";
+        boolean toTeacher=teacher || request.getRequestURI().endsWith("/submit-mentor");
+        try {
+            WritingSubmissionDTO sub=writingSubmissionService.submit(user,promptId,answer,toTeacher);
+            flash.addFlashAttribute("successMessage",toTeacher ? "Đã gửi bài cho Giáo viên. Bạn sẽ nhận thông báo khi có kết quả; bài đã khóa chỉnh sửa." : "Đã nộp bài. Bạn có thể đối chiếu đáp án tham khảo; bài đã khóa chỉnh sửa.");
+            return "redirect:/writing/feedback?id="+sub.getId();
+        } catch(IllegalArgumentException ex) {
+            flash.addFlashAttribute("errorMessage",ex.getMessage());
+            flash.addFlashAttribute("draftAnswer",answer);
+            int no=writingPromptRepository.findById(promptId).map(WritingPrompt::getNo).orElse(53);
+            return "redirect:/writing?question="+no+"&promptId="+promptId;
+        }
+    }
+    @PostMapping("/writing/send-teacher")
+    public String sendTeacher(@RequestParam String id,HttpSession session,RedirectAttributes flash) {
+        UserDTO user=AuthHelper.getLoggedInUser(session);if(user==null)return "redirect:/login";
+        try {
+            writingSubmissionService.sendToTeacher(id,user);
+            flash.addFlashAttribute("successMessage","Đã gửi bài cho Giáo viên. Vui lòng chờ thông báo kết quả.");
+        } catch(IllegalArgumentException ex) { flash.addFlashAttribute("errorMessage",ex.getMessage()); }
+        return "redirect:/writing/feedback?id="+id;
+    }
     @PostMapping("/writing/ask")
-    public String askTeacher(@RequestParam("id") String id,
-                             @RequestParam("question") String question,
-                             RedirectAttributes redirectAttributes) {
-        if (question == null || question.trim().length() < 5) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Câu hỏi cần ít nhất 5 ký tự.");
-            return "redirect:/writing/feedback?id=" + id;
-        }
-
-        boolean ok = writingSubmissionService.askQuestion(id, question);
-        if (ok) {
-            redirectAttributes.addFlashAttribute("successMessage", "Đã gửi câu hỏi thắc mắc tới Giáo viên. Giáo viên sẽ phản hồi sớm nhất!");
-        } else {
-            redirectAttributes.addFlashAttribute("errorMessage", "Không thể gửi câu hỏi.");
-        }
-        return "redirect:/writing/feedback?id=" + id;
+    public String ask(@RequestParam String id,@RequestParam String question,HttpSession session,RedirectAttributes flash) {
+        UserDTO user=AuthHelper.getLoggedInUser(session);if(user==null)return "redirect:/login";
+        boolean ok=writingSubmissionService.askQuestion(id,user.getId(),question);
+        flash.addFlashAttribute(ok?"successMessage":"errorMessage",ok?"Đã gửi câu hỏi.":"Không thể gửi câu hỏi.");
+        return "redirect:/writing/feedback?id="+id;
     }
-
-    /**
-     * Learner rates the grading quality (1 to 5 stars)
-     */
     @PostMapping("/writing/rate")
-    public String rateTeacher(@RequestParam("id") String id,
-                              @RequestParam("rating") int rating,
-                              RedirectAttributes redirectAttributes) {
-        writingSubmissionService.rateSubmission(id, rating);
-        redirectAttributes.addFlashAttribute("successMessage", "Cảm ơn bạn đã đánh giá " + rating + " sao cho bài chữa của Giáo viên!");
-        return "redirect:/writing/feedback?id=" + id;
+    public String rate(@RequestParam String id,@RequestParam int rating,HttpSession session,RedirectAttributes flash) {
+        UserDTO user=AuthHelper.getLoggedInUser(session);if(user==null)return "redirect:/login";
+        boolean ok=writingSubmissionService.rateSubmission(id,user.getId(),rating);
+        flash.addFlashAttribute(ok?"successMessage":"errorMessage",ok?"Đã gửi đánh giá.":"Không thể gửi đánh giá.");
+        return "redirect:/writing/feedback?id="+id;
     }
-
-    /**
-     * Learner appeals the grading score
-     */
     @PostMapping("/writing/appeal")
-    public String appealGrade(@RequestParam("id") String id,
-                              @RequestParam("reason") String reason,
-                              RedirectAttributes redirectAttributes) {
-        if (reason == null || reason.trim().length() < 10) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Vui lòng nêu rõ lý do khiếu nại (tối thiểu 10 ký tự).");
-            return "redirect:/writing/feedback?id=" + id;
-        }
-
-        boolean ok = writingSubmissionService.appealSubmission(id, reason);
-        if (ok) {
-            redirectAttributes.addFlashAttribute("successMessage", "Yêu cầu khiếu nại đã được gửi tới hội đồng Giáo viên để chấm thẩm định lại.");
-        } else {
-            redirectAttributes.addFlashAttribute("errorMessage", "Không thể gửi yêu cầu khiếu nại.");
-        }
-        return "redirect:/writing/feedback?id=" + id;
+    public String appeal(@RequestParam String id,@RequestParam String reason,HttpSession session,RedirectAttributes flash) {
+        UserDTO user=AuthHelper.getLoggedInUser(session);if(user==null)return "redirect:/login";
+        try {
+            boolean ok=writingSubmissionService.appealSubmission(id,user.getId(),reason);
+            flash.addFlashAttribute(ok?"successMessage":"errorMessage",ok?"Đã gửi khiếu nại. Mỗi bài chỉ được khiếu nại một lần.":"Bài chưa được chấm hoặc đã gửi khiếu nại.");
+        } catch(IllegalArgumentException ex) { flash.addFlashAttribute("errorMessage",ex.getMessage()); }
+        return "redirect:/writing/feedback?id="+id;
     }
 }
+

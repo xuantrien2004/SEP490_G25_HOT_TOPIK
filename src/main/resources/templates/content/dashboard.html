@@ -706,6 +706,8 @@
     }
 
     // Hiển thị câu hỏi từ API (hoặc fallback sang summary)
+    // Xem câu liên quan gọi fragment theo reportId, không dùng summary rút gọn thay nội dung câu.
+    // dataset.reportId giúp bỏ response cũ nếu người dùng đã chuyển sang báo lỗi khác khi request chưa xong.
     function viewReportQuestion(btn) {
         const id = btn.getAttribute('data-reportid');
         resetQuestionModal();
@@ -739,6 +741,7 @@
         modal.show();
     }
 
+    // Gửi FormData reportId/note; chỉ reload danh sách sau success=true. Nút xác nhận này đóng báo lỗi, không tự sửa ngân hàng.
     function confirmResolveReport() {
         const id = document.getElementById('resolveReportId').value;
         const formData = new FormData();
@@ -766,6 +769,7 @@
         modal.show();
     }
 
+    // Bắt buộc nhập lý do ở giao diện, gửi JSON reportId/reason; backend lưu từ chối và tạo thông báo cho người gửi.
     function confirmRejectReport() {
         const id = document.getElementById('rejectReportId').value;
         const reason = document.getElementById('rejectReason').value.trim();

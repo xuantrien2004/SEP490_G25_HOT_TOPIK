@@ -114,8 +114,6 @@ public final class ExamImportValidator {
         final String S = ParsedWorkbook.SHEET_QUESTIONS;
         String sk = q.skill.name();
 
-        if (blank(q.promptKo)) issues.add(ImportIssue.error(S, q.row, sk, q.no, "Thiếu câu hỏi (prompt_ko)."));
-
         List<Integer> missingOpts = new ArrayList<>();
         for (int k = 0; k < 4; k++) if (blank(q.options[k])) missingOpts.add(k + 1);
         if (!missingOpts.isEmpty()) {
@@ -315,8 +313,7 @@ public final class ExamImportValidator {
                 issues.add(ImportIssue.error(S, w.row, "WRITING", w.no, "Trùng câu " + w.no + " với dòng " + prev.row + "."));
                 continue;
             }
-            if (blank(w.promptKo)) issues.add(ImportIssue.error(S, w.row, "WRITING", w.no, "Thiếu đề bài (prompt_ko)."));
-            if (blank(w.modelAnswer)) issues.add(ImportIssue.error(S, w.row, "WRITING", w.no, "Thiếu bài mẫu / đáp án chuẩn (model_answer)."));
+            if (w.no <= 52 && blank(w.modelAnswer)) issues.add(ImportIssue.error(S, w.row, "WRITING", w.no, "Thiếu bài mẫu / đáp án chuẩn (model_answer)."));
             if (w.no == 51 || w.no == 52) {
                 if (blank(w.keys1) || blank(w.keys2)) {
                     issues.add(ImportIssue.error(S, w.row, "WRITING", w.no, "Câu " + w.no + " cần đáp án chấp nhận cho cả ㉠ (keys_1) và ㉡ (keys_2)."));
@@ -325,7 +322,7 @@ public final class ExamImportValidator {
                     issues.add(ImportIssue.warning(S, w.row, "WRITING", w.no, "Đề câu " + w.no + " nên có hai chỗ trống ( ㉠ ) và ( ㉡ )."));
                 }
             }
-            if (w.no == 53) validateChart(w, ctx, issues);
+            if (w.no >= 53) validateChart(w, ctx, issues);
             if (blank(w.rubricNote)) {
                 issues.add(ImportIssue.warning(S, w.row, "WRITING", w.no, "Chưa có ghi chú tiêu chí chấm (rubric_note)."));
             }
@@ -354,11 +351,11 @@ public final class ExamImportValidator {
                 }
                 if (!ok) throw new IllegalArgumentException();
             } catch (Exception e) {
-                issues.add(ImportIssue.error(S, w.row, "WRITING", 53,
+                issues.add(ImportIssue.error(S, w.row, "WRITING", w.no,
                         "chart_json không đúng định dạng [[\"nhãn\", số], …]."));
             }
         } else if (!ctx.mediaSizes().containsKey(key(v))) {
-            issues.add(ImportIssue.error(S, w.row, "WRITING", 53, "Thiếu file ảnh biểu đồ " + v + "."));
+            issues.add(ImportIssue.error(S, w.row, "WRITING", w.no, "Thiếu file ảnh biểu đồ " + v + "."));
         }
     }
 

@@ -13,6 +13,8 @@ function toggleBellDropdown() {
     }
 }
 
+// Polling chuông: lấy số chưa đọc + tối đa 10 thông báo, dựng DOM bằng textContent để không coi nội dung là HTML.
+// Chỉ chấp nhận link chi tiết /bao-loi/; bấm item gọi API read, trang đích cũng đánh dấu đọc để đồng bộ.
 async function refreshNotifications() {
     const list = document.getElementById('bellDropdownList');
     const badge = document.getElementById('bellBadge');
@@ -28,7 +30,7 @@ async function refreshNotifications() {
         list.replaceChildren();
         for (const n of data.notifications) {
             const link = document.createElement('a');
-            link.href = n.link && n.link.startsWith('/bao-loi/') ? n.link : '/thong-bao';
+            link.href = n.link && (/^\/(?:bao-loi\/\d+|cau-hoi-da-sua\/\d+|writing\/feedback\?id=sub-[a-zA-Z0-9-]+)$/.test(n.link)) ? n.link : '/thong-bao';
             link.className = 'ssak-notification-item' + (n.read ? '' : ' unread');
             const content = document.createElement('div');
             const title = document.createElement('strong');
@@ -44,6 +46,7 @@ async function refreshNotifications() {
         if (!data.notifications.length) list.textContent = 'Chưa có thông báo mới.';
     } catch (_) { /* Retry on the next poll or when the learner opens the bell. */ }
 }
+// Tải thông báo lúc mở trang, mỗi 30 giây nếu có chuông, khi mở dropdown và khi tab hiện lại; không có WebSocket.
 document.addEventListener('DOMContentLoaded', () => {
     refreshNotifications();
     if (document.getElementById('bellDropdownList')) setInterval(refreshNotifications, 30000);
@@ -81,6 +84,7 @@ document.addEventListener('click', function(e) {
 });
 
 // Mark all notifications as read
+// Hàm hiện chỉ bỏ badge/nền chưa đọc ở DOM, chưa gọi API đánh dấu tất cả; polling sau đó vẫn lấy trạng thái thật trong DB.
 function markAllNotificationsRead() {
     const badge = document.getElementById('bellBadge');
     if (badge) {

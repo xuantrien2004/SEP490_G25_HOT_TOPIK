@@ -51,6 +51,12 @@ public class QuestionReport {
     @Column(name = "exam_id")
     private Long examId;
 
+    @Column(name = "attempt_id")
+    private Long attemptId;
+
+    @Column(name = "attempt_kind", length = 10)
+    private String attemptKind;
+
     @Column(name = "exam_title", length = 255)
     @Nationalized
     private String examTitle;
@@ -68,6 +74,13 @@ public class QuestionReport {
 
     @Column(name = "status", nullable = false, length = 20)
     private String status = "OPEN"; // OPEN, RESOLVED, REJECTED
+
+    @Nationalized
+    @Column(name = "original_question_json", columnDefinition = "nvarchar(max)")
+    private String originalQuestionJson;
+    @Nationalized
+    @Column(name="resolved_question_json", columnDefinition="nvarchar(max)")
+    private String resolvedQuestionJson;
 
     @Column(name = "resolution_note", length = 2000)
     @Nationalized

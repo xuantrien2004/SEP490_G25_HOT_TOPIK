@@ -1,0 +1,25 @@
+<!DOCTYPE html><html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head><body>
+<div th:replace="~{fragments/navbar :: navbar('notifications')}"></div>
+<main class="container py-4" style="max-width:1200px">
+    <a th:href="@{/thong-bao}" class="btn btn-outline-secondary mb-3">Về thông báo</a>
+    <h1 class="h4">Câu hỏi bạn đã làm được cập nhật</h1><p style="white-space:pre-wrap" th:text="${revision.note}"></p>
+    <th:block th:replace="~{report/correction :: comparison}"></th:block>
+</main><div th:replace="~{fragments/footer :: footer}"></div></body>
+<th:block th:fragment="comparison">
+    <section th:if="${adjustments != null and !#lists.isEmpty(adjustments)}" class="alert alert-info">
+        <h2 class="h6">Kết quả bài làm của bạn</h2>
+        <p th:each="a : ${adjustments}"><a th:href="${a.link}" th:text="${a.kind + ' #' + a.attemptId}"></a>:
+            <strong th:text="${a.before + ' → ' + a.after + ' / ' + a.total}"></strong>
+            <span th:if="${a.before == a.after}"> (Điểm giữ nguyên)</span>
+        </p>
+    </section>
+    <div class="row g-4 mb-4" th:if="${beforeQuestion != null and afterQuestion != null}">
+        <section class="col-md-6"><div class="bg-white border rounded-4 p-3 h-100"><h2 class="h5">Trước khi sửa</h2>
+            <th:block th:with="question=${beforeQuestion}" th:insert="~{report/question :: content}"></th:block>
+        </div></section>
+        <section class="col-md-6"><div class="bg-white border rounded-4 p-3 h-100"><h2 class="h5">Sau khi sửa</h2>
+            <th:block th:with="question=${afterQuestion}" th:insert="~{report/question :: content}"></th:block>
+        </div></section>
+    </div>
+</th:block></html>

@@ -32,7 +32,7 @@
             <div class="fw-medium text-dark" style="font-size: 15px;" th:text="${type.learnerInstructionKo()}"></div>
         </div>
 
-        <div th:if="${summary.latestPercent != null}" class="py-3 border-top border-bottom my-4">
+        <div th:if="${!type.isWriting() and summary.latestPercent != null}" class="py-3 border-top border-bottom my-4">
             <span class="text-muted">Kết quả gần nhất: </span><strong th:text="${summary.latestPercent} + '%'">—</strong>
         </div>
 
@@ -49,12 +49,27 @@
             ✍️ <strong>Kỹ năng Viết:</strong> Bài viết được thực hiện trong khu vực Luyện Viết tương tác với sự hỗ trợ của AI chấm bài và Mentor phản hồi.
         </div>
 
+        <!--
+            available=0 hiện cảnh báo, không hiện form bắt đầu. Có câu nhưng chưa đủ block vẫn bị service.start chặn khi POST.
+            Lịch sử bên dưới chỉ gồm lượt đã nộp; Chi tiết đọc kết quả cũ, Làm lại tạo lượt mới giữ câu.
+        -->
         <!-- Nút Bắt đầu luyện -->
         <div class="d-flex align-items-center gap-3">
             <form th:if="${summary.available > 0}" method="post" th:action="@{/practice/start}" class="m-0">
                 <input type="hidden" name="typeCode" th:value="${type.code}">
                 <input th:if="${day != null and slot != null}" type="hidden" name="day" th:value="${day}">
                 <input th:if="${day != null and slot != null}" type="hidden" name="slot" th:value="${slot}">
+                <!--/* So cau tuy chon: chi hien khi khong phai Writing */-->
+                <div th:unless="${type.isWriting()}" class="mb-3 d-flex align-items-center gap-2 flex-wrap">
+                    <label class="fw-bold text-dark mb-0" style="font-size:14px;">Số câu muốn làm:</label>
+                    <input type="number" name="questionCount"
+                           th:min="${type.requiredCount()}"
+                           th:value="${type.requiredCount()}"
+                           class="form-control form-control-sm"
+                           style="width:90px;"
+                           oninput="validateQCount(this)"/>
+                    <small class="text-muted">Mặc định: <span th:text="${type.requiredCount()}">3</span> câu. Chọn nhiều hơn để luyện thêm.</small>
+                </div>
                 <button class="btn btn-success btn-lg fw-bold px-5 py-3 rounded-3 shadow-sm d-flex align-items-center gap-2" type="submit">
                     <span>🚀</span>
                     <span th:text="${type.isWriting()} ? 'Mở khu vực luyện Viết →' : 'Bắt đầu bài luyện mới →'">Bắt đầu bài luyện mới →</span>
@@ -106,9 +121,38 @@
             </table>
         </div>
     </section>
+    <section th:if="${type.isWriting() and writingHistory != null and !writingHistory.isEmpty()}" class="bg-white border rounded-4 p-4 shadow-sm mb-4">
+        <h2 class="h5 fw-bold mb-3">Lịch sử luyện Viết</h2>
+        <div th:each="h : ${writingHistory}" class="d-flex justify-content-between align-items-center border-bottom py-3">
+            <span>
+                <b th:text="${'Câu ' + h.questionNo}">Câu 53</b> ·
+                <span th:text="${h.submittedAt}">29/10/2026 10:00</span>
+                <span th:if="${h.status == 'draft'}" class="badge bg-warning text-dark ms-2">Chưa nộp</span>
+                <span th:if="${h.status == 'submitted'}" class="badge bg-secondary ms-2">Đã nộp</span>
+                <span th:if="${h.status == 'waiting' or h.status == 'claimed'}" class="badge bg-info text-dark ms-2">Chờ chấm</span>
+                <span th:if="${h.status == 'graded'}" class="badge bg-success ms-2">Đã chấm</span>
+            </span>
+            <div class="d-flex gap-2">
+                <a th:if="${h.status == 'draft'}"
+                   th:href="@{/writing(question=${h.questionNo}, promptId=${h.promptId})}"
+                   class="btn btn-sm btn-warning fw-bold">Tiếp tục viết</a>
+                <a th:if="${h.status == 'submitted'}"
+                   class="btn btn-sm btn-outline-secondary" th:href="@{/writing/history(id=${h.id})}">Xem bài làm</a>
+                <a th:if="${h.status == 'waiting' or h.status == 'claimed' or h.status == 'graded' or h.status == 'appeal'}"
+                   class="btn btn-sm btn-outline-success" th:href="@{/writing/feedback(id=${h.id})}">Xem bài chấm</a>
+            </div>
+        </div>
+    </section>
 
 </main>
 
 <div th:replace="~{fragments/footer :: footer}"></div>
+<script>
+function validateQCount(input) {
+    var min = parseInt(input.min) || 1;
+    var val = parseInt(input.value) || min;
+    if (val < min) { input.value = min; }
+}
+</script>
 </body>
 </html>

@@ -25,9 +25,9 @@
                       th:classappend="${exam.status.name() == 'PUBLISHED'} ? 'pill-mint' : (${exam.status.name() == 'PENDING_APPROVAL'} ? 'pill-honey' : 'pill-gray')"
                       th:text="${exam.status.name() == 'PENDING_APPROVAL' ? (exam.pendingAction == 'ARCHIVE' ? 'Chờ duyệt lưu trữ' : 'Chờ duyệt phát hành') : exam.status.label}">Nháp</span>
                 <th:block th:if="${canEdit and isFull}">
-                    <form th:if="${exam.editable}" th:action="@{/content/exams/{id}/submit(id=${exam.id})}" method="post">
+                    <form th:if="${exam.editable}" th:action="@{/content/exams/{id}/publish(id=${exam.id})}" method="post">
                         <button class="btn btn-ssak-primary btn-sm" type="submit" th:disabled="${!chk.isOk()}"
-                                th:title="${chk.isOk()} ? 'Gửi Admin duyệt phát hành' : 'Khung đề chưa đạt'">Gửi duyệt phát hành</button>
+                                th:title="${chk.isOk()} ? 'Kich hoat de phat hanh ngay' : 'Khung de chua dat'">Kich hoat de</button>
                     </form>
                     <form th:action="@{/content/exams/{id}/clone(id=${exam.id})}" method="post">
                         <button class="btn btn-ssak-outline btn-sm" type="submit">Nhân bản</button>
@@ -99,14 +99,14 @@
                         </li>
                     </ul>
                     <div th:if="${chk.isOk() and isFull and exam.editable}" class="cm-flash ok" style="margin-top: 12px;"><span>✓</span>
-                        <span th:if="${frame.enteredPaper()}">Đề đã có các câu vừa nhập. Gửi duyệt để Admin phát hành.</span>
-                        <span th:unless="${frame.enteredPaper()}" th:text="${'Khung đề đạt. Gửi duyệt để Admin phát hành; khi duyệt hệ thống tự sinh ' + (exam.track.name() == 'TOPIK_II' ? 'Mini Nghe, Viết và Đọc.' : 'Mini Nghe và Đọc.')}"></span></div>
+                        <span th:if="${frame.enteredPaper()}">Đề đã có các câu vừa nhập. Kích hoạt để phát hành ngay.</span>
+                        <span th:unless="${frame.enteredPaper()}" th:text="${'Khung đề đạt. Kích hoạt để phát hành ngay; khi duyệt hệ thống tự sinh ' + (exam.track.name() == 'TOPIK_II' ? 'Mini Nghe, Viết và Đọc.' : 'Mini Nghe và Đọc.')}"></span></div>
                 </div>
             </div>
 
             <div class="cm-card" th:if="${frame.enteredPaper()}">
                 <h2>Câu đã nhập</h2>
-                <p class="cm-muted" th:if="${exam.editable}">Đề này lấy từ tờ nhập đề. Câu đã nằm trong ngân hàng. Gửi duyệt để phát hành.</p>
+                <p class="cm-muted" th:if="${exam.editable}">Đề này lấy từ tờ nhập đề. Câu đã nằm trong ngân hàng. Kích hoạt để phát hành.</p>
                 <p class="cm-muted" th:unless="${exam.editable}">Đề này lấy từ tờ nhập đề. Câu đã nằm trong ngân hàng.</p>
                 <div class="cm-table-wrap" style="border: none; margin-top: 10px;">
                     <table class="cm-table">

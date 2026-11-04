@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
 <body>
 <th:block th:replace="~{fragments/content-shell :: styles}"></th:block>
-<div class="cm-shell" th:with="activated=${source.status.name() == 'ACTIVE'}, hasJob=${job != null}, clean=${job != null and errorCount == 0}, editable=${canEdit and source.status.name() != 'ACTIVE'}, total=${#lists.size(slots)}">
+<div class="cm-shell" th:with="activated=${source.status.name() == 'ACTIVE'}, hasJob=${job != null}, clean=${job != null and errorCount == 0}, editable=${canEdit and source.status.name() != 'ACTIVE'}, total=${#lists.size(slots)}, writingEntry=${manual ? (entrySkill != null and entrySkill.name() == 'WRITING') : (editSlot != null and editSlot.writing)}">
     <aside th:replace="~{fragments/content-shell :: sidebar('sources')}"></aside>
     <div class="cm-main">
         <header class="cm-header">
@@ -97,7 +97,7 @@
                     </nav>
 
                     <form class="cm-card paper-editor" id="card-form" th:if="${showCardForm}"
-                          th:action="@{/content/sources/{id}/cards(id=${source.id})}" method="post">
+                          th:action="@{/content/sources/{id}/cards(id=${source.id})}" method="post" enctype="multipart/form-data">
                         <input type="hidden" name="cardId" th:if="${editCard != null}" th:value="${editCard.id}">
                         <input type="hidden" name="templateCode" th:value="${currentTemplate}">
                         <input type="hidden" name="typeCode" th:value="${currentTypeCode}">
@@ -117,7 +117,8 @@
                         <div data-when="image">
                             <label for="image">Ảnh hoặc biểu đồ dùng chung</label>
                             <input id="image" name="image" class="form-control" list="media-names"
-                                   th:value="${editCard != null ? editCard.image : ''}" th:disabled="${!editable}">
+                                   th:value="${editCard != null ? editCard.image : ''}"
+                                   th:disabled="${!editable or (entrySkill.name() == 'WRITING' and focusNo != null and focusNo >= 53)}">
                         </div>
                         <div data-when="passage">
                             <label for="passage">Đoạn văn dùng chung</label>
@@ -138,8 +139,19 @@
                                 <div class="cm-toolbar">
                                     <h3 class="ask-title" style="margin:0;" th:text="${ask.no != null ? 'Câu ' + ask.no : 'Câu ' + (st.index + 1)}">Câu 1</h3>
                                 </div>
-                                <label>Câu hỏi / đề bài</label>
+                                <label>Câu hỏi / đề bài (không bắt buộc)</label>
                                 <textarea name="prompt" rows="3" class="form-control ko" th:disabled="${!editable}" th:text="${ask.prompt}"></textarea>
+                                <div th:if="${entrySkill.name() == 'WRITING' and ask.no != null and ask.no >= 53}"
+                                     th:with="questionChart=${!#strings.isEmpty(ask.chart) ? ask.chart : (editCard != null ? editCard.image : '')}">
+                                    <label>Ảnh đề bài (không bắt buộc, chỉ của câu này)</label>
+                                    <input type="hidden" name="chart" th:value="${questionChart}">
+                                    <input type="hidden" name="modelAnswer" th:value="${ask.modelAnswer}">
+                                    <input type="hidden" name="rubric" th:value="${ask.rubric}">
+                                    <input type="file" name="questionImage" data-question-image accept="image/png,image/jpeg,image/webp,image/gif" class="form-control" th:disabled="${!editable}">
+                                    <img data-image-preview th:hidden="${#strings.isEmpty(questionChart) or #strings.startsWith(questionChart, '[')}"
+                                         th:src="${!#strings.isEmpty(questionChart) and !#strings.startsWith(questionChart, '[')} ? @{/content/media/{s}/{f}(s=${source.id},f=${questionChart})} : null"
+                                         alt="Ảnh của câu đang nhập" style="max-width:100%;max-height:480px;object-fit:contain;margin-top:12px">
+                                </div>
                                 <div data-when="choices">
                                     <label>Bốn phương án. Chọn đáp án đúng.</label>
                                     <p class="cm-muted choice-hint">Có thể nhập nội dung hoặc tên file ảnh đã tải cho từng phương án.</p>
@@ -156,23 +168,25 @@
                                         <option value="4" th:selected="${ask.answer == '4'}">④</option>
                                     </select>
                                 </div>
-                                <div data-when="keys">
+                                <div data-when="keys" th:if="${entrySkill.name() == 'WRITING' and ask.no != null and ask.no <= 52}">
                                     <label>Đáp án chấp nhận chỗ ㉠, ngăn bằng dấu |</label>
                                     <input name="keys1" class="form-control ko" th:value="${ask.keys1}" th:disabled="${!editable}">
                                     <label>Đáp án chấp nhận chỗ ㉡</label>
                                     <input name="keys2" class="form-control ko" th:value="${ask.keys2}" th:disabled="${!editable}">
                                 </div>
-                                <div data-when="free">
+                                <div data-when="free" th:unless="${entrySkill.name() == 'WRITING' and ask.no != null and ask.no >= 53}">
                                     <label>Bài mẫu</label>
                                     <textarea name="modelAnswer" rows="4" class="form-control ko" th:disabled="${!editable}" th:text="${ask.modelAnswer}"></textarea>
                                     <label>Ghi chú chấm</label>
                                     <input name="rubric" class="form-control" th:value="${ask.rubric}" th:disabled="${!editable}">
                                 </div>
-                                <label>Giải thích tiếng Việt <span style="font-weight: 600;">(điền sau cũng được)</span></label>
-                                <textarea name="explanation" rows="2" class="form-control" th:disabled="${!editable}" th:text="${ask.explanation}"></textarea>
+                                <th:block th:unless="${entrySkill.name() == 'WRITING' and ask.no != null and ask.no >= 53}">
+                                    <label>Giải thích tiếng Việt <span style="font-weight: 600;">(điền sau cũng được)</span></label>
+                                    <textarea name="explanation" rows="2" class="form-control" th:disabled="${!editable}" th:text="${ask.explanation}"></textarea>
+                                </th:block>
                             </div>
                         </div>
-                        <datalist id="media-names">
+                        <datalist id="media-names" th:unless="${writingEntry}">
                             <option th:each="m : ${media}" th:value="${m.filename}"></option>
                         </datalist>
                         <div class="cm-toolbar" style="margin-top: 16px;" th:if="${editable}">
@@ -192,7 +206,7 @@
                 </form>
             </div>
 
-            <div class="cm-card" id="media" th:if="${manual and !activated}">
+            <div class="cm-card" id="media" th:if="${manual and !activated and !writingEntry}">
                 <h2>File nghe và ảnh</h2>
                 <p class="cm-muted">Tải mp3 hoặc ảnh trước, rồi gõ đúng tên file vào bài. Một file nghe dùng cho mọi câu trong cùng bài.</p>
                 <form th:if="${editable}" class="cm-drop" th:action="@{/content/sources/{id}/media(id=${source.id})}" method="post" enctype="multipart/form-data">
@@ -272,7 +286,7 @@
                     </th:block>
                 </nav>
 
-                <form class="cm-card paper-editor" th:action="@{/content/sources/{id}/paper(id=${source.id})}" method="post">
+                <form class="cm-card paper-editor" th:action="@{/content/sources/{id}/paper(id=${source.id})}" method="post" enctype="multipart/form-data">
                     <input type="hidden" name="writing" th:value="${editSlot.writing}">
                     <input type="hidden" name="skill" th:value="${editSlot.skill}">
                     <input type="hidden" name="no" th:value="${editSlot.no}">
@@ -290,8 +304,22 @@
                         <span th:text="${#strings.listJoin(editSlot.problems, ' ')}">Thiếu đáp án</span>
                     </div>
 
-                    <label for="prompt">Câu hỏi / đề bài</label>
+                    <th:block th:if="${editSlot.writing and editSlot.no >= 53}">
+                        <label for="writingPassage">Đoạn văn</label>
+                        <textarea id="writingPassage" name="passage" rows="4" class="form-control ko" th:disabled="${!editable}" th:text="${editSlot.passage}"></textarea>
+                    </th:block>
+                    <label for="prompt">Câu hỏi / đề bài (không bắt buộc)</label>
                     <textarea id="prompt" name="prompt" rows="4" class="form-control ko" th:disabled="${!editable}" th:text="${editSlot.prompt}"></textarea>
+                    <div th:if="${editSlot.writing and editSlot.no >= 53}">
+                        <label>Ảnh đề bài (không bắt buộc, chỉ của câu này)</label>
+                        <input type="hidden" name="chart" th:value="${editSlot.chart}">
+                        <input type="hidden" name="modelAnswer" th:value="${editSlot.modelAnswer}">
+                        <input type="hidden" name="rubric" th:value="${editSlot.rubric}">
+                        <input type="file" name="questionImage" data-question-image accept="image/png,image/jpeg,image/webp,image/gif" class="form-control" th:disabled="${!editable}">
+                        <img data-image-preview th:hidden="${#strings.isEmpty(editSlot.chart) or #strings.startsWith(editSlot.chart, '[')}"
+                             th:src="${!#strings.isEmpty(editSlot.chart) and !#strings.startsWith(editSlot.chart, '[')} ? @{/content/media/{s}/{f}(s=${source.id},f=${editSlot.chart})} : null"
+                             alt="Ảnh của câu đang nhập" style="max-width:100%;max-height:480px;object-fit:contain;margin-top:12px">
+                    </div>
 
                     <div th:unless="${editSlot.writing}">
                         <label>Bốn phương án. Chọn ô tròn ở đáp án đúng.</label>
@@ -317,7 +345,7 @@
                         </div>
                     </div>
 
-                    <div th:if="${editSlot.writing}">
+                    <div th:if="${editSlot.writing and editSlot.no <= 52}">
                         <label for="keys1">Đáp án chấp nhận chỗ ㉠, ngăn bằng dấu |</label>
                         <input id="keys1" name="keys1" class="form-control ko" th:value="${editSlot.keys1}" th:disabled="${!editable}">
                         <label for="keys2">Đáp án chấp nhận chỗ ㉡</label>
@@ -332,8 +360,10 @@
                         <input id="rubric" name="rubric" class="form-control" th:value="${editSlot.rubric}" th:disabled="${!editable}">
                     </div>
 
-                    <label for="explanation">Giải thích tiếng Việt <span style="font-weight: 600;">(điền sau cũng được, không chặn)</span></label>
-                    <textarea id="explanation" name="explanation" rows="3" class="form-control" th:disabled="${!editable}" th:text="${editSlot.explanation}"></textarea>
+                    <th:block th:unless="${editSlot.writing and editSlot.no >= 53}">
+                        <label for="explanation">Giải thích tiếng Việt <span style="font-weight: 600;">(điền sau cũng được, không chặn)</span></label>
+                        <textarea id="explanation" name="explanation" rows="3" class="form-control" th:disabled="${!editable}" th:text="${editSlot.explanation}"></textarea>
+                    </th:block>
 
                     <details th:unless="${editSlot.writing}" th:open="${editSlot.audio != '' or editSlot.script != '' or editSlot.passage != '' or editSlot.image != ''}">
                         <summary>File nghe, lời thoại, đoạn văn, ảnh</summary>
@@ -351,7 +381,7 @@
                         <label for="passage">Đoạn văn</label>
                         <textarea id="passage" name="passage" rows="4" class="form-control ko" th:disabled="${!editable}" th:text="${editSlot.passage}"></textarea>
                     </details>
-                    <datalist id="media-names">
+                    <datalist id="media-names" th:unless="${writingEntry}">
                         <option th:each="m : ${media}" th:value="${m.filename}"></option>
                     </datalist>
 
@@ -364,7 +394,7 @@
             </div>
 
             <details class="cm-card" id="tools" th:unless="${activated or manual}">
-                <summary style="font-weight: 800; cursor: pointer;">Đổ nhanh từ Excel, hoặc thêm file nghe / ảnh</summary>
+                <summary style="font-weight: 800; cursor: pointer;" th:text="${writingEntry ? 'Đổ nhanh từ Excel' : 'Đổ nhanh từ Excel, hoặc thêm file nghe / ảnh'}">Đổ nhanh từ Excel, hoặc thêm file nghe / ảnh</summary>
                 <p class="cm-muted" style="margin-top: 10px;">Không bắt buộc. Dùng khi đề đã gõ sẵn: câu hỏi, bốn phương án, đáp án, tên file nghe, lời thoại, đoạn văn. Giải thích để trống. Tải Excel mới sẽ thay toàn bộ bản đang nhập trên trang này.</p>
                 <div class="cm-grid-2" style="margin-top: 14px;">
                     <form th:if="${editable}" class="cm-drop" th:action="@{/content/sources/{id}/excel(id=${source.id})}" method="post" enctype="multipart/form-data">
@@ -375,7 +405,7 @@
                             <a th:href="@{/content/import-template}" class="btn btn-ssak-light btn-sm">Tải file mẫu</a>
                         </div>
                     </form>
-                    <form th:if="${editable}" class="cm-drop" id="media" th:action="@{/content/sources/{id}/media(id=${source.id})}" method="post" enctype="multipart/form-data">
+                    <form th:if="${editable and !writingEntry}" class="cm-drop" id="media" th:action="@{/content/sources/{id}/media(id=${source.id})}" method="post" enctype="multipart/form-data">
                         <label for="files" style="font-weight: 800;">mp3, ảnh hoặc một file .zip</label>
                         <input id="files" type="file" name="files" multiple accept=".mp3,.png,.jpg,.jpeg,.webp,.gif,.zip" required class="form-control">
                         <div class="cm-toolbar">
@@ -385,7 +415,7 @@
                         </div>
                     </form>
                 </div>
-                <div class="cm-table-wrap" th:unless="${#lists.isEmpty(media)}" style="margin-top: 14px;">
+                <div class="cm-table-wrap" th:if="${!writingEntry and !#lists.isEmpty(media)}" style="margin-top: 14px;">
                     <table class="cm-table">
                         <thead><tr><th>File</th><th>Loại</th><th>Dung lượng</th><th>Nghe / xem</th><th th:if="${editable}"></th></tr></thead>
                         <tbody>
@@ -489,14 +519,33 @@
         if (!opt || !opt.value) return;
         const image = opt.dataset.image || 'NONE';
         show('audio', opt.dataset.audio !== 'NONE');
-        show('image', image === 'GROUP');
-        show('passage', opt.dataset.passage !== 'NONE');
+        const longWriting = !!document.querySelector('#card-form [data-question-image]');
+        show('image', image === 'GROUP' && !longWriting);
+        show('passage', opt.dataset.passage !== 'NONE' || opt.dataset.writing === 'true');
         show('script', opt.dataset.script !== 'NONE');
         show('choices', opt.dataset.choices === 'true');
         show('keys', opt.dataset.answer === 'ACCEPT_KEYS');
         show('free', opt.dataset.answer === 'FREE_TEXT');
         if (help && opt.dataset.help) help.textContent = opt.dataset.help;
     })();
+    document.querySelectorAll('[data-question-image]').forEach(input => {
+        let previewUrl;
+        const image = input.parentElement.querySelector('[data-image-preview]');
+        const savedSrc = image.getAttribute('src');
+        const savedHidden = image.hidden;
+        input.addEventListener('change', () => {
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+            const file = input.files[0];
+            if (!file) {
+                if (savedSrc) image.src = savedSrc; else image.removeAttribute('src');
+                image.hidden = savedHidden;
+                return;
+            }
+            previewUrl = URL.createObjectURL(file);
+            image.src = previewUrl;
+            image.hidden = false;
+        });
+    });
 </script>
 </body>
 </html>

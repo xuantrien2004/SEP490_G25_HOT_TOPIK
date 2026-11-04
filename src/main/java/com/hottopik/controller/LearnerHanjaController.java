@@ -35,6 +35,9 @@ public class LearnerHanjaController {
      * REST API: List all ACTIVE Hanja roots for learner view.
      * GET /api/learner/hanja/roots?query=...
      */
+    /*
+     * API dữ liệu bổ sung cho trang Hán Việt; trang HTML thật do TheoryController.hanja() phục vụ, controller này chỉ trả JSON.
+     */
     @GetMapping("/roots")
     @ResponseBody
     public ResponseEntity<List<HanjaRootDTO>> getActiveRoots(
@@ -46,6 +49,9 @@ public class LearnerHanjaController {
     /**
      * REST API: Get single Hanja root detail (with related words) for learner.
      * GET /api/learner/hanja/roots/{id}
+     */
+    /*
+     * Nạp chi tiết kèm từ liên quan, chỉ trả gốc ACTIVE; ID không có hoặc gốc nháp trả 404.
      */
     @GetMapping("/roots/{id}")
     @ResponseBody
@@ -60,6 +66,9 @@ public class LearnerHanjaController {
     /**
      * REST API: Get randomized quiz questions for "Đoán nghĩa từ mới" mode.
      * GET /api/learner/hanja/quiz?count=10
+     */
+    /*
+     * Giới hạn số câu yêu cầu vào 5..30 rồi tạo quiz; lượng trả thực tế có thể ít hơn khi dữ liệu chưa đủ.
      */
     @GetMapping("/quiz")
     @ResponseBody

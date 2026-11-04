@@ -11,6 +11,10 @@ import java.util.Collection;
 import java.util.List;
 
 public interface QuestionRepository extends JpaRepository<Question, Long>, JpaSpecificationExecutor<Question> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select q from Question q where q.id = :id")
+    java.util.Optional<Question> findForUpdate(@org.springframework.data.repository.query.Param("id") Long id);
+
 
     List<Question> findByTypeCodeAndStatus(String typeCode, QuestionStatus status);
 
@@ -22,6 +26,10 @@ public interface QuestionRepository extends JpaRepository<Question, Long>, JpaSp
                                                            String typeCode, QuestionStatus status);
 
     @EntityGraph(attributePaths = {"source", "group"})
+    /*
+     * Pool dùng cho luyện dạng: câu ACTIVE, nguồn ACTIVE, không phải nguồn/câu đánh giá đầu vào.
+     * EntityGraph nạp source và group phục vụ giữ đúng đoạn văn/đoạn nghe khi chọn block.
+     */
     @Query("select q from Question q where q.track = :track and q.skill = :skill "
             + "and q.originalNo in :numbers and q.status = com.hottopik.entity.exam.QuestionStatus.ACTIVE "
             + "and q.source.status = com.hottopik.entity.exam.SourceStatus.ACTIVE "
