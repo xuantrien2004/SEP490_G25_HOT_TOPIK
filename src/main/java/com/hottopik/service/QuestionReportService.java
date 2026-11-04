@@ -35,6 +35,8 @@ public class QuestionReportService {
     private final QuestionRepository questions;
     private final WritingPromptRepository writingPrompts;
     private final ExamRepository exams;
+    private final QuestionCorrectionService corrections;
+    private final com.hottopik.service.exam.QuestionBankService bank;
 
     public record ReportQuestion(String prompt, String passage, String script, String audio, String image,
                                  List<Choice> options, Integer answer, String explanation,
@@ -45,6 +47,20 @@ public class QuestionReportService {
                                        Long questionId, String questionCode, String questionSummary,
                                        Long examId, String examTitle, Integer questionNo,
                                        String issueType, String details, String questionKind) {
+        return createReport(userId, reporterName, reporterEmail, questionId, questionCode, questionSummary,
+                examId, examTitle, questionNo, issueType, details, questionKind, null, null);
+    }
+
+    @Transactional
+    public QuestionReport createReport(Long userId, String reporterName, String reporterEmail,
+                                       Long questionId, String questionCode, String questionSummary,
+                                       Long examId, String examTitle, Integer questionNo,
+                                       String issueType, String details, String questionKind, Long attemptId, String attemptKind) {
+        /*
+         * questionKind phân biệt hai bảng Question và WritingPrompt vì hai bảng có thể trùng ID.
+         * Có questionId thì lấy lại mã/nội dung/số câu từ DB, không tin summary/code gửi từ nút báo lỗi.
+         * Có examId thì xác minh câu thuộc đề rồi lấy tên đề chuẩn; báo lỗi demo không có bank ID chỉ giữ nội dung mô tả.
+         */
         boolean writing = "WRITING".equals(questionKind);
         if (questionKind != null && !"MC".equals(questionKind) && !writing) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Loại câu hỏi không hợp lệ.");
@@ -81,12 +97,15 @@ public class QuestionReportService {
         report.setQuestionCode(questionCode != null ? questionCode : (questionNo != null ? "Câu " + questionNo : "Q-" + System.currentTimeMillis() % 1000));
         report.setQuestionSummary(questionSummary == null ? null : questionSummary.substring(0, Math.min(1000, questionSummary.length())));
         report.setExamId(examId);
+        report.setAttemptId(attemptId);
+        report.setAttemptKind(attemptId == null ? null : attemptKind);
         report.setExamTitle(examTitle);
         report.setQuestionNo(questionNo);
         report.setIssueType(issueType != null && !issueType.isBlank() ? issueType : "Nội dung câu hỏi có lỗi");
         report.setDetails(details != null ? details.trim() : "");
         report.setStatus("OPEN");
         report.setRewardCoins(5);
+        if(q!=null || w!=null)try { report.setOriginalQuestionJson(new ObjectMapper().writeValueAsString(writing ? corrections.snapshot(w) : corrections.snapshot(q))); }catch(Exception ex){throw new IllegalStateException(ex);}
         return reportRepository.save(report);
     }
 
@@ -106,12 +125,21 @@ public class QuestionReportService {
     }
 
     @Transactional
+    /*
+     * Transaction khóa báo lỗi và chỉ nhận OPEN -> RESOLVED, chống bấm lặp/cạnh tranh phát thưởng cùng báo lỗi.
+     * Lưu ghi chú/người xử lý/thời điểm, cộng 5 xu và tạo UserNotification REPORT_RESOLVED chưa đọc cho chủ báo lỗi.
+     * Hàm này xác nhận đã xử lý; việc sửa nội dung câu phải được thực hiện ở luồng chỉnh sửa trước đó.
+     */
     public boolean resolveReport(Long reportId, String resolutionNote, String resolvedBy) {
         Optional<QuestionReport> opt = reportRepository.findForUpdate(reportId);
         if (opt.isEmpty()) return false;
 
         QuestionReport report = opt.get();
         if (!"OPEN".equals(report.getStatus())) return false;
+        if(report.getQuestionId()!=null) {
+            Object after = isWriting(report) ? writingPrompts.findById(report.getQuestionId()).map(corrections::snapshot).orElse(null) : questions.findById(report.getQuestionId()).map(corrections::snapshot).orElse(null);
+            if(after!=null)try {report.setResolvedQuestionJson(new ObjectMapper().writeValueAsString(after));}catch(Exception ex){throw new IllegalStateException(ex);}
+        }
         report.setStatus("RESOLVED");
         report.setResolutionNote(resolutionNote != null && !resolutionNote.isBlank() ? resolutionNote.trim() : "Đã kiểm tra và chỉnh sửa nội dung câu hỏi chính xác theo chuẩn NIIED.");
         report.setResolvedBy(resolvedBy != null ? resolvedBy : "Content Manager");
@@ -132,7 +160,9 @@ public class QuestionReportService {
             UserNotification noti = new UserNotification();
             noti.setUserId(report.getUserId());
             noti.setTitle("Báo lỗi câu hỏi đã được sửa (+5 Xu) 🎉");
-            noti.setMessage("Báo lỗi cho " + report.getQuestionCode() + " đã được Content Manager xác nhận và chỉnh sửa. Bạn được cộng +5 Xu thưởng!");
+            String adjustment = corrections.byReport(reportId).map(r -> corrections.adjustments(r.getId(),report.getUserId()).stream().filter(a -> a.before()!=a.after()).map(a -> a.kind()+" #"+a.attemptId()+": "+a.before()+" → "+a.after()+"/"+a.total()).collect(java.util.stream.Collectors.joining("; "))).orElse("");
+            String message = "Báo lỗi cho " + report.getQuestionCode() + " đã được chỉnh sửa (+5 Xu). " + adjustment;
+            noti.setMessage(message.substring(0,Math.min(1000,message.length())));
             noti.setType("REPORT_RESOLVED");
             noti.setLink("/bao-loi/" + report.getId());
             noti.setRead(false);
@@ -143,6 +173,11 @@ public class QuestionReportService {
     }
 
     @Transactional
+    /*
+     * Transaction khóa báo lỗi, chỉ OPEN -> REJECTED; lưu lý do và thông tin người xử lý.
+     * Tạo REPORT_REJECTED dẫn /bao-loi/{id} cho chính người gửi; nhánh này không cộng xu.
+     * Gọi lại khi đã đóng trả false, không sinh thêm thông báo.
+     */
     public boolean rejectReport(Long reportId, String rejectionReason, String resolvedBy) {
         Optional<QuestionReport> opt = reportRepository.findForUpdate(reportId);
         if (opt.isEmpty()) return false;
@@ -189,6 +224,9 @@ public class QuestionReportService {
     }
 
     @Transactional
+    /*
+     * Chỉ cập nhật read=true khi userId trùng người nhận; gửi ID của người khác không thay đổi thông báo của họ.
+     */
     public void markNotificationAsRead(Long notificationId, Long userId) {
         if (notificationId == null) return;
         notificationRepository.findById(notificationId).ifPresent(n -> {
@@ -200,6 +238,11 @@ public class QuestionReportService {
     }
 
     @Transactional(readOnly = true)
+    /*
+     * Đọc nội dung câu gốc theo loại MC/WRITING, ghép đoạn văn/lời thoại/media/lời giải thành DTO cho modal và trang phản hồi.
+     * Báo lỗi cũ thiếu loại phải khớp nội dung legacy để tránh lấy câu không liên quan chỉ vì trùng ID.
+     * Không có liên kết đáng tin thì trả null để template hiển thị summary đã lưu, không đoán sang câu khác.
+     */
     public ReportQuestion reportedQuestion(QuestionReport report) {
         if (report.getQuestionId() == null) return null;
         boolean writing = isWriting(report);
@@ -239,10 +282,14 @@ public class QuestionReportService {
     }
 
     @Transactional
+    /*
+     * Lưu sửa câu Viết và đóng báo lỗi trong transaction ngoài: kiểm tra độ dài, JSON biểu đồ, cập nhật entity rồi resolveReport tạo phản hồi.
+     */
     public void updateWritingAndResolve(Long reportId, WritingPrompt form, String note, String editor) {
         QuestionReport report = reportRepository.findForUpdate(reportId).orElseThrow();
         if (!"OPEN".equals(report.getStatus())) throw new IllegalArgumentException("Báo lỗi đã được xử lý.");
         WritingPrompt prompt = writingToEdit(report);
+        var before = corrections.snapshot(prompt);
         requireText(form.getPromptKo(), 4000, "Đề bài", true);
         requireText(form.getModelAnswer(), 4000, "Bài viết tham khảo", true);
         requireText(form.getKeys1(), 1000, "Đáp án ô 1", false);
@@ -260,9 +307,26 @@ public class QuestionReportService {
         prompt.setKeys2(form.getKeys2());
         prompt.setChartJson(form.getChartJson());
         prompt.setRubricNote(form.getRubricNote());
+        corrections.recordWriting(prompt,before,reportId,correctionType(report),note);
         resolveReport(reportId, note, editor);
     }
 
+    public static String correctionType(QuestionReport r) {
+        String type=Objects.toString(r.getIssueType(),"").toLowerCase(java.util.Locale.ROOT);
+        if(type.contains("chính tả"))return "SPELLING";
+        if(type.contains("đáp án"))return "ANSWER";
+        if(type.contains("hình")||type.contains("ảnh"))return "IMAGE";
+        if(type.contains("audio")||type.contains("âm thanh"))return "AUDIO";
+        return "CONTENT";
+    }
+    @Transactional
+    public void updateMcAndResolve(Long id,String prompt,List<String> options,Integer answer,String explanation,String reason,
+            com.hottopik.service.exam.Actor actor,Long reportId,String type,String policy,String note,com.hottopik.service.exam.QuestionBankService.GroupChange groupChange) {
+        QuestionReport report=reportRepository.findForUpdate(reportId).orElseThrow();
+        if(!"OPEN".equals(report.getStatus()) || isWriting(report) || !id.equals(report.getQuestionId()))throw new IllegalArgumentException("Báo lỗi không thuộc câu hỏi hoặc đã xử lý.");
+        bank.update(id,prompt,options,answer,explanation,reason,actor,reportId,(type==null||"AUTO".equals(type))?correctionType(report):type,policy,groupChange);
+        resolveReport(reportId,note,actor.name());
+    }
     private static void requireText(String value, int max, String label, boolean required) {
         if ((required && (value == null || value.isBlank())) || (value != null && value.length() > max)) {
             throw new IllegalArgumentException(label + (required ? " bắt buộc và" : "") + " tối đa " + max + " ký tự.");

@@ -61,6 +61,9 @@ public class ContentPortalController {
         this.questionReportService = questionReportService;
     }
 
+    /*
+     * Trang Content Manager nạp reports và pendingReportCount từ service; content/dashboard render bảng báo lỗi và modal thao tác.
+     */
     @GetMapping
     public String dashboard(HttpSession session, Model model) {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
@@ -141,6 +144,9 @@ public class ContentPortalController {
         return ResponseEntity.ok(resp);
     }
 
+    /*
+     * Xác minh CM/Admin, nhận reportId + note từ FormData, gọi resolveReport rồi ghi audit khi thành công; response JSON cho dashboard.
+     */
     @PostMapping("/report/resolve")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> resolveReport(
@@ -540,6 +546,9 @@ public class ContentPortalController {
     // REJECT REPORT
     // ==========================================
 
+    /*
+     * Xác minh vai trò, đọc reportId/reason trong JSON; gọi rejectReport, ghi audit rồi trả thông báo thành công/thất bại.
+     */
     @PostMapping("/report/reject")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> rejectReport(

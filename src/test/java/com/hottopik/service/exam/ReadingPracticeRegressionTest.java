@@ -24,6 +24,8 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -74,6 +76,16 @@ class ReadingPracticeRegressionTest {
         ExamSource source = source();
         // Reproduce the current bank: all 40 positions were entered using the first template.
         for (int no = 31; no <= 70; no++) card(source, "TPL1-REA-01", List.of(no));
+        UserDTO cm = new UserDTO();
+        cm.setId(991L);
+        cm.setRole(Actor.ROLE_CONTENT);
+        cm.setFullName("Content Manager");
+        var preview = mvc.perform(get("/content/sources/{id}/preview", source.getId()).sessionAttr(AuthHelper.SESSION_KEY, cm))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("Phiếu câu hỏi")))
+                .andExpect(content().string(containsString("data-preview=\"true\"")))
+                .andExpect(content().string(containsString("질문 31"))).andReturn();
+        java.nio.file.Files.writeString(java.nio.file.Path.of("target", "question-player-preview.html"),
+                preview.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8));
         assertEquals(40, imports.activate(source.getId(), CM).questionCount());
         Map<Integer, Question> expected = imports.questionsOf(source.getId()).stream()
                 .collect(Collectors.toMap(Question::getOriginalNo, q -> q));
@@ -107,6 +119,16 @@ class ReadingPracticeRegressionTest {
                         .andExpect(content().string(containsString("답 2 — 31")))
                         .andExpect(content().string(not(containsString("[31~33]"))))
                         .andExpect(content().string(not(containsString("샘플"))));
+                mvc.perform(post("/practice/check/{id}/{qid}", attempt.getId(), selected.get(0).id())
+                                .sessionAttr(AuthHelper.SESSION_KEY, learner).param("selected", "1"))
+                        .andExpect(status().isOk()).andExpect(jsonPath("$.answer").value(2))
+                        .andExpect(jsonPath("$.correct").value(false))
+                        .andExpect(jsonPath("$.explanation").value("Giải thích câu 31"))
+                        .andExpect(jsonPath("$.script").isEmpty());
+                assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                        () -> practice.check(99999L, attempt.getId(), selected.get(0).id(), 1));
+                assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                        () -> practice.check(LEARNER, attempt.getId(), Long.MAX_VALUE, 1));
             }
         }
     }

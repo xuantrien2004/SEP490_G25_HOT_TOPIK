@@ -140,7 +140,7 @@
                 <div class="cm-table-wrap" style="border: none; margin-top: 10px;">
                     <table class="cm-table">
                         <thead>
-                        <tr><th>Mã</th><th>Dạng</th><th>Đề bài</th><th>Nguồn</th><th>Trạng thái</th></tr>
+                        <tr><th>Mã</th><th>Dạng</th><th>Đề bài</th><th>Nguồn</th><th>Trạng thái</th><th></th></tr>
                         </thead>
                         <tbody>
                         <tr th:each="w : ${writings}">
@@ -152,6 +152,7 @@
                             <td class="ko" th:text="${#strings.abbreviate(w.promptKo, 110)}">Đề viết</td>
                             <td class="cm-muted" th:text="${w.source != null ? w.source.name : '—'}">kỳ 83</td>
                             <td><span class="pill" th:classappend="${w.status.name() == 'ACTIVE'} ? 'pill-mint' : 'pill-gray'" th:text="${w.status.label}">Đang dùng</span></td>
+                            <td><button type="button" class="btn btn-ssak-light btn-sm js-open-writing" th:attr="data-qid=${w.id}">Chi tiết</button></td>
                         </tr>
                         </tbody>
                     </table>
@@ -224,6 +225,8 @@
 
         async function open(id) {
             const params = new URLSearchParams(location.search);
+            // Chỉ gắn reportId khi form đang mở đúng openQuestionId trong URL; hidden reportId/resolutionNote đi theo POST lưu câu.
+            // Nhờ vậy backend phân biệt sửa ngân hàng thông thường với sửa câu rồi giải quyết báo lỗi.
             const reportId = String(id) === params.get('openQuestionId') ? params.get('reportId') : null;
             const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('qModal'));
             const body = document.getElementById('qBody');
@@ -270,7 +273,15 @@
                         <div class="alert alert-warning py-2 px-3 small rounded-3 mb-2" style="background:#FFFBE6;border:1px solid #FFE58F;color:#D46B08;">
                             <strong>🚩 Đang xử lý Báo lỗi #REP-${esc(reportId)}:</strong> Sau khi bạn bấm "Lưu thay đổi", hệ thống sẽ lưu câu hỏi, tự động giải quyết báo lỗi, thưởng <strong>+5 Xu</strong> cho học viên và chuyển bạn về lại trang Xử lý Báo lỗi.
                         </div>` : ''}
-                        <label class="form-label" style="font-weight:800;font-size:13px" for="e-prompt">Câu hỏi (tiếng Hàn)</label>
+                        <details><summary>Đoạn văn, phụ đề, ảnh và audio dùng chung</summary><p class="small">Thay đổi ngữ liệu sẽ áp dụng cho các câu cùng bài. Dùng tên file đã tải trong nguồn đề.</p>
+<label>Đoạn văn</label><textarea name="passageKo" class="form-control" maxlength="4000">${esc(q.passageKo)}</textarea>
+<label>Phụ đề</label><textarea name="scriptKo" class="form-control" maxlength="4000">${esc(q.scriptKo)}</textarea>
+<label>File ảnh</label><input name="imageFile" class="form-control" value="${esc(q.imageFile)}">
+<label>File audio</label><input name="audioFile" class="form-control" value="${esc(q.audioFile)}"></details>
+<label>Loại sửa lỗi</label><select name="correctionType" class="form-select"><option value="AUTO">Theo loại báo lỗi (nếu có)</option><option value="CONTENT">Nội dung câu hỏi</option><option value="ANSWER">Đáp án</option><option value="IMAGE">Hình ảnh</option><option value="AUDIO">Âm thanh</option><option value="SPELLING">Chỉ sửa chính tả</option></select>
+<label>Cập nhật kết quả bài đã nộp</label><select name="scorePolicy" class="form-select"><option value="RECALCULATE">Chấm lại theo đáp án chuẩn (tự áp dụng khi đổi đáp án)</option><option value="CREDIT_ANSWERED">Công nhận điểm câu này cho người đã trả lời do đề gây hiểu sai</option><option value="NO_SCORE_CHANGE">Không ảnh hưởng đáp án và điểm</option></select>
+<p class="small">Chính tả không ảnh hưởng điểm: chỉ thông báo người báo lỗi. Các lỗi khác: thông báo người đã trả lời câu này.</p>
+<label class="form-label" style="font-weight:800;font-size:13px" for="e-prompt">Câu hỏi (tiếng Hàn)</label>
                         <textarea id="e-prompt" name="promptKo" class="form-control ssak-input ko" rows="3" required ${ro}>${esc(q.promptKo)}</textarea>
                         ${q.options.map((o, i) => `
                             <div class="cm-toolbar" style="margin-top:8px">
@@ -314,6 +325,37 @@
             if (purpose) purpose.addEventListener('click', () => postForm(`${base}/questions/${q.id}/purpose`, {purpose: q.purpose === 'EXAM' ? 'PRACTICE' : 'EXAM'}));
         }
 
+        async function openWriting(id) {
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('qModal'));
+            const body = document.getElementById('qBody');
+            document.getElementById('qTitle').textContent = 'Câu hỏi Viết';
+            body.innerHTML = '<div class="cm-empty">Đang tải…</div>'; modal.show();
+            try {
+                const response = await fetch(`${base}/writing-questions/${id}/detail`);
+                const q = await response.json();
+                if (!response.ok) throw new Error(q.message || 'Không tải được câu Viết.');
+                document.getElementById('qTitle').textContent = `Viết · Câu ${q.no}`;
+                const ro = canEdit ? '' : 'disabled';
+                const image = q.chartImage && q.sourceId ? `<img src="${base}/media/${q.sourceId}/${encodeURIComponent(q.chartImage)}" alt="Ảnh đề bài" style="max-width:100%;max-height:400px;object-fit:contain">` : '';
+                body.innerHTML = `<div class="cm-grid-2">
+                    <div><p class="cm-muted">Nguồn: ${esc(q.source || 'Biên soạn')}</p>
+                        <div class="q-passage">${esc(q.promptKo)}</div>${image}</div>
+                    <form method="post" action="${base}/writing-questions/${q.id}" class="d-flex flex-column gap-2">
+                        <input type="hidden" name="back" value="${esc(back)}">
+                        <label>Đề bài<textarea name="promptKo" class="form-control ko" rows="5" maxlength="4000" ${ro}>${esc(q.promptKo)}</textarea></label>
+                        ${q.no <= 52 ? `<label>Đáp án chỗ ㉠<textarea name="keys1" class="form-control ko" maxlength="1000" required ${ro}>${esc(q.keys1)}</textarea></label>
+                        <label>Đáp án chỗ ㉡<textarea name="keys2" class="form-control ko" maxlength="1000" required ${ro}>${esc(q.keys2)}</textarea></label>` : ''}
+                        <label>File ảnh trong nguồn đề<input name="chartImage" class="form-control" maxlength="255" value="${esc(q.chartImage)}" ${ro}></label>
+                        <label>Dữ liệu biểu đồ (JSON)<textarea name="chartJson" class="form-control" rows="3" maxlength="2000" ${ro}>${esc(q.chartJson)}</textarea></label>
+                        <label>Bài mẫu / Đáp án tham khảo<textarea name="modelAnswer" class="form-control ko" rows="4" maxlength="4000" ${ro}>${esc(q.modelAnswer)}</textarea></label>
+                        <label>Hướng dẫn chấm<textarea name="rubricNote" class="form-control" rows="3" maxlength="2000" ${ro}>${esc(q.rubricNote)}</textarea></label>
+                        ${canEdit ? '<button type="submit" class="btn btn-ssak-primary align-self-start">Lưu thay đổi</button>' : ''}
+                    </form></div>`;
+            } catch (error) {
+                body.innerHTML = `<div class="cm-flash err">${esc(error.message)}</div>`;
+            }
+        }
+        document.querySelectorAll('.js-open-writing').forEach(b => b.addEventListener('click', () => openWriting(b.dataset.qid)));
         document.querySelectorAll('.js-open').forEach(b => b.addEventListener('click', () => open(b.dataset.qid)));
 
         // Tự động mở câu hỏi nếu được dẫn từ trang Xử lý Báo lỗi

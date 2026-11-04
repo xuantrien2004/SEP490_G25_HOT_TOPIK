@@ -4,7 +4,7 @@
 <body style="background: #F4F1E8; color: #24363D; font-family: 'Nunito','Be Vietnam Pro','Noto Sans KR',sans-serif; margin: 0; padding: 0;">
 
 <div style="width: 100%; min-width: 1280px; max-width: 1440px; min-height: 100vh; margin: 0 auto; display: flex; flex-direction: column;">
-    
+
     <!-- HEADER -->
     <header style="display: flex; align-items: center; gap: 20px; padding: 14px 32px; background: #24363D; color: #FFFFFF; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
         <div style="display: flex; align-items: center; gap: 10px;">
@@ -18,23 +18,23 @@
 
         <!-- Navigation Tabs -->
         <nav aria-label="Các mục của Giáo viên" style="display: flex; gap: 8px;">
-            <a th:href="@{/teacher(tab='queue')}" 
+            <a th:href="@{/teacher(tab='queue')}"
                th:style="${currentTab == 'queue' ? 'height: 40px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 800; cursor: pointer; border: 0; background: #F2C14E; color: #3A2B00; display: inline-flex; align-items: center; text-decoration: none;' : 'height: 40px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 800; cursor: pointer; border: 0; background: #3A4D55; color: #FFFFFF; display: inline-flex; align-items: center; text-decoration: none;'}">
                 Hàng chờ · <span th:text="${queueCount}">2</span>
             </a>
-            <a th:href="@{/teacher(tab='mine')}" 
+            <a th:href="@{/teacher(tab='mine')}"
                th:style="${currentTab == 'mine' ? 'height: 40px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 800; cursor: pointer; border: 0; background: #F2C14E; color: #3A2B00; display: inline-flex; align-items: center; text-decoration: none;' : 'height: 40px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 800; cursor: pointer; border: 0; background: #3A4D55; color: #FFFFFF; display: inline-flex; align-items: center; text-decoration: none;'}">
                 Đang chấm · <span th:text="${mineCount}">1</span>
             </a>
-            <a th:href="@{/teacher(tab='done')}" 
+            <a th:href="@{/teacher(tab='done')}"
                th:style="${currentTab == 'done' ? 'height: 40px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 800; cursor: pointer; border: 0; background: #F2C14E; color: #3A2B00; display: inline-flex; align-items: center; text-decoration: none;' : 'height: 40px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 800; cursor: pointer; border: 0; background: #3A4D55; color: #FFFFFF; display: inline-flex; align-items: center; text-decoration: none;'}">
                 Đã chấm · <span th:text="${doneCount}">2</span>
             </a>
-            <a th:href="@{/teacher(tab='appeal')}" 
+            <a th:href="@{/teacher(tab='appeal')}"
                th:style="${currentTab == 'appeal' ? 'height: 40px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 800; cursor: pointer; border: 0; background: #F2C14E; color: #3A2B00; display: inline-flex; align-items: center; text-decoration: none;' : 'height: 40px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 800; cursor: pointer; border: 0; background: #3A4D55; color: #FFFFFF; display: inline-flex; align-items: center; text-decoration: none;'}">
                 Khiếu nại · <span th:text="${appealCount}">1</span>
             </a>
-            <a th:href="@{/teacher(tab='calib')}" 
+            <a th:href="@{/teacher(tab='calib')}"
                th:style="${currentTab == 'calib' ? 'height: 40px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 800; cursor: pointer; border: 0; background: #F2C14E; color: #3A2B00; display: inline-flex; align-items: center; text-decoration: none;' : 'height: 40px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 800; cursor: pointer; border: 0; background: #3A4D55; color: #FFFFFF; display: inline-flex; align-items: center; text-decoration: none;'}">
                 Hiệu chuẩn
             </a>
@@ -47,9 +47,6 @@
             <a th:href="@{/teacher/profile}" style="display: inline-flex; align-items: center; gap: 8px; color: #FFFFFF; font-size: 13.5px; font-weight: 700; text-decoration: none; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); padding: 6px 14px; border-radius: 8px; transition: all 0.2s;" onmouseover="this.style.background='rgba(242,193,78,0.2)'; this.style.borderColor='#F2C14E';" onmouseout="this.style.background='rgba(255,255,255,0.08)'; this.style.borderColor='rgba(255,255,255,0.18)';">
                 <span style="width: 22px; height: 22px; border-radius: 11px; background: #F2C14E; color: #3A2B00; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;" th:text="${currentUser != null ? #strings.substring(currentUser.fullName, 0, 1) : 'M'}">M</span>
                 <span>Hồ sơ: <b style="color: #F2C14E;" th:text="${currentUser != null ? currentUser.fullName : 'Cô Mai'}">Cô Mai</b></span>
-            </a>
-            <a th:href="@{/today}" style="color: #6CC49F; font-size: 13px; font-weight: 700; text-decoration: none; border: 1px solid #3A4D55; padding: 6px 12px; border-radius: 8px;">
-                Cổng Học viên
             </a>
             <a th:href="@{/logout}" style="color: #FFFFFF; font-size: 14px; font-weight: 800; text-decoration: none; background: #3A4D55; padding: 6px 14px; border-radius: 8px;">
                 Đăng xuất
@@ -69,7 +66,7 @@
 
     <!-- ==================== VIEW 1: LIST VIEW (showDesk == false) ==================== -->
     <main th:if="${!showDesk}" style="padding: 24px 32px 48px; display: flex; flex-direction: column; gap: 18px;">
-        
+
         <!-- Welcome Banner -->
         <div style="display: flex; align-items: center; gap: 20px; padding: 16px 24px; border-radius: 20px; background: linear-gradient(120deg,#E3F2EA,#FBF0D3); margin-bottom: 4px;">
             <div th:replace="~{fragments/ssak :: mascot('happy', 'young', 65, 'Ssak giáo viên')}"></div>
@@ -105,23 +102,23 @@
 
             <!-- Question Filter Chips -->
             <div style="display: flex; gap: 8px;">
-                <a th:href="@{/teacher(tab=${currentTab}, qf=0)}" 
+                <a th:href="@{/teacher(tab=${currentTab}, qf=0)}"
                    th:style="${currentQf == 0 ? 'height: 34px; padding: 0 14px; border-radius: 17px; border: 2px solid #2E7D67; background: #E3F2EA; font-size: 13px; font-weight: 800; text-decoration: none; color: #1F6B56; display: flex; align-items: center;' : 'height: 34px; padding: 0 14px; border-radius: 17px; border: 2px solid #E6E1D3; background: #FFFFFF; font-size: 13px; font-weight: 800; text-decoration: none; color: #5C6E72; display: flex; align-items: center;'}">
                     Tất cả
                 </a>
-                <a th:href="@{/teacher(tab=${currentTab}, qf=51)}" 
+                <a th:href="@{/teacher(tab=${currentTab}, qf=51)}"
                    th:style="${currentQf == 51 ? 'height: 34px; padding: 0 14px; border-radius: 17px; border: 2px solid #2E7D67; background: #E3F2EA; font-size: 13px; font-weight: 800; text-decoration: none; color: #1F6B56; display: flex; align-items: center;' : 'height: 34px; padding: 0 14px; border-radius: 17px; border: 2px solid #E6E1D3; background: #FFFFFF; font-size: 13px; font-weight: 800; text-decoration: none; color: #5C6E72; display: flex; align-items: center;'}">
                     Câu 51
                 </a>
-                <a th:href="@{/teacher(tab=${currentTab}, qf=52)}" 
+                <a th:href="@{/teacher(tab=${currentTab}, qf=52)}"
                    th:style="${currentQf == 52 ? 'height: 34px; padding: 0 14px; border-radius: 17px; border: 2px solid #2E7D67; background: #E3F2EA; font-size: 13px; font-weight: 800; text-decoration: none; color: #1F6B56; display: flex; align-items: center;' : 'height: 34px; padding: 0 14px; border-radius: 17px; border: 2px solid #E6E1D3; background: #FFFFFF; font-size: 13px; font-weight: 800; text-decoration: none; color: #5C6E72; display: flex; align-items: center;'}">
                     Câu 52
                 </a>
-                <a th:href="@{/teacher(tab=${currentTab}, qf=53)}" 
+                <a th:href="@{/teacher(tab=${currentTab}, qf=53)}"
                    th:style="${currentQf == 53 ? 'height: 34px; padding: 0 14px; border-radius: 17px; border: 2px solid #2E7D67; background: #E3F2EA; font-size: 13px; font-weight: 800; text-decoration: none; color: #1F6B56; display: flex; align-items: center;' : 'height: 34px; padding: 0 14px; border-radius: 17px; border: 2px solid #E6E1D3; background: #FFFFFF; font-size: 13px; font-weight: 800; text-decoration: none; color: #5C6E72; display: flex; align-items: center;'}">
                     Câu 53
                 </a>
-                <a th:href="@{/teacher(tab=${currentTab}, qf=54)}" 
+                <a th:href="@{/teacher(tab=${currentTab}, qf=54)}"
                    th:style="${currentQf == 54 ? 'height: 34px; padding: 0 14px; border-radius: 17px; border: 2px solid #2E7D67; background: #E3F2EA; font-size: 13px; font-weight: 800; text-decoration: none; color: #1F6B56; display: flex; align-items: center;' : 'height: 34px; padding: 0 14px; border-radius: 17px; border: 2px solid #E6E1D3; background: #FFFFFF; font-size: 13px; font-weight: 800; text-decoration: none; color: #5C6E72; display: flex; align-items: center;'}">
                     Câu 54
                 </a>
@@ -173,7 +170,7 @@
             <div style="padding: 22px 24px; border-radius: 20px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 14px;">
                 <span style="font-size: 18px; font-weight: 800; color: #2F5F7D;">Đối chiếu điểm AI với Giáo viên</span>
                 <span style="font-size: 13px; color: #5C6E72;">Dữ liệu kiểm chứng từ 128 bài viết đã được giáo viên thẩm định:</span>
-                
+
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
                     <div style="padding: 14px; border-radius: 14px; background: #F8F6EF; text-align: center;">
                         <span style="font-size: 12px; color: #5C6E72; font-weight: 700;">Sai số TB (MAE)</span>
@@ -195,8 +192,22 @@
             </div>
         </div>
 
+        <section th:if="${showPreview}" class="bg-white border rounded-4 p-4 mb-4 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h5 mb-0">Xem trước yêu cầu chấm</h2>
+                <a class="btn btn-sm btn-outline-secondary" th:href="@{/teacher(tab='queue')}">Đóng</a>
+            </div>
+            <p class="small text-muted mb-2"><b th:text="${previewItem.learnerName}">Học viên</b> · Câu <span th:text="${previewItem.questionNo}">53</span> · Gửi lúc <span th:text="${previewItem.submittedAt}">29/10/2026 10:00</span></p>
+            <div class="border rounded-3 p-3 mb-3"><b>Đề bài</b><p class="mb-0 mt-2" style="white-space:pre-wrap" th:text="${previewItem.prompt}">Đề bài</p><img th:if="${previewItem.chartImage != null}" th:src="${previewItem.chartImage}" alt="Biểu đồ đề bài" style="max-width:100%;max-height:320px;margin-top:12px"></div>
+            <div class="border rounded-3 p-3 mb-3"><b>Bài làm của người học</b><p class="mb-0 mt-2" style="white-space:pre-wrap" th:text="${previewItem.studentAnswer}">Bài làm</p></div>
+            <div class="d-flex gap-2">
+                <form th:action="@{/teacher/claim}" method="post"><input type="hidden" name="id" th:value="${previewItem.id}"><button class="btn btn-success" type="submit">Nhận chấm</button></form>
+                <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#rejectModal" th:attr="data-sid=${previewItem.id}">T? ch?i ch?m</button>
+            </div>
+        </section>
+
         <!-- EMPTY STATE -->
-        <div th:if="${currentTab != 'calib' && (submissionList == null || #lists.isEmpty(submissionList))}" 
+        <div th:if="${currentTab != 'calib' && (submissionList == null || #lists.isEmpty(submissionList))}"
              style="padding: 40px; border-radius: 20px; background: #FFFFFF; border: 2px dashed #E6E1D3; text-align: center; color: #5C6E72;">
             <div style="font-size: 32px; margin-bottom: 8px;">📭</div>
             <div style="font-size: 16px; font-weight: 800;">Không có bài nộp nào trong mục này.</div>
@@ -204,16 +215,16 @@
         </div>
 
         <!-- SUBMISSION ROWS -->
-        <div th:if="${currentTab != 'calib' && submissionList != null && !#lists.isEmpty(submissionList)}" 
+        <div th:if="${currentTab != 'calib' && submissionList != null && !#lists.isEmpty(submissionList)}"
              style="display: flex; flex-direction: column; gap: 12px;">
-            <div th:each="r : ${submissionList}" 
+            <div th:each="r : ${submissionList}"
                  style="display: flex; align-items: center; gap: 18px; padding: 18px 22px; border-radius: 18px; background: #FFFFFF; border: 2px solid #E6E1D3; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
-                
+
                 <!-- Main Info -->
                 <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px;">
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <span style="font-size: 17px; font-weight: 800; color: #24363D;" th:text="${r.title}">Luyện tập · Viết câu 53</span>
-                        
+
                         <!-- Status Badge -->
                         <span th:if="${r.status == 'waiting'}" style="height: 24px; padding: 0 10px; border-radius: 12px; background: #ECE7DA; color: #5C6E72; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center;">
                             Chờ nhận
@@ -229,13 +240,13 @@
                         </span>
 
                         <!-- Question badge -->
-                        <span style="height: 24px; padding: 0 10px; border-radius: 12px; background: #F8F6EF; color: #24363D; font-size: 12px; font-weight: 700; border: 1px solid #E6E1D3; display: inline-flex; align-items: center;" 
+                        <span style="height: 24px; padding: 0 10px; border-radius: 12px; background: #F8F6EF; color: #24363D; font-size: 12px; font-weight: 700; border: 1px solid #E6E1D3; display: inline-flex; align-items: center;"
                               th:text="'Câu ' + ${r.questionNo}">
                             Câu 53
                         </span>
 
                         <!-- Has Question from student -->
-                        <span th:if="${r.studentQuestion != null && (r.teacherReply == null || r.teacherReply == '')}" 
+                        <span th:if="${r.studentQuestion != null && (r.teacherReply == null || r.teacherReply == '')}"
                               style="height: 24px; padding: 0 10px; border-radius: 12px; background: #FFF1F0; color: #CF1322; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center;">
                             💬 Có câu hỏi lại
                         </span>
@@ -253,8 +264,13 @@
 
                 <!-- Action Button -->
                 <div>
+                    <!-- Queue Tab: Preview before claim -->
+                    <div class="d-flex gap-2" th:if="${currentTab == 'queue' || r.status == 'waiting'}">
+                        <a th:href="@{/teacher(tab='queue', preview=${r.id})}" class="btn btn-outline-success">Xem trước</a>
+                        <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#rejectModal" th:attr="data-sid=${r.id}">Từ chối</button>
+                    </div>
                     <!-- Queue Tab: Claim button -->
-                    <form th:if="${currentTab == 'queue' || r.status == 'waiting'}" th:action="@{/teacher/claim}" method="post">
+                    <form th:if="${currentTab != 'queue' and r.status == 'waiting'}" th:action="@{/teacher/claim}" method="post">
                         <input type="hidden" name="id" th:value="${r.id}">
                         <button type="submit" style="height: 42px; padding: 0 18px; border-radius: 12px; font-size: 14px; font-weight: 800; cursor: pointer; border: 0; background: #2E7D67; color: #FFFFFF; box-shadow: 0 2px 4px rgba(46,125,103,0.25);">
                             Nhận bài chấm
@@ -262,22 +278,22 @@
                     </form>
 
                     <!-- Mine Tab: Open Desk -->
-                    <a th:if="${currentTab == 'mine' || r.status == 'claimed'}" 
-                       th:href="@{/teacher(tab='mine', sel=${r.id})}" 
+                    <a th:if="${currentTab == 'mine' || r.status == 'claimed'}"
+                       th:href="@{/teacher(tab='mine', sel=${r.id})}"
                        style="height: 42px; padding: 0 20px; border-radius: 12px; font-size: 14px; font-weight: 800; cursor: pointer; border: 0; background: #2E7D67; color: #FFFFFF; text-decoration: none; display: inline-flex; align-items: center;">
                         Mở bàn chấm ✍️
                     </a>
 
                     <!-- Done Tab: Review & Reply -->
-                    <a th:if="${currentTab == 'done' || r.status == 'graded'}" 
-                       th:href="@{/teacher(tab='done', sel=${r.id})}" 
+                    <a th:if="${currentTab == 'done' || r.status == 'graded'}"
+                       th:href="@{/teacher(tab='done', sel=${r.id})}"
                        style="height: 42px; padding: 0 18px; border-radius: 12px; font-size: 14px; font-weight: 800; cursor: pointer; border: 2px solid #2E7D67; background: #FFFFFF; color: #1F6B56; text-decoration: none; display: inline-flex; align-items: center;">
                         Xem lại kết quả
                     </a>
 
                     <!-- Appeal Tab: Re-grade -->
-                    <a th:if="${currentTab == 'appeal' || r.status == 'appeal'}" 
-                       th:href="@{/teacher(tab='appeal', sel=${r.id})}" 
+                    <a th:if="${currentTab == 'appeal' || r.status == 'appeal'}"
+                       th:href="@{/teacher(tab='appeal', sel=${r.id})}"
                        style="height: 42px; padding: 0 18px; border-radius: 12px; font-size: 14px; font-weight: 800; cursor: pointer; border: 0; background: #C99A2E; color: #FFFFFF; text-decoration: none; display: inline-flex; align-items: center;">
                         Chấm lại khiếu nại
                     </a>
@@ -289,10 +305,10 @@
 
     <!-- ==================== VIEW 2: GRADING DESK (showDesk == true) ==================== -->
     <main th:if="${showDesk}" style="padding: 20px 32px 48px; display: flex; flex-direction: column; gap: 16px;">
-        
+
         <!-- Top Toolbar -->
         <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
-            <a th:href="@{/teacher(tab=${currentTab})}" 
+            <a th:href="@{/teacher(tab=${currentTab})}"
                style="height: 40px; padding: 0 16px; border-radius: 12px; border: 2px solid #D8D1C2; background: #FFFFFF; font-weight: 800; font-size: 14px; cursor: pointer; text-decoration: none; color: #24363D; display: inline-flex; align-items: center;">
                 ‹ Quay lại danh sách
             </a>
@@ -315,7 +331,7 @@
         </div>
 
         <!-- Appeal Alert if any -->
-        <div th:if="${deskItem.status == 'appeal' && deskItem.appealReason != null}" 
+        <div th:if="${deskItem.appealUsed and !deskItem.appealResolved}"
              style="padding: 14px 18px; border-radius: 14px; background: #FBF0D3; border: 1.5px solid #E0A33A; color: #7A5A12; font-size: 14px;">
             <b>⚠️ Yêu cầu khiếu nại từ học viên:</b> <span th:text="${deskItem.appealReason}">Lý do khiếu nại</span>
         </div>
@@ -323,10 +339,15 @@
         <!-- FORM WRAPPING THE GRADING DESK -->
         <form th:action="@{/teacher/grade}" method="post" id="gradingForm" style="display: flex; flex-direction: column; gap: 16px;">
             <input type="hidden" name="id" th:value="${deskItem.id}">
+<div th:replace="~{writing/grading-history :: history(${deskItem})}"></div>
+<div th:if="${deskItem.appealUsed and !deskItem.appealResolved}" class="alert alert-warning">
+<label for="appealDecision">Xử lý khiếu nại</label><select id="appealDecision" name="appealDecision" class="form-select"><option value="revise">Sửa điểm / nhận xét</option><option value="uphold">Giữ nguyên kết quả</option></select>
+<label for="appealMessage">Lời nhắn (bắt buộc khi giữ nguyên kết quả)</label><textarea id="appealMessage" name="appealMessage" maxlength="2000" class="form-control"></textarea></div>
 
+            <fieldset th:disabled="${!isClaimedByMe}" style="border:0;padding:0;min-width:0">
             <!-- 3 COLUMNS WORKSPACE -->
             <div style="display: grid; grid-template-columns: 1fr 1.25fr 1.15fr; gap: 16px; align-items: stretch;">
-                
+
                 <!-- COL 1: ĐỀ BÀI -->
                 <div style="padding: 20px 22px; border-radius: 20px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 12px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -337,11 +358,12 @@
                     </div>
 
                     <!-- Prompt Korean -->
-                    <div lang="ko" style="padding: 14px 16px; border-radius: 14px; background: #F8F6EF; font-family: 'Noto Sans KR',sans-serif; font-size: 15px; line-height: 1.8; white-space: pre-line;" 
+                    <div lang="ko" style="padding: 14px 16px; border-radius: 14px; background: #F8F6EF; font-family: 'Noto Sans KR',sans-serif; font-size: 15px; line-height: 1.8; white-space: pre-line;"
                          th:text="${deskItem.prompt}">
                         다음은 '20대의 여가 활동'에 대한 조사 결과이다...
                     </div>
 
+                    <img th:if="${deskItem.chartImage != null}" th:src="${deskItem.chartImage}" alt="Biểu đồ đề bài" style="max-width:100%;max-height:400px">
                     <!-- Chart Visual (if hasChart) -->
                     <div th:if="${deskItem.hasChart}" style="padding: 12px 14px; border-radius: 14px; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 8px; background: #FAF9F5;">
                         <span style="font-size: 12px; font-weight: 800; color: #24363D;">📊 BIỂU ĐỒ SỐ LIỆU ĐỀ BÀI:</span>
@@ -372,19 +394,19 @@
                     </div>
 
                     <!-- Student Korean Essay Box -->
-                    <div id="studentEssayText" lang="ko" 
-                         style="flex-grow: 1; min-height: 220px; padding: 16px 18px; border-radius: 14px; background: #F8F6EF; font-family: 'Noto Sans KR',sans-serif; font-size: 16px; line-height: 1.9; white-space: pre-line; border: 1.5px solid #E6E1D3;" 
+                    <div id="studentEssayText" lang="ko"
+                         style="flex-grow: 1; min-height: 220px; padding: 16px 18px; border-radius: 14px; background: #F8F6EF; font-family: 'Noto Sans KR',sans-serif; font-size: 16px; line-height: 1.9; white-space: pre-line; border: 1.5px solid #E6E1D3;"
                          th:text="${deskItem.studentAnswer}">
                         Bài làm của học viên tiếng Hàn...
                     </div>
 
                     <!-- Existing Annotations (if any) -->
-                    <div th:if="${deskItem.annotations != null && !#lists.isEmpty(deskItem.annotations)}" 
+                    <div th:if="${deskItem.annotations != null && !#lists.isEmpty(deskItem.annotations)}"
                          style="display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 12px; background: #FAF9F5; border: 1px dashed #D8D1C2;">
                         <span style="font-size: 11px; font-weight: 800; color: #5C6E72;">CÁC ĐOẠN ĐÃ SỬA:</span>
                         <div th:each="ann : ${deskItem.annotations}" style="font-size: 13px; line-height: 1.5;">
                             <span style="padding: 2px 6px; border-radius: 4px; background: #E3F2EA; color: #1F6B56; font-weight: 700;" th:text="${ann.kindLabel}">Từ vựng</span>
-                            <span style="text-decoration: line-through; color: #9C4A2E;" th:text="${ann.phrase}">Đoạn gốc</span> → 
+                            <span style="text-decoration: line-through; color: #9C4A2E;" th:text="${ann.phrase}">Đoạn gốc</span> →
                             <b style="color: #2E7D67;" th:text="${ann.fix}">Bản sửa</b>
                             <span style="font-size: 12px; color: #5C6E72;" th:text="'(' + ${ann.note} + ')'">Ghi chú</span>
                         </div>
@@ -397,24 +419,22 @@
                         <span style="font-size: 12px; font-weight: 800; color: #5C6E72; letter-spacing: .5px; text-transform: uppercase;">
                             CHẤM ĐIỂM · TỐI ĐA <span th:text="${deskItem.maxScore}">30</span> ĐIỂM
                         </span>
-                        <span style="font-size: 12px; color: #5C6E72;">
-                            AI ước tính: <b th:text="${deskItem.aiScore} + '/' + ${deskItem.maxScore}">24/30</b>
-                        </span>
+
                     </div>
 
                     <!-- Criteria Scoring Inputs -->
                     <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 4px;">
-                        <div th:each="crit, iterStat : ${deskItem.criteriaScores}" 
+                        <div th:each="crit, iterStat : ${deskItem.criteriaScores}" th:if="${deskItem.questionNo &lt;= 52}"
                              style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
                             <label style="flex-grow: 1; font-size: 13px; font-weight: 700; color: #24363D;" th:text="${crit.name}">
                                 Nội dung & Nhiệm vụ
                             </label>
                             <div style="display: flex; align-items: center; gap: 6px;">
-                                <input type="number" 
-                                       th:id="'criterionInput_' + ${iterStat.index}" 
-                                       th:name="'criterion_' + ${iterStat.index}" 
-                                       th:value="${crit.score > 0 ? crit.score : (deskItem.status == 'graded' ? crit.score : '')}" 
-                                       th:max="${crit.max}" min="0" required 
+                                <input type="number"
+                                       th:id="'criterionInput_' + ${iterStat.index}"
+                                       th:name="'criterion_' + ${iterStat.index}"
+                                       th:value="${crit.score > 0 ? crit.score : (deskItem.status == 'graded' ? crit.score : '')}"
+                                       th:max="${crit.max}" min="0" required
                                        oninput="calcRealtimeScore()"
                                        style="width: 60px; height: 38px; border-radius: 8px; border: 2px solid #D8D1C2; text-align: center; font-size: 16px; font-weight: 800; color: #1F6B56;">
                                 <span style="font-size: 13px; font-weight: 800; color: #5C6E72;">/ <span th:text="${crit.max}">10</span></span>
@@ -422,7 +442,9 @@
                         </div>
                     </div>
 
-                    <!-- Realtime Sum Indicator -->
+                    <label th:if="${deskItem.questionNo >= 53}">Điểm câu viết
+<input id="totalScoreInput" name="totalScore" type="number" min="0" th:max="${deskItem.maxScore}" th:value="${deskItem.totalScore}" required oninput="calcRealtimeScore()" class="form-control"></label>
+<!-- Realtime Sum Indicator -->
                     <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1.5px solid #EEE9DD; font-weight: 800;">
                         <span style="font-size: 14px;">Tổng điểm câu này:</span>
                         <span style="font-size: 20px; color: #1F6B56;" id="realtimeSumText">
@@ -440,9 +462,9 @@
                                 Tùy chọn (Không bắt buộc)
                             </span>
                         </div>
-                        <textarea id="modelAnswer" name="modelAnswer" lang="ko" 
-                                  placeholder="Nhập đáp án chuẩn hoặc bài sửa mẫu (Nếu bài làm của học viên đã tốt, giáo viên KHÔNG CẦN nhập mục này mà vẫn có thể gửi kết quả)." 
-                                  style="width: 100%; box-sizing: border-box; height: 110px; border-radius: 12px; border: 2px solid #D8D1C2; padding: 10px 12px; font-size: 14px; font-family: 'Noto Sans KR',sans-serif; line-height: 1.6; resize: vertical;" 
+                        <textarea id="modelAnswer" name="modelAnswer" lang="ko"
+                                  placeholder="Nhập đáp án chuẩn hoặc bài sửa mẫu (Nếu bài làm của học viên đã tốt, giáo viên KHÔNG CẦN nhập mục này mà vẫn có thể gửi kết quả)."
+                                  style="width: 100%; box-sizing: border-box; height: 110px; border-radius: 12px; border: 2px solid #D8D1C2; padding: 10px 12px; font-size: 14px; font-family: 'Noto Sans KR',sans-serif; line-height: 1.6; resize: vertical;"
                                   th:text="${deskItem.modelAnswer}"></textarea>
                         <span style="font-size: 11px; color: #5C6E72;">
                             * Nếu bài làm của học sinh đã chuẩn xác hoặc giáo viên chỉ muốn nhận xét và chấm điểm, có thể để trống.
@@ -455,7 +477,7 @@
 
             <!-- BOTTOM SECTION: NHẬN XÉT CHUNG & GỬI KẾT QUẢ -->
             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: start;">
-                
+
                 <!-- NHẬN XÉT CHUNG -->
                 <div style="padding: 20px 22px; border-radius: 20px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 10px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -464,15 +486,15 @@
                         </label>
                         <span style="font-size: 12px; color: #CF1322; font-weight: 700;">* Bắt buộc</span>
                     </div>
-                    <textarea id="overallFeedback" name="overallFeedback" required 
-                              placeholder="Nhận xét cụ thể cho học viên: ưu điểm bài viết, các lỗi ngữ pháp / chính tả cần khắc phục, cách triển khai câu từ chuẩn phong cách thi TOPIK..." 
-                              style="width: 100%; box-sizing: border-box; height: 120px; border-radius: 12px; border: 2px solid #D8D1C2; padding: 12px 14px; font-size: 14px; line-height: 1.6; resize: vertical;" 
+                    <textarea id="overallFeedback" name="overallFeedback" required
+                              placeholder="Nhận xét cụ thể cho học viên: ưu điểm bài viết, các lỗi ngữ pháp / chính tả cần khắc phục, cách triển khai câu từ chuẩn phong cách thi TOPIK..."
+                              style="width: 100%; box-sizing: border-box; height: 120px; border-radius: 12px; border: 2px solid #D8D1C2; padding: 12px 14px; font-size: 14px; line-height: 1.6; resize: vertical;"
                               th:text="${deskItem.overallFeedback}"></textarea>
                 </div>
 
                 <!-- SUBMISSION ACTIONS & STUDENT Q&A -->
                 <div style="padding: 20px 22px; border-radius: 20px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 14px;">
-                    
+
                     <div style="display: flex; justify-content: space-between; align-items: baseline;">
                         <span style="font-weight: 800; font-size: 15px;">Tổng điểm bài nộp</span>
                         <span style="font-family: var(--font-heading); font-size: 26px; font-weight: 800; color: #1F6B56;" id="grandTotalDisplay">
@@ -485,28 +507,28 @@
                     </div>
 
                     <!-- Submit Button -->
-                    <button type="submit" id="btnSubmitGrade" 
+                    <button th:if="${deskItem.status != 'graded'}" type="submit" id="btnSubmitGrade"
                             style="width: 100%; height: 50px; border-radius: 14px; border: 0; background: #2E7D67; color: #FFFFFF; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 10px rgba(46,125,103,0.3); transition: all 0.2s;">
                         🚀 Gửi kết quả cho học viên
                     </button>
 
                     <!-- Student Question & Reply (if student asked) -->
-                    <div th:if="${deskItem.studentQuestion != null && deskItem.studentQuestion != ''}" 
+                    <div th:if="${deskItem.studentQuestion != null && deskItem.studentQuestion != ''}"
                          style="padding: 14px; border-radius: 14px; background: #E4EEF5; display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
                         <span style="font-size: 13px; font-weight: 800; color: #2F5F7D;">💬 Học viên hỏi lại:</span>
                         <div style="font-size: 13px; color: #24363D; font-style: italic;" th:text="${deskItem.studentQuestion}">
                             Em muốn hỏi thêm...
                         </div>
-                        
+
                         <!-- If already answered -->
-                        <div th:if="${deskItem.teacherReply != null && deskItem.teacherReply != ''}" 
+                        <div th:if="${deskItem.teacherReply != null && deskItem.teacherReply != ''}"
                              style="font-size: 13px; color: #1F6B56; border-top: 1px dashed #B8D1E0; padding-top: 6px; margin-top: 4px;">
                             <b>Giáo viên đã trả lời:</b> <span th:text="${deskItem.teacherReply}">Câu trả lời</span>
                         </div>
 
                         <!-- If not yet answered -->
                         <div th:if="${deskItem.teacherReply == null || deskItem.teacherReply == ''}" style="margin-top: 4px;">
-                            <button type="button" onclick="openReplyModal()" 
+                            <button type="button" onclick="openReplyModal()"
                                     style="height: 34px; padding: 0 14px; border-radius: 8px; border: 0; background: #2F5F7D; color: #FFFFFF; font-size: 12px; font-weight: 800; cursor: pointer;">
                                 Trả lời thắc mắc học viên
                             </button>
@@ -517,7 +539,8 @@
 
             </div>
 
-        </form>
+        </fieldset></form>
+        <button th:if="${deskItem.status == 'graded' and deskItem.mentorId == currentUser.id and deskItem.studentQuestion != null}" type="button" class="btn btn-outline-primary" onclick="openReplyModal()">Trả lời thắc mắc học viên</button>
 
     </main>
 
@@ -542,8 +565,13 @@
 </div>
 
 <script th:inline="javascript">
+    document.getElementById('appealDecision')?.addEventListener('change', e=>{
+        const uphold=e.target.value==='uphold';
+        document.getElementById('appealMessage').required=uphold;
+        document.querySelectorAll('#gradingForm input[type=number],#overallFeedback').forEach(el=>{el.required=!uphold;});
+    });
     function calcRealtimeScore() {
-        let sum = 0;
+        let sum = Number(document.getElementById("totalScoreInput")?.value || 0);
         let idx = 0;
         while (true) {
             const input = document.getElementById('criterionInput_' + idx);
@@ -580,5 +608,36 @@
     });
 </script>
 
+<!-- Reject Modal -->
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="rejectModalLabel">Từ chối chấm bài</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="rejectForm" method="post" th:action="@{/teacher/reject}">
+        <input type="hidden" name="id" id="rejectSubId"/>
+        <div class="modal-body">
+          <label class="form-label fw-bold">Lý do từ chối <span class="text-muted fw-normal">(bắt buộc)</span></label>
+          <textarea class="form-control" name="reason" id="rejectReason" rows="4" maxlength="500" placeholder="Nhập lý do từ chối chấm bài cho học viên..." required></textarea>
+          <div class="form-text">Người học sẽ nhận được lý do này trong thông báo để chỉnh sửa lại bài viết.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-danger">Xác nhận từ chối</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+document.getElementById("rejectModal").addEventListener("show.bs.modal", function(e) {
+    var btn = e.relatedTarget;
+    document.getElementById("rejectSubId").value = btn.getAttribute("data-sid");
+    document.getElementById("rejectReason").value = "";
+});
+</script>
 </body>
 </html>

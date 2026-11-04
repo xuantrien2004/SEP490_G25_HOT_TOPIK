@@ -14,6 +14,7 @@
             </div>
         </header>
         <main class="cm-body">
+            <th:block th:replace="~{fragments/question-player :: assets}"></th:block>
             <div th:if="${#lists.isEmpty(bais)}" class="cm-card">
                 <h2>Chưa có câu nào để xem</h2>
                 <p class="cm-muted">Chọn dạng câu và nhập ít nhất một câu, rồi mở lại trang này.</p>
@@ -23,7 +24,10 @@
             <p class="cm-muted" th:unless="${#lists.isEmpty(bais)}"
                th:text="${listeningCount + ' bài Nghe · ' + readingCount + ' bài Đọc. Bài hai câu trở lên dùng chung một file nghe hoặc một đoạn văn.'}">0 bài</p>
 
-            <article class="cm-card learn-bai" th:each="bai : ${bais}">
+            <form id="previewForm" th:unless="${#lists.isEmpty(playerQuestions)}">
+                <div th:replace="~{fragments/question-player :: player(${playerQuestions}, true, ${null}, ${source.name})}"></div>
+            </form>
+            <article class="cm-card learn-bai" th:each="bai : ${bais}" th:if="${bai.writing}">
                 <div class="learn-guide" th:if="${bai.showGuide}">
                     <div class="ko" th:text="${bai.instructionKo}">※ [1~4] 다음을 듣고…</div>
                     <div class="cm-muted" style="margin-top: 4px;" th:text="${bai.typeName + ' · ' + bai.pointsLine}">Chọn tranh · Phần Nghe · 50 câu · 100 điểm</div>
@@ -34,8 +38,6 @@
                            th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${bai.audio})}"></audio>
                     <div class="cm-muted">Nghe lại được nhiều lần. Bấm thanh tiếng để tua.</div>
                 </div>
-                <img th:if="${bai.image != ''}" alt="Hình của bài" style="max-width: 100%; border-radius: 14px;"
-                     th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${bai.image})}">
                 <div class="learn-passage" th:if="${bai.passage != ''}" th:text="${bai.passage}">Đoạn văn</div>
 
                 <div class="learn-ask" th:each="ask : ${bai.asks}">
@@ -43,7 +45,7 @@
                         <span class="pill pill-sky" th:text="${bai.skill.label + ' ' + ask.no}">Nghe 21</span>
                         <span class="pill pill-gray" th:text="${bai.typeCode}">II-N6</span>
                     </div>
-                    <p class="ko" style="margin: 8px 0 0; font-size: 16px;" th:text="${ask.prompt != '' ? ask.prompt : 'Chưa nhập câu hỏi'}">질문</p>
+                    <p th:if="${ask.prompt != ''}" class="ko" style="margin: 8px 0 0; font-size: 16px; white-space: pre-wrap;" th:text="${ask.prompt}">질문</p>
                     <div th:unless="${bai.writing}">
                         <div class="learn-opt"><span>①</span><span class="ko" th:text="${ask.opt1}">가</span></div>
                         <div class="learn-opt"><span>②</span><span class="ko" th:text="${ask.opt2}">나</span></div>
@@ -52,6 +54,8 @@
                     </div>
                 </div>
 
+                <img th:if="${bai.image != ''}" alt="Hình của câu viết" style="max-width:100%;max-height:480px;object-fit:contain;border-radius:14px;margin-top:12px"
+                     th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${bai.image})}">
                 <details class="learn-reveal">
                     <summary>Xem giải thích</summary>
                     <div style="margin-top: 10px;">

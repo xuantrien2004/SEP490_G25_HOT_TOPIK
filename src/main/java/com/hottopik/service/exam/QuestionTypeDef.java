@@ -24,6 +24,9 @@ public record QuestionTypeDef(
         int sortOrder
 ) {
 
+    /*
+     * blocks quy định các cụm dùng chung ngữ liệu; số câu bài luyện là tổng số vị trí trong các cụm, không phải kích thước kho.
+     */
     public int requiredCount() {
         return blocks.stream().mapToInt(List::size).sum();
     }

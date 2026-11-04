@@ -6,7 +6,7 @@
 <div style="width: 100%; min-width: 1280px; max-width: 1440px; min-height: 100vh; margin: 0 auto; display: flex; flex-direction: column;">
     
     <!-- Topbar Navigation -->
-    <div th:replace="~{fragments/navbar :: navbar('writing')}"></div>
+    <div th:replace="~{fragments/navbar :: navbar('mentor-reviews')}"></div>
 
     <main style="flex-grow: 1; padding: 24px 44px 48px; display: flex; flex-direction: column; gap: 16px;">
         
@@ -17,21 +17,18 @@
                     ‹ Quay lại phòng Luyện Viết
                 </a>
                 <h1 style="margin: 0; font-family: var(--font-heading); font-size: 32px; font-weight: 800;">
-                    Bài Viết gửi Giáo viên chấm ✍️
+                    Bài viết gửi Giáo viên ✍️
                 </h1>
                 <span style="font-size: 14px; color: #5C6E72;">
-                    Theo dõi tiến độ chấm bài từ Giáo viên TOPIK, xem nhận xét chi tiết, đối chiếu điểm AI và trao đổi trực tiếp.
+                    Theo dõi tiến độ chấm bài từ Giáo viên TOPIK, xem nhận xét chi tiết và trao đổi trực tiếp.
                 </span>
             </div>
 
             <!-- Action buttons -->
             <div style="display: flex; gap: 10px; align-items: center;">
-                <a th:if="${sub != null}" th:href="@{/writing(question=${sub.questionNo})}" 
+                <a th:if="${sub != null}" th:href="@{/writing(question=${sub.questionNo},promptId=${sub.promptId})}"
                    class="btn-ssak-light" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 16px; font-size: 14px; font-weight: 700;">
                     <span>🔄 Làm lại câu này</span>
-                </a>
-                <a th:href="@{/writing}" class="btn-ssak-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 18px; font-size: 14px;">
-                    <span>+ Viết bài mới</span>
                 </a>
             </div>
         </div>
@@ -46,45 +43,67 @@
             <span th:text="${errorMessage}">Có lỗi xảy ra</span>
         </div>
 
-        <!-- Submissions Tabs Pills -->
-        <div th:if="${mySubmissions != null && !#lists.isEmpty(mySubmissions)}" 
-             style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px;">
-            <a th:each="item : ${mySubmissions}" 
-               th:href="@{/writing/feedback(id=${item.id})}" 
-               th:style="${sub != null && sub.id == item.id ? 'height: 48px; padding: 0 18px; border-radius: 14px; border: 2px solid #2E7D67; background: #E3F2EA; color: #1F6B56; font-weight: 800; text-decoration: none; display: flex; align-items: center; gap: 10px; flex-shrink: 0;' : 'height: 48px; padding: 0 18px; border-radius: 14px; border: 2px solid #E6E1D3; background: #FFFFFF; color: #24363D; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 10px; flex-shrink: 0;'}">
-                <span th:text="${item.title}">Luyện tập · Câu 53</span>
-                
-                <!-- Status tag -->
-                <span th:if="${item.status == 'waiting'}" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: #ECE7DA; color: #5C6E72;">
-                    Chờ nhận
-                </span>
-                <span th:if="${item.status == 'claimed'}" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: #E4EEF5; color: #2F5F7D;">
-                    Đang chấm
-                </span>
-                <span th:if="${item.status == 'graded'}" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: #2E7D67; color: #FFFFFF;">
-                    <span th:text="${item.totalScore} + '/' + ${item.maxScore} + 'đ'">27/30đ</span>
-                </span>
-                <span th:if="${item.status == 'appeal'}" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: #FBF0D3; color: #7A5A12;">
-                    Khiếu nại
-                </span>
-            </a>
-        </div>
+        <!-- Danh sách bài viết gộp theo đề + phân trang -->
+        <div th:if="${mySubmissions != null and !#lists.isEmpty(mySubmissions)}"
+             style="display: flex; gap: 20px; align-items: flex-start;">
 
-        <!-- No Submissions empty state -->
-        <div th:if="${sub == null}" 
-             style="padding: 60px 20px; border-radius: 24px; background: #FFFFFF; border: 2px dashed #E6E1D3; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px;">
-            <div th:replace="~{fragments/ssak :: mascot('think', 'sprout', 80, 'Ssak chờ')}"></div>
-            <div style="font-family: var(--font-heading); font-size: 22px; font-weight: 800;">Bạn chưa gửi bài viết nào cho Giáo viên</div>
-            <p style="margin: 0; color: #5C6E72; font-size: 15px; max-width: 480px;">
-                Hãy vào phòng Luyện Viết (Câu 51–54), sau khi hoàn thành bài làm, bấm nút <b>"Gửi Giáo viên chấm"</b> để nhận được sự chấm điểm và nhận xét tận tình từ đội ngũ giáo viên TOPIK.
-            </p>
-            <a th:href="@{/writing}" class="btn-ssak-primary" style="text-decoration: none; height: 46px; padding: 0 24px; display: inline-flex; align-items: center; margin-top: 6px;">
-                Vào Luyện Viết ngay 🚀
-            </a>
-        </div>
+            <!-- Sidebar danh sách (phân trang) -->
+            <aside style="width: 300px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px;">
+                <th:block th:each="entry : ${groupedSubs}">
+                    <!-- Bài thi (nhiều câu cùng đề) -->
+                    <div th:if="${entry.value.size() > 1}"
+                         style="border-radius: 16px; border: 2px solid #E6E1D3; background: #FFFFFF; overflow: hidden;">
+                        <div style="padding: 10px 14px; background: #F8F6EF; border-bottom: 1px solid #E6E1D3; font-size: 12px; font-weight: 800; color: #5C6E72; display: flex; justify-content: space-between; align-items: center;">
+                            <span>📝 <span th:text="${entry.value[0].title.contains('·') ? entry.value[0].title.substring(0, entry.value[0].title.indexOf('·')).trim() : entry.value[0].title}">Đề thi</span></span>
+                            <span th:text="${entry.value[0].submittedAt}" style="font-weight: 400; font-size: 11px; color: #9BA8AB;"></span>
+                        </div>
+                        <div th:each="item : ${entry.value}">
+                            <a th:href="@{/writing/feedback(id=${item.id})}"
+                               th:style="${sub != null and sub.id == item.id ? 'display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#E3F2EA;color:#1F6B56;text-decoration:none;' : 'display:flex;align-items:center;justify-content:space-between;padding:10px 14px;color:#24363D;text-decoration:none;border-top:1px solid #F1EEE6;'}"
+                               style="font-size: 13px; font-weight: 700; gap: 8px;">
+                                <span>Câu <span th:text="${item.questionNo}">53</span></span>
+                                <span th:if="${item.status == 'waiting'}" style="font-size: 11px; padding: 2px 7px; border-radius: 5px; background: #ECE7DA; color: #5C6E72;">Chờ nhận</span>
+                                <span th:if="${item.status == 'claimed'}" style="font-size: 11px; padding: 2px 7px; border-radius: 5px; background: #E4EEF5; color: #2F5F7D;">Đang chấm</span>
+                                <span th:if="${item.status == 'graded' and !item.appealResolved}" style="font-size: 11px; padding: 2px 7px; border-radius: 5px; background: #2E7D67; color: #fff;" th:text="${item.totalScore + '/' + item.maxScore + 'đ'}">27/30đ</span>
+                                <span th:if="${item.status == 'graded' and item.appealResolved}" style="font-size: 11px; padding: 2px 7px; border-radius: 5px; background: #2F5F7D; color: #fff;">KQ khiếu nại</span>
+                                <span th:if="${item.status == 'appeal'}" style="font-size: 11px; padding: 2px 7px; border-radius: 5px; background: #FBF0D3; color: #7A5A12;">Khiếu nại</span>
+                                <span th:if="${item.status == 'submitted' and item.rejectReason != null}" style="font-size: 11px; padding: 2px 7px; border-radius: 5px; background: #FEE2E2; color: #DC2626;">Từ chối</span>
+                            </a>
+                        </div>
+                    </div>
+                    <!-- Bài luyện tập riêng lẻ (1 câu) -->
+                    <a th:if="${entry.value.size() == 1}"
+                       th:href="@{/writing/feedback(id=${entry.value[0].id})}"
+                       th:style="${sub != null and sub.id == entry.value[0].id ? 'display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;border-radius:14px;border:2px solid #2E7D67;background:#E3F2EA;color:#1F6B56;font-weight:800;text-decoration:none;' : 'display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;border-radius:14px;border:2px solid #E6E1D3;background:#FFFFFF;color:#24363D;font-weight:700;text-decoration:none;'}">
+                        <span style="font-size: 13px;" th:text="${entry.value[0].title}">Luyện tập · Câu 53</span>
+                        <span th:if="${entry.value[0].status == 'waiting'}" style="font-size: 11px; padding: 2px 7px; border-radius: 5px; background: #ECE7DA; color: #5C6E72; flex-shrink: 0;">Chờ nhận</span>
+                        <span th:if="${entry.value[0].status == 'claimed'}" style="font-size: 11px; padding: 2px 7px; border-radius: 5px; background: #E4EEF5; color: #2F5F7D; flex-shrink: 0;">Đang chấm</span>
+                        <span th:if="${entry.value[0].status == 'graded' and !entry.value[0].appealResolved}" style="font-size: 11px; padding: 2px 7px; border-radius: 5px; background: #2E7D67; color: #fff; flex-shrink: 0;" th:text="${entry.value[0].totalScore + '/' + entry.value[0].maxScore + 'đ'}">27/30đ</span>
+                        <span th:if="${entry.value[0].status == 'graded' and entry.value[0].appealResolved}" style="font-size: 11px; padding: 2px 7px; border-radius: 5px; background: #2F5F7D; color: #fff; flex-shrink: 0;">KQ khiếu nại</span>
+                        <span th:if="${entry.value[0].status == 'appeal'}" style="font-size: 11px; padding: 2px 7px; border-radius: 5px; background: #FBF0D3; color: #7A5A12; flex-shrink: 0;">Khiếu nại</span>
+                        <span th:if="${entry.value[0].status == 'submitted' and entry.value[0].rejectReason != null}" style="font-size: 11px; padding: 2px 7px; border-radius: 5px; background: #FEE2E2; color: #DC2626; flex-shrink: 0;">Từ chối</span>
+                    </a>
+                </th:block>
 
-        <!-- MAIN SUBMISSION VIEW -->
-        <div th:if="${sub != null}" style="display: flex; flex-direction: column; gap: 18px;">
+                <!-- Phân trang -->
+                <div th:if="${totalPages > 1}" style="display: flex; justify-content: center; gap: 6px; margin-top: 4px;">
+                    <a th:if="${currentPage > 0}" th:href="@{/bai-cham(page=${currentPage - 1})}"
+                       style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #E6E1D3; background: #fff; color: #24363D; text-decoration: none; font-size: 13px; font-weight: 700;">‹</a>
+                    <th:block th:each="p : ${#numbers.sequence(0, totalPages - 1)}">
+                        <a th:href="@{/bai-cham(page=${p})}"
+                           th:text="${p + 1}"
+                           th:style="${p == currentPage ? 'padding:6px 12px;border-radius:8px;border:1.5px solid #2E7D67;background:#2E7D67;color:#fff;text-decoration:none;font-size:13px;font-weight:800;' : 'padding:6px 12px;border-radius:8px;border:1.5px solid #E6E1D3;background:#fff;color:#24363D;text-decoration:none;font-size:13px;font-weight:700;'}">1</a>
+                    </th:block>
+                    <a th:if="${currentPage < totalPages - 1}" th:href="@{/bai-cham(page=${currentPage + 1})}"
+                       style="padding: 6px 12px; border-radius: 8px; border: 1.5px solid #E6E1D3; background: #fff; color: #24363D; text-decoration: none; font-size: 13px; font-weight: 700;">›</a>
+                </div>
+            </aside>
+
+            <!-- Nội dung bài đang xem -->
+            <div style="flex: 1; min-width: 0;">
+
+                <!-- MAIN SUBMISSION VIEW -->
+                <div th:if="${sub != null}" style="display: flex; flex-direction: column; gap: 18px;">
             
             <!-- STATE A: WAITING / CLAIMED (NOT YET GRADED) -->
             <div th:if="${sub.status == 'waiting' || sub.status == 'claimed'}" 
@@ -100,13 +119,43 @@
                     </div>
                     <p style="margin: 0; font-size: 14px; color: #5C6E72; line-height: 1.6;">
                         Bài nộp câu <b th:text="${sub.questionNo}">53</b> gửi lúc <b th:text="${sub.submittedAt}">16/10/2026</b>. 
-                        Đội ngũ Giáo viên TOPIK sẽ hoàn tất chấm điểm, sửa lỗi câu từ và gửi nhận xét sớm nhất trong vòng 48 giờ. Bạn sẽ nhận được thông báo ngay khi có kết quả.
+                        Giáo viên cần thời gian nhận chấm và đánh giá bài viết. Bạn sẽ nhận được thông báo ngay khi có kết quả.
                     </p>
                 </div>
             </div>
 
-            <!-- STATE B: GRADED DETAILS (BaiChamV2 Full Layout) -->
-            <div th:if="${sub.status == 'graded' || sub.status == 'appeal'}" style="display: grid; grid-template-columns: 1.35fr 1fr; gap: 20px; align-items: start;">
+
+            <!-- STATE: REJECTED (Giao vien tu choi cham) -->
+            <div th:if="${sub.status == 'submitted' and sub.rejectReason != null}"
+                 style="padding: 28px 32px; border-radius: 24px; background: #FFF5F5; border: 2px solid #FCA5A5; display: flex; align-items: flex-start; gap: 20px;">
+                <div style="font-size: 32px; line-height: 1; flex-shrink:0;">&#x274C;</div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #B91C1C;">
+                        Yeu cau cham bai bi Giao vien tu choi
+                    </div>
+                    <div style="font-size: 14px; color: #6B7280; line-height: 1.6;">
+                        <b>Ly do:</b>
+                        <span th:text="${sub.rejectReason}" style="color: #374151;">...</span>
+                    </div>
+                    <p style="margin: 0; font-size: 13px; color: #9CA3AF;">
+                        Ban co the hieu chinh bai viet va gui lai cho Giao vien khac cham.
+                    </p>
+                </div>
+            </div>
+            <div th:replace="~{writing/grading-history :: history(${sub})}"></div>
+<div th:if="${sub.totalScore == null}" class="ssak-card p-4">
+<h2 class="h5">Đề bài và bài đã nộp</h2><p style="white-space:pre-wrap" th:text="${sub.prompt}"></p>
+<img th:if="${sub.chartImage != null}" th:src="${sub.chartImage}" alt="Biểu đồ đề bài" style="max-width:100%;max-height:400px">
+<table th:if="${sub.hasChart}" class="table table-bordered"><tr th:each="c : ${sub.chartItems}"><th th:text="${c.label}"></th><td th:text="${c.value}"></td></tr></table>
+<pre style="white-space:pre-wrap" th:text="${sub.studentAnswer}"></pre>
+<div th:if="${sub.questionNo &lt;= 52 and (sub.examAttemptId == null or sub.totalScore != null)}"><h3 class="h6">Đáp án tham khảo</h3><p style="white-space:pre-wrap" th:text="${sub.modelAnswer}"></p></div>
+<div th:if="${sub.status == 'submitted' and (sub.rejectReason == null or sub.rejectReason.isEmpty())}">
+<form th:if="${currentUser.vip and canSendTeacher}" method="post" th:action="@{/writing/send-teacher}"><input type="hidden" name="id" th:value="${sub.id}"><p>Giáo viên cần thời gian chấm. Bạn sẽ nhận thông báo khi có kết quả.</p><button class="btn btn-success">Gửi Giáo viên chấm</button></form>
+<p th:if="${currentUser.vip and !canSendTeacher}">Bài chưa có nội dung nên không thể gửi Giáo viên chấm. Bạn có thể làm lại để viết bài mới.</p>
+<p th:unless="${currentUser.vip}">Muốn Giáo viên chấm, hãy <a th:href="@{/vip}">đăng ký VIP</a>.</p></div>
+</div>
+<!-- STATE B: GRADED DETAILS (BaiChamV2 Full Layout) -->
+            <div th:if="${sub.totalScore != null}" style="display: grid; grid-template-columns: 1.35fr 1fr; gap: 20px; align-items: start;">
                 
                 <!-- LEFT COLUMN: STUDENT ESSAY + ANNOTATIONS + MODEL ANSWER -->
                 <div style="display: flex; flex-direction: column; gap: 16px;">
@@ -127,6 +176,8 @@
                             <b>Đề bài:</b> <span lang="ko" th:text="${sub.prompt}">Đề bài tiếng Hàn</span>
                         </div>
 
+                        <img th:if="${sub.chartImage != null}" th:src="${sub.chartImage}" alt="Biểu đồ đề bài" style="max-width:100%;max-height:400px">
+<table th:if="${sub.hasChart}" class="table table-bordered"><tr th:each="c : ${sub.chartItems}"><th th:text="${c.label}"></th><td th:text="${c.value}"></td></tr></table>
                         <!-- Essay Content -->
                         <div lang="ko" style="padding: 18px 20px; border-radius: 16px; background: #F8F6EF; font-family: 'Noto Sans KR',sans-serif; font-size: 16px; line-height: 1.9; white-space: pre-line; border: 1.5px solid #E6E1D3;" 
                              th:text="${sub.studentAnswer}">
@@ -185,11 +236,11 @@
                         <!-- Graded Info & AI Comparison -->
                         <div style="padding: 10px 14px; border-radius: 12px; background: #F8F6EF; font-size: 13px; color: #5C6E72; line-height: 1.5;">
                             Giáo viên: <b style="color: #24363D;" th:text="${sub.mentorName}">Cô Mai</b> · Ngày chấm: <b style="color: #24363D;" th:text="${sub.gradedAt}">15/10/2026</b><br>
-                            🤖 Điểm AI ước tính trước đó: <b th:text="${sub.aiScore} + '/' + ${sub.maxScore} + 'đ'">24/30đ</b>
+
                         </div>
 
                         <!-- Rubric Criteria Progress Bars -->
-                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div th:if="${sub.questionNo &lt;= 52}" style="display: flex; flex-direction: column; gap: 10px;">
                             <span style="font-size: 13px; font-weight: 800; color: #24363D;">Phân tích theo tiêu chí TOPIK:</span>
                             <div th:each="crit : ${sub.criteriaScores}" style="display: flex; flex-direction: column; gap: 4px;">
                                 <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800;">
@@ -214,73 +265,24 @@
                         </div>
                     </div>
 
-                    <!-- Follow-up Question Card (Hỏi lại Giáo viên - 1 lần) -->
-                    <div style="padding: 22px 24px; border-radius: 24px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 12px;">
-                        <span style="font-size: 15px; font-weight: 800; color: #2F5F7D;">
-                            💬 Hỏi lại Giáo viên (Trao đổi 1-1)
-                        </span>
 
-                        <!-- Case 1: Student hasn't asked yet -->
-                        <div th:if="${sub.studentQuestion == null || sub.studentQuestion == ''}">
-                            <p style="margin: 0 0 10px 0; font-size: 13px; color: #5C6E72;">
-                                Bạn có thắc mắc về điểm số hoặc cách sửa lỗi không? Bạn được gửi 01 câu hỏi cho Giáo viên phụ trách bài chấm này.
-                            </p>
-                            <form th:action="@{/writing/ask}" method="post" style="display: flex; flex-direction: column; gap: 10px;">
-                                <input type="hidden" name="id" th:value="${sub.id}">
-                                <textarea name="question" required rows="3" class="ssak-input" 
-                                          placeholder="Nhập câu hỏi thắc mắc của bạn về bài làm này..." 
-                                          style="height: 80px; padding: 10px 12px; font-size: 14px; resize: vertical;"></textarea>
-                                <button type="submit" class="btn-ssak-primary" style="height: 40px; font-size: 13px; align-self: flex-end;">
-                                    Gửi câu hỏi cho Giáo viên
-                                </button>
-                            </form>
-                        </div>
+                    <button th:if="${sub.appealUsed}" type="button" disabled class="btn btn-secondary">Đã gửi khiếu nại</button>
 
-                        <!-- Case 2: Student already asked -->
-                        <div th:if="${sub.studentQuestion != null && sub.studentQuestion != ''}" 
-                             style="display: flex; flex-direction: column; gap: 8px;">
-                            <div style="padding: 10px 12px; border-radius: 10px; background: #E4EEF5; font-size: 13px;">
-                                <b>Câu hỏi của bạn:</b> <span th:text="${sub.studentQuestion}">Nội dung câu hỏi</span>
-                            </div>
-                            
-                            <!-- Teacher's reply -->
-                            <div th:if="${sub.teacherReply != null && sub.teacherReply != ''}" 
-                                 style="padding: 12px 14px; border-radius: 12px; background: #E3F2EA; color: #1F6B56; font-size: 13px; line-height: 1.5;">
-                                <b>👩‍🏫 Giáo viên trả lời:</b> <span th:text="${sub.teacherReply}">Câu trả lời từ giáo viên</span>
-                            </div>
-                            <div th:if="${sub.teacherReply == null || sub.teacherReply == ''}" 
-                                 style="font-size: 12px; color: #5C6E72; font-style: italic;">
-                                ⏳ Đang chờ Giáo viên phản hồi...
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Rating Card (Đánh giá chất lượng chấm) -->
-                    <div style="padding: 20px 24px; border-radius: 24px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 10px;">
-                        <span style="font-size: 14px; font-weight: 800; color: #24363D;">Đánh giá chất lượng bài chữa:</span>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <form th:each="star : ${#numbers.sequence(1, 5)}" th:action="@{/writing/rate}" method="post" style="display: inline;">
-                                <input type="hidden" name="id" th:value="${sub.id}">
-                                <input type="hidden" name="rating" th:value="${star}">
-                                <button type="submit" 
-                                        th:style="${sub.rating != null && sub.rating >= star ? 'font-size: 22px; background: none; border: 0; cursor: pointer; color: #F4C45A; padding: 2px;' : 'font-size: 22px; background: none; border: 0; cursor: pointer; color: #D8D1C2; padding: 2px;'}" 
-                                        th:title="${star} + ' sao'">
-                                    ★
-                                </button>
-                            </form>
-                            <span th:if="${sub.rating != null}" style="font-size: 13px; font-weight: 700; color: #1F6B56; margin-left: 6px;">
-                                Đã đánh giá <span th:text="${sub.rating}">5</span>/5 sao
-                            </span>
-                        </div>
-                    </div>
 
                     <!-- Appeal Section (Khiếu nại) -->
-                    <div th:if="${sub.status == 'graded'}" style="text-align: right; padding-top: 4px;">
+                    <div th:if="${sub.status == 'graded' and !sub.appealUsed}" style="text-align: right; padding-top: 4px;">
                         <button type="button" onclick="openAppealModal()" style="background: none; border: 0; color: #5C6E72; font-size: 12px; text-decoration: underline; cursor: pointer;">
                             Bạn không đồng ý với kết quả chấm? Khiếu nại điểm số
                         </button>
                     </div>
 
+                    <div th:if="${sub.appealResolved}" class="ssak-card p-3" style="background:#E3F2EA; border:1px solid #A7D7BE;">
+                        <b>Kết quả khiếu nại</b>
+                        <div>Điểm sau khi khiếu nại: <strong th:text="${sub.totalScore + '/' + sub.maxScore}">28/30</strong></div>
+                        <div>Ngày chấm lại: <span th:text="${sub.gradedAt}">29/10/2026 11:00</span></div>
+                        <div>Nhận xét của Giáo viên: <span th:text="${sub.overallFeedback}">Nhận xét</span></div>
+                        <div th:if="${sub.appealMessage != null and !sub.appealMessage.isBlank()}">Lời nhắn của Giáo viên: <span th:text="${sub.appealMessage}">Lời nhắn</span></div>
+                    </div>
                     <div th:if="${sub.status == 'appeal'}" 
                          style="padding: 12px 16px; border-radius: 14px; background: #FBF0D3; border: 1.5px solid #E0A33A; color: #7A5A12; font-size: 13px;">
                         <b>⚠️ Tình trạng khiếu nại:</b> Bạn đã gửi yêu cầu khiếu nại. Một giáo viên khác trong hội đồng chuyên môn sẽ chấm thẩm định lại độc lập.
@@ -288,8 +290,22 @@
 
                 </div>
 
-            </div>
+            </div><!-- end MAIN SUBMISSION VIEW -->
 
+            </div><!-- end flex:1 content area -->
+        </div><!-- end flex layout (sidebar + content) -->
+
+        <!-- No Submissions empty state (shown when no subs, outside flex layout) -->
+        <div th:if="${mySubmissions == null or #lists.isEmpty(mySubmissions)}" 
+             style="padding: 60px 20px; border-radius: 24px; background: #FFFFFF; border: 2px dashed #E6E1D3; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px;">
+            <div th:replace="~{fragments/ssak :: mascot('think', 'sprout', 80, 'Ssak chờ')}"></div>
+            <div style="font-family: var(--font-heading); font-size: 22px; font-weight: 800;">Bạn chưa gửi bài viết nào cho Giáo viên</div>
+            <p style="margin: 0; color: #5C6E72; font-size: 15px; max-width: 480px;">
+                Hãy vào phòng Luyện Viết (Câu 51–54), sau khi hoàn thành bài làm, bấm nút <b>"Gửi Giáo viên chấm"</b> để nhận được sự chấm điểm và nhận xét tận tình từ đội ngũ giáo viên TOPIK.
+            </p>
+            <a th:href="@{/practice(skill='WRITING',track='TOPIK_I')}" class="btn-ssak-primary" style="text-decoration: none; height: 46px; padding: 0 24px; display: inline-flex; align-items: center; margin-top: 6px;">
+                Vào Luyện Viết ngay 🚀
+            </a>
         </div>
 
     </main>

@@ -38,6 +38,8 @@
                     <input type="hidden" id="reportFormExamId" name="examId" />
                     <input type="hidden" id="reportFormExamTitle" name="examTitle" />
                     <input type="hidden" id="reportFormQNo" name="questionNo" />
+                    <input type="hidden" id="reportFormAttemptId" name="attemptId" />
+                    <input type="hidden" id="reportFormAttemptKind" name="attemptKind" />
 
                     <!-- Khung câu hỏi đang báo -->
                     <div class="p-3 rounded-3 border bg-light">
@@ -88,6 +90,8 @@
 
 <!-- Script xử lý báo lỗi -->
 <script th:fragment="reportScript">
+    // Đọc data-qid/kind/no/exam từ nút, tìm ancestor chứa attempt để điền ngữ cảnh đúng vào hidden input.
+    // Chỉ dùng prompt/code cho bản xem trước modal; server sẽ đọc lại câu thật từ ID trước khi lưu.
     function openReportModalFromBtn(btn) {
         const qId = btn.getAttribute('data-qid') || '';
         const qCode = btn.getAttribute('data-code') || '';
@@ -95,6 +99,9 @@
         const examId = btn.getAttribute('data-examid') || '';
         const examTitle = btn.getAttribute('data-examtitle') || '';
         const qNo = btn.getAttribute('data-no') || '';
+        const context = btn.closest('[data-report-attempt-id]');
+        document.getElementById('reportFormAttemptId').value = context?.dataset.reportAttemptId || '';
+        document.getElementById('reportFormAttemptKind').value = context?.dataset.reportAttemptKind || '';
 
         document.getElementById('reportFormQId').value = qId;
         document.getElementById('reportFormQKind').value = btn.getAttribute('data-kind') || 'MC';
@@ -118,6 +125,8 @@
         modal.show();
     }
 
+    // Ngăn form chuyển trang, kiểm tra mô tả, khóa nút khi gửi FormData đến /api/question-reports.
+    // Thành công hiển thị phản hồi rồi đóng modal; lỗi mở lại nút để thử lại. Đây chưa phải bước CM xử lý.
     function submitQuestionReport(e) {
         e.preventDefault();
         const btn = document.getElementById('btnSubmitReport');

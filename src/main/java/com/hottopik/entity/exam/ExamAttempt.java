@@ -40,6 +40,12 @@ public class ExamAttempt {
     @Column(name = "started_at", nullable = false)
     private LocalDateTime startedAt = LocalDateTime.now();
 
+    @Column(name = "credited_answers_json", length = 4000)
+    private String creditedAnswersJson = "{}";
+
+    @Column(name = "checked_answers_json", length = 4000)
+    private String checkedAnswersJson = "{}";
+
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 

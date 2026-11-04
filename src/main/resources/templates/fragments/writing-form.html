@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<body>
+<div th:fragment="prompt(no, text, promptId, image, chart, examId, title, standalone, allowChange)" class="writing-prompt-card"
+     style="padding:24px;border-radius:24px;background:#fff;border:2px solid #E6E1D3;display:flex;flex-direction:column;gap:12px">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span th:id="${standalone ? 'promptHeader' : null}" class="fw-bold" style="font-size:12px;color:#1F6B56" th:text="${'CÂU ' + no}"></span>
+        <div class="d-flex align-items-center flex-wrap gap-3">
+            <button type="button" class="btn btn-sm btn-outline-danger rounded-3"
+                    th:attr="data-kind='WRITING',data-qid=${promptId},data-code=${'Viết · Câu ' + no},data-prompt=${text},data-examid=${examId},data-examtitle=${title},data-no=${no}"
+                    onclick="openReportModalFromBtn(this)">🚩 Báo lỗi đề này</button>
+            <a th:if="${allowChange}" th:href="@{/writing(question=${no},random='true')}" class="btn btn-sm btn-outline-success">🎲 Đổi đề khác</a>
+            <span th:id="${standalone ? 'promptPoints' : null}" class="small fw-bold" th:text="${(no == 54 ? 50 : no == 53 ? 30 : 10) + ' điểm'}"></span>
+        </div>
+    </div>
+    <span th:id="${standalone ? 'promptInstr' : null}" style="font-size:14px;color:#4A5B60"
+          th:text="${no &lt;= 52 ? 'Điền câu phù hợp vào hai chỗ trống.' : 'Viết bài theo yêu cầu đề.'}"></span>
+    <div th:id="${standalone ? 'promptText' : null}" lang="ko" style="padding:16px 18px;border-radius:16px;background:#F8F6EF;font-family:'Noto Sans KR',sans-serif;font-size:16px;line-height:1.85;white-space:pre-wrap;overflow-wrap:anywhere" th:text="${text}"></div>
+    <div th:id="${standalone ? 'chartContainer' : null}">
+        <img th:if="${image != null and !#strings.isEmpty(image)}" th:src="${image}" alt="Biểu đồ đề bài" style="max-width:100%;max-height:480px;object-fit:contain">
+        <table th:if="${chart != null and !#lists.isEmpty(chart)}" class="table table-bordered mt-3"><tbody>
+            <tr th:each="row : ${chart}"><th th:text="${row.label}"></th><td th:text="${row.value}"></td></tr>
+        </tbody></table>
+    </div>
+</div>
+
+<div th:fragment="editor(no, value, key, standalone, actions)" data-writing-editor th:attr="data-writing-no=${no}"
+     class="writing-editor-card" style="padding:24px;border-radius:24px;background:#fff;border:2px solid #E6E1D3;display:flex;flex-direction:column;gap:14px">
+    <div th:id="${standalone ? 'blankInputsArea' : null}" data-writing-blanks th:style="${no &lt;= 52 ? 'display:flex;flex-direction:column;gap:12px' : 'display:none'}">
+        <label class="d-flex gap-3 align-items-center"><span class="fs-5 fw-bold text-success">㉠</span>
+            <input type="text" th:id="${standalone ? 'blankAnsA' : key + '-a'}" data-writing-blank="a" class="ssak-input form-control" maxlength="3000" placeholder="Điền câu phù hợp cho chỗ trống ㉠..." style="min-height:48px;font-family:'Noto Sans KR',sans-serif">
+        </label>
+        <label class="d-flex gap-3 align-items-center"><span class="fs-5 fw-bold text-success">㉡</span>
+            <input type="text" th:id="${standalone ? 'blankAnsB' : key + '-b'}" data-writing-blank="b" class="ssak-input form-control" maxlength="3000" placeholder="Điền câu phù hợp cho chỗ trống ㉡..." style="min-height:48px;font-family:'Noto Sans KR',sans-serif">
+        </label>
+    </div>
+    <div th:id="${standalone ? 'longTextArea' : null}" th:style="${no &gt;= 53 ? 'display:flex;flex-direction:column;gap:8px' : 'display:none'}">
+        <label class="fw-bold" th:for="${standalone ? 'essayInput' : key}">Bài làm của bạn</label>
+        <textarea th:id="${standalone ? 'essayInput' : key}" th:name="${standalone ? null : key}" data-writing-answer class="ssak-input form-control" maxlength="6000"
+                  placeholder="Nhập bài viết của bạn tại đây bằng tiếng Hàn..." th:text="${value}"
+                  style="height:220px;font-family:'Noto Sans KR',sans-serif;font-size:16px;line-height:1.85;resize:vertical;padding:14px 16px"></textarea>
+        <div class="d-flex justify-content-between small fw-bold"><span th:id="${standalone ? 'charCountLabel' : null}" data-writing-count class="text-success">0 ký tự</span><span th:id="${standalone ? 'charCountNote' : null}"></span></div>
+    </div>
+    <th:block th:replace="${actions}"></th:block>
+</div>
+</body>
+</html>

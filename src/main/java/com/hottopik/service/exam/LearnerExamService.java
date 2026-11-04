@@ -41,13 +41,22 @@ public class LearnerExamService {
     private static final ObjectMapper JSON = new ObjectMapper();
     private final ExamRepository exams;
     private final ExamAttemptRepository attempts;
+    private final com.hottopik.service.WritingSubmissionService writingSubmissions;
 
-    public LearnerExamService(ExamRepository exams, ExamAttemptRepository attempts) {
+    public LearnerExamService(ExamRepository exams, ExamAttemptRepository attempts,
+                              com.hottopik.service.WritingSubmissionService writingSubmissions) {
         this.exams = exams;
         this.attempts = attempts;
+        this.writingSubmissions = writingSubmissions;
     }
 
     @Transactional(readOnly = true)
+    /*
+     * Tạo sẵn các ngăn I/II và full/listening/reading/writing để frontend vẫn render được khi ngăn rỗng.
+     * Chỉ giữ đề đã phát hành (hoặc đang chờ duyệt lưu trữ) và còn dữ liệu dùng được.
+     * Nhóm lịch sử theo exam.id: full mock và mini có ID khác nhau nên không chia sẻ trạng thái đang làm/đã làm.
+     * Ưu tiên lượt còn tiếp tục được, sau đó kết quả đã nộp; Card chứa luôn nhãn/nút/URL cho giao diện.
+     */
     public Map<String, Map<String, List<Card>>> library(Long userId) {
         Map<String, Map<String, List<Card>>> data = new LinkedHashMap<>();
         for (String track : List.of("I", "II")) {
@@ -88,6 +97,11 @@ public class LearnerExamService {
         return data;
     }
 
+    /*
+     * Khóa đề trong transaction, xác minh đề được phép làm và lấy đúng người dùng.
+     * Start thường nối lượt dở còn hợp lệ của cùng examId; retry luôn tạo ExamAttempt mới.
+     * Khởi tạo số giây từ thời lượng đề và total là số câu MC; câu Viết không được chấm đúng/sai tự động ở đây.
+     */
     public ExamAttempt start(Long userId, Long examId, boolean retry) {
         requireUser(userId);
         exams.lockById(examId).orElseThrow(this::notFound);
@@ -107,6 +121,9 @@ public class LearnerExamService {
         return attempts.save(attempt);
     }
 
+    /*
+     * Khóa lượt thuộc chủ sở hữu; hết hạn/hết giờ thì hoàn tất, còn hợp lệ thì chốt thời gian và bắt đầu tính tiếp.
+     */
     public Paper play(Long userId, Long attemptId) {
         ExamAttempt attempt = owned(userId, attemptId);
         if (attempt.getCompletedAt() == null) {
@@ -125,6 +142,54 @@ public class LearnerExamService {
         return paper(attempt, true);
     }
 
+    /** Khóa lượt thi để nộp và gửi chấm nguyên tử, tránh tạo bài chấm trùng khi gửi lại request. */
+    public void sendWritingToTeacher(com.hottopik.dto.UserDTO user, Long attemptId, Map<String, String> answers, boolean submit) {
+        if (!user.isVip()) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Gửi Giáo viên chấm là quyền lợi VIP.");
+        ExamAttempt attempt = owned(user.getId(), attemptId);
+        if (submit) save(user.getId(), attemptId, answers, false, true);
+        if (attempt.getCompletedAt() == null) throw new ExamDomainException("Vui lòng nộp bài trước khi gửi Giáo viên chấm.");
+        Map<String, String> saved = read(attempt);
+        List<WritingPrompt> writing = exam(attempt).writingPrompts();
+        if (writing.stream().noneMatch(p -> com.hottopik.service.WritingSubmissionService.hasAnswer(p.getNo(), saved.get("w" + p.getId()))))
+            throw new ExamDomainException("Cần có nội dung bài viết để gửi Giáo viên chấm.");
+        // Chỉ gửi những câu có nội dung; bỏ qua câu trống.
+        for (WritingPrompt p : writing) {
+            String ans = saved.get("w" + p.getId());
+            if (com.hottopik.service.WritingSubmissionService.hasAnswer(p.getNo(), ans))
+                writingSubmissions.submitExam(user, p.getId(), ans, attemptId, attempt.getExam().getName());
+        }
+    }
+
+    public Map<Long, com.hottopik.dto.WritingSubmissionDTO> writingReviews(Long userId, Long attemptId) {
+        owned(userId, attemptId);
+        return writingSubmissions.examSubmissions(userId, attemptId);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Long, com.hottopik.dto.WritingSubmissionDTO> sentToTeacherByPrompt(Long userId) {
+        return writingSubmissions.sentToTeacherByPrompt(userId);
+    }
+
+    /*
+     * Đã nộp thì không sửa nữa; lượt không còn hợp lệ được kết thúc bằng đáp án đã lưu, không nhận bài đến muộn.
+     * Duyệt câu thuộc đề để whitelist key: q<ExamItem.id> nhận 1..4, w<WritingPrompt.id> nhận bài tối đa 6000 ký tự.
+     * Gộp vào answersJson hiện tại; chốt giờ ở server, pause ngừng đồng hồ, submit gọi finish().
+     * Không dùng questionId làm key MC vì cùng câu ngân hàng có thể xuất hiện trong các đề khác nhau.
+     */
+    public void sendSingleWritingToTeacher(com.hottopik.dto.UserDTO user, Long attemptId, Long promptId) {
+        if (!user.isVip()) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Gui Giao vien cham la quyen loi VIP.");
+        ExamAttempt attempt = owned(user.getId(), attemptId);
+        if (attempt.getCompletedAt() == null) throw new ExamDomainException("Vui long nop bai truoc khi gui Giao vien cham.");
+        Map<String, String> saved = read(attempt);
+        WritingPrompt p = exam(attempt).writingPrompts().stream()
+                .filter(wp -> wp.getId().equals(promptId)).findFirst()
+                .orElseThrow(() -> new ExamDomainException("Khong tim thay cau viet."));
+        String ans = saved.get("w" + p.getId());
+        if (!com.hottopik.service.WritingSubmissionService.hasAnswer(p.getNo(), ans))
+            throw new ExamDomainException("Cau nay chua co noi dung nen khong the gui Giao vien cham.");
+        writingSubmissions.submitExam(user, p.getId(), ans, attemptId, attempt.getExam().getName());
+    }
+
     public SaveResult save(Long userId, Long attemptId, Map<String, String> submitted, boolean pause, boolean submit) {
         ExamAttempt attempt = owned(userId, attemptId);
         if (attempt.getCompletedAt() != null) return saved(attempt);
@@ -136,8 +201,10 @@ public class LearnerExamService {
         checkpoint(attempt);
         Map<String, String> answers = read(attempt);
         Exam exam = exam(attempt);
+        Map<String,String> lockedAnswers = CheckedAnswers.read(attempt.getCheckedAnswersJson());
         for (ExamItem item : exam.getItems()) {
             String key = "q" + item.getId();
+            if (lockedAnswers.containsKey(key)) { answers.put(key, lockedAnswers.get(key)); continue; }
             if (!submitted.containsKey(key)) continue;
             String value = submitted.get(key);
             if (value != null && value.matches("[1-4]")) answers.put(key, value);
@@ -158,6 +225,27 @@ public class LearnerExamService {
         return saved(attempt);
     }
 
+    /*
+     * API Kiểm tra xác minh quyền/key và giờ; lưu rồi khóa lựa chọn, trả lời giải. Điểm chỉ chốt khi nộp bài.
+     */
+    public com.hottopik.dto.QuestionFeedback check(Long userId, Long attemptId, String key, int selected) {
+        ExamAttempt attempt = owned(userId, attemptId);
+        if (selected < 1 || selected > 4) throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        ExamItem item = exam(attempt).getItems().stream().filter(i -> ("q" + i.getId()).equals(key))
+                .findFirst().orElseThrow(this::notFound);
+        if (attempt.getCompletedAt() != null || !resumable(attempt)) throw new ExamDomainException("Bài đã kết thúc.");
+        checkpoint(attempt);
+        Map<String,String> locked = CheckedAnswers.read(attempt.getCheckedAnswersJson());
+        locked.putIfAbsent(key, String.valueOf(selected));
+        selected = Integer.parseInt(locked.get(key));
+        attempt.setCheckedAnswersJson(CheckedAnswers.write(locked));
+        Map<String,String> answers = read(attempt); answers.put(key, String.valueOf(selected));
+        attempt.setAnswersJson(CheckedAnswers.write(answers));
+        Question q = item.getQuestion();
+        return new com.hottopik.dto.QuestionFeedback(q.getAnswerIndex(), q.getAnswerIndex() == selected,
+                q.getExplanationVi(), item.getSection() == Skill.LISTENING ? q.getGroup().getScriptKo() : null, null, selected);
+    }
+
     private SaveResult saved(ExamAttempt attempt) {
         Exam exam = attempt.getExam();
         return new SaveResult(attempt.getRemainingSeconds(), attempt.getCompletedAt() != null,
@@ -165,6 +253,11 @@ public class LearnerExamService {
                         + "&kind=" + exam.getKind().name().toLowerCase(Locale.ROOT));
     }
 
+    /*
+     * Dựng DTO cho template theo thứ tự kỹ năng và số câu; phục hồi lựa chọn từ answersJson.
+     * result=false che đáp án/giải thích/lời thoại trong dữ liệu trang làm bài; nút Kiểm tra lấy riêng qua API.
+     * result=true bổ sung lời giải/bài mẫu và lịch sử đã nộp của chính user + examId.
+     */
     private Paper paper(ExamAttempt attempt, boolean result) {
         Exam exam = exam(attempt);
         Map<String, String> answers = read(attempt);
@@ -181,15 +274,24 @@ public class LearnerExamService {
                             answers.get(key), result ? q.getAnswerIndex() : null,
                             result ? q.getExplanationVi() : null, result ? g.getScriptKo() : null);
                 }).toList();
-        List<WritingView> writing = exam.writingPrompts().stream().map(p -> new WritingView(p.getId(), "w" + p.getId(), p.getNo(),
-                p.getPromptKo(), media(p.getSource(), p.getChartImage()), chart(p.getChartJson()), answers.get("w" + p.getId()),
-                result ? p.getModelAnswer() : null, result ? p.getRubricNote() : null)).toList();
+        var reviews = result ? writingSubmissions.examSubmissions(attempt.getUserId(), attempt.getId())
+                : Map.<Long, com.hottopik.dto.WritingSubmissionDTO>of();
+        List<WritingView> writing = exam.writingPrompts().stream().map(p -> {
+            var review = reviews.get(p.getId());
+            boolean graded = review != null && review.getTotalScore() != null;
+            return new WritingView(p.getId(), "w" + p.getId(), p.getNo(), p.getPromptKo(),
+                    media(p.getSource(), p.getChartImage()), chart(p.getChartJson()), answers.get("w" + p.getId()),
+                    graded ? review.getModelAnswer() : null, graded ? p.getRubricNote() : null);
+        }).toList();
         // Do not expose the entity's question associations (or their answer keys) to the browser.
         List<ExamAttempt> history = result ? attempts.findByUserIdOrderByStartedAtDescIdDesc(attempt.getUserId()).stream()
                 .filter(a -> a.getExam().getId().equals(exam.getId()) && a.getCompletedAt() != null).toList() : List.of();
         return new Paper(attempt, exam.getName(), exam.getTrack(), exam.getKind(), remaining(attempt), questions, writing, history);
     }
 
+    /*
+     * Tính số MC đúng từ đáp án ngân hàng tại server, ghi completedAt và dừng giờ; bài Viết chỉ được giữ nội dung.
+     */
     private void finish(ExamAttempt attempt) {
         checkpoint(attempt);
         Map<String, String> answers = read(attempt);
@@ -216,6 +318,9 @@ public class LearnerExamService {
         return source != null && sourceId.equals(source.getId());
     }
 
+    /*
+     * remaining() trừ thời gian server từ lastActiveAt; checkpoint lưu số giây còn lại rồi xóa mốc chạy, tránh trừ hai lần.
+     */
     private void checkpoint(ExamAttempt attempt) {
         attempt.setRemainingSeconds(remaining(attempt));
         attempt.setLastActiveAt(null);
@@ -226,6 +331,9 @@ public class LearnerExamService {
         return (int) Math.max(0, attempt.getRemainingSeconds() - elapsed);
     }
 
+    /*
+     * Làm tiếp được khi chưa nộp, còn giây và chưa quá 7 ngày từ lúc bắt đầu; đồng hồ trình duyệt không quyết định quyền này.
+     */
     private boolean resumable(ExamAttempt attempt) {
         return attempt.getCompletedAt() == null && attempt.getStartedAt().plusDays(7).isAfter(LocalDateTime.now()) && remaining(attempt) > 0;
     }
@@ -248,8 +356,7 @@ public class LearnerExamService {
         return e.questionCount() > 0 && (e.getSource() == null || (!e.getSource().isAssessment() && e.getSource().getStatus() == SourceStatus.ACTIVE))
                 && e.getItems().stream().allMatch(i -> i.getQuestion().getStatus() == QuestionStatus.ACTIVE
                 && i.getQuestion().getPurpose() != QuestionPurpose.ASSESSMENT)
-                && e.writingPrompts().stream().allMatch(p -> p.getStatus() == QuestionStatus.ACTIVE)
-                && (e.getKind() == ExamKind.FULL || MiniTestSelector.compact(e));
+                && e.writingPrompts().stream().allMatch(p -> p.getStatus() == QuestionStatus.ACTIVE);
     }
 
     private static int minutes(Exam e) {

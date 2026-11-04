@@ -230,13 +230,16 @@ public class ContentExamController {
                             @RequestParam(required = false) String chart,
                             @RequestParam(required = false) String modelAnswer,
                             @RequestParam(required = false) String rubric,
+                            @RequestParam(required = false) MultipartFile questionImage,
                             @RequestParam(defaultValue = "false") boolean andNext,
                             HttpSession session, RedirectAttributes ra) {
         String key = writing ? "WRITING-" + no : (skill == null ? "WRITING-" + no : skill.name() + "-" + no);
         return mutate(session, ra, "/content/sources/" + id + "?slot=" + key + "#paper", actor -> {
+            String savedChart = questionImage != null && !questionImage.isEmpty()
+                    ? importService.uploadQuestionImage(id, questionImage, actor) : chart;
             importService.savePaper(id, new ExamImportService.PaperForm(writing, skill, no, prompt,
                     opt1, opt2, opt3, opt4, answer, explanation, audio, script, passage, image,
-                    keys1, keys2, chart, modelAnswer, rubric), actor);
+                    keys1, keys2, savedChart, modelAnswer, rubric), actor);
             String stay = key;
             if (andNext) {
                 List<ExamImportService.PaperSlot> slots = importService.paper(id);
@@ -254,6 +257,8 @@ public class ContentExamController {
         });
     }
 
+    private static List<String> values(String[] raw) { return raw == null ? List.of() : java.util.Arrays.asList(raw); }
+
     @PostMapping("/sources/{id}/cards")
     public String saveCard(@PathVariable Long id,
                            @RequestParam(required = false) String cardId,
@@ -263,24 +268,19 @@ public class ContentExamController {
                            @RequestParam(required = false) String image,
                            @RequestParam(required = false) String passage,
                            @RequestParam(required = false) String script,
-                           @RequestParam(required = false) List<String> prompt,
-                           @RequestParam(required = false) List<String> opt1,
-                           @RequestParam(required = false) List<String> opt2,
-                           @RequestParam(required = false) List<String> opt3,
-                           @RequestParam(required = false) List<String> opt4,
-                           @RequestParam(required = false) List<String> answer,
-                           @RequestParam(required = false) List<String> explanation,
-                           @RequestParam(required = false) List<String> keys1,
-                           @RequestParam(required = false) List<String> keys2,
-                           @RequestParam(required = false) List<String> modelAnswer,
-                           @RequestParam(required = false) List<String> rubric,
-                           @RequestParam(required = false) List<String> chart,
                            @RequestParam(required = false) List<Integer> qno,
-                           HttpSession session, RedirectAttributes ra) {
+                           @RequestParam(required = false) MultipartFile questionImage,
+                           jakarta.servlet.http.HttpServletRequest request, HttpSession session, RedirectAttributes ra) {
         return mutate(session, ra, "/content/sources/" + id + "#paper", actor -> {
+            List<String> charts = values(request.getParameterValues("chart"));
+            if (questionImage != null && !questionImage.isEmpty()) {
+                if (qno == null || qno.size() != 1 || qno.get(0) < 53 || qno.get(0) > 54)
+                    throw new ExamDomainException("Ảnh này chỉ dành cho câu Viết đang nhập.");
+                charts = List.of(importService.uploadQuestionImage(id, questionImage, actor));
+            }
             String saved = importService.saveCard(id, new ExamImportService.CardForm(cardId, templateCode, audio, image,
-                    passage, script, prompt, opt1, opt2, opt3, opt4, answer, explanation, keys1, keys2,
-                    modelAnswer, rubric, chart, typeCode, qno), actor);
+                    passage, script, values(request.getParameterValues("prompt")), values(request.getParameterValues("opt1")), values(request.getParameterValues("opt2")), values(request.getParameterValues("opt3")), values(request.getParameterValues("opt4")), values(request.getParameterValues("answer")), values(request.getParameterValues("explanation")), values(request.getParameterValues("keys1")), values(request.getParameterValues("keys2")),
+                    values(request.getParameterValues("modelAnswer")), values(request.getParameterValues("rubric")), charts, typeCode, qno), actor);
             ExamImportService.CardView view = importService.cards(id).stream()
                     .filter(c -> c.id().equals(saved)).findFirst().orElse(null);
             String skillName = view == null || view.skillName().isBlank() ? "LISTENING" : view.skillName();
@@ -325,7 +325,7 @@ public class ContentExamController {
         }
         Optional<ImportJob> job = importService.latestJob(id);
         List<ImportIssue> issues = job.map(importService::currentIssues).orElse(List.of());
-        List<MediaAsset> media = importService.mediaOf(id);
+        List<MediaAsset> media = importService.sharedMediaOf(id);
         model.addAttribute("source", s);
         model.addAttribute("job", job.orElse(null));
         model.addAttribute("bankActivated", job.map(j -> j.getStatus() == ImportJobStatus.ACTIVATED).orElse(false));
@@ -394,6 +394,13 @@ public class ContentExamController {
         List<ExamImportService.LearnerBai> bais = importService.learnerBais(id);
         model.addAttribute("source", s);
         model.addAttribute("bais", bais);
+        java.util.List<com.hottopik.dto.QuestionPlayerItem> playerQuestions = new java.util.ArrayList<>();
+        for (var bai : bais) {
+            if (!bai.writing()) for (var ask : bai.asks()) {
+                playerQuestions.add(com.hottopik.dto.QuestionPlayerItem.preview(bai, ask, id, playerQuestions.size()));
+            }
+        }
+        model.addAttribute("playerQuestions", playerQuestions);
         model.addAttribute("listeningCount", bais.stream().filter(b -> b.skill() == Skill.LISTENING).count());
         model.addAttribute("readingCount", bais.stream().filter(b -> b.skill() == Skill.READING).count());
         return "content/exam/preview";
@@ -655,6 +662,16 @@ public class ContentExamController {
         });
     }
 
+    @PostMapping("/exams/{id}/publish")
+    public String publishExam(@PathVariable Long id, HttpSession session, RedirectAttributes ra) {
+        String back = "/content/exams/" + id;
+        return mutate(session, ra, back, actor -> {
+            composer.publishDirectly(id, actor);
+            ra.addFlashAttribute("flashOk", "Da kich hoat phat hanh de thanh cong! De da hien trong Thu vien de cua hoc vien va he thong tu sinh Mini Test.");
+            return "redirect:" + back;
+        });
+    }
+
     @PostMapping("/exams/{id}/clone")
     public String cloneExam(@PathVariable Long id, HttpSession session, RedirectAttributes ra) {
         return mutate(session, ra, "/content/exams/" + id, actor -> {
@@ -729,6 +746,30 @@ public class ContentExamController {
         }
     }
 
+    @GetMapping("/writing-questions/{id}/detail")
+    @ResponseBody
+    public ResponseEntity<?> writingQuestionDetail(@PathVariable Long id, HttpSession session) {
+        if (viewer(session) == null) return ResponseEntity.status(403).build();
+        try { return ResponseEntity.ok(bank.writingDetail(id)); }
+        catch (ExamDomainException ex) { return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage())); }
+    }
+
+    @PostMapping("/writing-questions/{id}")
+    public String updateWritingQuestion(@PathVariable Long id, @ModelAttribute WritingPrompt form,
+                                       @RequestParam(required = false) String back, HttpSession session, RedirectAttributes flash) {
+        String target = safeBack(back);
+        return mutate(session, flash, target, actor -> {
+            bank.updateWriting(id, form, actor);
+            flash.addFlashAttribute("flashOk", "Đã lưu câu Viết.");
+            return "redirect:" + target;
+        });
+    }
+
+    /*
+     * Form ngân hàng khi sửa từ báo lỗi phải gửi reportId; kiểm tra báo lỗi OPEN đúng MC và đúng questionId trước khi cập nhật.
+     * bank.update kiểm tra câu/4 phương án/đáp án/lý do; sau khi lưu, resolveReport đóng báo lỗi và tạo thông báo rồi quay tab reports.
+     * Nếu có báo lỗi, updateMcAndResolve gộp sửa câu, tính lại điểm, gửi thông báo và đóng báo lỗi trong một transaction.
+     */
     @PostMapping("/questions/{id}")
     public String updateQuestion(@PathVariable Long id, @RequestParam String promptKo,
                                  @RequestParam String opt1, @RequestParam String opt2,
@@ -737,6 +778,10 @@ public class ContentExamController {
                                  @RequestParam(required = false) String reason, @RequestParam(required = false) String back,
                                  @RequestParam(required = false) Long reportId,
                                  @RequestParam(required = false) String resolutionNote,
+                                 @RequestParam(required = false) String correctionType,
+                                 @RequestParam(defaultValue = "RECALCULATE") String scorePolicy,
+                                 @RequestParam(required=false) String passageKo, @RequestParam(required=false) String scriptKo,
+                                 @RequestParam(required=false) String imageFile, @RequestParam(required=false) String audioFile,
                                  HttpSession session, RedirectAttributes ra) {
         String target = safeBack(back);
         return mutate(session, ra, target, actor -> {
@@ -747,10 +792,10 @@ public class ContentExamController {
                     throw new ExamDomainException("Báo lỗi không thuộc câu hỏi đang sửa.");
                 }
             }
-            bank.update(id, promptKo, List.of(opt1, opt2, opt3, opt4), answer, explanationVi, reason, actor);
+            if(reportId==null) bank.update(id, promptKo, List.of(opt1,opt2,opt3,opt4), answer, explanationVi, reason, actor, null, (correctionType==null||"AUTO".equals(correctionType))?"CONTENT":correctionType, scorePolicy,new QuestionBankService.GroupChange(passageKo,scriptKo,imageFile,audioFile));
             if (reportId != null) {
                 String note = (resolutionNote != null && !resolutionNote.isBlank()) ? resolutionNote : ("Đã chỉnh sửa nội dung câu hỏi: " + (reason != null ? reason : "Cập nhật đáp án"));
-                reportService.resolveReport(reportId, note, actor.name());
+                reportService.updateMcAndResolve(id,promptKo,List.of(opt1,opt2,opt3,opt4),answer,explanationVi,reason,actor,reportId,correctionType,scorePolicy,note,new QuestionBankService.GroupChange(passageKo,scriptKo,imageFile,audioFile));
                 ra.addFlashAttribute("flashOk", "Đã cập nhật câu hỏi, giải quyết báo lỗi #" + reportId + " và thưởng +5 Xu cho học viên!");
                 return "redirect:/content?tab=reports";
             }

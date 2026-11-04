@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body style="background: #F8F6EF; color: #24363D; font-family: 'Nunito','Be Vietnam Pro','Noto Sans KR',sans-serif; margin: 0; padding: 0;">
+
+<div style="width: 100%; min-width: 1280px; max-width: 1440px; min-height: 100vh; margin: 0 auto; display: flex; flex-direction: column;">
+
+    <div th:replace="~{fragments/navbar :: navbar('mentor-reviews')}"></div>
+
+    <main style="flex-grow: 1; padding: 24px 44px 48px; display: flex; flex-direction: column; gap: 16px;">
+
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+            <div>
+                <a th:href="@{/practice/prepare(typeCode=${'II-V' + (sub.questionNo - 50)})}"
+                   style="display: inline-flex; align-items: center; gap: 4px; color: #5C6E72; font-size: 14px; font-weight: 700; text-decoration: none; margin-bottom: 6px;">
+                    ‹ Quay lại lịch sử luyện Viết
+                </a>
+                <h1 style="margin: 0; font-family: var(--font-heading); font-size: 32px; font-weight: 800;">
+                    Chi tiết bài luyện Viết · Câu <span th:text="${sub.questionNo}">53</span>
+                </h1>
+                <span style="font-size: 14px; color: #5C6E72;" th:text="${sub.submittedAt}">29/10/2026 10:00</span>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <a th:href="@{/writing(question=${sub.questionNo},promptId=${sub.promptId})}"
+                   class="btn-ssak-light" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 18px; font-size: 14px; font-weight: 700;">
+                    🔄 Làm lại bài này
+                </a>
+            </div>
+        </div>
+
+        <!-- Alert -->
+        <div th:if="${successMessage != null}" style="padding: 12px 20px; border-radius: 14px; background: #E3F2EA; color: #1F6B56; font-weight: 800;">
+            ✅ <span th:text="${successMessage}"></span>
+        </div>
+        <div th:if="${errorMessage != null}" style="padding: 12px 20px; border-radius: 14px; background: #FFF1F0; color: #CF1322; font-weight: 800;">
+            ⚠️ <span th:text="${errorMessage}"></span>
+        </div>
+
+        <!-- Main content -->
+        <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start;">
+
+            <!-- LEFT: Đề bài + Bài làm -->
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+
+                <!-- Đề bài -->
+                <div style="padding: 24px; border-radius: 24px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 12px;">
+                    <span style="font-size: 12px; font-weight: 800; color: #5C6E72; letter-spacing: .5px; text-transform: uppercase;">ĐỀ BÀI</span>
+                    <p lang="ko" style="margin: 0; font-family: 'Noto Sans KR',sans-serif; font-size: 15px; line-height: 1.8; white-space: pre-wrap;" th:text="${sub.prompt}"></p>
+                    <img th:if="${sub.chartImage != null}" th:src="${sub.chartImage}" alt="Biểu đồ đề bài" style="max-width:100%;max-height:400px; border-radius: 12px;">
+                    <table th:if="${sub.hasChart}" class="table table-bordered" style="font-size: 13px;">
+                        <tr th:each="c : ${sub.chartItems}">
+                            <th th:text="${c.label}"></th>
+                            <td th:text="${c.value}"></td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Bài làm -->
+                <div style="padding: 24px; border-radius: 24px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 12px; font-weight: 800; color: #5C6E72; letter-spacing: .5px; text-transform: uppercase;">BÀI LÀM CỦA BẠN</span>
+                        <span style="font-size: 12px; color: #5C6E72;" th:text="${sub.wordCount} + ' ký tự'">0 ký tự</span>
+                    </div>
+                    <div lang="ko" style="padding: 18px 20px; border-radius: 16px; background: #F8F6EF; font-family: 'Noto Sans KR',sans-serif; font-size: 16px; line-height: 1.9; white-space: pre-line; border: 1.5px solid #E6E1D3;"
+                         th:text="${sub.studentAnswer}">Bài làm...</div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT: Đáp án tham khảo + Gửi GV -->
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+
+                <!-- Đáp án tham khảo (câu 51/52 luôn hiện; 53/54 nếu có) -->
+                <div th:if="${sub.modelAnswer != null and !#strings.isEmpty(sub.modelAnswer)}"
+                     style="padding: 24px; border-radius: 24px; background: #FFFFFF; border: 2px solid #A7D7BE; display: flex; flex-direction: column; gap: 12px;">
+                    <span style="font-size: 12px; font-weight: 800; color: #1F6B56; letter-spacing: .5px; text-transform: uppercase;">🌟 ĐÁP ÁN THAM KHẢO</span>
+                    <div lang="ko" style="padding: 16px 18px; border-radius: 14px; background: #E3F2EA; font-family: 'Noto Sans KR',sans-serif; font-size: 15px; line-height: 1.85; color: #1F6B56; white-space: pre-line;"
+                         th:text="${sub.modelAnswer}"></div>
+                </div>
+
+                <!-- Gửi Giáo viên chấm (chỉ 1 lần, chỉ khi status = submitted) -->
+                <!-- Ly do tu choi (neu bi tu choi) -->
+                <div th:if="${sub.status == 'submitted' and sub.rejectReason != null and !sub.rejectReason.isEmpty()}"
+                     style="padding: 20px 24px; border-radius: 20px; background: #FFF5F5; border: 2px solid #FCA5A5; display: flex; flex-direction: column; gap: 8px;">
+                    <span style="font-size: 15px; font-weight: 800; color: #B91C1C;">❌ Yêu cầu chấm bài bị Giáo viên từ chối</span>
+                    <p style="margin: 0; font-size: 13px; color: #374151;"><b>Lý do:</b> <span th:text="${sub.rejectReason}"></span></p>
+                    <p style="margin: 0; font-size: 12px; color: #9CA3AF;">Bạn có thể hiệu chỉnh bài viết hoặc gửi lại để được chấm.</p>
+                </div>
+                <div th:if="${sub.status == 'submitted'}"
+                     style="padding: 24px; border-radius: 24px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 12px;">
+                    <span style="font-size: 15px; font-weight: 800; color: #24363D;">Gửi Giáo viên chấm</span>
+                    <p style="margin: 0; font-size: 13px; color: #5C6E72; line-height: 1.6;">
+                        Nếu bạn không đồng ý với đáp án tham khảo hoặc muốn nhận phản hồi chi tiết từ Giáo viên TOPIK, hãy gửi bài này để được chấm điểm. <strong>Mỗi bài chỉ được gửi 1 lần.</strong>
+                    </p>
+                    <!-- Có thể gửi (VIP + có nội dung) -->
+                    <form th:if="${currentUser != null and currentUser.vip and canSendTeacher}"
+                          method="post" th:action="@{/writing/send-teacher}">
+                        <input type="hidden" name="id" th:value="${sub.id}">
+                        <p style="margin: 0 0 10px 0; font-size: 12px; color: #5C6E72;">Giáo viên cần thời gian xem bài. Bạn sẽ nhận thông báo khi có kết quả.</p>
+                        <button class="btn btn-success fw-bold" type="submit"
+                                style="height: 44px; padding: 0 24px; border-radius: 12px; font-size: 14px;">
+                            👩‍🏫 Gửi Giáo viên chấm
+                        </button>
+                    </form>
+                    <!-- Bài không có nội dung -->
+                    <p th:if="${currentUser != null and currentUser.vip and !canSendTeacher}"
+                       style="margin: 0; font-size: 13px; color: #9C4A2E;">
+                        Bài chưa có nội dung nên không thể gửi Giáo viên chấm.
+                    </p>
+                    <!-- Chưa VIP -->
+                    <p th:unless="${currentUser != null and currentUser.vip}"
+                       style="margin: 0; font-size: 13px; color: #5C6E72;">
+                        Muốn Giáo viên chấm, hãy <a th:href="@{/vip}" style="color: #2E7D67; font-weight: 700;">đăng ký VIP</a>.
+                    </p>
+                </div>
+
+                <!-- Đã gửi GV (waiting/claimed/graded) -->
+                <div th:unless="${sub.status == 'submitted'}"
+                     style="padding: 20px 24px; border-radius: 24px; background: #E3F2EA; border: 2px solid #A7D7BE; display: flex; flex-direction: column; gap: 8px;">
+                    <span style="font-size: 14px; font-weight: 800; color: #1F6B56;">✅ Bài đã được gửi Giáo viên chấm</span>
+                    <p style="margin: 0; font-size: 13px; color: #5C6E72;">
+                        Xem chi tiết nhận xét và điểm số tại trang Bài viết Giáo viên.
+                    </p>
+                    <a th:href="@{/writing/feedback(id=${sub.id})}"
+                       class="btn btn-success fw-bold"
+                       style="height: 40px; padding: 0 20px; border-radius: 12px; font-size: 13px; display: inline-flex; align-items: center; align-self: flex-start; text-decoration: none;">
+                        Xem bài chấm →
+                    </a>
+                </div>
+
+                <!-- Ghi chú -->
+                <div style="padding: 16px 20px; border-radius: 16px; background: #FBF0D3; border: 1.5px solid #E0A33A; font-size: 13px; color: #7A5A12;">
+                    <b>💡 Lưu ý:</b> Đây là bài luyện tập tự nộp. Đáp án tham khảo trên chỉ mang tính gợi ý, không phải điểm chính thức. Để nhận điểm và nhận xét chuyên sâu, hãy gửi Giáo viên chấm.
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+
+</body>
+</html>

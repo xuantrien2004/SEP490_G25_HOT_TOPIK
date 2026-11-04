@@ -316,6 +316,7 @@ const serverStats = /*[[${hanjaStats}]]*/ {};
 let hanjaRoots = [];
 let selectedRoot = null;
 let selectedRootIdx = -1;
+// Dấu đã học chỉ lưu localStorage khóa hanjaLearned trong trình duyệt, chưa gắn tài khoản và chưa lưu tiến độ vào DB.
 let learnedSet = new Set(JSON.parse(localStorage.getItem('hanjaLearned') || '[]'));
 let currentMode = 'learn';
 
@@ -329,6 +330,8 @@ let currentQuizAudioUrl = '';
 // ============================================================
 // INIT
 // ============================================================
+// Ưu tiên serverRoots do TheoryController nhúng sẵn; thiếu dữ liệu thì gọi API roots.
+// Sau tải, render lưới và chọn gốc đầu; tìm kiếm thường lọc mảng trong bộ nhớ bằng filterHanja.
 document.addEventListener('DOMContentLoaded', function() {
     // Use server-rendered data if available, otherwise fetch via API
     if (typeof serverRoots !== 'undefined' && Array.isArray(serverRoots) && serverRoots.length > 0) {
@@ -411,6 +414,7 @@ function renderGrid(roots) {
     }
 }
 
+// Lấy gốc trong mảng hiện tại, cập nhật tiêu đề/âm đọc/nghĩa và render relatedWords; không gọi lại API chi tiết khi click.
 function selectRoot(idx) {
     selectedRoot = hanjaRoots[idx];
     selectedRootIdx = idx;
@@ -458,6 +462,7 @@ function renderWordTable(words) {
     `).join('');
 }
 
+// Bật/tắt ID gốc trong learnedSet, ghi lại localStorage rồi cập nhật nút/bộ đếm/lưới; không phát sinh request server.
 function markLearned() {
     if (!selectedRoot) return;
     const key = selectedRoot.id || selectedRootIdx;
@@ -499,6 +504,8 @@ function playRootAudio() {
 // ============================================================
 // QUIZ MODE
 // ============================================================
+// Reset điểm/câu ở bộ nhớ, gọi API quiz để lấy bộ mới; rỗng/lỗi thì hiện thông báo.
+// Quiz nhận cả correctChoiceIndex từ server và chỉ chấm tại trình duyệt, không tạo lịch sử PracticeAttempt/ExamAttempt.
 async function startNewQuiz(count) {
     // Reset state
     quizQuestions = [];
@@ -561,6 +568,7 @@ function showQuestion() {
     `).join('');
 }
 
+// Mỗi câu chỉ nhận một lần chọn qua quizAnswered; so index 0..3, khóa nút, tô đúng/sai và cộng quizScore nếu đúng.
 function answerQuiz(choiceIdx) {
     if (quizAnswered) return;
     quizAnswered = true;
@@ -607,6 +615,7 @@ function nextQuestion() {
     }
 }
 
+// Kết quả là quizScore/tổng câu và phần trăm trong bộ nhớ trang; tải lại trang không phục hồi lịch sử quiz.
 function showQuizResult() {
     document.getElementById('quizQuestion').style.display = 'none';
     const result = document.getElementById('quizResult');
@@ -647,6 +656,7 @@ function playQuizAudio() {
 // ============================================================
 // AUDIO UTILITY
 // ============================================================
+// Có audioUrl thì phát file; thiếu file hoặc phát lỗi dùng speechSynthesis tiếng ko-KR nếu trình duyệt hỗ trợ.
 function speakKorean(text, audioUrl) {
     if (audioUrl && audioUrl.trim()) {
         const audio = new Audio(audioUrl);

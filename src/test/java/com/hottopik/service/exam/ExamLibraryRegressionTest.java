@@ -139,6 +139,42 @@ class ExamLibraryRegressionTest {
     }
 
     @Test
+    void readingOnlyFullMockPublishesItsFiftyQuestionMiniToTheLearnerLibrary() throws Exception {
+        ExamSource source = source(Track.TOPIK_II);
+        imports.startManual(source.getId(), CM);
+        for (int no = 1; no <= 50; no++) {
+            imports.saveCard(source.getId(), new ExamImportService.CardForm(null, "TPL2-REA-01",
+                    null, null, "지문 " + source.getId() + " " + no, null,
+                    List.of("질문 " + no), List.of("가"), List.of("나"), List.of("다"), List.of("라"),
+                    List.of("2"), List.of("Giải thích " + no), null, null, null, null, null, null, List.of(no)), CM);
+        }
+        Exam full = composer.get(imports.activate(source.getId(), CM).examId());
+        List<Exam> children = composer.children(full.getId());
+        assertEquals(1, children.size());
+        Exam mini = children.get(0);
+        assertEquals(ExamKind.READING, mini.getKind());
+        assertEquals(50, mini.questionCount());
+        assertTrue(learners.library(820L).get("II").get("reading").stream().noneMatch(c -> c.id().equals(mini.getId())));
+
+        composer.publishDirectly(full.getId(), CM);
+        assertEquals(ExamStatus.PUBLISHED, composer.get(mini.getId()).getStatus());
+        var library = learners.library(820L).get("II");
+        assertTrue(library.get("full").stream().anyMatch(c -> c.id().equals(full.getId())));
+        var card = library.get("reading").stream().filter(c -> c.id().equals(mini.getId())).findFirst().orElseThrow();
+        assertTrue(card.sub().contains("50 câu"));
+        assertEquals("/exam/" + mini.getId() + "/start", card.primaryUrl());
+        String html = mvc.perform(get("/de-thi").sessionAttr(AuthHelper.SESSION_KEY, user(820L, "STUDENT")))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        int dataStart = html.indexOf("const examsData = ") + "const examsData = ".length();
+        var browserMinis = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(html.substring(dataStart, html.indexOf(';', dataStart))).path("II").path("reading");
+        assertTrue(java.util.stream.StreamSupport.stream(browserMinis.spliterator(), false)
+                .anyMatch(c -> c.path("id").asLong() == mini.getId()));
+        var attempt = learners.start(820L, mini.getId(), false);
+        assertEquals(50, learners.play(820L, attempt.getId()).questions().size());
+    }
+
+    @Test
     void readingOnlyManualPaperCreatesFourteenQuestionsCoveringAllTenTypesAndBackfillsOnce() {
         ExamSource source = source(Track.TOPIK_I);
         imports.startManual(source.getId(), CM);
@@ -181,6 +217,18 @@ class ExamLibraryRegressionTest {
         ExamItem first = full.getItems().get(0);
         String key = "q" + first.getId();
         String correct = Integer.toString(first.getQuestion().getAnswerIndex());
+        mvc.perform(post("/exam/attempt/{id}/check/{key}", id, key).sessionAttr(AuthHelper.SESSION_KEY, learner)
+                        .param("selected", correct))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.correct").value(true))
+                .andExpect(jsonPath("$.answer").value(first.getQuestion().getAnswerIndex()));
+        mvc.perform(post("/exam/attempt/{id}/check/{key}", id, key).sessionAttr(AuthHelper.SESSION_KEY, user(812, "STUDENT"))
+                        .param("selected", correct)).andExpect(status().isNotFound());
+        mvc.perform(post("/exam/attempt/{id}/check/q999999", id).sessionAttr(AuthHelper.SESSION_KEY, learner)
+                        .param("selected", correct)).andExpect(status().isNotFound());
+        mvc.perform(post("/exam/attempt/{id}/check/{key}", id, key).sessionAttr(AuthHelper.SESSION_KEY, learner)
+                        .param("selected", "5")).andExpect(status().isBadRequest());
+        assertEquals(correct, CheckedAnswers.read(attempts.findById(id).orElseThrow().getCheckedAnswersJson()).get(key), "Checking locks the selected answer");
+        assertEquals(0, attempts.findById(id).orElseThrow().getCorrect(), "Checking does not finish or grade the attempt");
         mvc.perform(post("/exam/attempt/{id}/save", id).sessionAttr(AuthHelper.SESSION_KEY, learner)
                         .param(key, correct).param("q999999", "1").param("score", "999"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.completed").value(false));
@@ -195,7 +243,7 @@ class ExamLibraryRegressionTest {
         answers.put(key, correct.equals("1") ? "2" : "1");
         learners.save(owner, id, answers, false, true);
         learners.save(owner, id, Map.of(key, correct), false, true); // Repeat submission must not change a result.
-        assertEquals(full.getItems().size() - 1, learners.result(owner, id).attempt().getCorrect());
+        assertEquals(full.getItems().size(), learners.result(owner, id).attempt().getCorrect(), "The checked answer cannot be overwritten by later form data");
         mvc.perform(get("/exam").sessionAttr(AuthHelper.SESSION_KEY, learner))
                 .andExpect(status().isOk()).andExpect(content().string(containsString("\"isDone\":true")));
         mvc.perform(get("/ket-qua/{id}", id).sessionAttr(AuthHelper.SESSION_KEY, learner))

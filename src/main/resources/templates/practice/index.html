@@ -56,6 +56,7 @@
 
 <script th:inline="javascript">
     document.addEventListener('DOMContentLoaded', function () {
+    // Chỉ đổi section/tab hiển thị; các danh sách dạng đã được server đưa sẵn vào HTML, không gọi random ở bước chọn cấp độ.
     function setLevel(skill, level) {
         document.querySelectorAll('.' + skill + '-track').forEach(section => {
             section.classList.toggle('d-none', section.dataset.track !== level);
@@ -79,6 +80,7 @@
             setLevel(skill, 'TOPIK_I');
         });
     });
+    // Chọn dạng khác mang skill/track trong URL; sau khi tab mở, áp lại ngữ cảnh này để không tự quay về TOPIK I Nghe.
     const initialSkill = /*[[${initialSkill}]]*/ null;
     const initialTrack = /*[[${initialTrack}]]*/ null;
     if (initialSkill) {

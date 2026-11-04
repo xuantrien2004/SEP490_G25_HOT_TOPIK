@@ -17,20 +17,7 @@
         </div>
 
         <!-- Navigation Tabs -->
-        <nav aria-label="Các mục của Giáo viên" style="display: flex; gap: 8px;">
-            <a th:href="@{/teacher(tab='queue')}" style="height: 38px; padding: 0 16px; border-radius: 10px; font-size: 13.5px; font-weight: 700; background: #3A4D55; color: #FFFFFF; display: inline-flex; align-items: center; text-decoration: none;">
-                Hàng chờ · <span th:text="${queueCount}">2</span>
-            </a>
-            <a th:href="@{/teacher(tab='mine')}" style="height: 38px; padding: 0 16px; border-radius: 10px; font-size: 13.5px; font-weight: 700; background: #3A4D55; color: #FFFFFF; display: inline-flex; align-items: center; text-decoration: none;">
-                Đang chấm · <span th:text="${mineCount}">1</span>
-            </a>
-            <a th:href="@{/teacher(tab='done')}" style="height: 38px; padding: 0 16px; border-radius: 10px; font-size: 13.5px; font-weight: 700; background: #3A4D55; color: #FFFFFF; display: inline-flex; align-items: center; text-decoration: none;">
-                Đã chấm · <span th:text="${doneCount}">2</span>
-            </a>
-            <a th:href="@{/teacher/profile}" style="height: 38px; padding: 0 16px; border-radius: 10px; font-size: 13.5px; font-weight: 800; background: #F2C14E; color: #3A2B00; display: inline-flex; align-items: center; text-decoration: none;">
-                👤 Hồ sơ Giáo viên
-            </a>
-        </nav>
+
 
         <div style="flex-grow: 1;"></div>
 
@@ -38,9 +25,6 @@
         <div style="display: flex; align-items: center; gap: 10px;">
             <a th:href="@{/teacher}" class="btn-ssak-light" style="color: #6CC49F; font-size: 13px; font-weight: 700; text-decoration: none; border: 1px solid #3A4D55; padding: 6px 14px; border-radius: 8px;">
                 ← Về Bàn Chấm thi
-            </a>
-            <a th:href="@{/today}" style="color: #FFFFFF; font-size: 13px; font-weight: 700; text-decoration: none; border: 1px solid #3A4D55; padding: 6px 12px; border-radius: 8px;">
-                Cổng Học viên
             </a>
             <a th:href="@{/logout}" style="color: #FFFFFF; font-size: 13.5px; font-weight: 800; text-decoration: none; background: #3A4D55; padding: 6px 14px; border-radius: 8px;">
                 Đăng xuất
@@ -86,23 +70,14 @@
             </div>
 
             <!-- Stats Grid -->
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding-top: 16px; border-top: 1px solid var(--ssak-border);">
+            <div style="display: grid; grid-template-columns: 1fr; gap: 16px; padding-top: 16px; border-top: 1px solid var(--ssak-border);">
                 <div style="padding: 14px 18px; background: #F8FAFC; border-radius: 14px; border: 1px solid var(--ssak-border);">
                     <div style="font-size: 11px; color: var(--ssak-text-muted); font-weight: 800; text-transform: uppercase;">Số điện thoại</div>
                     <div id="displayPhone" style="font-size: 15px; font-weight: 800; color: #2E7D67; margin-top: 4px;" th:text="${currentUser.phone != null && !currentUser.phone.isEmpty() ? currentUser.phone : 'Chưa thiết lập'}">0967890123</div>
                 </div>
-                <div style="padding: 14px 18px; background: #F8FAFC; border-radius: 14px; border: 1px solid var(--ssak-border);">
-                    <div style="font-size: 11px; color: var(--ssak-text-muted); font-weight: 800; text-transform: uppercase;">Bài đã chấm hoàn tất</div>
-                    <div style="font-size: 15px; font-weight: 800; color: #24363D; margin-top: 4px;" th:text="${doneCount + ' bài viết'}">2 bài viết</div>
-                </div>
-                <div style="padding: 14px 18px; background: #F8FAFC; border-radius: 14px; border: 1px solid var(--ssak-border);">
-                    <div style="font-size: 11px; color: var(--ssak-text-muted); font-weight: 800; text-transform: uppercase;">Hàng chờ hiện tại</div>
-                    <div style="font-size: 15px; font-weight: 800; color: #E08700; margin-top: 4px;" th:text="${queueCount + ' bài đang đợi'}">2 bài đang đợi</div>
-                </div>
-                <div style="padding: 14px 18px; background: #F8FAFC; border-radius: 14px; border: 1px solid var(--ssak-border);">
-                    <div style="font-size: 11px; color: var(--ssak-text-muted); font-weight: 800; text-transform: uppercase;">Đánh giá học viên</div>
-                    <div style="font-size: 15px; font-weight: 800; color: #D48806; margin-top: 4px;">4.9 / 5.0 ⭐ (Xuất sắc)</div>
-                </div>
+
+
+
             </div>
         </div>
 
@@ -137,14 +112,7 @@
                                 </div>
                                 <input type="text" id="teacherPhone" class="form-control ssak-input" th:value="${currentUser.phone}" placeholder="VD: 0967890123" />
                             </div>
-                            <div>
-                                <label class="form-label" style="font-size: 13px; font-weight: 700;">Múi giờ</label>
-                                <select id="teacherTimezone" class="form-select ssak-input">
-                                    <option value="Asia/Ho_Chi_Minh" th:selected="${currentUser.timezone == 'Asia/Ho_Chi_Minh'}">Asia/Ho_Chi_Minh (GMT+7)</option>
-                                    <option value="Asia/Seoul" th:selected="${currentUser.timezone == 'Asia/Seoul'}">Asia/Seoul (GMT+9)</option>
-                                    <option value="UTC" th:selected="${currentUser.timezone == 'UTC'}">UTC (GMT+0)</option>
-                                </select>
-                            </div>
+
                         </div>
 
                         <div>
@@ -206,33 +174,7 @@
             <div style="display: flex; flex-direction: column; gap: 24px;">
                 
                 <!-- BAREM CHẤM BÀI VIẾT -->
-                <div class="ssak-card" style="padding: 24px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 14px;">
-                    <h4 style="margin: 0; font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #24363D;">
-                        📏 Tiêu chuẩn Barem Chấm thi Viết (TOPIK II)
-                    </h4>
-                    
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <div style="padding: 12px 14px; background: #F8FAFC; border-radius: 12px; border: 1px solid var(--ssak-border);">
-                            <div style="font-weight: 800; font-size: 13.5px; color: #24363D;">1. Nội dung & Mục đích (내용 및 과제 수행)</div>
-                            <div style="font-size: 12px; color: var(--ssak-text-muted); margin-top: 2px;">Đáp ứng đúng đề bài, lập luận mạch lạc, không lạc đề.</div>
-                        </div>
 
-                        <div style="padding: 12px 14px; background: #F8FAFC; border-radius: 12px; border: 1px solid var(--ssak-border);">
-                            <div style="font-weight: 800; font-size: 13.5px; color: #24363D;">2. Cấu trúc & Bố cục (글의 전개 구조)</div>
-                            <div style="font-size: 12px; color: var(--ssak-text-muted); margin-top: 2px;">Phân bổ mở - thân - kết rõ ràng, sử dụng liên từ tự nhiên.</div>
-                        </div>
-
-                        <div style="padding: 12px 14px; background: #F8FAFC; border-radius: 12px; border: 1px solid var(--ssak-border);">
-                            <div style="font-weight: 800; font-size: 13.5px; color: #24363D;">3. Từ vựng & Ngữ pháp (어휘 및 문법)</div>
-                            <div style="font-size: 12px; color: var(--ssak-text-muted); margin-top: 2px;">Đa dạng cấu trúc trung - cao cấp, tránh lặp từ và diễn đạt lủng củng.</div>
-                        </div>
-
-                        <div style="padding: 12px 14px; background: #F8FAFC; border-radius: 12px; border: 1px solid var(--ssak-border);">
-                            <div style="font-weight: 800; font-size: 13.5px; color: #24363D;">4. Chính tả & Quy cách trình bày (맞춤법 및 원고지 사용법)</div>
-                            <div style="font-size: 12px; color: var(--ssak-text-muted); margin-top: 2px;">Đúng quy tắc ô vuông bản thảo (Won-go-ji), viết hoa số và ngắt câu.</div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- STUDENT REVIEWS -->
                 <div class="ssak-card" style="padding: 24px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 14px;">
@@ -295,7 +237,7 @@ function handleUpdateTeacherProfile(e) {
     e.preventDefault();
     const fullName = document.getElementById('teacherFullName').value.trim();
     const phone = document.getElementById('teacherPhone').value.trim();
-    const timezone = document.getElementById('teacherTimezone').value;
+    const timezone = null;
     const specialty = document.getElementById('teacherSpecialty').value.trim();
     const bio = document.getElementById('teacherBio').value.trim();
     const avatar = document.getElementById('teacherAvatar').value.trim();

@@ -3,8 +3,10 @@
 <head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
 <body style="background:#F8F6EF;color:#24363D;font-family:var(--font-body)">
 <div th:replace="~{fragments/navbar :: navbar('exam')}"></div>
-<main class="container py-4" style="max-width:1080px">
-    <form id="examForm" method="post" th:action="@{/exam/attempt/{id}/submit(id=${paper.attempt.id})}">
+<th:block th:replace="~{fragments/question-player :: assets}"></th:block>
+<main class="container-fluid py-4" style="max-width:1440px">
+    <p th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></p>
+    <form id="examForm" data-exam-form data-report-attempt-kind="EXAM" th:attr="data-report-attempt-id=${paper.attempt.id},data-writing-submit=${!#lists.isEmpty(paper.writing)}" method="post" th:action="@{/exam/attempt/{id}/submit(id=${paper.attempt.id})}">
         <header class="sticky-top bg-white border rounded-4 p-3 mb-4 shadow-sm" style="top:12px">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <div><span class="badge text-bg-success" th:text="${paper.track.label}"></span>
@@ -12,71 +14,97 @@
                 <div class="d-flex align-items-center gap-3">
                     <strong id="timer" class="font-monospace"></strong>
                     <button class="btn btn-outline-secondary" type="submit" th:formaction="@{/exam/attempt/{id}/pause(id=${paper.attempt.id})}">Lưu và thoát</button>
-                    <button class="btn btn-success" type="submit">Nộp bài</button>
                 </div>
             </div>
             <div id="saveStatus" class="small text-muted mt-2" role="status">Câu trả lời được lưu tự động. Bạn có thể lưu và làm tiếp trong 7 ngày.</div>
         </header>
-        <th:block th:each="section : ${sections}">
-            <th:block th:each="q : ${paper.questions}">
-                <article th:if="${q.skill == section.skill}" class="bg-white border rounded-4 p-4 mb-4 shadow-sm">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h2 class="h6 fw-bold mb-0" th:text="${q.label}"></h2>
-                        <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 rounded-3 px-2 py-1"
-                                style="font-size: 12px; font-weight: 600; border-color: #FFA39E; color: #CF1322;"
-                                th:attr="data-qid=${q.id}, data-code=${q.label}, data-prompt=${q.prompt}, data-examid=${paper.attempt.exam.id}, data-examtitle=${paper.title}, data-no=${q.no}"
-                                onclick="openReportModalFromBtn(this)"
-                                title="Báo lỗi nội dung câu hỏi này cho Content Manager">
-                            <span>🚩</span>
-                            <span>Báo lỗi</span>
-                        </button>
+        <div th:replace="~{fragments/question-player :: player(${playerQuestions}, false, ${paper.attempt.exam.id}, ${paper.title})}"></div>
+        <section th:unless="${#lists.isEmpty(paper.writing)}" class="mb-4">
+            <nav class="d-flex flex-wrap gap-2 mb-3" aria-label="Câu hỏi viết">
+                <button th:each="q, stat : ${paper.writing}" type="button" class="writing-number" data-writing-tab
+                        th:classappend="${stat.first ? 'current' : ''}" th:attr="data-writing-target=${q.key},aria-pressed=${stat.first}" th:text="${'Câu ' + q.no}"></button>
+            </nav>
+            <p class="small text-muted">Không màu: chưa làm · Nền vàng: chưa hoàn thành · Nền xanh: hoàn thành · Viền xanh: đang xem · Viền ngoài vàng: chưa chắc. Câu 51–52 cần đủ hai ô; câu 53: 200–300 ký tự, câu 54: 600–700 ký tự. Bạn vẫn có thể nộp bài đang viết dở.</p>
+            <article th:each="q, stat : ${paper.writing}" class="qp-writing exam-writing-question" th:attr="data-writing-question=${q.key}" th:hidden="${!stat.first}">
+                <div class="d-flex flex-column gap-3">
+                    <div th:replace="~{fragments/writing-form :: prompt(${q.no}, ${q.prompt}, ${q.id}, ${q.image}, ${q.chart}, ${paper.attempt.exam.id}, ${paper.title}, false, false)}"></div>
+                    <div th:replace="~{fragments/writing-form :: editor(${q.no}, ${q.selected}, ${q.key}, false, ~{::examWritingHint})}">
+                        <p th:fragment="examWritingHint" class="small text-muted mb-0">Bài đã nộp được khóa chỉnh sửa. Kết quả được cập nhật sau khi Giáo viên chấm.</p>
                     </div>
-                    <p class="text-muted" th:text="${q.instruction}"></p>
-                    <audio th:if="${q.audio != null}" controls preload="none" class="w-100 mb-3" th:src="${q.audio}"></audio>
-                    <img th:if="${q.image != null}" th:src="${q.image}" alt="Hình của câu hỏi" style="max-width:100%;max-height:400px" class="mb-3">
-                    <div th:if="${q.passage != null}" class="p-3 rounded-3 mb-3" style="background:#F8F6EF;white-space:pre-wrap" th:text="${q.passage}"></div>
-                    <p class="fw-semibold" style="white-space:pre-wrap" th:text="${q.prompt}"></p>
-                    <label th:each="option, stat : ${q.options}" class="d-flex align-items-center gap-3 border rounded-3 p-3 mb-2">
-                        <input type="radio" th:name="${q.key}" th:value="${stat.count}" th:checked="${q.selected == #strings.toString(stat.count)}">
-                        <strong th:text="${stat.count}"></strong>
-                        <img th:if="${option.image != null}" th:src="${option.image}" alt="Hình đáp án" style="max-width:85%;max-height:220px">
-                        <span th:unless="${option.image != null}" th:text="${option.text}"></span>
-                    </label>
-                </article>
-            </th:block>
-            <th:block th:if="${section.skill.name() == 'WRITING'}">
-                <article th:each="q : ${paper.writing}" class="bg-white border rounded-4 p-4 mb-4 shadow-sm">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h2 class="h6 fw-bold mb-0" th:text="${'Viết · Câu ' + q.no}"></h2>
-                        <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 rounded-3 px-2 py-1"
-                                style="font-size: 12px; font-weight: 600; border-color: #FFA39E; color: #CF1322;"
-                                th:attr="data-kind='WRITING', data-qid=${q.id}, data-code=${'Viết · Câu ' + q.no}, data-prompt=${q.prompt}, data-examid=${paper.attempt.exam.id}, data-examtitle=${paper.title}, data-no=${q.no}"
-                                onclick="openReportModalFromBtn(this)"
-                                title="Báo lỗi câu viết này cho Content Manager">
-                            <span>🚩</span>
-                            <span>Báo lỗi</span>
-                        </button>
-                    </div>
-                    <p style="white-space:pre-wrap" th:text="${q.prompt}"></p>
-                    <img th:if="${q.image != null}" th:src="${q.image}" alt="Biểu đồ đề bài" style="max-width:100%;max-height:400px" class="mb-3">
-                    <table th:unless="${#lists.isEmpty(q.chart)}" class="table table-bordered"><tbody>
-                        <tr th:each="row : ${q.chart}"><th th:text="${row['label']}"></th><td th:text="${row['value']}"></td></tr>
-                    </tbody></table>
-                    <label th:for="${q.key}" class="form-label">Bài làm của bạn</label>
-                    <textarea class="form-control" th:id="${q.key}" th:name="${q.key}" th:rows="${q.no &lt;= 52 ? 5 : 15}"
-                              maxlength="6000" th:placeholder="${q.no &lt;= 52 ? '㉠: ...&#10;㉡: ...' : 'Nhập bài viết bằng tiếng Hàn'}" th:text="${q.selected}"></textarea>
-                </article>
-            </th:block>
-        </th:block>
-        <button type="submit" class="btn btn-success btn-lg mb-4">Nộp bài</button>
+                    <button type="button" class="btn btn-sm btn-outline-warning align-self-start writing-uncertain" data-writing-uncertain aria-pressed="false">Chưa chắc</button>
+                </div>
+            </article>
+        </section>
+        <aside th:if="${#lists.isEmpty(playerQuestions)}" class="qp-player qp-sidebar mb-4 ms-auto" style="max-width:320px">
+            <div class="qp-card"><h2>Phiếu câu hỏi</h2>
+                <p>Bài thi kỹ năng Viết</p>
+                <button type="submit" class="qp-button qp-submit">Nộp bài</button>
+            </div>
+        </aside>
     </form>
 </main>
+<div id="examSubmitNotice" class="ssak-modal-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="examSubmitTitle">
+    <div class="ssak-modal" style="width:600px;max-width:95vw">
+        <h3 id="examSubmitTitle">Nộp bài và gửi Giáo viên chấm?</h3>
+        <p id="examSubmitSummary" style="white-space:pre-line"></p>
+        <p>Gửi Giáo viên chấm sẽ gửi toàn bộ 4 câu Viết, kể cả câu chưa làm hoặc chưa hoàn thành. Hủy gửi sẽ chỉ lưu bài đã nộp; bạn có thể gửi chấm sau từ trang kết quả.</p>
+        <p th:unless="${currentUser.vip}" class="small">Muốn Giáo viên chấm bài, hãy <a th:href="@{/vip}">đăng ký VIP</a>.</p>
+        <div class="d-flex justify-content-end flex-wrap gap-2">
+            <button type="button" class="btn btn-outline-secondary" id="examContinue">Quay lại làm tiếp</button>
+            <button type="button" class="btn btn-outline-primary" id="examCancelSubmit">Hủy (chỉ nộp bài)</button>
+            <button th:if="${currentUser.vip}" type="button" class="btn btn-success" id="examConfirmSubmit">Gửi Giáo viên chấm</button>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/writing-form.js}"></script>
 <script th:inline="javascript">
+document.querySelectorAll('[data-writing-tab]').forEach(button => button.addEventListener('click', () => {
+    document.querySelectorAll('[data-writing-tab]').forEach(tab => {
+        const active = tab === button;
+        tab.classList.toggle('current', active); tab.setAttribute('aria-pressed', String(active));
+        if (active) tab.setAttribute('aria-current', 'step'); else tab.removeAttribute('aria-current');
+    });
+    document.querySelectorAll('[data-writing-question]').forEach(question => { question.hidden = question.dataset.writingQuestion !== button.dataset.writingTarget; });
+}));
+function refreshWritingStates() {
+    document.querySelectorAll('[data-writing-question]').forEach(q => {
+        const tab = document.querySelector('[data-writing-tab][data-writing-target="'+q.dataset.writingQuestion+'"]');
+        if (!tab) return;
+        const state = writingAnswerState(q.querySelector('[data-writing-editor]'));
+        const uncertain = q.dataset.uncertain === 'true';
+        q.dataset.answerState = state;
+        tab.classList.toggle('complete', state === 'complete');
+        tab.classList.toggle('partial', state === 'partial');
+        tab.classList.toggle('uncertain', uncertain);
+        tab.setAttribute('aria-label', tab.textContent + ': ' + writingStateLabels[state] + (uncertain ? ', chưa chắc' : ''));
+        const flag = q.querySelector('[data-writing-uncertain]');
+        flag.setAttribute('aria-pressed', String(uncertain));
+        flag.textContent = uncertain ? 'Bỏ “Chưa chắc”' : 'Chưa chắc';
+    });
+}
+const writingStateLabels = {empty:'Chưa làm', partial:'Chưa hoàn thành', complete:'Hoàn thành'};
+const flagStorageKey = 'hottopik-writing-flags:' + document.getElementById('examForm').getAttribute('action');
+let writingFlags = {};
+try { writingFlags = JSON.parse(sessionStorage.getItem(flagStorageKey) || '{}') || {}; } catch (_) {}
+document.querySelectorAll('[data-writing-question]').forEach(q => { q.dataset.uncertain = writingFlags[q.dataset.writingQuestion] === true ? 'true' : 'false'; });
+document.querySelectorAll('[data-writing-uncertain]').forEach(button => button.addEventListener('click', () => {
+    const q = button.closest('[data-writing-question]');
+    q.dataset.uncertain = q.dataset.uncertain === 'true' ? 'false' : 'true';
+    writingFlags[q.dataset.writingQuestion] = q.dataset.uncertain === 'true';
+    try { sessionStorage.setItem(flagStorageKey, JSON.stringify(writingFlags)); } catch (_) {}
+    refreshWritingStates();
+}));
+document.querySelectorAll('[data-writing-editor]').forEach(editor => editor.addEventListener('input', refreshWritingStates));
+refreshWritingStates();
 const form = document.getElementById('examForm');
 const saveUrl = /*[[@{/exam/attempt/{id}/save(id=${paper.attempt.id})}]]*/ '';
 const resultUrl = /*[[@{/ket-qua/{id}(id=${paper.attempt.id})}]]*/ '';
+const submitUrl = /*[[@{/exam/attempt/{id}/submit(id=${paper.attempt.id})}]]*/ '';
+const teacherUrl = /*[[@{/exam/attempt/{id}/submit-teacher(id=${paper.attempt.id})}]]*/ '';
 let seconds = /*[[${paper.remainingSeconds}]]*/ 0;
 let leaving = false, saving = Promise.resolve(), queued = false;
+// Autosave nối các yêu cầu bằng Promise, tránh ghi đè do response về khác thứ tự; gửi FormData của cả form.
+// Server trả remainingSeconds/completed; trình duyệt cập nhật giờ hoặc chuyển kết quả khi lượt đã kết thúc.
 function saveAnswers() {
     if (leaving) return saving;
     if (queued) return saving;
@@ -89,7 +117,7 @@ function saveAnswers() {
             if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) throw new Error('save');
             const data = await response.json();
             if (data.completed) { leaving = true; window.location.href = resultUrl; return; }
-            seconds = data.remainingSeconds;
+            seconds = Math.min(seconds, data.remainingSeconds);
             document.getElementById('saveStatus').textContent = 'Đã lưu câu trả lời.';
         } catch (error) {
             document.getElementById('saveStatus').textContent = 'Chưa lưu được. Kiểm tra kết nối và bấm Lưu và thoát để lưu lại.';
@@ -97,6 +125,8 @@ function saveAnswers() {
     });
     return saving;
 }
+// Chọn đáp án lưu ngay; gõ bài Viết debounce 1 giây và có lưu định kỳ 15 giây.
+// Trước khi nộp/dừng chờ yêu cầu đang lưu xong; pagehide gửi beacon để lưu/dừng nếu rời trang ngoài luồng chuẩn.
 form.addEventListener('change', saveAnswers);
 let typing;
 form.addEventListener('input', () => { clearTimeout(typing); typing = setTimeout(saveAnswers, 1000); });
@@ -105,15 +135,40 @@ form.addEventListener('submit', async event => {
     event.preventDefault();
     if (leaving) return;
     const action = event.submitter?.getAttribute('formaction') || form.action;
-    if (action.endsWith('/submit') && seconds > 0 && !confirm('Bạn muốn nộp bài?')) return;
-    leaving = true;
-    await saving.catch(() => {});
+    if (!action.endsWith('/pause') && form.dataset.writingSubmit === 'true' && form.dataset.timedOut !== 'true') {
+        refreshWritingStates();
+        const states = [...document.querySelectorAll('[data-writing-question]')].map(q => {
+            const no = q.querySelector('[data-writing-editor]').dataset.writingNo;
+            return 'Câu ' + no + ': ' + writingStateLabels[q.dataset.answerState] + (q.dataset.uncertain === 'true' ? ' · Chưa chắc' : '');
+        });
+        const mc = [...document.querySelectorAll('.qp-question')];
+        if (mc.length) states.unshift('Trắc nghiệm: đã làm ' + mc.filter(q => q.querySelector('input:checked')).length + '/' + mc.length + ' câu.');
+        document.getElementById('examSubmitSummary').textContent = states.join('\n');
+        const box = document.getElementById('examSubmitNotice');
+        box.classList.add('show'); box.setAttribute('aria-hidden', 'false');
+        document.getElementById('examContinue').focus();
+        return;
+    }
+    await finishExam(action);
+});
+function closeSubmitNotice() {
+    const box = document.getElementById('examSubmitNotice');
+    box.classList.remove('show'); box.setAttribute('aria-hidden', 'true');
+}
+async function finishExam(action) {
+    if (leaving) return;
+    leaving = true; clearTimeout(typing); closeSubmitNotice();
+    if (form.dataset.timedOut !== 'true') await saving.catch(() => {});
     form.action = action;
     HTMLFormElement.prototype.submit.call(form);
-});
+}
+document.getElementById('examContinue').addEventListener('click', closeSubmitNotice);
+document.getElementById('examCancelSubmit').addEventListener('click', () => finishExam(submitUrl));
+document.getElementById('examConfirmSubmit')?.addEventListener('click', () => finishExam(teacherUrl));
+// Đồng hồ hiển thị giảm mỗi giây; hết giờ gắn timedOut để bỏ modal và nộp ngay. Server vẫn là nơi quyết định thời gian thật.
 function tick() {
     document.getElementById('timer').textContent = Math.floor(seconds / 60).toString().padStart(2, '0') + ':' + (seconds % 60).toString().padStart(2, '0');
-    if (seconds <= 0 && !leaving) form.requestSubmit();
+    if (seconds <= 0 && !leaving) { form.dataset.timedOut = 'true'; form.requestSubmit(); }
     seconds = Math.max(0, seconds - 1);
 }
 tick(); setInterval(tick, 1000);

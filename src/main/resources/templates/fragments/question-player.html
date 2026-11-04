@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi"><body>
+<th:block th:fragment="assets">
+    <link rel="stylesheet" th:href="@{/css/question-player.css}">
+    <script th:src="@{/js/question-player.js}" defer></script>
+</th:block>
+<!--
+    Form chung Nghe/Đọc nhận các DTO items đã chuẩn hóa; hidden chỉ đổi câu đang xem, không loại input khỏi form.
+    Native radio giữ tên field backend yêu cầu. preview quyết định dùng đáp án nhúng hay gọi API, không dùng cho kỹ năng Viết.
+-->
+<div th:fragment="player(items, preview, examId, title)" class="qp-player" th:attr="data-preview=${preview},data-checked-json=${checkedAnswersJson}">
+    <div class="qp-layout" th:unless="${#lists.isEmpty(items)}">
+        <div class="qp-main">
+            <section th:each="q, stat : ${items}" class="qp-question" th:hidden="${!stat.first}"
+                     th:attr="data-key=${q.key},data-skill=${q.skill},data-check-url=${q.checkUrl},data-answer=${q.answer}"
+                     th:id="${'player-' + q.key}">
+                <div class="qp-card">
+                    <div class="qp-tags"><span class="qp-pill" th:text="${'Câu ' + stat.count}"></span>
+                        <span class="qp-pill qp-skill" th:text="${q.label}"></span>
+                        <span class="qp-flag-note" hidden>Bạn đánh dấu chưa chắc</span>
+                    </div>
+                    <p class="qp-instruction" th:text="${q.instruction}"></p>
+                    <div class="qp-audio" th:if="${q.skill == 'LISTENING' and q.audio != null and !#strings.isEmpty(q.audio)}">
+                        <span aria-hidden="true">▶</span>
+                        <div><audio controls preload="none" th:src="${q.audio}" aria-label="Âm thanh câu hỏi"></audio>
+                            <small>Bấm để nghe, nghe lại thoải mái</small></div>
+                    </div>
+                    <div class="qp-passage" th:if="${q.passage != null and !#strings.isEmpty(q.passage)}" th:text="${q.passage}"></div>
+                    <a class="qp-question-image" th:if="${q.image != null}" th:href="${q.image}" target="_blank" rel="noopener" title="Mở ảnh kích thước đầy đủ">
+                        <img th:src="${q.image}" alt="Hình câu hỏi"><small>Mở ảnh lớn ↗</small>
+                    </a>
+                    <h2 class="qp-prompt" th:text="${q.prompt}"></h2>
+                    <!--
+                        Thymeleaf render 4 lựa chọn thành text hoặc ảnh theo option; CSS/JS tự chọn bố cục ảnh, chữ dài.
+                        q.selected phục hồi lựa chọn server đã lưu; qp-verdict/qp-feedback do JavaScript cập nhật sau Kiểm tra.
+                    -->
+                    <div class="qp-options">
+                        <label class="qp-option" th:each="option, opt : ${q.options}">
+                            <input type="radio" th:name="${q.key}" th:value="${opt.count}"
+                                   th:checked="${q.selected == #strings.toString(opt.count)}">
+                            <span class="qp-option-no" th:text="${opt.count}"></span>
+                            <span class="qp-option-content">
+                                <img th:if="${option.image != null}" th:src="${option.image}" th:alt="${'Hình đáp án ' + opt.count}">
+                                <span th:if="${option.text != null}" th:text="${option.text}"></span>
+                            </span>
+                            <small class="qp-verdict"></small>
+                        </label>
+                    </div>
+                    <div class="qp-feedback" hidden role="status">
+                        <h3 class="qp-feedback-title"></h3><p class="qp-explanation"></p>
+                        <div class="qp-listening-feedback" th:if="${q.skill == 'LISTENING'}">
+                            <details><summary>Phụ đề nghe</summary><p class="qp-script"></p></details>
+                            <details><summary>Dịch phụ đề</summary><p class="qp-translation"></p></details>
+                        </div>
+                    </div>
+                    <p class="qp-error" hidden role="alert"></p>
+                    <div class="qp-preview-feedback" th:if="${preview}" hidden>
+                        <span class="qp-source-explanation" th:text="${q.explanation}"></span>
+                        <span class="qp-source-script" th:text="${q.script}"></span>
+                    </div>
+                </div>
+                <div class="qp-actions">
+                    <button type="button" class="qp-button qp-prev" th:disabled="${stat.first}">← Câu trước</button>
+                    <button type="button" class="qp-button qp-flag" aria-pressed="false">Chưa chắc</button>
+                    <button th:unless="${preview}" type="button" class="qp-report"
+                            th:attr="data-qid=${q.id},data-code=${q.label + ' - Câu ' + q.no},data-prompt=${q.prompt},data-examid=${examId},data-examtitle=${title},data-no=${q.no}"
+                            onclick="openReportModalFromBtn(this)">Báo lỗi câu hỏi</button>
+                    <div class="qp-actions-end">
+                        <button type="button" class="qp-button qp-next" th:disabled="${stat.last}">Câu tiếp →</button>
+                        <button type="button" class="qp-button qp-primary qp-check" hidden>Kiểm tra</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+        <!--
+            Ma trận dùng cùng thứ tự items với các section câu hỏi; answered/flagged/current do question-player.js đồng bộ.
+        -->
+        <aside class="qp-sidebar">
+            <div class="qp-card"><h2>Phiếu câu hỏi</h2>
+                <nav class="qp-matrix" aria-label="Danh sách câu hỏi">
+                    <button th:each="q, stat : ${items}" type="button" class="qp-number" th:classappend="${stat.first} ? 'current' : ''"
+                            th:attr="data-index=${stat.index},aria-current=${stat.first ? 'step' : null}" th:text="${stat.count}"></button>
+                </nav>
+                <p class="qp-current-label" aria-live="polite"></p><div class="qp-legend"><span><i class="qp-done"></i>Đã trả lời</span><span><i class="qp-mark"></i>Chưa chắc</span><span><i></i>Chưa làm</span></div>
+                <p class="qp-progress" aria-live="polite"></p>
+                <button type="button" class="qp-button qp-submit">Nộp bài</button>
+            </div>
+            <div class="qp-tip"><strong>GỢI Ý LÀM BÀI</strong><p>Đọc kỹ yêu cầu trước khi chọn đáp án. Đánh dấu “Chưa chắc” để quay lại kiểm tra. Phím 1–4 chọn đáp án, Enter kiểm tra, ← → chuyển câu.</p></div>
+        </aside>
+    </div>
+    <div class="modal fade qp-submit-modal" tabindex="-1" aria-label="Xác nhận nộp bài" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered"><div class="modal-content qp-confirm">
+            <h2>Nộp bài nhé?</h2>
+            <div class="qp-summary"><div><strong class="qp-summary-answered">0</strong><span>Đã trả lời</span></div><div><strong class="qp-summary-empty">0</strong><span>Chưa làm</span></div><div><strong class="qp-summary-flagged">0</strong><span>Chưa chắc</span></div></div>
+            <p>Các câu “Chưa chắc” có thể đã chọn đáp án. Câu chưa làm sẽ không được tính đúng.</p>
+            <p class="qp-preview-notice" th:if="${preview}">Đây là bản xem thử. Kết quả không được lưu vào lịch sử người học.</p>
+            <div class="qp-confirm-actions"><button type="button" class="qp-button" data-bs-dismiss="modal">Làm tiếp</button><button type="button" class="qp-button qp-primary qp-confirm-submit">Nộp bài</button></div>
+        </div></div>
+    </div>
+    <div class="qp-preview-result" hidden role="status"></div>
+</div>
+</body></html>

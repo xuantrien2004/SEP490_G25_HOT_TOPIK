@@ -34,6 +34,7 @@ public class TeacherPortalController {
     public String dashboard(@RequestParam(value = "tab", defaultValue = "queue") String tab,
                             @RequestParam(value = "qf", defaultValue = "0") int qf,
                             @RequestParam(value = "sel", required = false) String sel,
+                            @RequestParam(value = "preview", required = false) String preview,
                             Model model,
                             HttpSession session) {
 
@@ -53,7 +54,7 @@ public class TeacherPortalController {
         // Tab counts
         List<WritingSubmissionDTO> all = writingSubmissionService.getAllSubmissions();
         long queueCount = all.stream().filter(s -> "waiting".equalsIgnoreCase(s.getStatus())).count();
-        long mineCount = all.stream().filter(s -> "claimed".equalsIgnoreCase(s.getStatus())).count();
+        long mineCount = all.stream().filter(s -> "claimed".equalsIgnoreCase(s.getStatus()) && Objects.equals(s.getMentorId(), currentUser.getId())).count();
         long doneCount = all.stream().filter(s -> "graded".equalsIgnoreCase(s.getStatus())).count();
         long appealCount = all.stream().filter(s -> "appeal".equalsIgnoreCase(s.getStatus())).count();
 
@@ -69,9 +70,16 @@ public class TeacherPortalController {
                 WritingSubmissionDTO selected = selectedOpt.get();
                 model.addAttribute("showDesk", true);
                 model.addAttribute("deskItem", selected);
-                model.addAttribute("isClaimedByMe", "claimed".equalsIgnoreCase(selected.getStatus()) || "appeal".equalsIgnoreCase(selected.getStatus()));
+                model.addAttribute("isClaimedByMe", Objects.equals(selected.getMentorId(), currentUser.getId()) && ("claimed".equalsIgnoreCase(selected.getStatus()) || "appeal".equalsIgnoreCase(selected.getStatus())));
                 return "teacher/dashboard";
             }
+        }
+
+        if (preview != null && !preview.trim().isEmpty()) {
+            writingSubmissionService.getById(preview).ifPresent(p -> {
+                model.addAttribute("previewItem", p);
+                model.addAttribute("showPreview", true);
+            });
         }
 
         // Otherwise show submission list for current tab
@@ -80,7 +88,7 @@ public class TeacherPortalController {
         switch (tab.toLowerCase()) {
             case "mine":
                 tabList = all.stream()
-                        .filter(s -> "claimed".equalsIgnoreCase(s.getStatus()))
+                        .filter(s -> "claimed".equalsIgnoreCase(s.getStatus()) && Objects.equals(s.getMentorId(), currentUser.getId()))
                         .collect(Collectors.toList());
                 break;
             case "done":
@@ -112,6 +120,15 @@ public class TeacherPortalController {
         }
 
         model.addAttribute("submissionList", tabList);
+
+        // An bai dang xem truoc khoi danh sach
+        if (preview != null && !preview.trim().isEmpty()) {
+            final String previewId = preview.trim();
+            tabList = tabList.stream()
+                    .filter(s -> !previewId.equals(s.getId()))
+                    .collect(Collectors.toList());
+            model.addAttribute("submissionList", tabList);
+        }
         return "teacher/dashboard";
     }
 
@@ -120,8 +137,8 @@ public class TeacherPortalController {
                         HttpSession session,
                         RedirectAttributes redirectAttributes) {
         UserDTO user = AuthHelper.getLoggedInUser(session);
-        String teacherName = user != null ? user.getFullName() : "Cô Mai";
-        boolean ok = writingSubmissionService.claimSubmission(id, teacherName);
+        if (user == null || (!user.isMentor() && !user.isAdmin())) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN);
+        boolean ok = writingSubmissionService.claimSubmission(id, user);
         if (ok) {
             redirectAttributes.addFlashAttribute("successMessage", "Đã nhận bài thành công! Bạn có 48 giờ để hoàn tất chấm.");
             return "redirect:/teacher?tab=mine&sel=" + id;
@@ -129,6 +146,15 @@ public class TeacherPortalController {
             redirectAttributes.addFlashAttribute("errorMessage", "Không thể nhận bài này hoặc bài đã có giáo viên khác nhận.");
             return "redirect:/teacher?tab=queue";
         }
+    }
+
+    @PostMapping("/teacher/reject")
+    public String reject(@RequestParam("id") String id, @RequestParam(value = "reason", required = false, defaultValue = "") String reason, HttpSession session, RedirectAttributes flash) {
+        UserDTO user = AuthHelper.getLoggedInUser(session);
+        if (user == null || (!user.isMentor() && !user.isAdmin())) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN);
+        if (writingSubmissionService.rejectSubmission(id, user, reason)) flash.addFlashAttribute("successMessage", "Da tu choi yeu cau cham; bai van duoc giu trong lich su luyen tap cua hoc vien.");
+        else flash.addFlashAttribute("errorMessage", "Bài không còn ở trạng thái chờ nhận.");
+        return "redirect:/teacher?tab=queue";
     }
 
     @PostMapping("/teacher/grade")
@@ -140,7 +166,7 @@ public class TeacherPortalController {
                         RedirectAttributes redirectAttributes) {
 
         UserDTO user = AuthHelper.getLoggedInUser(session);
-        String teacherName = user != null ? user.getFullName() : "Cô Mai";
+        if (user == null || (!user.isMentor() && !user.isAdmin())) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN);
 
         Optional<WritingSubmissionDTO> subOpt = writingSubmissionService.getById(id);
         if (!subOpt.isPresent()) {
@@ -164,7 +190,10 @@ public class TeacherPortalController {
         }
 
         // Model answer is optional as requested by user!
-        boolean ok = writingSubmissionService.gradeSubmission(id, teacherName, criteriaScoresMap, overallFeedback, modelAnswer);
+        try {
+        boolean ok = writingSubmissionService.gradeSubmission(id, user, criteriaScoresMap,
+                request.getParameter("totalScore") == null || request.getParameter("totalScore").isBlank() ? null : Integer.valueOf(request.getParameter("totalScore")),
+                overallFeedback, modelAnswer, request.getParameter("appealDecision"), request.getParameter("appealMessage"));
         if (ok) {
             redirectAttributes.addFlashAttribute("successMessage", "Đã gửi kết quả chấm bài thành công cho học viên " + sub.getLearnerName() + "!");
             return "redirect:/teacher?tab=done&sel=" + id;
@@ -172,17 +201,22 @@ public class TeacherPortalController {
             redirectAttributes.addFlashAttribute("errorMessage", "Có lỗi xảy ra khi lưu kết quả chấm bài.");
             return "redirect:/teacher?tab=mine&sel=" + id;
         }
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+            return "redirect:/teacher?tab=mine&sel=" + id;
+        }
     }
 
     @PostMapping("/teacher/reply-ask")
     public String replyAsk(@RequestParam("id") String id,
                            @RequestParam("reply") String reply,
+                           HttpSession session,
                            RedirectAttributes redirectAttributes) {
         if (reply == null || reply.trim().length() < 3) {
             redirectAttributes.addFlashAttribute("errorMessage", "Câu trả lời cần ít nhất 3 ký tự.");
             return "redirect:/teacher?tab=done&sel=" + id;
         }
-        boolean ok = writingSubmissionService.replyQuestion(id, reply);
+        boolean ok = writingSubmissionService.replyQuestion(id, AuthHelper.getLoggedInUser(session), reply);
         if (ok) {
             redirectAttributes.addFlashAttribute("successMessage", "Đã gửi câu trả lời giải đáp cho học viên!");
         } else {
@@ -209,7 +243,7 @@ public class TeacherPortalController {
         // Compute teacher stats
         List<WritingSubmissionDTO> all = writingSubmissionService.getAllSubmissions();
         long queueCount = all.stream().filter(s -> "waiting".equalsIgnoreCase(s.getStatus())).count();
-        long mineCount = all.stream().filter(s -> "claimed".equalsIgnoreCase(s.getStatus())).count();
+        long mineCount = all.stream().filter(s -> "claimed".equalsIgnoreCase(s.getStatus()) && Objects.equals(s.getMentorId(), currentUser.getId())).count();
         long doneCount = all.stream().filter(s -> "graded".equalsIgnoreCase(s.getStatus())).count();
 
         model.addAttribute("queueCount", queueCount);
@@ -238,7 +272,7 @@ public class TeacherPortalController {
         String avatar = (String) payload.get("avatar");
         String bio = (String) payload.get("bio");
         String specialty = (String) payload.get("specialty");
-        String timezone = (String) payload.get("timezone");
+        String timezone = null; // Không chỉnh múi giờ tại hồ sơ Giáo viên.
 
         if (fullName == null || fullName.trim().length() < 2 || fullName.trim().length() > 40) {
             resp.put("success", false);

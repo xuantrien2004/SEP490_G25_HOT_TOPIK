@@ -35,25 +35,72 @@ public class WritingSubmissionDTO implements Serializable {
     private String teacherReply;
     private Integer rating;
     private String appealReason;
+    private String rejectReason;
+
+    private Long learnerId;
+    public Long getLearnerId() { return learnerId; }
+    public void setLearnerId(Long value) { this.learnerId = value; }
+    private Long mentorId;
+    public Long getMentorId() { return mentorId; }
+    public void setMentorId(Long value) { this.mentorId = value; }
+    private Long promptId;
+    private Long examAttemptId;
+    public Long getExamAttemptId() { return examAttemptId; }
+    public void setExamAttemptId(Long value) { examAttemptId = value; }
+    public Long getPromptId() { return promptId; }
+    public void setPromptId(Long value) { this.promptId = value; }
+    private boolean appealUsed;
+    public boolean isAppealUsed() { return appealUsed; }
+    public void setAppealUsed(boolean value) { this.appealUsed = value; }
+    private boolean appealResolved;
+    public boolean isAppealResolved() { return appealResolved; }
+    public void setAppealResolved(boolean value) { this.appealResolved = value; }
+    private Integer originalScore;
+    public Integer getOriginalScore() { return originalScore; }
+    public void setOriginalScore(Integer value) { this.originalScore = value; }
+    private String originalFeedback;
+    public String getOriginalFeedback() { return originalFeedback; }
+    public void setOriginalFeedback(String value) { this.originalFeedback = value; }
+    private String originalModelAnswer;
+    public String getOriginalModelAnswer() { return originalModelAnswer; }
+    public void setOriginalModelAnswer(String value) { this.originalModelAnswer = value; }
+    private String originalGradedAt;
+    public String getOriginalGradedAt() { return originalGradedAt; }
+    public void setOriginalGradedAt(String value) { this.originalGradedAt = value; }
+    private String appealMessage;
+    public String getAppealMessage() { return appealMessage; }
+    public void setAppealMessage(String value) { this.appealMessage = value; }
+    private String appealDecision;
+    public String getAppealDecision() { return appealDecision; }
+    public void setAppealDecision(String value) { this.appealDecision = value; }
+    private Long sourceId;
+    public Long getSourceId() { return sourceId; }
+    public void setSourceId(Long value) { sourceId = value; }
+    private String chartFilename;
+    public String getChartFilename() { return chartFilename; }
+    public void setChartFilename(String value) { chartFilename = value; }
+    private String chartImage;
+    public String getChartImage() { return chartImage; }
+    public void setChartImage(String value) { this.chartImage = value; }
 
     public WritingSubmissionDTO() {
     }
 
     public static class ChartItem implements Serializable {
         private String label;
-        private int value;
+        private double value;
         private String width;
 
         public ChartItem() {}
-        public ChartItem(String label, int value, String width) {
+        public ChartItem(String label, double value, String width) {
             this.label = label;
             this.value = value;
             this.width = width;
         }
         public String getLabel() { return label; }
         public void setLabel(String label) { this.label = label; }
-        public int getValue() { return value; }
-        public void setValue(int value) { this.value = value; }
+        public double getValue() { return value; }
+        public void setValue(double value) { this.value = value; }
         public String getWidth() { return width; }
         public void setWidth(String width) { this.width = width; }
     }
@@ -147,6 +194,7 @@ public class WritingSubmissionDTO implements Serializable {
     public void setMaxScore(int maxScore) { this.maxScore = maxScore; }
     public Integer getTotalScore() { return totalScore; }
     public void setTotalScore(Integer totalScore) { this.totalScore = totalScore; }
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public Integer getFinalScore() { return totalScore != null ? totalScore : aiScore; }
     public List<CriterionScore> getCriteriaScores() { return criteriaScores; }
     public void setCriteriaScores(List<CriterionScore> criteriaScores) { this.criteriaScores = criteriaScores; }
@@ -164,4 +212,6 @@ public class WritingSubmissionDTO implements Serializable {
     public void setRating(Integer rating) { this.rating = rating; }
     public String getAppealReason() { return appealReason; }
     public void setAppealReason(String appealReason) { this.appealReason = appealReason; }
+    public String getRejectReason() { return rejectReason; }
+    public void setRejectReason(String rejectReason) { this.rejectReason = rejectReason; }
 }

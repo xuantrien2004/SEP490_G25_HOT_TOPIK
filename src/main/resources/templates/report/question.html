@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="vi">
 <body>
+<!--
+    Fragment dùng chung cho modal CM và chi tiết báo lỗi: render DTO câu gốc, chỉ hiện đáp án/lời giải khi showAnswers.
+    Không có DTO hợp lệ thì hiển thị summary lưu trong báo lỗi thay vì lấy nhầm câu khác.
+-->
 <div th:fragment="content">
     <style>
         .report-question { display: flex; flex-direction: column; gap: 12px; font-size: 15px; line-height: 1.6; font-weight: 400; overflow-wrap: anywhere; }

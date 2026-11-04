@@ -53,6 +53,12 @@ public class PracticeAttempt {
     @Column(name = "started_at", nullable = false, updatable = false)
     private LocalDateTime startedAt;
 
+    @Column(name = "credited_answers_json", length = 4000)
+    private String creditedAnswersJson = "{}";
+
+    @Column(name = "checked_answers_json", length = 4000)
+    private String checkedAnswersJson = "{}";
+
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 }

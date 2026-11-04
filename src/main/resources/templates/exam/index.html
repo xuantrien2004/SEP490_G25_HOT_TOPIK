@@ -278,6 +278,7 @@
 </style>
 
 <script th:inline="javascript">
+// Dữ liệu Card do server xác định trạng thái/URL, Thymeleaf serialize sang JSON; không tự đoán trạng thái từ full mock cha.
 const examsData = /*[[${examData}]]*/ {};
 const params = new URLSearchParams(window.location.search);
 let currentTopTab = ['full', 'listening', 'reading', 'writing'].includes(params.get('kind')) ? params.get('kind') : 'full';
@@ -306,6 +307,8 @@ function actionButton(label, url, primary, post) {
     return post ? `<form method="post" action="${escapeHtml(url)}" style="margin:0"><button type="submit" class="${css}">${escapeHtml(label)}</button></form>`
         : `<a href="${escapeHtml(url)}" class="${css}">${escapeHtml(label)}</a>`;
 }
+// Chọn ngăn theo track + loại đề, render các nút từ Card; ngăn rỗng hiện thông báo chưa phát hành.
+// POST dùng cho bắt đầu/làm lại; GET dùng cho làm tiếp/xem kết quả, giữ nguyên phân tách hành động backend.
 function renderExams() {
     document.querySelectorAll('.exam-top-tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + currentTopTab));
     const container = document.getElementById('examListContainer');
