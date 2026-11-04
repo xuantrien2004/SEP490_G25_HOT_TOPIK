@@ -124,4 +124,14 @@ public class GrammarGroupService {
             );
         }
     }
+    // Lấy chi tiết nhóm ngữ pháp theo ID
+    @Transactional(readOnly = true)
+    public GrammarGroup getGroupById(Integer id) {
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("ID nhóm ngữ pháp không hợp lệ.");
+        }
+
+        return grammarGroupRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nhóm ngữ pháp."));
+    }
 }

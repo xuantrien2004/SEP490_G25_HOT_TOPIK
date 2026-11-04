@@ -432,7 +432,6 @@
                             </td>
 
                             <td style="padding: 14px 14px;">
-                                <!-- Đã sửa để ưu tiên hiển thị explanation, nếu trống sẽ hiển thị notes hoặc ý nghĩa -->
                                 <code style="background: #F4F3EF; padding: 3px 8px; border-radius: 6px; font-size: 12px; color: #2E7D67; font-weight: 700;"
                                       th:text="${g.explanation != null && g.explanation != '' ? g.explanation : (g.notes != null ? g.notes : 'Chưa có cấu trúc')}">
                                     Explanation
@@ -451,7 +450,7 @@
 
                             <td style="padding: 14px 16px; text-align: right;">
                                 <div style="display: inline-flex; gap: 6px;">
-                                    <!-- Nút Sửa bổ sung -->
+                                    <!-- Nút Sửa bổ sung data ví dụ tiếng Hàn & tiếng Việt -->
                                     <button type="button" class="btn-ssak-primary" style="height: 32px; padding: 0 10px; font-size: 12px;"
                                             th:data-id="${g.id}"
                                             th:data-pattern="${g.pattern}"
@@ -460,14 +459,12 @@
                                             th:data-explanation="${g.explanation}"
                                             th:data-status="${g.status}"
                                             th:data-frequent="${g.isFrequent}"
+                                            th:data-ex-kr="${not #lists.isEmpty(g.examples) ? g.examples[0].sentenceKo : ''}"
+                                            th:data-ex-vi="${not #lists.isEmpty(g.examples) ? g.examples[0].sentenceVi : ''}"
                                             onclick="openEditGrammarModal(this)">
                                         Sửa
                                     </button>
-                                    <button type="button" class="btn-ssak-light" style="height: 32px; padding: 0 10px; font-size: 12px;"
-                                            th:data-pattern="${g.pattern}" th:data-meaning="${g.meaning}" th:data-rule="${g.explanation}"
-                                            onclick="viewGrammarDetail(this)">
-                                        Chi tiết
-                                    </button>
+
                                     <button type="button" class="btn-ssak-outline" style="height: 32px; padding: 0 10px; font-size: 12px;"
                                             th:data-id="${g.id}"
                                             onclick="toggleGrammarStatus(this.getAttribute('data-id'))"
@@ -494,7 +491,8 @@
         </main>
     </div>
 </div>
-<!-- MODAL: SỬA NGỮ PHÁP -->
+
+<!-- MODAL: SỬA NGỮ PHÁP (ĐÃ THÊM Ô NHẬP VÍ DỤ TIẾNG HÀN & TIẾNG VIỆT) -->
 <div class="modal fade" id="modalEditGrammar" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="border-radius: 20px; border: 2px solid var(--ssak-border); padding: 8px;">
@@ -546,6 +544,18 @@
                                 <option value="HIDDEN">Tạm ẩn</option>
                             </select>
                         </div>
+                    </div>
+
+                    <!-- Trường nhập Ví dụ câu tiếng Hàn -->
+                    <div>
+                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Ví dụ câu tiếng Hàn</label>
+                        <textarea id="editGExKr" class="form-control ssak-input" rows="2" placeholder="Ví dụ: 비가 와서 집에 있었어요." style="font-family: var(--font-korean);"></textarea>
+                    </div>
+
+                    <!-- Trường nhập Dịch nghĩa ví dụ tiếng Việt -->
+                    <div>
+                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Dịch nghĩa ví dụ tiếng Việt</label>
+                        <textarea id="editGExVi" class="form-control ssak-input" rows="2" placeholder="Ví dụ: Vì trời mưa nên tôi đã ở nhà."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px;">
@@ -820,7 +830,7 @@
             pattern: document.getElementById('gPattern').value.trim(),
             translation: document.getElementById('gTranslation').value.trim(),
             meaning: document.getElementById('gMeaning').value.trim(),
-            explanation: document.getElementById('gExplanation').value.trim(), // <-- Thêm trường này vào payload
+            explanation: document.getElementById('gExplanation').value.trim(),
             status: document.getElementById('gStatus').value,
             isFrequent: document.getElementById('gImportance').value === 'IMPORTANT',
             examples: [
@@ -959,7 +969,9 @@
                 window.location.reload();
             });
     }
-    // Mở Modal Sửa và đổ dữ liệu cũ vào form
+
+    // Mở Modal Sửa và đổ dữ liệu cũ (bao gồm ví dụ) vào form
+    // Mở Modal Sửa và đổ dữ liệu cũ (bao gồm ví dụ) vào form
     function openEditGrammarModal(btn) {
         document.getElementById('editGrammarId').value = btn.getAttribute('data-id') || '';
         document.getElementById('editGPattern').value = btn.getAttribute('data-pattern') || '';
@@ -971,22 +983,35 @@
         const isFreq = btn.getAttribute('data-frequent') === 'true';
         document.getElementById('editGImportance').value = isFreq ? 'IMPORTANT' : 'NORMAL';
 
+        // Đổ chính xác câu ví dụ tiếng Hàn và tiếng Việt đã lưu trong database ra ô input để quản trị viên kiểm tra/sửa lại
+        document.getElementById('editGExKr').value = btn.getAttribute('data-ex-kr') || '';
+        document.getElementById('editGExVi').value = btn.getAttribute('data-ex-vi') || '';
+
         new bootstrap.Modal(document.getElementById('modalEditGrammar')).show();
     }
 
-    // Gửi request cập nhật dữ liệu lên Backend khi bấm Lưu trong modal sửa
+    // Gửi request cập nhật dữ liệu kèm ví dụ lên Backend khi bấm Lưu trong modal sửa
     function handleUpdateGrammar(e) {
         e.preventDefault();
         const id = document.getElementById('editGrammarId').value;
+        const levelVal = document.getElementById('currentViewLevel')?.value; // Lấy cấp độ hiện tại của trang
 
         const payload = {
             id: parseInt(id),
+            level: levelVal ? parseInt(levelVal) : 1, // Bổ sung trường level ở đây để không bị lỗi validate
+            groupId: parseInt(document.getElementById('currentGroupId')?.value || '1'), // Bổ sung groupId nếu cần
             pattern: document.getElementById('editGPattern').value.trim(),
             translation: document.getElementById('editGTranslation').value.trim(),
             meaning: document.getElementById('editGMeaning').value.trim(),
             explanation: document.getElementById('editGExplanation').value.trim(),
             status: document.getElementById('editGStatus').value,
-            isFrequent: document.getElementById('editGImportance').value === 'IMPORTANT'
+            isFrequent: document.getElementById('editGImportance').value === 'IMPORTANT',
+            examples: [
+                {
+                    sentenceKo: document.getElementById('editGExKr').value.trim(),
+                    sentenceVi: document.getElementById('editGExVi').value.trim()
+                }
+            ]
         };
 
         fetch('/content/grammar/update', {

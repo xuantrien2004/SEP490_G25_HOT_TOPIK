@@ -117,7 +117,18 @@
 
     <!-- MAIN CONTENT CARDS GRID (3 COLUMNS) -->
     <div id="cardsGridContainer" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
-        <!-- Rendered dynamically by JS to allow seamless switching between levels & tabs -->
+        <th:block th:if="${currentTab == 'grammar' and grammarGroups != null}">
+            <a th:each="group : ${grammarGroups}" th:href="@{/theory/grammar-list(groupId=${group.id})}" class="topic-card" style="text-decoration: none;">
+                <div class="topic-icon-box" th:text="${group.groupNo}">1</div>
+                <div style="flex-grow: 1; min-width: 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+                        <span style="font-family: var(--font-heading); font-size: 15px; font-weight: 800; color: #24363D; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" th:text="${group.nameVi}">Tên nhóm</span>
+                        <span style="font-size: 12px; font-weight: 800; color: #2E7D67; flex-shrink: 0; margin-left: 8px;">Khám phá ngay</span>
+                    </div>
+                    <div style="height: 6px; border-radius: 3px; background: #EFECE3; overflow: hidden;"><div style="width: 100%; height: 100%; background: #2E7D67; border-radius: 3px;"></div></div>
+                </div>
+            </a>
+        </th:block>
     </div>
 
 </main>
@@ -242,8 +253,8 @@
 </style>
 
 <script th:inline="javascript">
-let currentCategory = 'vocab'; // 'vocab', 'grammar', 'hanja', 'special'
-let currentLevel = 1;          // 1 .. 6
+let currentCategory = /*[[${currentTab}]]*/ 'vocab';
+let currentLevel = /*[[${selectedLevel != null ? selectedLevel : 1}]]*/ 1;
 
 // Server Database Topics gom nhóm theo TOPIK level (1 đến 6)
 const serverTopicsByLevel = /*[[${topicsByLevel}]]*/ {};
@@ -316,32 +327,11 @@ function switchTheoryCategory(cat) {
         window.location.href = '/ly-thuyet/dac-thu';
         return;
     }
-    currentCategory = cat;
-    document.querySelectorAll('.theory-main-tab').forEach(t => t.classList.remove('active'));
-    const activeTabEl = document.getElementById('tab-' + cat);
-    if (activeTabEl) activeTabEl.classList.add('active');
-
-    const levelRow = document.getElementById('levelSelectorRow');
-    if (cat === 'vocab' || cat === 'grammar') {
-        levelRow.style.display = 'flex';
-    } else {
-        levelRow.style.display = 'none'; // Hanja & Special have standalone structure
-    }
-
-    if (window.history && window.history.replaceState) {
-        const newUrl = cat === 'grammar' ? '/ly-thuyet?tab=grammar' : '/ly-thuyet';
-        window.history.replaceState(null, '', newUrl);
-    }
-
-    renderCards();
+    window.location.href = `/ly-thuyet?tab=${cat}&level=${currentLevel}`;
 }
 
 function selectLevel(lvl) {
-    currentLevel = lvl;
-    document.querySelectorAll('.level-btn').forEach((btn, idx) => {
-        btn.classList.toggle('active', (idx + 1) === lvl);
-    });
-    renderCards();
+    window.location.href = `/ly-thuyet?tab=${currentCategory}&level=${lvl}`;
 }
 
 function renderCards(filterQuery = '') {
@@ -423,6 +413,13 @@ function renderCards(filterQuery = '') {
 }
 
 function handleSearch(val) {
+    if (currentCategory === 'grammar') {
+        const q = val.toLowerCase().trim();
+        document.querySelectorAll('#cardsGridContainer .topic-card').forEach(card => {
+            card.style.display = card.textContent.toLowerCase().includes(q) ? 'flex' : 'none';
+        });
+        return;
+    }
     renderCards(val);
 }
 
@@ -430,9 +427,7 @@ function handleSearch(val) {
 const urlParams = new URLSearchParams(window.location.search);
 const serverTab = /*[[${currentTab}]]*/ 'vocab';
 const initialTab = urlParams.get('tab') || urlParams.get('category') || serverTab;
-if (initialTab === 'grammar') {
-    switchTheoryCategory('grammar');
-} else {
+if (initialTab !== 'grammar') {
     renderCards();
 }
 </script>

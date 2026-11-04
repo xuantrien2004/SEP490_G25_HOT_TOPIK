@@ -1,6 +1,8 @@
 package com.hottopik.service;
 
 import com.hottopik.dto.*;
+import com.hottopik.entity.Review;
+import com.hottopik.repository.ReviewRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +19,6 @@ public class OperationService {
 
     private final Map<Long, OrderDTO> orders = new ConcurrentHashMap<>();
     private final Map<Long, PackagePriceDTO> packagePrices = new ConcurrentHashMap<>();
-    private final Map<Long, ReviewDTO> reviews = new ConcurrentHashMap<>();
     private final Map<Long, AnnouncementDTO> announcements = new ConcurrentHashMap<>();
     private final List<VipCompensationRecordDTO> compensationHistory = Collections.synchronizedList(new ArrayList<>());
     private final AtomicLong annIdGen = new AtomicLong(10);
@@ -33,6 +34,9 @@ public class OperationService {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired(required = false)
+    private ReviewRepository reviewRepository;
+
     @PostConstruct
     public void init() {
         // Seed Orders matching SEP490.sql
@@ -44,11 +48,6 @@ public class OperationService {
         packagePrices.put(1L, new PackagePriceDTO(1L, "PKG-1M", "Gói VIP 1 Tháng", 30, 129000.0, 129000.0, "ACTIVE", "Truy cập mọi tính năng luyện đề & AI 30 ngày"));
         packagePrices.put(2L, new PackagePriceDTO(2L, "PKG-3M", "Gói VIP 3 Tháng", 90, 279000.0, 279000.0, "ACTIVE", "Tiết kiệm 25%, tặng kèm lộ trình bứt tốc TOPIK"));
         packagePrices.put(3L, new PackagePriceDTO(3L, "PKG-LIFE", "Gói VIP Trọn đời", 3650, 499000.0, 499000.0, "ACTIVE", "Sở hữu vĩnh viễn trọn bộ tài nguyên học thi TOPIK"));
-
-        // Seed Reviews matching SEP490.sql
-        reviews.put(1L, new ReviewDTO(1L, "Nguyễn Hoàng Nam", 5, "Hệ thống AI chấm viết rất sát với barem chấm thi TOPIK thật, nhờ vậy mình đã đỗ cấp 5!", true, "2026-10-05 14:00"));
-        reviews.put(2L, new ReviewDTO(2L, "Phạm Minh Anh", 5, "Giao diện Bé Ssak dịu mắt, học từ vựng mỗi ngày không bị áp lực.", true, "2026-10-06 11:20"));
-        reviews.put(3L, new ReviewDTO(3L, "Trần Văn Bình", 4, "Kho từ vựng chia theo chủ đề TOPIK 1-6 rất tiện tra cứu, mong thêm tính năng luyện nghe ngắt quãng.", false, "2026-10-07 08:10"));
 
         // Seed Announcements
         announcements.put(1L, new AnnouncementDTO(1L, "Cập nhật kho từ vựng TOPIK 1-6 chuẩn mới", "Hệ thống vừa cập nhật 800+ từ vựng bám sát đề thi thật tháng 10/2026.", "ALL", "Trần Quốc Tuấn", "2026-10-06 09:00"));
@@ -76,7 +75,18 @@ public class OperationService {
     }
 
     public List<ReviewDTO> getReviews() {
-        return new ArrayList<>(reviews.values());
+        if (reviewRepository == null) return Collections.emptyList();
+        return reviewRepository.findAll().stream().map(r -> {
+            ReviewDTO dto = new ReviewDTO();
+            dto.setId(r.getId());
+            dto.setAuthorName(r.getUser() != null && r.getUser().getDisplayName() != null
+                    ? r.getUser().getDisplayName() : "Học viên HOT TOPIK");
+            dto.setRating(r.getRating() == null ? 5 : r.getRating().intValue());
+            dto.setComment(r.getContent());
+            dto.setApproved("APPROVED".equalsIgnoreCase(r.getStatus()));
+            dto.setCreatedAt(r.getCreatedAt() == null ? "" : r.getCreatedAt().format(FORMATTER));
+            return dto;
+        }).collect(Collectors.toList());
     }
 
     public List<AnnouncementDTO> getAnnouncements() {
@@ -254,9 +264,12 @@ public class OperationService {
     }
 
     public boolean toggleReviewApproval(Long reviewId) {
-        ReviewDTO rev = reviews.get(reviewId);
-        if (rev != null) {
-            rev.setApproved(!rev.isApproved());
+        if (reviewRepository == null) return false;
+        Optional<Review> review = reviewRepository.findById(reviewId);
+        if (review.isPresent()) {
+            Review rev = review.get();
+            rev.setStatus("APPROVED".equalsIgnoreCase(rev.getStatus()) ? "PENDING" : "APPROVED");
+            reviewRepository.save(rev);
             return true;
         }
         return false;

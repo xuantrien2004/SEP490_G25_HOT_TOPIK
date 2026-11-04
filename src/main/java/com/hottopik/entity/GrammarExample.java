@@ -21,10 +21,10 @@ public class GrammarExample {
     )
     private Grammar grammar;
 
-    @Column(name = "sentence_ko", nullable = false, length = 500)
+    @Column(name = "sentence_ko", nullable = false, length = 500, columnDefinition = "nvarchar(500)")
     private String sentenceKo;
 
-    @Column(name = "sentence_vi", nullable = false, length = 500)
+    @Column(name = "sentence_vi", nullable = false, length = 500,columnDefinition = "nvarchar(100)")
     private String sentenceVi;
 
     @Column(name = "sort_order", nullable = false)

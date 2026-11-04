@@ -25,6 +25,7 @@ import java.util.Optional;
  * 2. Khởi tạo sẵn đầy đủ các Dạng/Nhóm ngữ pháp chuẩn từ TOPIK 1 đến TOPIK 6.
  * 3. Khởi tạo sẵn các mẫu ngữ pháp kèm câu ví dụ cụ thể cho từng nhóm để Content Manager và Học viên có sẵn dữ liệu chuẩn để tra cứu, quản lý và demo.
  */
+//@Component
 @Order(25)
 public class GrammarDataSeeder implements ApplicationRunner {
 

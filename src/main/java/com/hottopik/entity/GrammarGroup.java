@@ -32,7 +32,12 @@ public class GrammarGroup {
     @Column(name = "group_no", nullable = false)
     private Short groupNo;
 
-    @Column(name = "name_vi", nullable = false, length = 100)
+    @Column(
+            name = "name_vi",
+            nullable = false,
+            length = 100,
+            columnDefinition = "nvarchar(100)"
+    )
     private String nameVi;
 
     @Column(

@@ -1,4 +1,3 @@
-
 package com.hottopik.service;
 
 import com.hottopik.dto.GrammarExampleForm;
@@ -398,21 +397,62 @@ public class GrammarService {
 
         return value.trim();
     }
+
+    // Cập nhật ngữ pháp (gọi trực tiếp saveGrammar để xử lý đồng bộ cả ví dụ)
+    @Transactional
     public void updateGrammar(GrammarForm form) {
         if (form.getId() == null) {
             throw new IllegalArgumentException("ID ngữ pháp không được để trống khi cập nhật.");
         }
+        saveGrammar(form);
+    }
 
-        Grammar grammar = grammarRepository.findById(form.getId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy mẫu ngữ pháp với ID: " + form.getId()));
+    // Lấy danh sách ngữ pháp theo ID nhóm (Phục vụ hiển thị "Ngữ pháp cùng nhóm")
+    @Transactional(readOnly = true)
+    public List<Grammar> getGrammarsByGroupId(Integer groupId) {
+        if (groupId == null || groupId <= 0) {
+            return new ArrayList<>();
+        }
 
-        grammar.setPattern(form.getPattern());
-        grammar.setTranslation(form.getTranslation());
-        grammar.setMeaning(form.getMeaning());
-        grammar.setExplanation(form.getExplanation());
-        grammar.setStatus(form.getStatus());
-        grammar.setIsFrequent(form.getIsFrequent());
+        return grammarRepository.findByGrammarGroup_IdOrderBySortOrderAscIdAsc(groupId);
+    }
 
-        grammarRepository.save(grammar);
+    // Lấy danh sách ngữ pháp theo cấp độ và trạng thái (Phục vụ hiển thị liên quan khi chưa phân nhóm)
+    @Transactional(readOnly = true)
+    public List<Grammar> getGrammarsByLevelAndStatus(Short level, String status) {
+        if (level == null || level < 1 || level > 6) {
+            return new ArrayList<>();
+        }
+        return filterGrammars(level, null, status, null);
+    }
+
+    // Lấy danh sách ngữ pháp theo nhóm nhưng bắt buộc status = "ACTIVE" cho học viên
+    @Transactional(readOnly = true)
+    public List<Grammar> getActiveGrammarsByGroupIdWithExamples(Integer groupId) {
+        return grammarRepository.findByGrammarGroupIdAndStatusWithExamples(groupId, "ACTIVE");
+    }
+
+    @Transactional(readOnly = true)
+    public List<Grammar> getActiveGrammarsByLevel(Short level) {
+        return grammarRepository.findByLevelAndStatus(level, "ACTIVE");
+    }
+
+    // Lấy danh sách ngữ pháp theo nhóm có kèm theo ví dụ (Fetch Join)
+    @Transactional(readOnly = true)
+    public List<Grammar> getGrammarsByGroupIdWithExamples(Integer groupId) {
+        if (groupId == null || groupId <= 0) {
+            return new ArrayList<>();
+        }
+        return grammarRepository.findByGrammarGroupIdWithExamples(groupId);
+    }
+
+    // Lấy danh sách ngữ pháp theo nhóm và trạng thái có kèm theo ví dụ (Fetch Join)
+    @Transactional(readOnly = true)
+    public List<Grammar> getGrammarsByGroupIdAndStatusWithExamples(Integer groupId, String status) {
+        if (groupId == null || groupId <= 0) {
+            return new ArrayList<>();
+        }
+        String normalizedStatus = normalizeStatus(status);
+        return grammarRepository.findByGrammarGroupIdAndStatusWithExamples(groupId, normalizedStatus);
     }
 }
