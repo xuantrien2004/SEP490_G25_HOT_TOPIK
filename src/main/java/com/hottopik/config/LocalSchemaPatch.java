@@ -53,7 +53,14 @@ public class LocalSchemaPatch {
                         "ALTER TABLE dbo.writing_prompts ALTER COLUMN purpose NVARCHAR(10) NULL",
                         "ALTER TABLE dbo.writing_prompts ALTER COLUMN updated_at DATETIME2 NULL",
                         "IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'question_reports') CREATE TABLE dbo.question_reports (id BIGINT IDENTITY(1,1) PRIMARY KEY, user_id BIGINT NOT NULL, reporter_name NVARCHAR(100) NOT NULL, reporter_email NVARCHAR(255) NOT NULL, question_id BIGINT NULL, question_kind VARCHAR(20) NULL, question_code NVARCHAR(50) NULL, question_summary NVARCHAR(1000) NULL, exam_id BIGINT NULL, exam_title NVARCHAR(255) NULL, question_no INT NULL, issue_type NVARCHAR(100) NOT NULL, details NVARCHAR(2000) NOT NULL, status NVARCHAR(20) NOT NULL DEFAULT 'OPEN', resolution_note NVARCHAR(2000) NULL, rejection_reason NVARCHAR(2000) NULL, reward_coins INT NOT NULL DEFAULT 5, resolved_by NVARCHAR(100) NULL, created_at DATETIME2 NOT NULL DEFAULT GETDATE(), resolved_at DATETIME2 NULL)",
-                        "IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'user_notifications') CREATE TABLE dbo.user_notifications (id BIGINT IDENTITY(1,1) PRIMARY KEY, user_id BIGINT NOT NULL, title NVARCHAR(200) NOT NULL, message NVARCHAR(1000) NOT NULL, type NVARCHAR(50) NULL, link NVARCHAR(500) NULL, is_read BIT NOT NULL DEFAULT 0, created_at DATETIME2 NOT NULL DEFAULT GETDATE())"
+                        "IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'user_notifications') CREATE TABLE dbo.user_notifications (id BIGINT IDENTITY(1,1) PRIMARY KEY, user_id BIGINT NOT NULL, title NVARCHAR(200) NOT NULL, message NVARCHAR(1000) NOT NULL, type NVARCHAR(50) NULL, link NVARCHAR(500) NULL, is_read BIT NOT NULL DEFAULT 0, created_at DATETIME2 NOT NULL DEFAULT GETDATE())",
+                        "IF COL_LENGTH('dbo.vocabularies', 'topic') IS NULL ALTER TABLE dbo.vocabularies ADD topic NVARCHAR(100) NULL",
+                        "IF COL_LENGTH('dbo.vocabularies', 'example_kr') IS NULL ALTER TABLE dbo.vocabularies ADD example_kr NVARCHAR(500) NULL",
+                        "IF COL_LENGTH('dbo.vocabularies', 'example_vi') IS NULL ALTER TABLE dbo.vocabularies ADD example_vi NVARCHAR(500) NULL",
+                        "IF OBJECT_ID('dbo.FK_vocabularies_topic_id', 'F') IS NOT NULL ALTER TABLE dbo.vocabularies NOCHECK CONSTRAINT FK_vocabularies_topic_id",
+                        "ALTER TABLE dbo.vocabularies ALTER COLUMN topic_id INT NULL",
+                        "IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'vocab_topics') AND NOT EXISTS (SELECT 1 FROM dbo.vocab_topics WHERE id = 1) BEGIN SET IDENTITY_INSERT dbo.vocab_topics ON; INSERT INTO dbo.vocab_topics (id, level, name_vi, name_ko, icon_char, sort_order) VALUES (1, 1, N'Chung', N'일반', N'📚', 1); SET IDENTITY_INSERT dbo.vocab_topics OFF; END",
+                        "IF OBJECT_ID('dbo.topics', 'U') IS NULL BEGIN CREATE TABLE dbo.topics (id BIGINT IDENTITY(1,1) PRIMARY KEY, level INT NOT NULL DEFAULT 1, name NVARCHAR(100) NOT NULL, description NVARCHAR(500) NULL, status VARCHAR(10) NOT NULL DEFAULT 'ACTIVE', created_at DATETIME2 NOT NULL DEFAULT GETDATE(), updated_at DATETIME2 NOT NULL DEFAULT GETDATE()); END"
                 };
                 for (String sql : sqlServerStatements) {
                     try {
@@ -67,7 +74,11 @@ public class LocalSchemaPatch {
                 String[] h2Statements = {
                         "ALTER TABLE dbo.import_jobs ADD COLUMN IF NOT EXISTS draft_json CLOB",
                         "ALTER TABLE dbo.question_types ADD COLUMN IF NOT EXISTS template_code VARCHAR(20)",
-                        "ALTER TABLE dbo.questions ADD COLUMN IF NOT EXISTS template_code VARCHAR(20)"
+                        "ALTER TABLE dbo.questions ADD COLUMN IF NOT EXISTS template_code VARCHAR(20)",
+                        "ALTER TABLE dbo.vocabularies ADD COLUMN IF NOT EXISTS topic VARCHAR(100)",
+                        "ALTER TABLE dbo.vocabularies ADD COLUMN IF NOT EXISTS example_kr VARCHAR(500)",
+                        "ALTER TABLE dbo.vocabularies ADD COLUMN IF NOT EXISTS example_vi VARCHAR(500)",
+                        "CREATE TABLE IF NOT EXISTS dbo.topics (id BIGINT AUTO_INCREMENT PRIMARY KEY, level INT NOT NULL DEFAULT 1, name VARCHAR(100) NOT NULL, description VARCHAR(500), status VARCHAR(10) NOT NULL DEFAULT 'ACTIVE', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
                 };
                 for (String sql : h2Statements) {
                     try {

@@ -1,6 +1,8 @@
 package com.hottopik.controller;
 
 import com.hottopik.dto.UserDTO;
+import com.hottopik.entity.Vocabulary;
+import com.hottopik.repository.VocabularyRepository;
 import com.hottopik.service.UserService;
 import com.hottopik.entity.exam.StudyPlan;
 import com.hottopik.entity.exam.Track;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Controller
@@ -30,6 +33,9 @@ public class LearnerController {
 
     @Autowired(required = false)
     private com.hottopik.service.NotificationService notificationService;
+
+    @Autowired(required = false)
+    private VocabularyRepository vocabularyRepository;
 
     private final ProgressService progressService;
 
@@ -48,6 +54,16 @@ public class LearnerController {
     public String today(Model model, HttpSession session) {
         model.addAttribute("pageTitle", "Nhiệm vụ hôm nay · HOT TOPIK");
         model.addAttribute("activePage", "today");
+
+        // Lấy danh sách từ vựng ACTIVE trực tiếp từ CSDL render ra giao diện Học viên
+        if (vocabularyRepository != null) {
+            List<Vocabulary> dbVocabs = vocabularyRepository.findAll()
+                    .stream()
+                    .filter(v -> "ACTIVE".equalsIgnoreCase(v.getStatus()))
+                    .toList();
+            model.addAttribute("vocabularies", dbVocabs);
+        }
+
         try {
             StudyPlan plan = roadmaps.ensure(owner(session), trackFor(session));
             model.addAttribute("board", roadmaps.todayBoard(plan, LearnerRoadmapService.givenName(displayName(session))));

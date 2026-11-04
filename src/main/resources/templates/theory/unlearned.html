@@ -1,100 +1,369 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/head :: head('Danh sách từ chưa thuộc · HOT TOPIK')}"></head>
+<head th:replace="~{fragments/head :: head('Sổ Từ chưa thuộc · HOT TOPIK')}"></head>
 <body style="background: var(--ssak-bg); color: var(--ssak-text-main); font-family: var(--font-body); min-height: 100vh;">
 
 <!-- Navbar -->
 <div th:replace="~{fragments/navbar :: navbar('theory')}"></div>
 
-<main class="container my-4" style="max-width: 1080px;">
-    <!-- Tiêu đề & Nút ôn tập theo mục 10.2 -->
+<main class="container my-4" style="max-width: 1140px;">
+    <!-- Tiêu đề & Các nút ôn tập riêng -->
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <div>
             <a th:href="@{/ly-thuyet}" class="text-decoration-none fw-bold small text-muted">
                 ‹ Sổ tay Lý thuyết
             </a>
             <h1 style="font-family: var(--font-heading); font-size: 28px; font-weight: 800;" class="mt-1 mb-0">
-                Từ chưa thuộc (14 từ)
+                📚 Sổ Từ chưa thuộc (<span id="unlearnedHeaderCount">0</span> từ)
             </h1>
             <p class="text-muted small mt-1 mb-0">
-                Tập hợp các từ vựng bạn đã đánh dấu Chưa nhớ hoặc trả lời sai trong bài luyện tập & quiz.
+                Tập hợp các từ vựng bạn tự chọn hoặc đánh dấu Chưa nhớ trong Flashcard & Quiz để dồn vào ôn tập riêng.
             </p>
         </div>
 
-        <!-- 2 Nút ôn tập nhanh -->
-        <div class="d-flex gap-2">
-            <a th:href="@{/ly-thuyet/the}" class="btn-ssak-primary px-4 py-2 rounded-pill fw-bold text-decoration-none shadow-sm" style="font-size: 14px;">
-                <i class="bi bi-card-text me-2"></i>Ôn bằng thẻ (14 từ)
-            </a>
-            <a th:href="@{/ly-thuyet/quiz}" class="btn-ssak-outline px-4 py-2 rounded-pill fw-bold text-decoration-none shadow-sm" style="font-size: 14px; background: #fff;">
+        <!-- 3 Nút tác vụ ôn tập riêng -->
+        <div class="d-flex gap-2 flex-wrap" id="reviewActionButtons" style="display: none !important;">
+            <button type="button" class="btn-ssak-primary px-4 py-2 rounded-pill fw-bold text-decoration-none shadow-sm" style="font-size: 14px;" onclick="startUnlearnedFlashcards()">
+                <i class="bi bi-card-text me-2"></i>Ôn bằng thẻ (<span id="btnCardsCount">0</span> từ)
+            </button>
+            <button type="button" class="btn-ssak-outline px-4 py-2 rounded-pill fw-bold text-decoration-none shadow-sm" style="font-size: 14px; background: #fff;" onclick="startUnlearnedQuiz()">
                 <i class="bi bi-question-circle me-2"></i>Làm Quiz ôn tập
+            </button>
+            <button type="button" class="btn btn-outline-danger rounded-pill px-3 py-2 fw-bold" style="font-size: 13px;" onclick="clearAllUnlearnedWords()">
+                🗑️ Xóa toàn bộ
+            </button>
+        </div>
+    </div>
+
+    <!-- Thanh tiện ích: Thêm từ thủ công & Bộ lọc nhanh -->
+    <div class="ssak-card p-3 mb-4 bg-white border rounded-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 480px;">
+            <input type="text" id="unlearnedFilterInput" class="form-control form-control-sm rounded-pill px-3" 
+                   placeholder="🔍 Tìm nhanh trong sổ từ chưa thuộc..." oninput="filterUnlearnedTable(this.value)">
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-sm btn-ssak-light rounded-pill px-3 fw-bold" onclick="openManualAddModal()">
+                ➕ Thêm từ vào sổ
+            </button>
+            <a th:href="@{/ly-thuyet/tu-vung}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold">
+                📖 Chọn từ từ Danh mục
             </a>
         </div>
     </div>
 
-    <!-- Bảng danh sách từ chưa thuộc kèm Nguồn theo mục 10.2 -->
-    <div class="p-4 rounded-4 bg-white border shadow-sm">
+    <!-- Trạng thái trống (Chưa có từ chưa thuộc nào) -->
+    <div id="unlearnedEmptyState" class="p-5 rounded-4 bg-white border shadow-sm text-center" style="display: none;">
+        <div th:replace="~{fragments/ssak :: mascot('happy', 'bloom', 130, 'Bé Ssak nở hoa')}"></div>
+        <h4 class="fw-bold text-muted mt-3">Tuyệt vời! Sổ từ chưa thuộc đang trống</h4>
+        <p class="text-muted small">Bạn đã thuộc hết các từ vựng đã lưu hoặc chưa thêm từ nào. Hãy vào sổ từ vựng để chọn các từ cần ôn nhé.</p>
+        <div class="d-flex justify-content-center gap-2 mt-3">
+            <a th:href="@{/ly-thuyet/tu-vung}" class="btn-ssak-primary rounded-pill px-4 py-2 text-decoration-none fw-bold">
+                → Mở Danh sách Từ vựng để chọn từ
+            </a>
+        </div>
+    </div>
+
+    <!-- Bảng danh sách từ chưa thuộc -->
+    <div id="unlearnedTableWrapper" class="p-4 rounded-4 bg-white border shadow-sm" style="display: none;">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead style="background: var(--ssak-bg);">
                     <tr>
                         <th style="width: 25%;">Từ vựng & Phiên âm</th>
-                        <th style="width: 30%;">Nghĩa tiếng Việt</th>
-                        <th style="width: 25%;">Nguồn thêm vào</th>
-                        <th style="width: 20%; text-align: center;">Thao tác</th>
+                        <th style="width: 32%;">Nghĩa tiếng Việt & Ví dụ</th>
+                        <th style="width: 15%;">Phân loại</th>
+                        <th style="width: 16%;">Nguồn & Ngày thêm</th>
+                        <th style="width: 12%; text-align: center;">Thao tác</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>
-                            <strong style="font-family: var(--font-korean); font-size: 18px; color: var(--ssak-terracotta);">온실효과</strong>
-                            <small class="text-muted d-block">[on-sil-hyo-gwa]</small>
-                        </td>
-                        <td>Hiệu ứng nhà kính</td>
-                        <td>
-                            <span class="badge bg-light text-danger border">Sai trong quiz · Môi trường</span>
-                        </td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-outline-success rounded-pill px-3" onclick="alert('Đã bỏ khỏi danh sách Chưa thuộc!'); this.closest('tr').remove();">
-                                Đã nhớ (Bỏ đi)
-                            </button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <strong style="font-family: var(--font-korean); font-size: 18px; color: var(--ssak-terracotta);">생태계 파괴</strong>
-                            <small class="text-muted d-block">[saengtae-gye pagwoe]</small>
-                        </td>
-                        <td>Phá hủy hệ sinh thái</td>
-                        <td>
-                            <span class="badge bg-light text-warning text-dark border">Bấm Chưa nhớ · Thẻ</span>
-                        </td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-outline-success rounded-pill px-3" onclick="alert('Đã bỏ khỏi danh sách Chưa thuộc!'); this.closest('tr').remove();">
-                                Đã nhớ (Bỏ đi)
-                            </button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <strong style="font-family: var(--font-korean); font-size: 18px; color: var(--ssak-terracotta);">기후 변화</strong>
-                            <small class="text-muted d-block">[gihu byeonhwa]</small>
-                        </td>
-                        <td>Biến đổi khí hậu toàn cầu</td>
-                        <td>
-                            <span class="badge bg-light text-info text-dark border">Lưu từ giải thích Đọc 13–15</span>
-                        </td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-outline-success rounded-pill px-3" onclick="alert('Đã bỏ khỏi danh sách Chưa thuộc!'); this.closest('tr').remove();">
-                                Đã nhớ (Bỏ đi)
-                            </button>
-                        </td>
-                    </tr>
+                <tbody id="unlearnedTableBody">
+                    <!-- Render động bằng JavaScript từ localStorage -->
                 </tbody>
             </table>
         </div>
     </div>
 </main>
+
+<!-- Modal Thêm từ thủ công vào Sổ chưa thuộc -->
+<div class="modal fade" id="modalManualAdd" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 540px;">
+        <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 16px 40px rgba(0,0,0,0.15);">
+            <div class="modal-header" style="border-bottom: 1.5px solid var(--ssak-border); padding: 20px 24px;">
+                <h5 class="modal-title fw-bold" style="font-family: var(--font-heading); color: var(--ssak-primary);">
+                    ➕ Thêm từ vựng vào Sổ chưa thuộc
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 20px 24px;">
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-muted">Gõ từ tiếng Hàn hoặc nghĩa tiếng Việt để tìm:</label>
+                    <input type="text" id="manualAddSearchInput" class="form-control ssak-input" 
+                           placeholder="Ví dụ: 가족, 학교, Môi trường..." oninput="searchVocabularyForAdd(this.value)" />
+                </div>
+                <div id="manualAddSearchResults" style="max-height: 300px; overflow-y: auto;" class="d-flex flex-column gap-2">
+                    <div class="text-muted small text-center py-4">Nhập từ khóa để tìm trong toàn bộ kho từ vựng HOT TOPIK...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function renderUnlearnedTable() {
+        const list = window.HotTopikSync ? window.HotTopikSync.unlearned.getAll() : [];
+        const emptyEl = document.getElementById('unlearnedEmptyState');
+        const wrapperEl = document.getElementById('unlearnedTableWrapper');
+        const actionBtns = document.getElementById('reviewActionButtons');
+        const countHeader = document.getElementById('unlearnedHeaderCount');
+        const btnCount = document.getElementById('btnCardsCount');
+
+        if (countHeader) countHeader.innerText = list.length;
+        if (btnCount) btnCount.innerText = list.length;
+
+        if (list.length === 0) {
+            emptyEl.style.display = 'block';
+            wrapperEl.style.display = 'none';
+            if (actionBtns) actionBtns.style.setProperty('display', 'none', 'important');
+            return;
+        }
+
+        emptyEl.style.display = 'none';
+        wrapperEl.style.display = 'block';
+        if (actionBtns) actionBtns.style.removeProperty('display');
+
+        const tbody = document.getElementById('unlearnedTableBody');
+        tbody.innerHTML = '';
+
+        list.forEach((item, idx) => {
+            const tr = document.createElement('tr');
+            tr.id = 'unlearned-row-' + item.id;
+            tr.setAttribute('data-word', (item.word || '').toLowerCase());
+            tr.setAttribute('data-meaning', (item.meaning || '').toLowerCase());
+            tr.innerHTML = `
+                <td style="padding: 14px 16px;">
+                    <div class="d-flex align-items-center gap-2">
+                        <strong style="font-family: var(--font-korean); font-size: 18px; color: var(--ssak-terracotta);">${escapeHtml(item.word)}</strong>
+                        <button type="button" class="btn btn-sm btn-light rounded-circle text-primary" style="padding: 2px 7px;" onclick="speakWord('${escapeJs(item.word)}', '${escapeJs(item.audioUrl)}')">
+                            <i class="bi bi-volume-up-fill fs-6"></i>
+                        </button>
+                    </div>
+                    <small class="text-muted d-block">[${escapeHtml(item.romanization || '-')}]</small>
+                </td>
+                <td style="padding: 14px 16px;">
+                    <div class="fw-bold" style="color: #24363D;">${escapeHtml(item.meaning || '')}</div>
+                    ${item.exampleKr ? `
+                        <div class="mt-1 p-2 rounded-3 border small" style="background: #F8FBF9; font-size: 12px; border-color: #E2ECE7 !important;">
+                            <div style="font-family: var(--font-korean); color: #1F6B56; font-weight: 600;">${escapeHtml(item.exampleKr)}</div>
+                            <div class="text-muted">${escapeHtml(item.exampleVi || '')}</div>
+                        </div>
+                    ` : ''}
+                </td>
+                <td style="padding: 14px 16px;">
+                    <span class="badge bg-light text-dark border">${escapeHtml(item.wordType || 'Danh từ')}</span>
+                    ${item.topikLevel ? `<span class="badge bg-light text-success border ms-1">Cấp ${item.topikLevel}</span>` : ''}
+                </td>
+                <td style="padding: 14px 16px; font-size: 12.5px; color: var(--ssak-text-muted);">
+                    <div class="fw-bold">${escapeHtml(item.source || 'Tự chọn')}</div>
+                    <small>${escapeHtml(item.addedAt || '')}</small>
+                </td>
+                <td style="padding: 14px 16px; text-align: center;">
+                    <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold" onclick="removeUnlearnedItem('${item.id}')" title="Đã thuộc từ này">
+                        ✓ Đã nhớ
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function removeUnlearnedItem(id) {
+        if (window.HotTopikSync) {
+            window.HotTopikSync.unlearned.remove(id);
+            renderUnlearnedTable();
+            showSsakToast("🎉 Tuyệt vời! Đã chuyển từ sang Đã nhớ.");
+        }
+    }
+
+    function clearAllUnlearnedWords() {
+        if (!confirm("Bạn có chắc chắn muốn xóa toàn bộ danh sách từ chưa thuộc không?")) return;
+        if (window.HotTopikSync) {
+            window.HotTopikSync.unlearned.clear();
+            renderUnlearnedTable();
+            showSsakToast("Đã làm sạch sổ từ chưa thuộc!");
+        }
+    }
+
+    function filterUnlearnedTable(query) {
+        const q = (query || '').trim().toLowerCase();
+        document.querySelectorAll('#unlearnedTableBody tr').forEach(row => {
+            const w = row.getAttribute('data-word') || '';
+            const m = row.getAttribute('data-meaning') || '';
+            row.style.display = (w.includes(q) || m.includes(q)) ? '' : 'none';
+        });
+    }
+
+    function startUnlearnedFlashcards() {
+        const list = window.HotTopikSync ? window.HotTopikSync.unlearned.getAll() : [];
+        if (list.length === 0) {
+            showSsakToast("Sổ từ chưa thuộc đang trống!");
+            return;
+        }
+        // Lưu danh sách ôn tập riêng và chuyển hướng sang trang Flashcard với mode=unlearned
+        localStorage.setItem('hottopik_review_session', JSON.stringify(list));
+        window.location.href = '/ly-thuyet/the?mode=unlearned';
+    }
+
+    function startUnlearnedQuiz() {
+        const list = window.HotTopikSync ? window.HotTopikSync.unlearned.getAll() : [];
+        if (list.length < 2) {
+            alert("Cần ít nhất 2 từ vựng trong sổ để tạo bài Quiz ôn tập!");
+            return;
+        }
+        localStorage.setItem('hottopik_review_session', JSON.stringify(list));
+        window.location.href = '/ly-thuyet/quiz?mode=unlearned';
+    }
+
+    function openManualAddModal() {
+        document.getElementById('manualAddSearchInput').value = '';
+        document.getElementById('manualAddSearchResults').innerHTML = '<div class="text-muted small text-center py-4">Nhập từ khóa để tìm trong toàn bộ kho từ vựng HOT TOPIK...</div>';
+        const modal = new bootstrap.Modal(document.getElementById('modalManualAdd'));
+        modal.show();
+    }
+
+    let searchTimer = null;
+    function searchVocabularyForAdd(query) {
+        clearTimeout(searchTimer);
+        const resultsEl = document.getElementById('manualAddSearchResults');
+        const q = (query || '').trim().toLowerCase();
+        if (!q) {
+            resultsEl.innerHTML = '<div class="text-muted small text-center py-4">Nhập từ khóa để tìm...</div>';
+            return;
+        }
+
+        searchTimer = setTimeout(() => {
+            resultsEl.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-success"></div> Đang tìm kiếm...</div>';
+
+            const promises = [1, 2, 3, 4, 5, 6].map(lvl =>
+                fetch('/api/theory/vocabularies?level=' + lvl).then(r => r.json()).catch(() => [])
+            );
+
+            Promise.all(promises).then(arrays => {
+                const all = arrays.flat();
+                const matched = all.filter(v =>
+                    (v.word && v.word.toLowerCase().includes(q)) ||
+                    (v.meaning && v.meaning.toLowerCase().includes(q)) ||
+                    (v.romanization && v.romanization.toLowerCase().includes(q))
+                ).slice(0, 15);
+
+                if (matched.length === 0) {
+                    resultsEl.innerHTML = '<div class="text-muted small text-center py-4">Không tìm thấy từ vựng nào khớp với từ khóa.</div>';
+                    return;
+                }
+
+                resultsEl.innerHTML = '';
+                const unlearned = window.HotTopikSync ? window.HotTopikSync.unlearned : null;
+
+                matched.forEach(v => {
+                    const isAdded = unlearned ? unlearned.has(v.id) : false;
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'p-3 rounded-3 border d-flex justify-content-between align-items-center';
+                    itemDiv.style.background = isAdded ? '#F0F9F5' : '#FFFFFF';
+                    itemDiv.innerHTML = `
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <strong style="font-family: var(--font-korean); font-size: 16px; color: #1F6B56;">${escapeHtml(v.word)}</strong>
+                                <small class="text-muted">[${escapeHtml(v.romanization || '')}]</small>
+                                <span class="badge bg-light text-dark border" style="font-size: 10px;">Cấp ${v.topikLevel} · ${escapeHtml(v.wordType || '')}</span>
+                            </div>
+                            <div class="small fw-bold text-dark mt-1">${escapeHtml(v.meaning)}</div>
+                        </div>
+                        <div>
+                            ${isAdded ? 
+                                '<span class="badge bg-success" style="background: #2E7D67 !important; padding: 6px 10px;">✓ Đã trong sổ</span>' :
+                                `<button type="button" class="btn btn-sm btn-ssak-primary rounded-pill px-3 fw-bold" onclick="addSingleWordFromSearch(${v.id}, '${escapeJs(v.word)}', '${escapeJs(v.romanization)}', '${escapeJs(v.meaning)}', '${escapeJs(v.wordType)}', ${v.topikLevel}, '${escapeJs(v.topic)}', '${escapeJs(v.exampleKr)}', '${escapeJs(v.exampleVi)}', '${escapeJs(v.audioUrl)}')">+ Thêm vào sổ</button>`
+                            }
+                        </div>
+                    `;
+                    resultsEl.appendChild(itemDiv);
+                });
+            });
+        }, 300);
+    }
+
+    function addSingleWordFromSearch(id, word, rom, meaning, type, level, topic, exKr, exVi, audio) {
+        if (window.HotTopikSync) {
+            window.HotTopikSync.unlearned.add({
+                id: id,
+                word: word,
+                romanization: rom,
+                meaning: meaning,
+                wordType: type,
+                topikLevel: level,
+                topic: topic,
+                exampleKr: exKr,
+                exampleVi: exVi,
+                audioUrl: audio
+            }, 'Thêm thủ công');
+            showSsakToast("⭐ Đã thêm từ \"" + word + "\" vào Sổ từ chưa thuộc!");
+            renderUnlearnedTable();
+            searchVocabularyForAdd(document.getElementById('manualAddSearchInput').value);
+        }
+    }
+
+    function speakWord(word, audioUrl) {
+        if (audioUrl && audioUrl.trim()) {
+            new Audio(audioUrl).play().catch(() => playSpeech(word));
+        } else {
+            playSpeech(word);
+        }
+    }
+
+    function playSpeech(word) {
+        if (!word || !word.trim()) return;
+        word = word.trim();
+        if ('speechSynthesis' in window) {
+            try {
+                window.speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance(word);
+                u.lang = 'ko-KR';
+                u.rate = 0.85;
+                const voices = window.speechSynthesis.getVoices();
+                const koVoice = voices.find(v => v.lang.startsWith('ko') || v.lang.includes('KR'));
+                if (koVoice) u.voice = koVoice;
+                let hasSpoken = false;
+                u.onstart = function() { hasSpoken = true; };
+                u.onerror = function() { playOnlineKoreanTTS(word); };
+                if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+                window.speechSynthesis.speak(u);
+                setTimeout(() => {
+                    if (!hasSpoken && !window.speechSynthesis.speaking) playOnlineKoreanTTS(word);
+                }, 800);
+                return;
+            } catch(e) {}
+        }
+        playOnlineKoreanTTS(word);
+    }
+
+    function playOnlineKoreanTTS(word) {
+        try {
+            const url = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=ko&client=tw-ob&q=' + encodeURIComponent(word);
+            new Audio(url).play().catch(() => {});
+        } catch(e) {}
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
+    }
+
+    function escapeJs(str) {
+        if (!str) return '';
+        return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+
+    document.addEventListener('DOMContentLoaded', renderUnlearnedTable);
+    window.addEventListener('hottopik:unlearned-changed', renderUnlearnedTable);
+</script>
 
 <div th:replace="~{fragments/footer :: footer}"></div>
 </body>

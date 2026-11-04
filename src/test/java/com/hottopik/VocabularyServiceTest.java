@@ -133,14 +133,58 @@ public class VocabularyServiceTest {
     @Test
     @DisplayName("Test Bulk Create (Excel Import Simulation)")
     void testBulkCreate() {
-        VocabularyDTO v1 = new VocabularyDTO(null, "책상", "chaek-sang", "Bàn học", "Danh từ", 1, "Trường học", null, "책상 위에 책이 있다.", "Trên bàn có quyển sách.", "ACTIVE", null, null);
+        VocabularyDTO v1 = new VocabularyDTO(null, "칠판", "chil-pan", "Bảng đen", "Danh từ", 1, "Trường học", null, "선생님이 칠판에 글씨를 쓰십니다.", "Thầy giáo viết chữ lên bảng.", "ACTIVE", null, null);
         VocabularyDTO v2 = new VocabularyDTO(null, "의자", "ui-ja", "Ghế ngồi", "Danh từ", 1, "Trường học", null, "의자에 앉으세요.", "Xin hãy ngồi vào ghế.", "ACTIVE", null, null);
 
         int count = vocabularyService.bulkCreate(List.of(v1, v2));
         assertEquals(2, count);
 
-        assertFalse(vocabularyService.searchAndFilter("책상", null, null, null, null).isEmpty());
+        assertFalse(vocabularyService.searchAndFilter("칠판", null, null, null, null).isEmpty());
         assertFalse(vocabularyService.searchAndFilter("의자", null, null, null, null).isEmpty());
+    }
+
+    @Test
+    @DisplayName("Test Duplicate Vocabulary Rejects 100% Korean Word and Same POS")
+    void testManualSaveDuplicateWord() {
+        VocabularyDTO w1 = new VocabularyDTO(null, "행복", "haeng-bok", "Hạnh phúc", "Danh từ", 1, "Cảm xúc", null, "행복하세요", "Chúc hạnh phúc", "ACTIVE", null, null);
+        VocabularyDTO saved1 = vocabularyService.saveOrUpdate(w1);
+        assertNotNull(saved1.getId());
+        assertEquals("Hạnh phúc", saved1.getMeaning());
+
+        // 1. Cùng từ "행복" và cùng loại từ "Danh từ" khi thêm mới (id = null) -> BẮT BUỘC ném IllegalArgumentException và chặn nhập
+        VocabularyDTO w2 = new VocabularyDTO(null, "행복", null, "Niềm vui và hạnh phúc trọn vẹn", "Danh từ", 1, "Cảm xúc", null, null, null, "ACTIVE", null, null);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> vocabularyService.saveOrUpdate(w2));
+        assertTrue(ex.getMessage().contains("đã tồn tại trong hệ thống"));
+
+        // 2. Cùng từ "행복" nhưng KHÁC loại từ (ví dụ "Tính từ") -> Cho phép thêm thành công
+        VocabularyDTO wDiffPos = new VocabularyDTO(null, "행복", null, "Hạnh phúc (Tính từ)", "Tính từ", 1, "Cảm xúc", null, null, null, "ACTIVE", null, null);
+        VocabularyDTO savedDiffPos = vocabularyService.saveOrUpdate(wDiffPos);
+        assertNotNull(savedDiffPos.getId());
+        assertNotEquals(saved1.getId(), savedDiffPos.getId());
+
+        // 3. Chỉnh sửa từ đã có (sử dụng ID của chính nó) -> Cho phép cập nhật thành công
+        saved1.setMeaning("Hạnh phúc viên mãn");
+        VocabularyDTO updated = vocabularyService.saveOrUpdate(saved1);
+        assertEquals(saved1.getId(), updated.getId());
+        assertEquals("Hạnh phúc viên mãn", updated.getMeaning());
+    }
+
+    @Test
+    @DisplayName("Test Bulk Create Deduplication (In-batch and Existing Word)")
+    void testBulkCreateDeduplication() {
+        // "가족" đã có sẵn trong dữ liệu mẫu cấp 1
+        // "시계" xuất hiện 2 lần trong cùng 1 đợt import
+        VocabularyDTO dupExisting = new VocabularyDTO(null, "가족", null, "Gia đình mới", "Danh từ", 1, "Gia đình", null, null, null, "ACTIVE", null, null);
+        VocabularyDTO newWord1 = new VocabularyDTO(null, "시계", null, "Đồng hồ", "Danh từ", 1, "Đồ vật", null, null, null, "ACTIVE", null, null);
+        VocabularyDTO newWord2Duplicate = new VocabularyDTO(null, "시계", null, "Đồng hồ đeo tay", "Danh từ", 1, "Đồ vật", null, null, null, "ACTIVE", null, null);
+
+        int count = vocabularyService.bulkCreate(List.of(dupExisting, newWord1, newWord2Duplicate));
+
+        // Chỉ tạo đúng 1 từ duy nhất ("시계" đầu tiên), bỏ qua "가족" (đã tồn tại) và "시계" thứ 2 (trùng trong batch)
+        assertEquals(1, count);
+
+        List<VocabularyDTO> results = vocabularyService.searchAndFilter("시계", 1, null, null, null);
+        assertEquals(1, results.size());
     }
 
     @Test
@@ -233,5 +277,53 @@ public class VocabularyServiceTest {
         assertEquals(1, learnerVocabs.size());
         assertEquals("꿈", learnerVocabs.get(0).getWord());
         assertEquals("Ước mơ / Giấc mơ", learnerVocabs.get(0).getMeaning());
+    }
+
+    @Test
+    @DisplayName("Verify Learner cannot view hidden TOPIK level or hidden topic")
+    void testLearnerCannotViewHiddenLevelOrTopic() {
+        // 1. Tắt TOPIK cấp 2
+        vocabularyService.toggleTopikLevelStatus(2, false);
+        assertFalse(vocabularyService.isLevelActive(2));
+
+        // Người học truy vấn chủ đề hoặc từ vựng của TOPIK 2 -> Phải trả về rỗng!
+        List<com.hottopik.dto.TopicDTO> topicsLvl2 = vocabularyService.getTopicsForLearner(2);
+        assertTrue(topicsLvl2.isEmpty());
+        List<VocabularyDTO> vocabsLvl2 = vocabularyService.getVocabulariesForLearner(2, null);
+        assertTrue(vocabsLvl2.isEmpty());
+
+        // 2. Ẩn 1 chủ đề trong cấp 1 (ví dụ "Gia đình")
+        vocabularyService.toggleTopicStatus(1, "Gia đình", false);
+        List<com.hottopik.dto.TopicDTO> topicsLvl1 = vocabularyService.getTopicsForLearner(1);
+        boolean containsGiaDinh = topicsLvl1.stream().anyMatch(t -> "Gia đình".equalsIgnoreCase(t.getName()));
+        assertFalse(containsGiaDinh, "Chủ đề ẩn không được xuất hiện trong danh sách của người học!");
+
+        // Người học cố tình vào chủ đề "Gia đình" bị ẩn -> Phải trả về rỗng!
+        List<VocabularyDTO> giaDinhVocabs = vocabularyService.getVocabulariesForLearner(1, "Gia đình");
+        assertTrue(giaDinhVocabs.isEmpty());
+
+        // Bật lại
+        vocabularyService.toggleTopicStatus(1, "Gia đình", true);
+        List<VocabularyDTO> restoredVocabs = vocabularyService.getVocabulariesForLearner(1, "Gia đình");
+        assertFalse(restoredVocabs.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Verify deleteVocabularyById removes word and broadcasts event")
+    void testDeleteVocabularyById() {
+        VocabularyDTO v = new VocabularyDTO();
+        v.setWord("삭제테스트");
+        v.setMeaning("Từ thử nghiệm xóa");
+        v.setTopikLevel(1);
+        v.setTopic("Gia đình");
+        v.setWordType("Danh từ");
+        v.setStatus("ACTIVE");
+
+        VocabularyDTO saved = vocabularyService.saveOrUpdate(v);
+        assertNotNull(saved.getId());
+
+        boolean deleted = vocabularyService.deleteVocabularyById(saved.getId());
+        assertTrue(deleted);
+        assertNull(vocabularyService.getById(saved.getId()));
     }
 }
