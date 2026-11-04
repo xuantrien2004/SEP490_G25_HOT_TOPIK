@@ -24,33 +24,213 @@
     <!-- DEBUT Banner Section -->
     <section class="debut-banner my-4 p-4 p-md-5 rounded-5 position-relative overflow-hidden"
              style="background: linear-gradient(135deg, #E3F2EA 0%, #FBF0D3 60%, #FBE6DA 100%); border: 2px solid var(--ssak-primary-border); box-shadow: var(--shadow-lg);">
+
+        <div style="position: absolute; right: -50px; top: -50px; width: 350px; height: 350px; background: radial-gradient(circle, rgba(244,196,90,0.4) 0%, transparent 70%); pointer-events: none;"></div>
+        <div style="position: absolute; left: 10%; top: 15px; font-size: 24px; animation: floatSlow 3s ease-in-out infinite;">🎉</div>
+        <div style="position: absolute; right: 25%; top: 25px; font-size: 20px; animation: floatSlow 4s ease-in-out infinite;">✨</div>
+        <div style="position: absolute; right: 8%; bottom: 30px; font-size: 26px; animation: floatSlow 3.5s ease-in-out infinite;">🎊</div>
+
         <div class="row align-items-center g-4">
             <div class="col-lg-7">
                 <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-white mb-3 shadow-sm border" style="border-color: var(--ssak-primary) !important;">
                     <span class="badge rounded-pill bg-success px-2 py-1" style="background-color: var(--ssak-primary) !important; font-size: 11px;">MỚI</span>
                     <span class="fw-bold text-dark" style="font-size: 13px;">HOT TOPIK chính thức DEBUT!</span>
                 </div>
+
                 <h1 style="font-family: var(--font-heading); font-size: clamp(34px, 5vw, 54px); font-weight: 800; line-height: 1.15; color: var(--ssak-text-main);">
                     Luyện thi TOPIK thông minh cùng <span style="color: var(--ssak-primary); text-decoration: underline wavy var(--ssak-honey);">Bé Ssak</span>
                 </h1>
                 <p class="lead mt-3 mb-4" style="color: var(--ssak-text-muted); font-size: 18px; line-height: 1.6;">
-                    Phương pháp học ngắt quãng <strong>Micro-learning</strong> không áp lực so bì. Mỗi ngày làm 1 dạng câu mới và 1 bài ôn tập!
+                    Phương pháp học ngắt quãng <strong>Micro-learning</strong> không áp lực so bì. Mỗi ngày làm 1 dạng câu mới và 1 bài ôn tập, linh vật Bé Ssak cùng bạn lớn lên từng ngày!
                 </p>
+
                 <div class="d-flex flex-wrap gap-3 align-items-center mb-4">
                     <a th:href="@{/onboarding}" class="btn-ssak-primary" style="height: 54px; padding: 0 32px; font-size: 17px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: var(--radius-pill); font-weight: 800;">
                         <i class="bi bi-bullseye me-2"></i>Kiểm tra trình độ miễn phí
                     </a>
+                    <a th:href="@{/lam-thu}" class="btn-ssak-outline" style="height: 54px; padding: 0 28px; font-size: 17px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-radius: var(--radius-pill); background: #FFFFFF; font-weight: 700;">
+                        <i class="bi bi-play-circle me-2"></i>Thử 8 câu ngay
+                    </a>
+                </div>
+
+                <div class="d-flex flex-wrap gap-4 pt-2 border-top" style="border-color: rgba(46,125,103,0.2) !important;">
+                    <div class="d-flex align-items-center gap-2" style="font-size: 14px; font-weight: 700; color: var(--ssak-primary-dark);">
+                        <i class="bi bi-check-circle-fill text-success" style="color: var(--ssak-primary) !important;"></i>
+                        <span>Miễn phí 7 ngày đầu</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2" style="font-size: 14px; font-weight: 700; color: var(--ssak-primary-dark);">
+                        <i class="bi bi-check-circle-fill text-success" style="color: var(--ssak-primary) !important;"></i>
+                        <span>Không cần thẻ ngân hàng</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2" style="font-size: 14px; font-weight: 700; color: var(--ssak-primary-dark);">
+                        <i class="bi bi-check-circle-fill text-success" style="color: var(--ssak-primary) !important;"></i>
+                        <span>Biết cấp TOPIK sau 15–20 phút</span>
+                    </div>
                 </div>
             </div>
+
             <div class="col-lg-5 text-center position-relative">
                 <div class="p-3 d-inline-block position-relative">
+                    <div class="speech-bubble shadow-sm px-3 py-2 rounded-4 bg-white position-absolute"
+                         style="top: 0; left: 10px; border: 2px solid var(--ssak-primary); font-family: var(--font-korean); font-size: 18px; font-weight: 900; color: var(--ssak-primary); z-index: 10;">
+                        안녕하세요! 🌿
+                    </div>
+
+                    <div class="position-absolute shadow" style="bottom: 30px; left: 50%; transform: translateX(-50%) rotate(-3deg); background: #F4C45A; border: 2px solid #7A5A12; color: #7A5A12; font-family: var(--font-heading); font-size: 22px; font-weight: 900; padding: 6px 28px; border-radius: 999px; z-index: 10; white-space: nowrap;">
+                        ✨ DEBUT SPECIAL! ✨
+                    </div>
+
                     <div th:replace="~{fragments/ssak :: mascot('cheer', 'young', 280, 'Bé Ssak DEBUT')}"></div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- KHU VỰC ĐÁNH GIÁ & CẢM NHẬN CỘNG ĐỒNG -->
+    <!-- Khối Cách học 3 bước (s-cachhoc) -->
+    <section id="s-cachhoc" class="py-5">
+        <div class="text-center mb-5">
+            <span class="ssak-badge badge-sky px-3 py-1 mb-2">QUY TRÌNH HỌC TẬP</span>
+            <h2 style="font-family: var(--font-heading); font-size: 38px; font-weight: 800;">Chỉ 3 bước là vững vàng đi thi</h2>
+            <p class="text-muted" style="max-width: 600px; margin: 0 auto;">Không loay hoay tự lên kế hoạch, hệ thống tự động sinh lịch học cá nhân hóa cho bạn.</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="p-4 rounded-4 bg-white border h-100 shadow-sm d-flex flex-column gap-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fs-1">🎯</span>
+                        <span style="font-family: var(--font-heading); font-size: 44px; font-weight: 900; color: #2F5F7D; opacity: 0.3;">01</span>
+                    </div>
+                    <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; margin: 0;">Xác định trình độ</h3>
+                    <p class="text-muted" style="font-size: 15px; line-height: 1.6;">Làm bài kiểm tra thích ứng 15–20 phút chuẩn thang TOPIK thật, nhận diện ngay 3 dạng câu yếu nhất cần ưu tiên cải thiện.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-4 rounded-4 bg-white border h-100 shadow-sm d-flex flex-column gap-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fs-1">📅</span>
+                        <span style="font-family: var(--font-heading); font-size: 44px; font-weight: 900; color: #2E7D67; opacity: 0.3;">02</span>
+                    </div>
+                    <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; margin: 0;">Lộ trình theo ngày</h3>
+                    <p class="text-muted" style="font-size: 15px; line-height: 1.6;">Mỗi ngày 1 dạng mới và 1 bài ôn tập (khoảng 20 phút). Ngày thứ 7 làm bài Ôn tuần để củng cố toàn bộ kiến thức trong tuần.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-4 rounded-4 bg-white border h-100 shadow-sm d-flex flex-column gap-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fs-1">🏆</span>
+                        <span style="font-family: var(--font-heading); font-size: 44px; font-weight: 900; color: #F4C45A; opacity: 0.5;">03</span>
+                    </div>
+                    <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; margin: 0;">Thi thử & AI Chấm viết</h3>
+                    <p class="text-muted" style="font-size: 15px; line-height: 1.6;">Thi Full Mock và Mini Test đúng thời gian thực. Luyện Viết TOPIK II (Câu 51–54) nhận kết quả AI chấm tức thì và Mentor chữa bài.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Khối Học gì cũng có chỗ luyện (s-dangcau) -->
+    <section id="s-dangcau" class="py-5 my-3 p-4 p-md-5 rounded-5 bg-white border shadow-sm">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <span class="ssak-badge badge-mint px-3 py-1 mb-2">ĐẦY ĐỦ 42 DẠNG BÀI TOPIK</span>
+                <h2 style="font-family: var(--font-heading); font-size: 36px; font-weight: 800;">Luyện đúng khuôn đề thật</h2>
+                <p class="text-muted" style="line-height: 1.6;">
+                    Ngân hàng câu hỏi chuẩn hóa bao quát toàn bộ 18 dạng TOPIK I và 24 dạng TOPIK II. Mọi câu hỏi đều có giải thích chi tiết, transcript nghe, và liên kết tra cứu từ vựng / ngữ pháp.
+                </p>
+                <div class="row g-3 mt-2">
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded-3" style="background: var(--ssak-bg);">
+                            <div class="fw-bold" style="color: var(--ssak-primary-dark);"><i class="bi bi-headphones me-2"></i>Kỹ năng Nghe</div>
+                            <div class="small text-muted">Audio chuẩn giọng Seoul, tua phát linh hoạt</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded-3" style="background: var(--ssak-bg);">
+                            <div class="fw-bold" style="color: var(--ssak-primary-dark);"><i class="bi bi-book me-2"></i>Kỹ năng Đọc</div>
+                            <div class="small text-muted">Đọc hiểu đoạn văn, biểu đồ thực tế</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded-3" style="background: var(--ssak-bg);">
+                            <div class="fw-bold" style="color: var(--ssak-primary-dark);"><i class="bi bi-pen me-2"></i>Kỹ năng Viết</div>
+                            <div class="small text-muted">Câu 51, 52, 53, 54 chấm theo barem thật</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded-3" style="background: var(--ssak-bg);">
+                            <div class="fw-bold" style="color: var(--ssak-primary-dark);"><i class="bi bi-translate me-2"></i>Cầu nối Hán Việt</div>
+                            <div class="small text-muted">từ gốc Hán đoán nghĩa hàng ngàn từ vựng</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 text-center">
+                <div class="p-4 rounded-4" style="background: var(--ssak-primary-light); border: 2px dashed var(--ssak-primary);">
+                    <div th:replace="~{fragments/ssak :: mascot('happy', 'bloom', 240, 'Bé Ssak hoa nở')}"></div>
+                    <div class="fw-bold mt-2" style="font-size: 18px; color: var(--ssak-primary-dark);">Bé Ssak hoa nở khi bạn hoàn thành bài học!</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Khối Bảng giá (s-banggia) -->
+    <section id="s-banggia" class="py-5">
+        <div class="text-center mb-5">
+            <span class="ssak-badge badge-honey px-3 py-1 mb-2">BẢNG GIÁ MINH BẠCH</span>
+            <h2 style="font-family: var(--font-heading); font-size: 38px; font-weight: 800;">Đầu tư thông minh cho mục tiêu TOPIK</h2>
+            <p class="text-muted">Miễn phí trải nghiệm 7 ngày đầu, nâng cấp gói VIP bất kỳ lúc nào.</p>
+        </div>
+
+        <div class="row g-4 justify-content-center">
+            <!-- Free Plan -->
+            <div class="col-md-5 col-lg-4">
+                <div class="p-4 rounded-4 bg-white border h-100 d-flex flex-column justify-content-between shadow-sm">
+                    <div>
+                        <span class="badge bg-secondary px-3 py-2 rounded-pill mb-3">TÀI KHOẢN FREE</span>
+                        <h3 class="fw-bold" style="font-size: 24px;">Miễn phí</h3>
+                        <div class="display-6 fw-bold my-3">0đ</div>
+                        <ul class="list-unstyled d-flex flex-column gap-2 text-muted" style="font-size: 14px;">
+                            <li><i class="bi bi-check-lg text-success me-2"></i>Bài kiểm tra trình độ Placement</li>
+                            <li><i class="bi bi-check-lg text-success me-2"></i>Lộ trình 7 ngày đầu</li>
+                            <li><i class="bi bi-check-lg text-success me-2"></i>Luyện tập tự do 3 bài / ngày</li>
+                            <li><i class="bi bi-check-lg text-success me-2"></i>2 lượt AI chấm Viết / ngày</li>
+                            <li><i class="bi bi-check-lg text-success me-2"></i>1 đề Mini Test & 1 Full Mock</li>
+                        </ul>
+                    </div>
+                    <a th:href="@{/register}" class="btn-ssak-outline w-100 text-center py-2 rounded-pill mt-4 text-decoration-none">Bắt đầu ngay</a>
+                </div>
+            </div>
+
+            <!-- VIP Lifetime / Recommended -->
+            <div class="col-md-5 col-lg-4">
+                <div class="p-4 rounded-4 bg-white h-100 d-flex flex-column justify-content-between shadow" style="border: 2px solid var(--ssak-primary); position: relative;">
+                    <span class="position-absolute top-0 start-50 translate-middle badge rounded-pill px-3 py-2" style="background: var(--ssak-primary); font-size: 12px;">ĐƯỢC CHỌN NHIỀU NHẤT</span>
+                    <div>
+                        <span class="badge px-3 py-2 rounded-pill mb-3" style="background: var(--ssak-honey); color: var(--ssak-honey-text); font-weight: 800;">👑 VIP TRỌN ĐỜI</span>
+                        <h3 class="fw-bold" style="font-size: 24px;">VIP Hoàn toàn</h3>
+                        <div class="display-6 fw-bold my-3 text-success" style="color: var(--ssak-primary) !important;">1.490.000đ</div>
+                        <ul class="list-unstyled d-flex flex-column gap-2" style="font-size: 14px; color: var(--ssak-text-main);">
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Toàn bộ lộ trình 30–200 ngày</strong></li>
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Luyện tập không giới hạn số bài</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>20 lượt AI chấm Viết / ngày</strong></li>
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>4 bài Mentor chấm chi tiết / tháng</strong></li>
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Mở khóa tất cả đề Full Mock & Mini</li>
+                        </ul>
+                    </div>
+                    <a th:href="@{/vip}" class="btn-ssak-primary w-100 text-center py-2 rounded-pill mt-4 text-decoration-none fw-bold">Nâng cấp VIP ngay</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Lời mời cuối trang -->
+    <section class="text-center py-5 my-4 p-5 rounded-5" style="background: var(--ssak-primary-light);">
+        <h2 style="font-family: var(--font-heading); font-size: 34px; font-weight: 800; color: var(--ssak-primary-dark);">Sẵn sàng cùng Bé Ssak bứt phá TOPIK?</h2>
+        <p class="text-muted mt-2 mb-4" style="font-size: 17px;">Bắt đầu từ một bài kiểm tra 15 phút để biết chính xác điểm xuất phát của bạn.</p>
+        <a th:href="@{/onboarding}" class="btn-ssak-primary px-5 py-3 rounded-pill fw-bold" style="font-size: 18px; text-decoration: none;">Bắt đầu kiểm tra miễn phí</a>
+    </section>
+
+    <!-- KHU VỰC ĐÁNH GIÁ & CẢM NHẬN CỘNG ĐỒNG (Dùng JS Phân trang) -->
     <section id="reviewsSection" class="p-4 p-md-5 rounded-4 bg-white border shadow-sm my-5">
         <div class="row align-items-center mb-4">
             <div class="col-md-8">
@@ -85,14 +265,13 @@
             </div>
         </div>
 
-        <!-- DANH SÁCH BÌNH LUẬN THEO HÀNG DỌC (1 CỘT FULL CHIỀU NGANG) -->
+        <!-- DANH SÁCH BÌNH LUẬN (Mỗi item có class review-item để JS phân trang) -->
         <div class="d-flex flex-column gap-3" id="reviewContainer">
-            <div th:if="${approvedReviews == null || approvedReviews.empty}">
+            <div th:if="${#lists.isEmpty(approvedReviews)}">
                 <p class="text-muted small fst-italic text-center py-4">Chưa có đánh giá nào cho mức lọc này.</p>
             </div>
 
-            <!-- Mỗi review chiếm 1 hàng dọc trang trọng, sạch sẽ -->
-            <div class="p-3 border rounded-4 bg-white shadow-sm w-100" th:each="rev : ${approvedReviews}">
+            <div class="p-3 border rounded-4 bg-white shadow-sm w-100 review-item" th:each="rev : ${approvedReviews}">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                     <div class="fw-bold" th:text="${rev.user != null ? rev.user.displayName : 'Học viên HOT TOPIK'}">Tên học viên</div>
                     <small class="text-muted" th:text="${#temporals.format(rev.createdAt, 'yyyy-MM-dd HH:mm')}">Thời gian</small>
@@ -105,26 +284,13 @@
                     <span th:if="${rev.rating == 5}">⭐</span>
                     <span class="text-muted ms-1 fs-6" style="font-size: 12px !important;" th:text="'(' + ${rev.rating} + '/5)'"></span>
                 </div>
-                <p class="text-muted small mb-0 fst-italic" th:text="'“' + ${rev.content} + '”'">Nội dung đánh giá...</p>
+                <p class="text-muted small mb-0 fst-italic" th:text="'“' + ${rev.content} + '”'"></p>
             </div>
         </div>
 
-        <!-- PHÂN TRANG (Giữ nguyên param rating và trượt xuống #reviewsSection) -->
-        <nav aria-label="Review Navigation" class="mt-4" th:if="${totalPages > 1}">
-            <ul class="pagination justify-content-center mb-0">
-                <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
-                    <a class="page-link rounded-start-pill px-3" th:href="@{/(page=${currentPage - 1}, rating=${selectedRating})}+'#reviewsSection'">Trước</a>
-                </li>
-
-                <!-- Vòng lặp các trang -->
-                <li class="page-item" th:each="i : ${#numbers.sequence(0, totalPages - 1)}" th:classappend="${currentPage == i} ? 'active'">
-                    <a class="page-link" th:href="@{/(page=${i}, rating=${selectedRating})}+'#reviewsSection'" th:text="${i + 1}">1</a>
-                </li>
-
-                <li class="page-item" th:classappend="${currentPage + 1 >= totalPages} ? 'disabled'">
-                    <a class="page-link rounded-end-pill px-3" th:href="@{/(page=${currentPage + 1}, rating=${selectedRating})}+'#reviewsSection'">Sau</a>
-                </li>
-            </ul>
+        <!-- PHÂN TRANG BẰNG JAVASCRIPT -->
+        <nav aria-label="Review Navigation" class="mt-4">
+            <ul class="pagination justify-content-center mb-0" id="paginationContainer"></ul>
         </nav>
     </section>
 
@@ -188,31 +354,113 @@
             alert("Cậu vui lòng nhập nội dung góp ý nhé!");
             return;
         }
+
         fetch('/api/feedback/submit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ rating: currentRating, comment: commentText })
         })
-            .then(res => res.json())
+            .then(res => {
+                if (res.status === 401) {
+                    alert("Cậu cần đăng nhập để gửi đánh giá nhé!");
+                    window.location.href = '/login';
+                    return null;
+                }
+                return res.json();
+            })
             .then(data => {
-                if (data.success) {
+                if (data && data.success) {
                     alert(data.message);
                     closeFeedbackModal();
                     location.reload();
-                } else {
+                } else if (data) {
                     alert("Lỗi: " + data.message);
                 }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("Không thể kết nối đến máy chủ.");
             });
     }
 
-    // Chuyển hướng khi bấm nút lọc số sao (gửi kèm param rating, reset về trang 0 và nhảy thẳng tới khu vực review)
     function filterReviews(rating) {
         if (rating === 'all') {
-            window.location.href = '/#reviewsSection';
+            window.location.href = '/';
         } else {
-            window.location.href = `/?rating=${rating}&page=0#reviewsSection`;
+            window.location.href = `/?rating=${rating}`;
         }
     }
+
+    // --- SCRIPT PHÂN TRANG BẰNG JAVASCRIPT CHO TRANG CHỦ ---
+    const itemsPerPage = 5; // Hiển thị 5 review mỗi trang
+    let currentPage = 1;
+
+    function initClientPagination() {
+        const items = document.querySelectorAll('.review-item');
+        const totalPages = Math.ceil(items.length / itemsPerPage);
+
+        const paginationEl = document.getElementById('paginationContainer');
+        if (!paginationEl) return;
+
+        if (totalPages <= 1) {
+            paginationEl.innerHTML = '';
+            return;
+        }
+
+        function showPage(page) {
+            currentPage = page;
+            items.forEach((item, index) => {
+                item.style.display = (index >= (page - 1) * itemsPerPage && index < page * itemsPerPage) ? 'block' : 'none';
+            });
+
+            renderPaginationControls(totalPages);
+
+            // Chỉ cuộn mượt khi bấm chuyển sang trang > 1
+            if (page > 1) {
+                const reviewsSection = document.getElementById('reviewsSection');
+                if (reviewsSection) {
+                    reviewsSection.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+        }
+
+        function renderPaginationControls(totalPages) {
+            paginationEl.innerHTML = '';
+
+            // Nút Trước
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link rounded-start-pill px-3" href="javascript:void(0);">Trước</a>`;
+            prevLi.onclick = () => {
+                if (currentPage > 1) showPage(currentPage - 1);
+            };
+            paginationEl.appendChild(prevLi);
+
+            // Các nút số trang
+            for (let i = 1; i <= totalPages; i++) {
+                const pageLi = document.createElement('li');
+                pageLi.className = `page-item ${currentPage === i ? 'active' : ''}`;
+                pageLi.innerHTML = `<a class="page-link" href="javascript:void(0);">${i}</a>`;
+                pageLi.onclick = () => showPage(i);
+                paginationEl.appendChild(pageLi);
+            }
+
+            // Nút Sau
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link rounded-end-pill px-3" href="javascript:void(0);">Sau</a>`;
+            nextLi.onclick = () => {
+                if (currentPage < totalPages) showPage(currentPage + 1);
+            };
+            paginationEl.appendChild(nextLi);
+        }
+
+        showPage(1);
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        initClientPagination();
+    });
 </script>
 
 <div th:replace="~{fragments/footer :: footer}"></div>

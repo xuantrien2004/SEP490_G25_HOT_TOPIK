@@ -19,6 +19,13 @@
                 <p class="lead text-muted mt-2 mb-2" style="font-size: 17px; line-height: 1.6;">
                     Nắm rõ cấu trúc đề, tiêu chuẩn quy đổi điểm của Viện Giáo dục Quốc tế Quốc gia Hàn Quốc (NIIED) và những chiến thuật làm bài thực chiến từ các thủ khoa TOPIK 6.
                 </p>
+
+                <!-- HIỂN THỊ SỐ SAO TRUNG BÌNH & SỐ LƯỢT VOTE LẤY TỪ DATABASE -->
+                <div class="d-flex align-items-center gap-2 mt-3" onclick="scrollToReviews()" style="display: inline-flex; background: rgba(255,255,255,0.85); padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.08); cursor: pointer; transition: all 0.2s;">
+                    <div class="text-warning fs-6">⭐⭐⭐⭐⭐</div>
+                    <span class="fw-bold" style="color: var(--ssak-text-main);" th:text="${avgRating} + ' / 5.0'">4.9 / 5.0</span>
+                    <span class="text-muted small">(<span th:text="${totalReviews}">1,248</span> học viên đã đánh giá)</span>
+                </div>
             </div>
             <div class="col-md-4 text-center mt-3 mt-md-0">
                 <div th:replace="~{fragments/ssak :: mascot('think', 'young', 180, 'Bé Ssak nghiên cứu')}"></div>
@@ -300,9 +307,99 @@
             </div>
         </div>
     </div>
+
+    <!-- KHU VỰC ĐÁNH GIÁ & CẢM NHẬN CỦA CỘNG ĐỒNG (CÓ PHÂN TRANG BẰNG JS) -->
+    <section id="reviewsSection" class="p-4 p-md-5 rounded-4 bg-white border shadow-sm my-5">
+        <div class="row align-items-center mb-4">
+            <div class="col-md-8">
+                <h3 style="font-family: var(--font-heading); font-size: 24px; font-weight: 800;" class="mb-1">Đánh giá từ cộng đồng học viên</h3>
+                <p class="text-muted small mb-0">Cảm nhận thực tế của các học viên đã ôn luyện cẩm nang và đề thi trên HOT TOPIK.</p>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <button type="button" onclick="openFeedbackModal()" class="btn-ssak-primary px-4 py-2 rounded-pill fw-bold">
+                    <i class="bi bi-star-fill me-1"></i> Viết đánh giá của bạn
+                </button>
+            </div>
+        </div>
+
+        <div class="row g-4 align-items-center p-4 rounded-4 mb-4" style="background: var(--ssak-bg);">
+            <div class="col-md-4 text-center border-end-md">
+                <div style="font-size: 48px; font-weight: 800; color: var(--ssak-text-main);" th:text="${avgRating}">4.9</div>
+                <div class="text-warning fs-5 my-1">⭐⭐⭐⭐⭐</div>
+                <div class="text-muted small">Dựa trên <strong th:text="${totalReviews}">1,248</strong> đánh giá xác thực</div>
+            </div>
+            <div class="col-md-8">
+                <div class="text-muted small">Hệ thống ghi nhận các đánh giá thực tế từ học viên đã qua kiểm duyệt vận hành.</div>
+            </div>
+        </div>
+
+        <!-- DANH SÁCH BÌNH LUẬN (Được JS tự động phân trang) -->
+        <div class="row g-3" id="reviewContainer">
+            <div class="col-md-12" th:if="${#lists.isEmpty(approvedReviews)}">
+                <p class="text-muted small fst-italic text-center py-4">Chưa có đánh giá công khai nào. Hãy là người đầu tiên chia sẻ cảm nhận!</p>
+            </div>
+            <!-- Mỗi review có class review-item để JS nhận diện -->
+            <div class="col-md-6 review-item" th:each="rev : ${approvedReviews}">
+                <div class="p-3 border rounded-4 bg-white shadow-sm h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="fw-bold" th:text="${rev.user != null ? rev.user.displayName : 'Học viên HOT TOPIK'}">Tên học viên</div>
+                        <small class="text-muted" th:text="${#temporals.format(rev.createdAt, 'yyyy-MM-dd HH:mm')}">Thời gian</small>
+                    </div>
+                    <div class="text-warning small mb-2">
+                        <span th:if="${rev.rating >= 1}">⭐</span>
+                        <span th:if="${rev.rating >= 2}">⭐</span>
+                        <span th:if="${rev.rating >= 3}">⭐</span>
+                        <span th:if="${rev.rating >= 4}">⭐</span>
+                        <span th:if="${rev.rating == 5}">⭐</span>
+                    </div>
+                    <p class="text-muted small mb-0 fst-italic" th:text="'“' + ${rev.content} + '”'">Nội dung đánh giá...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- THANH ĐIỀU HƯỚNG PHÂN TRANG (JS tự sinh ra các nút) -->
+        <nav aria-label="Review Navigation" class="mt-4">
+            <ul class="pagination justify-content-center mb-0" id="paginationContainer"></ul>
+        </nav>
+    </section>
 </main>
 
+<!-- MODAL GỬI ĐÁNH GIÁ (5 SAO + CHỮ) -->
+<div id="feedbackModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 99999; justify-content: center; align-items: center;">
+    <div style="background: #FFFFFF; width: 500px; max-width: 90%; border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); position: relative;">
+        <button onclick="closeFeedbackModal()" style="position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 20px; cursor: pointer; color: #53646C;">✕</button>
+
+        <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: var(--ssak-text-main); margin-bottom: 8px;">Đánh giá trải nghiệm</h3>
+        <p class="text-muted small mb-4">Ý kiến của cậu giúp đội ngũ phát triển hoàn thiện HOT TOPIK mỗi ngày!</p>
+
+        <!-- Chọn số sao -->
+        <div class="text-center mb-3">
+            <div id="starContainer" class="fs-2" style="cursor: pointer; color: #CBD5E1;">
+                <span onclick="setRating(1)">★</span>
+                <span onclick="setRating(2)">★</span>
+                <span onclick="setRating(3)">★</span>
+                <span onclick="setRating(4)">★</span>
+                <span onclick="setRating(5)">★</span>
+            </div>
+            <div id="ratingText" class="fw-bold small mt-1 text-muted">Chọn số sao đánh giá</div>
+        </div>
+
+        <!-- Ô nhập nhận xét -->
+        <div class="mb-3">
+            <label class="form-label small fw-bold text-muted">Nhận xét hoặc góp ý của cậu:</label>
+            <textarea id="feedbackComment" class="form-control rounded-3" rows="3" placeholder="Ví dụ: Trang web rất hữu ích, phần giải thích ngữ pháp dễ hiểu..."></textarea>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" onclick="closeFeedbackModal()" class="btn btn-light rounded-pill px-4 fw-bold">Hủy</button>
+            <button type="button" onclick="submitFeedback()" class="btn-ssak-primary rounded-pill px-4 fw-bold">Gửi đánh giá</button>
+        </div>
+    </div>
+</div>
+
 <script>
+    let currentRating = 5;
+
     function switchTopikTab(tab) {
         document.querySelectorAll('.topik-tab-btn').forEach(b => {
             b.style.borderColor = 'var(--ssak-border)';
@@ -324,6 +421,132 @@
             document.getElementById('contentTips').classList.remove('d-none');
         }
     }
+
+    function scrollToReviews() {
+        document.getElementById('reviewsSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function openFeedbackModal() {
+        document.getElementById('feedbackModal').style.display = 'flex';
+        setRating(5);
+    }
+
+    function closeFeedbackModal() {
+        document.getElementById('feedbackModal').style.display = 'none';
+    }
+
+    function setRating(star) {
+        currentRating = star;
+        const stars = document.getElementById('starContainer').children;
+        for (let i = 0; i < stars.length; i++) {
+            if (i < star) {
+                stars[i].style.color = '#F59E0B';
+            } else {
+                stars[i].style.color = '#CBD5E1';
+            }
+        }
+        const labels = {1: "Rất cần cải thiện", 2: "Tạm ổn", 3: "Bình thường", 4: "Rất tốt", 5: "Tuyệt vời xuất sắc! ⭐"};
+        document.getElementById('ratingText').textContent = labels[star];
+    }
+
+    // GỬI DỮ LIỆU ĐÁNH GIÁ THỰC TẾ LÊN BACKEND QUA API FETCH (Có kiểm tra bảo mật đăng nhập 401)
+    function submitFeedback() {
+        const commentText = document.getElementById('feedbackComment').value;
+
+        if (!commentText.trim()) {
+            alert("Cậu vui lòng nhập nội dung góp ý nhé!");
+            return;
+        }
+
+        const payload = {
+            rating: currentRating,
+            comment: commentText
+        };
+
+        fetch('/api/feedback/submit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+            .then(res => {
+                if (res.status === 401) {
+                    alert("Cậu cần đăng nhập để gửi đánh giá nhé!");
+                    window.location.href = '/login';
+                    return null;
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data && data.success) {
+                    alert(data.message);
+                    closeFeedbackModal();
+                    location.reload();
+                } else if (data) {
+                    alert("Lỗi: " + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("Không thể kết nối đến máy chủ.");
+            });
+    }
+
+    // --- SCRIPT PHÂN TRANG BẰNG JAVASCRIPT ---
+    const itemsPerPage = 4; // Số lượng review hiển thị trên mỗi trang
+    let currentPage = 1;
+
+    function initClientPagination() {
+        const items = document.querySelectorAll('.review-item');
+        const totalPages = Math.ceil(items.length / itemsPerPage);
+
+        if (totalPages <= 1) return; // Nếu ít hơn hoặc bằng 1 trang thì không cần hiện phân trang
+
+        function showPage(page) {
+            currentPage = page;
+            items.forEach((item, index) => {
+                item.style.display = (index >= (page - 1) * itemsPerPage && index < page * itemsPerPage) ? 'block' : 'none';
+            });
+
+            renderPaginationControls(totalPages);
+            document.getElementById('reviewsSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function renderPaginationControls(totalPages) {
+            const paginationEl = document.getElementById('paginationContainer');
+            paginationEl.innerHTML = '';
+
+            // Nút Trước
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link rounded-start-pill px-3" href="javascript:void(0);">Trước</a>`;
+            prevLi.onclick = () => { if (currentPage > 1) showPage(currentPage - 1); };
+            paginationEl.appendChild(prevLi);
+
+            // Các nút số trang
+            for (let i = 1; i <= totalPages; i++) {
+                const pageLi = document.createElement('li');
+                pageLi.className = `page-item ${currentPage === i ? 'active' : ''}`;
+                pageLi.innerHTML = `<a class="page-link" href="javascript:void(0);">${i}</a>`;
+                pageLi.onclick = () => showPage(i);
+                paginationEl.appendChild(pageLi);
+            }
+
+            // Nút Sau
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link rounded-end-pill px-3" href="javascript:void(0);">Sau</a>`;
+            nextLi.onclick = () => { if (currentPage < totalPages) showPage(currentPage + 1); };
+            paginationEl.appendChild(nextLi);
+        }
+
+        showPage(1);
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        initClientPagination();
+    });
 </script>
 
 <div th:replace="~{fragments/footer :: footer}"></div>

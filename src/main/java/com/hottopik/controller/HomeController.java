@@ -21,46 +21,35 @@ public class HomeController {
     @Autowired
     private ReviewRepository reviewRepository; // Tiêm ReviewRepository vào đây
 
-    @Transactional(readOnly = true) // Thêm Transactional để hỗ trợ Lazy Loading User khi load review
+    @Transactional(readOnly = true)
     @GetMapping("/")
     public String index(
-            @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "rating", required = false) Integer rating,
             Model model
     ) {
-        int pageSize = 5; // Cố định mỗi trang hiển thị 5 review dọc
-        Pageable pageable = PageRequest.of(page, pageSize, Sort.by("createdAt").descending());
+        List<Review> approvedReviews;
 
-        Page<Review> reviewPage;
-
-        // Kiểm tra nếu có lọc theo số sao hay không
+        // Lọc theo số sao hoặc lấy tất cả
         if (rating != null) {
-            // Lưu ý: Cậu cần đảm bảo ReviewRepository có hàm findByStatusAndRating(String status, Short rating, Pageable pageable)
-            // hoặc chuyển rating thành kiểu Short tùy theo khai báo trong Entity Review của cậu.
-            reviewPage = reviewRepository.findByStatusAndRating("APPROVED", rating.shortValue(), pageable);
+            approvedReviews = reviewRepository.findByStatusAndRating("APPROVED", rating.shortValue(), Sort.by("createdAt").descending());
         } else {
-            reviewPage = reviewRepository.findByStatusWithUserPage("APPROVED", pageable);
+            approvedReviews = reviewRepository.findByStatusWithUser("APPROVED");
         }
 
-        // Tính toán tổng số lượng review và điểm trung bình dựa trên toàn bộ review đã duyệt (để hiển thị thống kê chính xác)
-        List<Review> allApprovedReviews = reviewRepository.findByStatusWithUser("APPROVED");
         double avgRating = 5.0;
-        int totalReviews = allApprovedReviews.size();
+        int totalReviews = approvedReviews.size();
 
         if (totalReviews > 0) {
             double sum = 0;
-            for (Review r : allApprovedReviews) {
+            for (Review r : approvedReviews) {
                 sum += (r.getRating() != null ? r.getRating() : 5);
             }
             avgRating = Math.round((sum / totalReviews) * 10.0) / 10.0;
         }
 
-        // 3. Đưa vào Model để trang guest/home hiển thị phân trang
-        model.addAttribute("approvedReviews", reviewPage.getContent());
-        model.addAttribute("currentPage", reviewPage.getNumber());
-        model.addAttribute("totalPages", reviewPage.getTotalPages());
+        // Truyền toàn bộ danh sách sang view để JS tự phân trang client
+        model.addAttribute("approvedReviews", approvedReviews);
         model.addAttribute("selectedRating", rating);
-
         model.addAttribute("avgRating", avgRating);
         model.addAttribute("totalReviews", totalReviews);
 
@@ -69,9 +58,10 @@ public class HomeController {
         return "guest/home";
     }
 
-    @Transactional(readOnly = true) // Giữ transaction cho phép Lazy Loading User
+    @Transactional(readOnly = true) // Giữ transaction cho phép Lazy Loading User cho trang Về TOPIK
     @GetMapping({"/ve-topik", "/about-topik"})
     public String aboutTopik(Model model) {
+        // Lấy toàn bộ danh sách review đã duyệt kèm theo thông tin User để hiển thị ở trang Về TOPIK
         List<Review> approvedReviews = reviewRepository.findByStatusWithUser("APPROVED");
 
         double avgRating = 5.0;
