@@ -5,16 +5,15 @@ import com.hottopik.entity.exam.*;
 import com.hottopik.service.exam.ExamDomainException;
 import com.hottopik.service.exam.ExamImportService;
 import com.hottopik.service.exam.LearnerExamService;
+import com.hottopik.service.exam.MediaResponses;
 import com.hottopik.service.exam.QuestionTypeCatalog;
 import com.hottopik.util.AuthHelper;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
@@ -162,20 +161,36 @@ public class LearnerExamController {
     }
 
     @GetMapping("/exam/media/{sourceId}/{filename:.+}")
-    public ResponseEntity<Resource> media(@PathVariable Long sourceId, @PathVariable String filename, HttpSession session) throws IOException {
-        if (!service.canReadMedia(userId(session), sourceId)) return ResponseEntity.status(403).build();
+    public void media(@PathVariable Long sourceId, @PathVariable String filename,
+                      @RequestHeader(value = "Range", required = false) String range,
+                      HttpSession session, HttpServletResponse response) throws IOException {
+        if (!service.canReadMedia(userId(session), sourceId)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
         Optional<MediaAsset> asset = imports.findMedia(sourceId, filename);
-        if (asset.isEmpty()) return ResponseEntity.notFound().build();
+        if (asset.isEmpty()) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
         Path path = imports.mediaPath(asset.get());
-        if (!Files.exists(path)) return ResponseEntity.notFound().build();
-        String type = Optional.ofNullable(Files.probeContentType(path))
-                .orElse(asset.get().getKind() == MediaKind.AUDIO ? "audio/mpeg" : "application/octet-stream");
-        return ResponseEntity.ok().contentType(MediaType.parseMediaType(type)).body(new FileSystemResource(path));
+        if (!Files.exists(path)) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        MediaResponses.play(path, filename, asset.get().getKind(), range, response);
     }
 
     @ExceptionHandler(ExamDomainException.class)
     public String domainError(ExamDomainException e, RedirectAttributes flash) {
         flash.addFlashAttribute("examError", e.getMessage());
+        return "redirect:/exam";
+    }
+
+    /** Nút mẫu cũ trỏ tới mã kiểu mock-91-resume. Spring không đổi được sang số nên trước đây ra trang lỗi. */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public String unknownExam(RedirectAttributes flash) {
+        flash.addFlashAttribute("examError", "Đề này không mở được vì mã bài không còn trong hệ thống. Hãy chọn một đề trong thư viện.");
         return "redirect:/exam";
     }
 

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<th:block th:replace="~{fragments/content-shell :: styles}"></th:block>
+<div class="cm-shell">
+    <aside th:replace="~{fragments/content-shell :: sidebar('placement')}"></aside>
+    <div class="cm-main">
+        <header th:replace="~{fragments/content-shell :: header('Đề kiểm tra trình độ', 'Một bài duy nhất: 10 Nghe + 10 Đọc, chỉ dạng một câu sơ cấp.')}"></header>
+        <main class="cm-body">
+            <th:block th:replace="~{fragments/content-shell :: flash}"></th:block>
+            <section class="cm-card" th:each="sheet : ${papers}">
+                <h2 th:text="${sheet.paper.title()}">Bài kiểm tra trình độ</h2>
+                <p class="cm-muted">Nghe <strong th:text="${sheet.listeningCount}">0</strong>/10 · Đọc <strong th:text="${sheet.readingCount}">0</strong>/10</p>
+                <form method="post" th:action="@{/content/placement}" class="mt-3">
+                    <input type="hidden" name="paper" th:value="${sheet.paper.name()}">
+                    <h3>Nghe</h3>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6" th:each="row : ${sheet.listening}">
+                            <label class="form-label small mb-1">
+                                <span th:text="${row.type.code()}">I-N1</span> · <span th:text="${row.type.name()}">Dạng</span>
+                                <span class="text-muted" th:text="'(' + ${row.available} + ' câu sẵn)'"></span>
+                            </label>
+                            <input class="form-control" type="number" min="0" max="10" th:name="${row.type.code()}" th:value="${row.count}" th:disabled="${!canEdit}">
+                        </div>
+                    </div>
+                    <h3>Đọc</h3>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6" th:each="row : ${sheet.reading}">
+                            <label class="form-label small mb-1">
+                                <span th:text="${row.type.code()}">I-D1</span> · <span th:text="${row.type.name()}">Dạng</span>
+                                <span class="text-muted" th:text="'(' + ${row.available} + ' câu sẵn)'"></span>
+                            </label>
+                            <input class="form-control" type="number" min="0" max="10" th:name="${row.type.code()}" th:value="${row.count}" th:disabled="${!canEdit}">
+                        </div>
+                    </div>
+                    <button class="btn btn-success" type="submit" th:if="${canEdit}">Lưu cấu trúc</button>
+                </form>
+            </section>
+        </main>
+    </div>
+</div>
+</body>
+</html>

@@ -55,14 +55,14 @@ class ContentSourceRegressionTest {
 
     private String reading(Long sourceId, int no, String prompt, String opt2) {
         return imports.saveCard(sourceId, new ExamImportService.CardForm(null, "TPL2-REA-01",
-                null, null, "읽기 지문", null, List.of(prompt), List.of("가"), List.of(opt2),
+                null, null, "읽기 지문", null, null, List.of(prompt), List.of("가"), List.of(opt2),
                 List.of("다"), List.of("라"), List.of("1"), List.of("Giải thích"),
                 null, null, null, null, null, null, List.of(no)), CM);
     }
 
     private void writing(Long sourceId) {
         imports.saveCard(sourceId, new ExamImportService.CardForm(null, "TPL2-WRI-01",
-                null, null, "안내 ㉠ ㉡", null, List.of("안내 ㉠ ㉡"), null, null, null, null,
+                null, null, "안내 ㉠ ㉡", null, null, List.of("안내 ㉠ ㉡"), null, null, null, null,
                 null, List.of("Đáp án chấp nhận"), List.of("신청하세요"), List.of("오세요"),
                 null, null, null, null, List.of(51)), CM);
     }
@@ -121,7 +121,8 @@ class ContentSourceRegressionTest {
         String third = reading(source.getId(), 3, "세 번째 문제", "나");
         mvc.perform(get("/content/sources/" + source.getId()).param("card", first)
                         .sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
-                .andExpect(status().isOk()).andExpect(content().string(containsString("Bài 1, câu 1 thiếu câu hỏi.")))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("có thể để trống")))
+                .andExpect(content().string(not(containsString("Bài 1, câu 1 thiếu câu hỏi."))))
                 .andExpect(content().string(not(containsString("Bài 2, câu 1 thiếu phương án 2."))));
         mvc.perform(get("/content/sources/" + source.getId()).param("card", second)
                         .sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
@@ -130,15 +131,24 @@ class ContentSourceRegressionTest {
         mvc.perform(get("/content/sources/" + source.getId()).param("card", third)
                         .sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
                 .andExpect(status().isOk()).andExpect(content().string(not(containsString("id=\"current-question-errors\""))));
-        // A picture-choice template also permits text choices without uploaded images.
-        imports.uploadMedia(source.getId(), List.of(new MockMultipartFile("files", "test.mp3",
-                "audio/mpeg", SampleExamFactory.fakeMp3())), CM);
+        imports.uploadMedia(source.getId(), List.of(
+                new MockMultipartFile("files", "test.mp3", "audio/mpeg", SampleExamFactory.fakeMp3()),
+                new MockMultipartFile("files", "a1.png", "image/png", SampleExamFactory.fakePng()),
+                new MockMultipartFile("files", "a2.png", "image/png", SampleExamFactory.fakePng()),
+                new MockMultipartFile("files", "a3.png", "image/png", SampleExamFactory.fakePng()),
+                new MockMultipartFile("files", "a4.png", "image/png", SampleExamFactory.fakePng())), CM);
         String picture = imports.saveCard(source.getId(), new ExamImportService.CardForm(null, "TPL2-LIS-01",
-                "test.mp3", null, null, "설명", List.of("그림을 고르세요"),
-                List.of("가"), List.of("나"), List.of("다"), List.of("라"), List.of("1"),
+                "test.mp3", null, null, "설명", "Nam nói, nữ trả lời.", List.of("그림을 고르세요"),
+                List.of("a1.png"), List.of("a2.png"), List.of("a3.png"), List.of("a4.png"), List.of("1"),
                 List.of("Giải thích"), null, null, null, null, null, null, List.of(1)), CM);
         assertTrue(imports.cards(source.getId()).stream().filter(c -> c.id().equals(picture))
                 .findFirst().orElseThrow().problems().isEmpty());
+        String textPictures = imports.saveCard(source.getId(), new ExamImportService.CardForm(null, "TPL2-LIS-01",
+                "test.mp3", null, null, "설명", "Nam nói, nữ trả lời.", List.of("그림을 고르세요"),
+                List.of("가"), List.of("나"), List.of("다"), List.of("라"), List.of("2"),
+                List.of("Giải thích"), null, null, null, null, null, null, List.of(2)), CM);
+        assertTrue(imports.cards(source.getId()).stream().filter(c -> c.id().equals(textPictures))
+                .findFirst().orElseThrow().problems().stream().anyMatch(p -> p.contains("phải là file ảnh")));
         mvc.perform(post("/content/sources/" + source.getId() + "/status").param("status", "ACTIVE")
                         .sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
                 .andExpect(status().is3xxRedirection()).andExpect(flash().attributeExists("flashError"));
@@ -172,17 +182,17 @@ class ContentSourceRegressionTest {
         imports.uploadMedia(source.getId(), List.of(new MockMultipartFile("files", "shared.mp3",
                 "audio/mpeg", SampleExamFactory.fakeMp3())), CM);
         String card = imports.saveCard(source.getId(), new ExamImportService.CardForm(null, "TPL2-LIS-06",
-                "shared.mp3", null, null, "설명", List.of("", "두 번째 문제"),
+                "shared.mp3", null, null, "설명", "Bản dịch.", List.of("", "두 번째 문제"),
                 List.of("가", "가"), List.of("나", ""), List.of("다", "다"), List.of("라", "라"),
-                List.of("1", "2"), List.of("Giải thích", "Giải thích"),
+                List.of("1", "2"), List.of("", "Giải thích"),
                 null, null, null, null, null, null, List.of(21, 22)), CM);
         mvc.perform(get("/content/sources/" + source.getId()).param("card", card).param("focus", "21")
                         .sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
-                .andExpect(status().isOk()).andExpect(content().string(containsString("Bài 1, câu 1 thiếu câu hỏi.")))
+                .andExpect(status().isOk()).andExpect(content().string(containsString("Bài 1, câu 1 thiếu giải thích.")))
                 .andExpect(content().string(not(containsString("Bài 1, câu 2 thiếu phương án 2."))));
         mvc.perform(get("/content/sources/" + source.getId()).param("card", card).param("focus", "22")
                         .sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
                 .andExpect(status().isOk()).andExpect(content().string(containsString("Bài 1, câu 2 thiếu phương án 2.")))
-                .andExpect(content().string(not(containsString("Bài 1, câu 1 thiếu câu hỏi."))));
+                .andExpect(content().string(not(containsString("Bài 1, câu 1 thiếu giải thích."))));
     }
 }

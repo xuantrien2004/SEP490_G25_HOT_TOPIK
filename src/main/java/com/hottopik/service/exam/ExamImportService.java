@@ -391,9 +391,9 @@ public class ExamImportService {
     }
 
     public record CardForm(String cardId, String templateCode, String audio, String image, String passage, String script,
-                           List<String> prompt, List<String> opt1, List<String> opt2, List<String> opt3, List<String> opt4,
-                           List<String> answer, List<String> explanation, List<String> keys1, List<String> keys2,
-                           List<String> modelAnswer, List<String> rubric, List<String> chart,
+                           String scriptVi, List<String> prompt, List<String> opt1, List<String> opt2, List<String> opt3,
+                           List<String> opt4, List<String> answer, List<String> explanation, List<String> keys1,
+                           List<String> keys2, List<String> modelAnswer, List<String> rubric, List<String> chart,
                            String typeCode, List<Integer> qno) {
     }
 
@@ -410,7 +410,7 @@ public class ExamImportService {
     }
 
     public record CardView(String id, String templateCode, String templateName, String skillLabel, int askCount,
-                           boolean ready, String audio, String image, String passage, String script,
+                           boolean ready, String audio, String image, String passage, String script, String scriptVi,
                            List<AskView> asks, List<String> problems, String typeCode, String skillName,
                            List<Integer> nos) {
     }
@@ -494,6 +494,7 @@ public class ExamImportService {
         card.imageFile = emptyToNull(form.image());
         card.passageKo = emptyToNull(form.passage());
         card.scriptKo = emptyToNull(form.script());
+        card.scriptVi = emptyToNull(form.scriptVi());
         card.asks.clear();
         for (int i = 0; i < count; i++) {
             ParsedWorkbook.ManualAsk ask = new ParsedWorkbook.ManualAsk();
@@ -557,7 +558,7 @@ public class ExamImportService {
                     template == null ? "Chưa chọn dạng" : template.getName(),
                     template == null ? "" : template.getSkill().getLabel(),
                     card.asks.size(), problems.isEmpty() && !card.asks.isEmpty(),
-                    nz(card.audioFile), nz(card.imageFile), nz(card.passageKo), nz(card.scriptKo),
+                    nz(card.audioFile), nz(card.imageFile), nz(card.passageKo), nz(card.scriptKo), nz(card.scriptVi),
                     asks, problems, nz(card.typeCode),
                     template == null ? "" : template.getSkill().name(), nos));
         }
@@ -613,11 +614,16 @@ public class ExamImportService {
                 issues.add(ImportIssue.error("CARD", index, skill, index, "Chưa tải ảnh " + card.imageFile + "."));
             }
             if (template.getSkill() != Skill.WRITING && template.isPassageRequired() && blank(card.passageKo)) {
+
                 issues.add(ImportIssue.error("CARD", index, skill, index, "Bài " + index + " thiếu đoạn văn dùng chung."));
             }
-            if (template.getScriptScope() == ResourceScope.GROUP && blank(card.scriptKo)) {
-                issues.add(ImportIssue.warning("CARD", index, skill, index,
-                        "Bài " + index + " chưa có phụ đề. Phụ đề chỉ hiện khi xem giải thích."));
+            if (template.getSkill() == Skill.LISTENING) {
+                if (blank(card.scriptKo)) {
+                    issues.add(ImportIssue.error("CARD", index, skill, index, "Bài " + index + " thiếu lời thoại tiếng Hàn."));
+                }
+                if (blank(card.scriptVi)) {
+                    issues.add(ImportIssue.error("CARD", index, skill, index, "Bài " + index + " thiếu bản dịch lời thoại."));
+                }
             }
             int askNo = 0;
             for (ParsedWorkbook.ManualAsk ask : card.asks) {
@@ -625,25 +631,30 @@ public class ExamImportService {
                 String where = "Bài " + index + ", câu " + askNo;
                 boolean writing = template.getSkill() == Skill.WRITING;
                 int writingNo = ask.no != null ? ask.no : officialWritingNo(template);
-                if (!writing && template.getOptionCount() != null) {
+                boolean choice = template.getOptionCount() != null;
+                if (!writing && !choice && template.isPromptRequired() && blank(ask.promptKo)) {
+                    issues.add(ImportIssue.error("CARD", index, skill, index, where + " thiếu câu hỏi.").forQuestion(ask.no));
+                }
+                if (!writing && choice) {
                     String[] options = ask.options == null ? new String[4] : ask.options;
+                    boolean pictures = template.getImageScope() == ResourceScope.OPTIONS;
                     for (int i = 0; i < 4; i++) {
                         String option = i < options.length ? options[i] : null;
                         if (blank(option)) {
                             issues.add(ImportIssue.error("CARD", index, skill, index, where + " thiếu phương án " + (i + 1) + ".").forQuestion(ask.no));
-                        } else if (template.getImageScope() == ResourceScope.OPTIONS
-                                && Set.of("png", "jpg", "jpeg", "webp", "gif").contains(MediaStorageService.extension(option))
-                                && !sizes.containsKey(ExamImportValidator.key(option))) {
+                        } else if (pictures && !MediaStorageService.isImage(option)) {
+                            issues.add(ImportIssue.error("CARD", index, skill, index,
+                                    where + " phương án " + (i + 1) + " phải là file ảnh đã tải.").forQuestion(ask.no));
+                        } else if (pictures && !sizes.containsKey(ExamImportValidator.key(option))) {
                             issues.add(ImportIssue.error("CARD", index, skill, index,
                                     where + " chưa tải ảnh phương án " + option + ".").forQuestion(ask.no));
                         }
                     }
                     if (ask.answer == null) {
-                        issues.add(ImportIssue.error("CARD", index, skill, index, where + " chưa chọn đáp án 1–4.").forQuestion(ask.no));
+                        issues.add(ImportIssue.error("CARD", index, skill, index, where + " chưa chọn đáp án đúng.").forQuestion(ask.no));
                     }
                     if (blank(ask.explanationVi)) {
-                        issues.add(ImportIssue.warning("CARD", index, skill, index,
-                                where + " chưa có giải thích tiếng Việt. Điền sau cũng được."));
+                        issues.add(ImportIssue.error("CARD", index, skill, index, where + " thiếu giải thích.").forQuestion(ask.no));
                     }
                 }
                 // Form Viết lấy cấu trúc theo số câu, kể cả khi khuôn cũ còn cấu hình ACCEPT_KEYS cho 53/54.
@@ -777,7 +788,7 @@ public class ExamImportService {
     /** Một bài trên màn học viên: hướng dẫn dạng, nguyên liệu chung, rồi các câu của bài. */
     public record LearnerBai(String key, Skill skill, String typeCode, String typeName, String instructionKo,
                              String pointsLine, boolean showGuide, boolean writing,
-                             String audio, String image, String passage, String script,
+                             String audio, String image, String passage, String script, String scriptVi,
                              List<LearnerAsk> asks) {
     }
 
@@ -802,7 +813,7 @@ public class ExamImportService {
                 out.add(new LearnerBai(slot.key(), Skill.WRITING, slot.typeCode(), slot.typeName(),
                         instructionOf(source.getTrack(), Skill.WRITING, slot.no()),
                         "Phần Viết · 4 câu · 100 điểm", guide, true,
-                        "", slot.chart().startsWith("[") ? "" : slot.chart(), slot.passage(), "",
+                        "", slot.chart().startsWith("[") ? "" : slot.chart(), slot.passage(), "", "",
                         List.of(new LearnerAsk(slot.no(), slot.prompt(), "", "", "", "", "", explain))));
                 continue;
             }
@@ -831,7 +842,7 @@ public class ExamImportService {
                     .map(s -> new LearnerAsk(s.no(), s.prompt(), s.opt1(), s.opt2(), s.opt3(), s.opt4(), s.answer(), s.explanation()))
                     .toList();
             out.add(new LearnerBai(key, slot.skill(), type.code(), type.name(), type.instructionKo(), points, guide, false,
-                    audio, image, passage, script, asks));
+                    audio, image, passage, script, "", asks));
         }
         return out;
     }
@@ -867,7 +878,7 @@ public class ExamImportService {
             }
             out.add(new LearnerBai(card.id, skill, code, template == null ? "Bài" : template.getName(),
                     template == null ? "" : template.getDescription(), points, guide, writing,
-                    nz(card.audioFile), image, nz(card.passageKo), nz(card.scriptKo), asks));
+                    nz(card.audioFile), image, nz(card.passageKo), nz(card.scriptKo), nz(card.scriptVi), asks));
         }
         return out;
     }
@@ -1167,6 +1178,7 @@ public class ExamImportService {
             group.setSize(card.asks.size());
             group.setGroupKey(card.id);
             group.setScriptKo(card.scriptKo);
+            group.setScriptVi(card.scriptVi);
             group.setPassageKo(card.passageKo);
             group.setAudioFile(card.audioFile);
             group.setImageFile(template.getImageScope() == ResourceScope.OPTIONS ? null : card.imageFile);

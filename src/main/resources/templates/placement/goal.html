@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body style="background: var(--ssak-bg); color: var(--ssak-text-main); font-family: var(--font-body);">
+<div th:replace="~{fragments/navbar :: navbar('placement')}"></div>
+<main class="container py-5" style="max-width: 760px;">
+    <div th:if="${placementError}" class="alert alert-warning" th:text="${placementError}"></div>
+    <p class="small fw-bold mb-3" style="color: var(--ssak-primary);">3 · Số ngày</p>
+    <section class="bg-white border rounded-4 p-4 p-md-5 shadow-sm">
+        <h1 class="h3 fw-bold mb-3" style="font-family: var(--font-heading);">Hoàn thành trong bao lâu</h1>
+        <div class="d-inline-block px-3 py-2 rounded-pill mb-4 fw-bold" style="background: #E3F2EA; color: #1F6B56;"
+             th:text="${choiceChip}">Đã chọn lộ trình TOPIK I · mục tiêu TOPIK 2</div>
+
+        <form method="post" th:action="@{/placement/sinh}" class="d-flex flex-column gap-4">
+            <input type="hidden" name="attempt" th:value="${attemptId}">
+            <input type="hidden" name="track" th:value="${track.name()}">
+            <input type="hidden" name="target" th:value="${targetLevel}">
+            <input type="hidden" name="current" th:value="${currentLevel}">
+
+            <div th:replace="~{fragments/goal-span :: fields}"></div>
+            <div>
+                <div class="fw-bold mb-2">Phút học mỗi ngày</div>
+                <div class="d-flex flex-wrap gap-2" id="minuteMarks">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-minute="10" onclick="setMinutes(10)">10 phút</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-minute="15" onclick="setMinutes(15)">15 phút</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-minute="20" onclick="setMinutes(20)">20 phút</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-minute="30" onclick="setMinutes(30)">30 phút</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-minute="45" onclick="setMinutes(45)">45 phút</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-minute="60" onclick="setMinutes(60)">60 phút</button>
+                </div>
+                <input type="hidden" name="minutes" id="minutes" value="20">
+            </div>
+            <button class="btn-ssak-primary py-3 rounded-pill fw-bold" type="submit">Sinh lộ trình</button>
+        </form>
+        <a class="d-inline-block mt-3 fw-bold text-decoration-none" style="color: var(--ssak-primary);"
+           th:href="@{/placement/result/{id}(id=${attemptId})}">Quay lại</a>
+    </section>
+</main>
+<script>
+    function setMinutes(value) {
+        document.getElementById('minutes').value = value;
+        document.querySelectorAll('#minuteMarks button').forEach(function (button) {
+            var on = Number(button.dataset.minute) === value;
+            button.classList.toggle('btn-success', on);
+            button.classList.toggle('btn-outline-secondary', !on);
+        });
+    }
+    setMinutes(20);
+</script>
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

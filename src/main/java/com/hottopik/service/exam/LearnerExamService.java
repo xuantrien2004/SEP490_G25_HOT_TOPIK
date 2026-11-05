@@ -266,6 +266,9 @@ public class LearnerExamService {
                 .map(i -> {
                     Question q = i.getQuestion();
                     QuestionGroup g = q.getGroup();
+                    if (g == null) {
+                        throw new ExamDomainException("Đề này còn câu chưa gắn nhóm nghe hoặc đọc, nên chưa mở được.");
+                    }
                     String key = "q" + i.getId();
                     return new QuestionView(q.getId(), i.getNo(), key, i.getSection(), i.getSection().getLabel() + " · Câu " + i.getNo(),
                             QuestionTypeCatalog.resolve(exam.getTrack(), i.getSection(), i.getNo()).map(QuestionTypeDef::instructionKo).orElse(""),
@@ -382,7 +385,9 @@ public class LearnerExamService {
     }
 
     private static String media(ExamSource source, String filename) {
-        return source == null || filename == null || filename.isBlank() ? null : "/exam/media/" + source.getId() + "/" + filename;
+        if (source == null || filename == null || filename.isBlank()) return null;
+        String encoded = java.net.URLEncoder.encode(filename, java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20");
+        return "/exam/media/" + source.getId() + "/" + encoded;
     }
 
     private static boolean isImage(String option) {

@@ -38,8 +38,8 @@
 .lr-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
 .day-card {
     background: #fff; border: 1.5px solid #E7E3D8; border-radius: 22px; padding: 12px 10px 10px;
-    display: flex; flex-direction: column; gap: 6px; min-height: 196px; text-align: left;
-    box-shadow: 0 1px 0 rgba(36, 54, 61, 0.03);
+    display: flex; flex-direction: column; gap: 6px; min-height: 168px; min-width: 0; text-align: left;
+    box-shadow: 0 1px 0 rgba(36, 54, 61, 0.03); overflow: visible;
 }
 .day-card.done { background: #F3FAF6; }
 .day-card.weekly { background: #FBFAFE; border: 1.5px dashed #C9B7E6; }
@@ -54,7 +54,10 @@ button.day-card-header { font: inherit; color: inherit; background: transparent;
     background: transparent; border: 1.5px solid transparent; color: #66767C;
 }
 button.task-block { font: inherit; text-align: left; cursor: pointer; width: 100%; }
-.task-block .task-name { font-weight: 800; color: #24363D; font-size: 13px; line-height: 1.25; }
+.task-block .task-name {
+    font-weight: 800; color: #24363D; font-size: 13px; line-height: 1.25;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
 .task-block.done { background: #E3F5EB; color: #1F6B56; }
 .task-block.done .task-name { color: #176B52; }
 .task-block.makeup { background: #FFF8E8; border: 1.5px dashed #E2A93B; color: #B7791F; }

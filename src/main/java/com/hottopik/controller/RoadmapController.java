@@ -6,6 +6,7 @@ import com.hottopik.entity.exam.StudyPlan;
 import com.hottopik.entity.exam.Track;
 import com.hottopik.service.exam.ExamDomainException;
 import com.hottopik.service.exam.LearnerRoadmapService;
+import com.hottopik.service.exam.PlacementRules;
 import com.hottopik.service.exam.RoadmapSketch;
 import com.hottopik.util.AuthHelper;
 import jakarta.servlet.http.HttpSession;
@@ -58,15 +59,15 @@ public class RoadmapController {
 
     @GetMapping({"/lo-trinh/tao", "/roadmap/create"})
     public String createForm(@RequestParam(defaultValue = "TOPIK_II") String track,
-                             @RequestParam(defaultValue = "60") int days,
+                             @RequestParam(required = false) Integer days,
                              @RequestParam(defaultValue = "20") int minutes,
                              @RequestParam(required = false) String error,
                              HttpSession session, Model model) {
         model.addAttribute("pageTitle", "Tạo lộ trình học cá nhân");
         model.addAttribute("activePage", "roadmap");
-        model.addAttribute("days", days);
         model.addAttribute("minutes", minutes);
         model.addAttribute("error", error);
+        int requested = days == null ? PlacementRules.defaultSpan() : days;
         Track chosen;
         try {
             chosen = LearnerRoadmapService.trackOf(track);
@@ -85,21 +86,8 @@ public class RoadmapController {
             return "roadmap/create";
         }
         model.addAttribute("version", published.getVersionCode());
-        model.addAttribute("phaseSplit", published.getPhaseSplit());
-        model.addAttribute("questions", published.getQuestionsPerSession());
-        model.addAttribute("weeklyQuestions", published.getWeeklyReviewQuestions());
-        try {
-            int safeDays = days == 30 ? 31 : days;
-            RoadmapSketch.Result preview = roadmaps.preview(chosen, safeDays);
-            model.addAttribute("preview", preview);
-            model.addAttribute("shortfalls", RoadmapSketch.incomplete(preview, published.getSessionsPerType()));
-            model.addAttribute("minimumDays", roadmaps.minimumDays(chosen));
-            model.addAttribute("endDate", LocalDate.now().plusDays(safeDays - 1L).format(END_LABEL));
-            model.addAttribute("lessonCount", preview.newCount() + preview.reviewCount()
-                    + preview.weeklyCount() + preview.miniCount() + preview.fullCount());
-        } catch (ExamDomainException e) {
-            model.addAttribute("error", e.getMessage());
-        }
+        fillSpan(model, LocalDate.now(), requested);
+        showPreview(model, chosen, requested, published);
         return "roadmap/create";
     }
 
@@ -168,16 +156,14 @@ public class RoadmapController {
             model.addAttribute("phaseSplit", published.getPhaseSplit());
             model.addAttribute("sessions", published.getSessionsPerType());
             model.addAttribute("questions", published.getQuestionsPerSession());
-            model.addAttribute("weeklyQuestions", published.getWeeklyReviewQuestions());
             model.addAttribute("typeOrder", roadmaps.typeOrder(chosen));
-            int previewDays = safeDays == 30 ? 31 : safeDays;
-            RoadmapSketch.Result preview = roadmaps.preview(chosen, previewDays);
-            model.addAttribute("preview", preview);
-            model.addAttribute("shortfalls", RoadmapSketch.incomplete(preview, published.getSessionsPerType()));
-            model.addAttribute("minimumDays", roadmaps.minimumDays(chosen));
-            model.addAttribute("endDate", plan.getStartDate().plusDays(previewDays - 1L).format(END_LABEL));
+            fillSpan(model, plan.getStartDate(), safeDays);
+            showPreview(model, chosen, safeDays, published);
         } catch (ExamDomainException e) {
             model.addAttribute("error", e.getMessage());
+            if (model.getAttribute("goalDays") == null) {
+                fillSpan(model, LocalDate.now(), days == null ? PlacementRules.defaultSpan() : days);
+            }
         }
         return "roadmap/adjust";
     }
@@ -201,6 +187,38 @@ public class RoadmapController {
         model.addAttribute("pageTitle", "Nhìn lại tuần học");
         model.addAttribute("activePage", "roadmap");
         return "roadmap/retrospective";
+    }
+
+    /** Cùng mốc tháng, ô số ngày và ô lịch với bài kiểm tra trình độ. Ngày tính từ ngày bắt đầu lịch. */
+    private static void fillSpan(Model model, LocalDate start, int days) {
+        int shown = days == 30 ? 31 : days;
+        if (shown < 1 || shown > 400) shown = PlacementRules.defaultSpan();
+        model.addAttribute("minDays", PlacementRules.MIN_DAYS);
+        model.addAttribute("maxDays", PlacementRules.MAX_DAYS);
+        model.addAttribute("goalDays", shown);
+        model.addAttribute("goalDate", start.plusDays((long) shown - 1));
+        model.addAttribute("earliest", start.plusDays(PlacementRules.MIN_DAYS - 1L));
+        model.addAttribute("latest", start.plusDays(PlacementRules.MAX_DAYS - 1L));
+        model.addAttribute("dayMarks", PlacementRules.dayMarks());
+        model.addAttribute("spanStart", start.toString());
+        model.addAttribute("liveSpan", true);
+        model.addAttribute("endDate", start.plusDays((long) shown - 1).format(END_LABEL));
+    }
+
+    private void showPreview(Model model, Track track, int days, ProgramVersion published) {
+        int previewDays = days == 30 ? 31 : days;
+        try {
+            if (previewDays < PlacementRules.MIN_DAYS || previewDays > PlacementRules.MAX_DAYS) {
+                throw new ExamDomainException("Lộ trình từ 31 đến 200 ngày.");
+            }
+            RoadmapSketch.Result preview = roadmaps.preview(track, previewDays);
+            model.addAttribute("preview", preview);
+            model.addAttribute("shortfalls", RoadmapSketch.incomplete(preview, published.getSessionsPerType()));
+            model.addAttribute("lessonCount", preview.newCount() + preview.reviewCount()
+                    + preview.miniCount() + preview.fullCount());
+        } catch (ExamDomainException e) {
+            if (model.getAttribute("error") == null) model.addAttribute("error", e.getMessage());
+        }
     }
 
     private static Track trackFor(HttpSession session) {

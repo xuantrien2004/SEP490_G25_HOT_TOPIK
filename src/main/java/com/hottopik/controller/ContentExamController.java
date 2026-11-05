@@ -4,9 +4,8 @@ import com.hottopik.dto.UserDTO;
 import com.hottopik.entity.exam.*;
 import com.hottopik.service.exam.*;
 import com.hottopik.util.AuthHelper;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -116,14 +115,35 @@ public class ContentExamController {
     @GetMapping("/templates")
     public String templates(@RequestParam(required = false) Track track,
                             @RequestParam(required = false) Skill skill,
+                            @RequestParam(defaultValue = "0") int page,
                             HttpSession session, Model model) {
         UserDTO u = viewer(session);
         if (u == null) return denied(session);
         common(model, u, "Dạng câu");
-        model.addAttribute("rows", templates.list(track, skill));
+        List<QuestionTemplate> all = templates.list(track, skill);
+        int size = 10;
+        int pages = Math.max(1, (all.size() + size - 1) / size);
+        int safe = Math.min(Math.max(page, 0), pages - 1);
+        int from = all.isEmpty() ? 0 : safe * size;
+        int to = Math.min(from + size, all.size());
+        model.addAttribute("rows", all.subList(from, to));
+        model.addAttribute("page", safe);
+        model.addAttribute("pages", pages);
+        model.addAttribute("totalRows", all.size());
+        model.addAttribute("pageFrom", all.isEmpty() ? 0 : from + 1);
+        model.addAttribute("pageTo", to);
+        model.addAttribute("prevPage", safe > 0 ? templatePage(track, skill, safe - 1) : null);
+        model.addAttribute("nextPage", safe + 1 < pages ? templatePage(track, skill, safe + 1) : null);
         model.addAttribute("trackFilter", track);
         model.addAttribute("skillFilter", skill);
         return "content/exam/templates";
+    }
+
+    private static String templatePage(Track track, Skill skill, int page) {
+        StringBuilder link = new StringBuilder("/content/templates?page=").append(page);
+        if (track != null) link.append("&track=").append(track.name());
+        if (skill != null) link.append("&skill=").append(skill.name());
+        return link.toString();
     }
 
     @GetMapping("/templates/{code}")
@@ -268,6 +288,7 @@ public class ContentExamController {
                            @RequestParam(required = false) String image,
                            @RequestParam(required = false) String passage,
                            @RequestParam(required = false) String script,
+                           @RequestParam(required = false) String scriptVi,
                            @RequestParam(required = false) List<Integer> qno,
                            @RequestParam(required = false) MultipartFile questionImage,
                            jakarta.servlet.http.HttpServletRequest request, HttpSession session, RedirectAttributes ra) {
@@ -279,8 +300,9 @@ public class ContentExamController {
                 charts = List.of(importService.uploadQuestionImage(id, questionImage, actor));
             }
             String saved = importService.saveCard(id, new ExamImportService.CardForm(cardId, templateCode, audio, image,
-                    passage, script, values(request.getParameterValues("prompt")), values(request.getParameterValues("opt1")), values(request.getParameterValues("opt2")), values(request.getParameterValues("opt3")), values(request.getParameterValues("opt4")), values(request.getParameterValues("answer")), values(request.getParameterValues("explanation")), values(request.getParameterValues("keys1")), values(request.getParameterValues("keys2")),
+                    passage, script, scriptVi, values(request.getParameterValues("prompt")), values(request.getParameterValues("opt1")), values(request.getParameterValues("opt2")), values(request.getParameterValues("opt3")), values(request.getParameterValues("opt4")), values(request.getParameterValues("answer")), values(request.getParameterValues("explanation")), values(request.getParameterValues("keys1")), values(request.getParameterValues("keys2")),
                     values(request.getParameterValues("modelAnswer")), values(request.getParameterValues("rubric")), charts, typeCode, qno), actor);
+
             ExamImportService.CardView view = importService.cards(id).stream()
                     .filter(c -> c.id().equals(saved)).findFirst().orElse(null);
             String skillName = view == null || view.skillName().isBlank() ? "LISTENING" : view.skillName();
@@ -342,7 +364,12 @@ public class ContentExamController {
         boolean manual = job.map(importService::isManual).orElse(false);
         model.addAttribute("manual", manual);
         if (manual) {
-            fillManualEntry(model, s, importService.cards(id), card, skill, type, nos, focus, issues);
+            try {
+                fillManualEntry(model, s, importService.cards(id), card, skill, type, nos, focus, issues);
+            } catch (ExamDomainException e) {
+                ra.addFlashAttribute("flashError", e.getMessage());
+                return "redirect:/content/sources";
+            }
         }
         List<ExamImportService.PaperSlot> slots = manual ? List.of() : importService.paper(id);
         if (manual) {
@@ -360,6 +387,13 @@ public class ContentExamController {
         int at = edit == null ? -1 : slots.indexOf(edit);
         model.addAttribute("slots", slots);
         model.addAttribute("editSlot", edit);
+        QuestionTypeDef slotType = edit == null || edit.writing()
+                ? (edit == null ? null : QuestionTypeCatalog.resolve(Track.TOPIK_II, Skill.WRITING, edit.no()).orElse(null))
+                : QuestionTypeCatalog.resolve(s.getTrack(), edit.skill(), edit.no()).orElse(null);
+        model.addAttribute("slotGuideKo", slotType == null ? "" : slotType.instructionKo());
+        model.addAttribute("slotGuideName", slotType == null ? "" : slotType.code() + " · " + slotType.name());
+        model.addAttribute("slotGuidePoints", QuestionPoints.line(slotType));
+        model.addAttribute("slotGuideMark", QuestionPoints.mark(slotType));
         model.addAttribute("prevKey", at > 0 ? slots.get(at - 1).key() : null);
         model.addAttribute("nextKey", at >= 0 && at + 1 < slots.size() ? slots.get(at + 1).key() : null);
         model.addAttribute("filledSlots", slots.stream().filter(ExamImportService.PaperSlot::filled).count());
@@ -421,6 +455,26 @@ public class ContentExamController {
             }
             return "redirect:" + back + "#check";
         });
+    }
+
+    @PostMapping(value = "/sources/{id}/media/inline", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public Map<String, Object> uploadInline(@PathVariable Long id, @RequestParam("files") List<MultipartFile> files,
+                                            HttpSession session) throws IOException {
+        UserDTO u = AuthHelper.getLoggedInUser(session);
+        if (u == null || !Actor.ROLE_CONTENT.equalsIgnoreCase(u.getRole())) {
+            return Map.of("ok", false, "message", "Bạn không có quyền tải file.");
+        }
+        ExamImportService.MediaUploadReport report = importService.uploadMedia(id, files, Actor.of(u));
+        if (report.stored() < 1) {
+            String message = report.rejected().isEmpty() ? "Không nhận được file." : String.join("; ", report.rejected());
+            return Map.of("ok", false, "message", message);
+        }
+        String filename = MediaStorageService.baseName(files.get(0).getOriginalFilename());
+        boolean audio = MediaStorageService.isAudio(filename);
+        String url = "/content/media/" + id + "/"
+                + java.net.URLEncoder.encode(filename, java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20");
+        return Map.of("ok", true, "filename", filename, "kind", audio ? "AUDIO" : "IMAGE", "url", url);
     }
 
     @PostMapping("/sources/{id}/media")
@@ -504,15 +558,24 @@ public class ContentExamController {
     }
 
     @GetMapping("/media/{sourceId}/{filename:.+}")
-    public ResponseEntity<Resource> media(@PathVariable Long sourceId, @PathVariable String filename, HttpSession session) throws IOException {
-        if (viewer(session) == null) return ResponseEntity.status(403).build();
+    public void media(@PathVariable Long sourceId, @PathVariable String filename,
+                      @RequestHeader(value = "Range", required = false) String range,
+                      HttpSession session, HttpServletResponse response) throws IOException {
+        if (viewer(session) == null) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
         Optional<MediaAsset> a = importService.findMedia(sourceId, filename);
-        if (a.isEmpty()) return ResponseEntity.notFound().build();
+        if (a.isEmpty()) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
         Path p = importService.mediaPath(a.get());
-        if (!Files.exists(p)) return ResponseEntity.notFound().build();
-        String type = Optional.ofNullable(Files.probeContentType(p))
-                .orElse(a.get().getKind() == MediaKind.AUDIO ? "audio/mpeg" : "application/octet-stream");
-        return ResponseEntity.ok().contentType(MediaType.parseMediaType(type)).body(new FileSystemResource(p));
+        if (!Files.exists(p)) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        MediaResponses.play(p, filename, a.get().getKind(), range, response);
     }
 
     // ------------------------------------------------------------------ thư viện đề
@@ -1010,9 +1073,26 @@ public class ContentExamController {
         model.addAttribute("pairHint", hint);
         model.addAttribute("focusNo", focusNo);
         model.addAttribute("addHref", addHref);
-        model.addAttribute("currentTypeCode", "");
+        QuestionTypeDef guideType = chosenNos.isEmpty() ? null
+                : QuestionTypeCatalog.resolve(source.getTrack(), skill, chosenNos.get(0)).orElse(null);
+        model.addAttribute("currentTypeCode", guideType == null ? "" : guideType.code());
         model.addAttribute("currentTypeName", active == null ? "" : active.getName());
         model.addAttribute("currentTemplate", activeCode);
+        model.addAttribute("guideKo", guideType == null ? "" : guideType.instructionKo());
+        model.addAttribute("guideName", guideType == null
+                ? (active == null ? "" : active.getName())
+                : guideType.code() + " · " + guideType.name());
+        model.addAttribute("guidePoints", QuestionPoints.line(guideType));
+        model.addAttribute("guideMark", QuestionPoints.mark(guideType));
+        model.addAttribute("guideVi", active == null ? "" : active.getDescription());
+        model.addAttribute("listening", skill == Skill.LISTENING);
+        model.addAttribute("reading", skill == Skill.READING);
+        model.addAttribute("writing", skill == Skill.WRITING);
+        model.addAttribute("imageChoice", active != null && active.getDisplayMode() == DisplayMode.IMAGE_CHOICE);
+        model.addAttribute("choices", active != null && active.getOptionCount() != null);
+        model.addAttribute("acceptKeys", active != null && active.getAnswerType() == AnswerType.ACCEPT_KEYS);
+        model.addAttribute("freeText", active != null && active.getAnswerType() == AnswerType.FREE_TEXT);
+        model.addAttribute("chartImage", active != null && active.getSkill() == Skill.WRITING && active.isImageRequired());
     }
 
     private static String resolveMold(String raw, List<QuestionTemplate> molds) {

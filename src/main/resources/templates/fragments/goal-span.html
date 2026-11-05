@@ -1,0 +1,143 @@
+<div th:fragment="fields">
+    <div id="goalSpan" th:data-start="${spanStart}" th:data-live="${liveSpan}">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold">Học trong bao lâu</span>
+            <span class="badge text-bg-light border" id="goalSpanNote" th:text="${goalDays} + ' ngày'">90 ngày</span>
+        </div>
+        <div class="row g-2 mb-3" id="dayMarks">
+            <div class="col-6 col-md-3" th:each="mark : ${dayMarks}">
+                <button type="button" class="span-choice"
+                        th:classappend="${mark.days == goalDays} ? 'is-on'"
+                        th:data-days="${mark.days}"
+                        th:attr="onclick=|setGoalDays(${mark.days})|">
+                    <span th:text="${mark.label}">3 tháng</span>
+                    <small th:text="${mark.days} + ' ngày'">90 ngày</small>
+                </button>
+            </div>
+        </div>
+        <div class="row g-3">
+            <div class="col-sm-4">
+                <label class="fw-bold" for="goalDays">Số ngày
+                    <input id="goalDays" class="form-control mt-1" type="text" inputmode="numeric"
+                           name="days" required autocomplete="off" pattern="[0-9]*"
+                           th:attr="data-min=${minDays},data-max=${maxDays}" th:value="${goalDays}">
+                </label>
+            </div>
+            <div class="col-sm-8">
+                <label class="fw-bold" for="goalDate">Ngày muốn đạt
+                    <input id="goalDate" class="form-control mt-1" type="date" name="date" required
+                           th:min="${earliest}" th:max="${latest}" th:value="${goalDate}">
+                </label>
+            </div>
+        </div>
+        <p class="text-muted small mt-2 mb-0" th:unless="${hideSpanHint}">Từ 31 đến 200 ngày. Xóa rồi gõ số mới, lịch đổi khi số nằm trong khoảng. Chọn lịch thì số ngày đổi theo.</p>
+    </div>
+    <style>
+        .span-choice {
+            width: 100%; border: 1.5px solid #E6E1D6; background: #fff; color: #24363D;
+            border-radius: 16px; padding: 12px; font-weight: 800; text-align: left;
+        }
+        .span-choice small { display: block; font-weight: 700; color: #6A7A80; margin-top: 2px; }
+        .span-choice.is-on { background: #1F6B56; border-color: #1F6B56; color: #fff; }
+        .span-choice.is-on small { color: rgba(255,255,255,.85); }
+    </style>
+    <script>
+        function goalIso(date) {
+            var month = String(date.getMonth() + 1).padStart(2, '0');
+            var day = String(date.getDate()).padStart(2, '0');
+            return date.getFullYear() + '-' + month + '-' + day;
+        }
+        function goalStart() {
+            var root = document.getElementById('goalSpan');
+            var raw = root ? root.getAttribute('data-start') : '';
+            var date = raw ? new Date(raw + 'T12:00:00') : new Date();
+            date.setHours(12, 0, 0, 0);
+            return date;
+        }
+        function goalEnd(span) {
+            var date = goalStart();
+            date.setDate(date.getDate() + span - 1);
+            return date;
+        }
+        function goalBounds(days) {
+            var min = parseInt(days.getAttribute('data-min'), 10);
+            var max = parseInt(days.getAttribute('data-max'), 10);
+            if (!Number.isFinite(min)) min = 31;
+            if (!Number.isFinite(max)) max = 200;
+            return { min: min, max: max };
+        }
+        function paintGoal(span, end) {
+            var note = document.getElementById('goalSpanNote');
+            if (note) note.textContent = span + ' ngày · ' + end.toLocaleDateString('vi-VN');
+            document.querySelectorAll('#dayMarks button').forEach(function (button) {
+                button.classList.toggle('is-on', Number(button.dataset.days) === span);
+            });
+        }
+        function clearGoalMarks() {
+            document.querySelectorAll('#dayMarks button').forEach(function (button) {
+                button.classList.remove('is-on');
+            });
+        }
+        function writeGoal(span) {
+            var date = document.getElementById('goalDate');
+            var end = goalEnd(span);
+            date.value = goalIso(end);
+            paintGoal(span, end);
+        }
+        function previewTypedDays() {
+            var days = document.getElementById('goalDays');
+            var raw = String(days.value).trim();
+            if (!/^\d+$/.test(raw)) {
+                clearGoalMarks();
+                return;
+            }
+            var span = parseInt(raw, 10);
+            var bounds = goalBounds(days);
+            if (span < bounds.min || span > bounds.max) {
+                clearGoalMarks();
+                return;
+            }
+            writeGoal(span);
+        }
+        function commitGoalDays() {
+            var days = document.getElementById('goalDays');
+            var bounds = goalBounds(days);
+            var span = parseInt(String(days.value).trim(), 10);
+            if (!Number.isFinite(span)) span = bounds.min;
+            span = Math.min(bounds.max, Math.max(bounds.min, span));
+            days.value = String(span);
+            writeGoal(span);
+        }
+        function applyGoalDate() {
+            var days = document.getElementById('goalDays');
+            var date = document.getElementById('goalDate');
+            if (!date.value) return;
+            var end = new Date(date.value + 'T12:00:00');
+            var start = goalStart();
+            var span = Math.round((end - start) / 86400000) + 1;
+            var bounds = goalBounds(days);
+            if (span < bounds.min) span = bounds.min;
+            if (span > bounds.max) span = bounds.max;
+            days.value = String(span);
+            writeGoal(span);
+        }
+        function setGoalDays(value) {
+            var days = document.getElementById('goalDays');
+            days.value = value;
+            commitGoalDays();
+            var root = document.getElementById('goalSpan');
+            if (root && root.getAttribute('data-live') === 'true') days.form.submit();
+        }
+        var goalDaysInput = document.getElementById('goalDays');
+        goalDaysInput.addEventListener('input', previewTypedDays);
+        goalDaysInput.addEventListener('blur', function () {
+            if (String(goalDaysInput.value).trim() === '') return;
+            commitGoalDays();
+        });
+        document.getElementById('goalDate').addEventListener('input', applyGoalDate);
+        goalDaysInput.form.addEventListener('submit', function () {
+            if (String(goalDaysInput.value).trim() === '') applyGoalDate();
+            else commitGoalDays();
+        });
+    </script>
+</div>

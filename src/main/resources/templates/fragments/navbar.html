@@ -12,7 +12,6 @@
         <span class="ssak-logo-text">HOT TOPIK</span>
     </a>
 
-    <!-- 7 Mục điều hướng cố định theo Prototype v21 -->
     <div class="ssak-nav-menu">
         <a th:href="@{/hom-nay}" th:classappend="${activePage == 'today' || activePage == 'hom-nay' ? 'active' : ''}" class="ssak-nav-item">
             <i class="bi bi-sun-fill me-1" style="font-size: 13px;"></i>Hôm nay
@@ -150,29 +149,29 @@
     </div>
 </nav>
 
-<!-- Mobile Bottom Navigation (5 mục chính + Thêm) -->
-<div class="ssak-mobile-nav d-lg-none" style="position: fixed; bottom: 0; left: 0; right: 0; background: #FFFFFF; border-top: 1px solid var(--ssak-border); display: flex; justify-content: space-around; padding: 8px 4px; z-index: 1040; box-shadow: 0 -4px 16px rgba(0,0,0,0.06);">
-    <a th:href="@{/hom-nay}" th:classappend="${activePage == 'today' || activePage == 'hom-nay' ? 'active' : ''}" class="mobile-nav-item" style="display: flex; flex-direction: column; align-items: center; font-size: 11px; text-decoration: none; color: var(--ssak-text-muted);">
+<!-- Mobile Bottom Navigation -->
+<div class="ssak-mobile-nav d-lg-none" style="position: fixed; bottom: 0; left: 0; right: 0; background: #FFFFFF; border-top: 1px solid var(--ssak-border); display: flex; justify-content: space-around; padding: 8px 2px; z-index: 1040; box-shadow: 0 -4px 16px rgba(0,0,0,0.06);">
+    <a th:href="@{/hom-nay}" th:classappend="${activePage == 'today' || activePage == 'hom-nay' ? 'active' : ''}" class="mobile-nav-item" style="display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 0; text-align: center; font-size: 10px; text-decoration: none; color: var(--ssak-text-muted);">
         <i class="bi bi-sun-fill" style="font-size: 18px;"></i>
         <span>Hôm nay</span>
     </a>
-    <a th:href="@{/lo-trinh}" th:classappend="${activePage == 'roadmap' || activePage == 'lo-trinh' ? 'active' : ''}" class="mobile-nav-item" style="display: flex; flex-direction: column; align-items: center; font-size: 11px; text-decoration: none; color: var(--ssak-text-muted);">
+    <a th:href="@{/lo-trinh}" th:classappend="${activePage == 'roadmap' || activePage == 'lo-trinh' ? 'active' : ''}" class="mobile-nav-item" style="display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 0; text-align: center; font-size: 10px; text-decoration: none; color: var(--ssak-text-muted);">
         <i class="bi bi-calendar-week" style="font-size: 18px;"></i>
         <span>Lộ trình</span>
     </a>
-    <a th:href="@{/luyen-tap}" th:classappend="${activePage == 'practice' || activePage == 'luyen-tap' ? 'active' : ''}" class="mobile-nav-item" style="display: flex; flex-direction: column; align-items: center; font-size: 11px; text-decoration: none; color: var(--ssak-text-muted);">
+    <a th:href="@{/luyen-tap}" th:classappend="${activePage == 'practice' || activePage == 'luyen-tap' ? 'active' : ''}" class="mobile-nav-item" style="display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 0; text-align: center; font-size: 10px; text-decoration: none; color: var(--ssak-text-muted);">
         <i class="bi bi-pencil-square" style="font-size: 18px;"></i>
         <span>Luyện tập</span>
     </a>
-    <a th:href="@{/de-thi}" th:classappend="${activePage == 'exam' || activePage == 'de-thi' ? 'active' : ''}" class="mobile-nav-item" style="display: flex; flex-direction: column; align-items: center; font-size: 11px; text-decoration: none; color: var(--ssak-text-muted);">
+    <a th:href="@{/de-thi}" th:classappend="${activePage == 'exam' || activePage == 'de-thi' ? 'active' : ''}" class="mobile-nav-item" style="display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 0; text-align: center; font-size: 10px; text-decoration: none; color: var(--ssak-text-muted);">
         <i class="bi bi-file-earmark-check" style="font-size: 18px;"></i>
         <span>Đề thi</span>
     </a>
-    <a th:href="@{/ly-thuyet}" th:classappend="${activePage == 'theory' || activePage == 'ly-thuyet' ? 'active' : ''}" class="mobile-nav-item" style="display: flex; flex-direction: column; align-items: center; font-size: 11px; text-decoration: none; color: var(--ssak-text-muted);">
+    <a th:href="@{/ly-thuyet}" th:classappend="${activePage == 'theory' || activePage == 'ly-thuyet' ? 'active' : ''}" class="mobile-nav-item" style="display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 0; text-align: center; font-size: 10px; text-decoration: none; color: var(--ssak-text-muted);">
         <i class="bi bi-book-half" style="font-size: 18px;"></i>
         <span>Lý thuyết</span>
     </a>
-    <a th:href="@{/tien-do}" th:classappend="${activePage == 'progress' || activePage == 'tien-do' ? 'active' : ''}" class="mobile-nav-item" style="display: flex; flex-direction: column; align-items: center; font-size: 11px; text-decoration: none; color: var(--ssak-text-muted);">
+    <a th:href="@{/tien-do}" th:classappend="${activePage == 'progress' || activePage == 'tien-do' ? 'active' : ''}" class="mobile-nav-item" style="display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 0; text-align: center; font-size: 10px; text-decoration: none; color: var(--ssak-text-muted);">
         <i class="bi bi-three-dots" style="font-size: 18px;"></i>
         <span>Thêm</span>
     </a>

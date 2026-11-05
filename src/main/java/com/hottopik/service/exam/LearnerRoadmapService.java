@@ -23,9 +23,6 @@ import java.util.TreeSet;
 @Service
 public class LearnerRoadmapService {
 
-    private static final int MIN_LESSONS = 2;
-    private static final int MAX_LESSONS = 4;
-
     private static final Set<Integer> MINUTES = Set.of(10, 15, 20, 30, 45, 60);
     private static final DateTimeFormatter DAY_LABEL = DateTimeFormatter.ofPattern("dd/MM");
 
@@ -44,12 +41,13 @@ public class LearnerRoadmapService {
         return plans.findByOwnerEmail(owner).orElse(null);
     }
 
-    /** Tạo lịch 60 ngày nếu học viên chưa có, để Hôm nay và Lộ trình mở được ngay. */
+    /** Tạo lịch nếu học viên chưa có. 60 ngày không đủ chỗ thì lấy số ngày ít nhất của công thức. */
     @Transactional
     public StudyPlan ensure(String owner, Track track) {
         StudyPlan existing = find(owner);
         if (existing != null) return existing;
-        return open(owner, track, 60, 20);
+        int days = Math.max(60, minimumDays(track));
+        return open(owner, track, days, 20);
     }
 
     public ProgramVersion published() {
@@ -59,7 +57,7 @@ public class LearnerRoadmapService {
     public RoadmapSketch.Result preview(Track track, int days) {
         ProgramVersion program = requirePublished();
         int safeDays = normalizeDays(days);
-        return programs.preview(program, track, safeDays, lessonsFor(program, track, safeDays));
+        return programs.preview(program, track, safeDays);
     }
 
     @Transactional
@@ -101,7 +99,7 @@ public class LearnerRoadmapService {
         ProgramVersion program = requirePublished();
         int safeDays = normalizeDays(days);
         int perDay = lessonsFor(program, track, safeDays);
-        String kept = remapDone(plan, program, track, safeDays, perDay);
+        String kept = remapDone(plan, program, track, safeDays);
         plan.setProgramId(program.getId());
         plan.setVersionCode(program.getVersionCode());
         plan.setTrack(track);
@@ -112,43 +110,18 @@ public class LearnerRoadmapService {
         return plans.save(plan);
     }
 
-    /** Ít ngày nhất khi một ngày nhận tối đa 4 bài. */
+    /** Ít ngày nhất mà vẫn còn một ngày học mới trước hạn ôn. */
     public int minimumDays(Track track) {
-        ProgramVersion program = requirePublished();
-        int sessions = program.getSessionsPerType();
-        int low = 31;
-        int high = 200;
-        int best = -1;
-        while (low <= high) {
-            int mid = (low + high) / 2;
-            RoadmapSketch.Result preview = programs.preview(program, track, mid, MAX_LESSONS);
-            if (RoadmapSketch.incomplete(preview, sessions).isEmpty()) {
-                best = mid;
-                high = mid - 1;
-            } else {
-                low = mid + 1;
-            }
-        }
-        if (best < 0) {
-            throw new ExamDomainException("Kéo đến 200 ngày vẫn chưa đủ chỗ cho " + sessions + " lần học mỗi dạng.");
-        }
-        return best;
+        return programs.minimumDays(requirePublished(), track);
     }
 
-    /**
-     * Số bài mỗi ngày không phải lựa chọn riêng.
-     * Lộ trình dài giữ 2 bài. Rút ngắn số ngày thì tăng lên 3 hoặc 4 để vẫn đủ lần học mỗi dạng.
-     */
+    /** Số bài mới ở các ngày học mới đầu. Lịch dài thì là 1. */
     int lessonsFor(ProgramVersion program, Track track, int days) {
-        int sessions = program.getSessionsPerType();
-        for (int perDay = MIN_LESSONS; perDay <= MAX_LESSONS; perDay++) {
-            RoadmapSketch.Result preview = programs.preview(program, track, days, perDay);
-            if (RoadmapSketch.incomplete(preview, sessions).isEmpty()) return perDay;
+        RoadmapSketch.Result preview = programs.preview(program, track, days);
+        if (!RoadmapSketch.incomplete(preview, program.getSessionsPerType()).isEmpty()) {
+            throw new ExamDomainException("Với " + days + " ngày, lịch chưa bao hết dạng " + track.getLabel() + ".");
         }
-        int least = minimumDays(track);
-        throw new ExamDomainException("Với " + days + " ngày, lịch chưa bao hết dạng "
-                + track.getLabel() + " và chưa đủ " + sessions
-                + " lần học mỗi dạng. Cần ít nhất " + least + " ngày.");
+        return preview.baseQuota();
     }
 
     public List<String> typeOrder(Track track) {
@@ -164,7 +137,7 @@ public class LearnerRoadmapService {
 
     public Map<String, Object> view(StudyPlan plan) {
         ProgramVersion program = programOf(plan);
-        RoadmapSketch.Result schedule = programs.preview(program, plan.getTrack(), plan.getTotalDays(), plan.getItemsPerDay());
+        RoadmapSketch.Result schedule = programs.preview(program, plan.getTrack(), plan.getTotalDays());
         Map<String, QuestionTemplate> byCode = new LinkedHashMap<>();
         for (QuestionTemplate template : templates.findAll()) {
             byCode.put(template.getCode(), template);
@@ -202,7 +175,7 @@ public class LearnerRoadmapService {
         view.put("track", plan.getTrack().getLabel());
         view.put("version", plan.getVersionCode());
         view.put("minutes", plan.getMinutesPerDay());
-        view.put("itemsPerDay", plan.getItemsPerDay());
+        view.put("itemsPerDay", schedule.baseQuota());
         view.put("totalDays", plan.getTotalDays());
         view.put("today", todayIndex(plan));
         view.put("sessions", program.getSessionsPerType());
@@ -381,8 +354,7 @@ public class LearnerRoadmapService {
     public boolean matchesPracticeSlot(String owner, int day, int slot, String typeCode) {
         StudyPlan plan = plans.findByOwnerEmail(owner).orElse(null);
         if (plan == null) return false;
-        RoadmapSketch.Result schedule = programs.preview(programOf(plan), plan.getTrack(),
-                plan.getTotalDays(), plan.getItemsPerDay());
+        RoadmapSketch.Result schedule = programs.preview(programOf(plan), plan.getTrack(), plan.getTotalDays());
         RoadmapSketch.DayPlan dayPlan = schedule.days().stream().filter(d -> d.day() == day).findFirst().orElse(null);
         if (dayPlan == null || slot < 0 || slot >= dayPlan.slots().size()) return false;
         String code = dayPlan.slots().get(slot).code();
@@ -447,8 +419,7 @@ public class LearnerRoadmapService {
     public List<String> setDone(String owner, int day, int slot, boolean done) {
         StudyPlan plan = plans.findByOwnerEmail(owner)
                 .orElseThrow(() -> new ExamDomainException("Bạn chưa có lộ trình."));
-        RoadmapSketch.Result schedule = programs.preview(programOf(plan), plan.getTrack(),
-                plan.getTotalDays(), plan.getItemsPerDay());
+        RoadmapSketch.Result schedule = programs.preview(programOf(plan), plan.getTrack(), plan.getTotalDays());
         RoadmapSketch.DayPlan dayPlan = schedule.days().stream()
                 .filter(d -> d.day() == day)
                 .findFirst()
@@ -513,11 +484,10 @@ public class LearnerRoadmapService {
         return program;
     }
 
-    private String remapDone(StudyPlan plan, ProgramVersion nextProgram, Track nextTrack, int nextDays,
-                             int nextPerDay) {
+    private String remapDone(StudyPlan plan, ProgramVersion nextProgram, Track nextTrack, int nextDays) {
         RoadmapSketch.Result previous;
         try {
-            previous = programs.preview(programOf(plan), plan.getTrack(), plan.getTotalDays(), plan.getItemsPerDay());
+            previous = programs.preview(programOf(plan), plan.getTrack(), plan.getTotalDays());
         } catch (ExamDomainException e) {
             return null;
         }

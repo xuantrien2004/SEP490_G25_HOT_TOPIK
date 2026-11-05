@@ -35,147 +35,40 @@
         </div>
     </div>
 
-    <!-- Tiêu đề -->
     <div class="text-center mb-5">
         <h1 style="font-family: var(--font-heading); font-size: clamp(28px, 4vw, 40px); font-weight: 800; margin: 0;">
-            Bạn muốn bắt đầu như thế nào?
+            Bạn muốn bắt đầu thế nào?
         </h1>
-        <p class="text-muted mt-2 mb-0" style="font-size: 16px;">
-            HOT TOPIK xếp lịch học chuẩn xác nhất khi biết rõ điểm xuất phát của bạn.
-        </p>
     </div>
 
-    <!-- 3 Thẻ lựa chọn theo mục 4.1 -->
-    <form th:action="@{/placement/start}" method="GET" id="onboardingForm">
-        <input type="hidden" name="entryMode" id="selectedEntryMode" value="adaptive_full">
-
-        <div class="row g-4 mb-5">
-            <!-- Thẻ 1: Chưa biết trình độ (Khuyến nghị) -->
-            <div class="col-md-4">
-                <div class="onboard-card p-4 rounded-4 bg-white border-2 h-100 shadow-sm position-relative cursor-pointer transition-all selected-card" 
-                     id="cardAdaptiveFull" onclick="selectCard('adaptive_full')"
+    <div class="row g-4 mb-5 justify-content-center">
+        <div class="col-md-6">
+            <a th:href="@{/placement}" class="text-decoration-none d-block h-100" style="color: inherit;">
+                <div class="p-4 rounded-4 bg-white h-100 shadow-sm position-relative"
                      style="border: 2px solid var(--ssak-primary); background: var(--ssak-primary-light);">
-                    <span class="position-absolute top-0 start-50 translate-middle badge rounded-pill px-3 py-1" 
+                    <span class="position-absolute top-0 start-50 translate-middle badge rounded-pill px-3 py-1"
                           style="background: var(--ssak-primary); font-size: 11px;">KHUYẾN NGHỊ</span>
-                    
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="fs-1">🎯</div>
-                        <span class="badge bg-white text-dark border px-2 py-1 small">~ 15–20 phút</span>
-                    </div>
-
+                    <div class="fs-1 mb-3">🎯</div>
                     <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800;" class="mb-2">Mình chưa biết trình độ</h3>
-                    <p class="text-muted small mb-3">Làm bài kiểm tra thích ứng ngắn, câu hỏi khó dần theo năng lực.</p>
-
-                    <div class="border-top pt-3 text-muted small d-flex flex-column gap-2">
-                        <div><i class="bi bi-check-circle-fill text-success me-1"></i> Biết chính xác cấp TOPIK</div>
-                        <div><i class="bi bi-check-circle-fill text-success me-1"></i> Tìm ra 3 dạng câu yếu nhất</div>
-                        <div><i class="bi bi-check-circle-fill text-success me-1"></i> Tối ưu thứ tự lộ trình học</div>
-                    </div>
+                    <p class="text-muted mb-0">Làm bài kiểm tra 20 câu, 200 điểm.</p>
                 </div>
-            </div>
-
-            <!-- Thẻ 2: Đã qua TOPIK I -->
-            <div class="col-md-4">
-                <div class="onboard-card p-4 rounded-4 bg-white border-2 h-100 shadow-sm position-relative cursor-pointer transition-all" 
-                     id="cardAdaptiveTopik2" onclick="selectCard('adaptive_topik2')"
-                     style="border: 2px solid var(--ssak-border);">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="fs-1">⚡</div>
-                        <span class="badge bg-white text-dark border px-2 py-1 small">~ 10–15 phút</span>
-                    </div>
-
-                    <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800;" class="mb-2">Mình đã qua TOPIK I</h3>
-                    <p class="text-muted small mb-3">Bỏ qua sơ cấp, chỉ làm phần bài kiểm tra thích ứng của TOPIK II.</p>
-
-                    <div class="border-top pt-3 text-muted small d-flex flex-column gap-2">
-                        <div><i class="bi bi-check-circle-fill text-primary me-1"></i> Tập trung đánh giá cấp 3–6</div>
-                        <div><i class="bi bi-check-circle-fill text-primary me-1"></i> Tiết kiệm thời gian làm test</div>
-                        <div><i class="bi bi-check-circle-fill text-primary me-1"></i> Sẵn sàng ôn luyện TOPIK II</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Thẻ 3: Biết trình độ (Tự khai) -->
-            <div class="col-md-4">
-                <div class="onboard-card p-4 rounded-4 bg-white border-2 h-100 shadow-sm position-relative cursor-pointer transition-all" 
-                     id="cardSelfDeclare" onclick="selectCard('self_declare')"
-                     style="border: 2px solid var(--ssak-border);">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="fs-1">📝</div>
-                        <span class="badge bg-white text-dark border px-2 py-1 small">&lt; 1 phút</span>
-                    </div>
-
-                    <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800;" class="mb-2">Mình biết trình độ</h3>
-                    <p class="text-muted small mb-3">Tự khai cấp độ hiện tại (Mới bắt đầu hoặc TOPIK 1–6) để vào tạo lịch ngay.</p>
-
-                    <!-- Khung nhập tự khai mở khi chọn thẻ 3 -->
-                    <div id="selfDeclareInputs" class="border-top pt-3 d-none">
-                        <label class="form-label small fw-bold">Chọn cấp độ hiện tại:</label>
-                        <select class="form-select form-select-sm mb-2" id="declaredLevel" name="declaredLevel">
-                            <option value="BEGINNER">Mới bắt đầu (Chưa có bằng)</option>
-                            <option value="TOPIK_1">TOPIK Cấp 1</option>
-                            <option value="TOPIK_2">TOPIK Cấp 2</option>
-                            <option value="TOPIK_3">TOPIK Cấp 3</option>
-                            <option value="TOPIK_4">TOPIK Cấp 4</option>
-                            <option value="TOPIK_5">TOPIK Cấp 5</option>
-                            <option value="TOPIK_6">TOPIK Cấp 6</option>
-                        </select>
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <input type="number" class="form-control form-control-sm" name="examRound" placeholder="Kỳ thi (vd: 96)">
-                            </div>
-                            <div class="col-6">
-                                <input type="number" class="form-control form-control-sm" name="totalScore" placeholder="Tổng điểm (0-300)">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div id="selfDeclareSummary" class="border-top pt-3 text-muted small d-flex flex-column gap-2">
-                        <div><i class="bi bi-check-circle-fill text-warning me-1"></i> Bắt đầu ngay không cần test</div>
-                        <div><i class="bi bi-check-circle-fill text-warning me-1"></i> Tự chọn kỳ thi và điểm cũ</div>
-                        <div><i class="bi bi-check-circle-fill text-warning me-1"></i> Có thể kiểm tra lại sau</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Nút Tiếp tục & Để sau -->
-        <div class="d-flex justify-content-center align-items-center gap-4">
-            <a th:href="@{/hom-nay}" class="btn btn-link text-muted text-decoration-none fw-bold">
-                Để sau, vào xem bài học
             </a>
-            <button type="submit" id="continueBtn" class="btn-ssak-primary px-5 py-3 rounded-pill fw-bold" style="font-size: 18px;">
-                Tiếp tục <i class="bi bi-arrow-right ms-2"></i>
-            </button>
         </div>
-    </form>
+        <div class="col-md-6">
+            <a th:href="@{/placement/khai}" class="text-decoration-none d-block h-100" style="color: inherit;">
+                <div class="p-4 rounded-4 bg-white h-100 shadow-sm" style="border: 2px solid var(--ssak-border);">
+                    <div class="fs-1 mb-3">📝</div>
+                    <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800;" class="mb-2">Mình biết trình độ</h3>
+                    <p class="text-muted mb-0">Khai cấp hiện tại và mục tiêu.</p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-center">
+        <a th:href="@{/hom-nay}" class="btn btn-link text-muted text-decoration-none fw-bold">Để sau, vào HOT TOPIK</a>
+    </div>
 </main>
-
-<script>
-    function selectCard(mode) {
-        document.getElementById('selectedEntryMode').value = mode;
-        const cards = ['AdaptiveFull', 'AdaptiveTopik2', 'SelfDeclare'];
-        cards.forEach(c => {
-            const el = document.getElementById('card' + c);
-            el.style.borderColor = 'var(--ssak-border)';
-            el.style.background = '#FFFFFF';
-        });
-
-        const activeCard = document.getElementById(mode === 'adaptive_full' ? 'cardAdaptiveFull' : (mode === 'adaptive_topik2' ? 'cardAdaptiveTopik2' : 'cardSelfDeclare'));
-        activeCard.style.borderColor = 'var(--ssak-primary)';
-        activeCard.style.background = 'var(--ssak-primary-light)';
-
-        if(mode === 'self_declare') {
-            document.getElementById('selfDeclareInputs').classList.remove('d-none');
-            document.getElementById('selfDeclareSummary').classList.add('d-none');
-            document.getElementById('onboardingForm').action = '/lo-trinh/tao';
-        } else {
-            document.getElementById('selfDeclareInputs').classList.add('d-none');
-            document.getElementById('selfDeclareSummary').classList.remove('d-none');
-            document.getElementById('onboardingForm').action = '/placement';
-        }
-    }
-</script>
 
 <div th:replace="~{fragments/footer :: footer}"></div>
 </body>

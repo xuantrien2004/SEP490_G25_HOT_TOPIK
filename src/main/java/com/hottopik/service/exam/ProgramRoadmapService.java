@@ -81,6 +81,10 @@ public class ProgramRoadmapService {
                 .toList();
     }
 
+    public RoadmapSketch.Result preview(ProgramVersion program, Track track, int days) {
+        return preview(program, track, days, 2);
+    }
+
     public RoadmapSketch.Result preview(ProgramVersion program, Track track, int days, int perDay) {
         List<RoadmapSketch.TypeRef> types = itemsOf(program.getId()).stream()
                 .filter(i -> i.getTemplate().getTrack() == track)
@@ -91,7 +95,22 @@ public class ProgramRoadmapService {
                     + track.getLabel() + ". Vui lòng liên hệ quản lý nội dung để kiểm tra bản đã phát hành.");
         }
         return RoadmapSketch.build(types, days, perDay, ProgramRules.reviews(program.getReviewOffsets()),
+
                 program.getSessionsPerType(), ProgramRules.phases(program.getPhaseSplit()));
+    }
+
+    public int minimumDays(ProgramVersion program, Track track) {
+        return RoadmapSketch.minimumDays(typesOf(program, track), ProgramRules.reviews(program.getReviewOffsets()),
+                program.getSessionsPerType(), ProgramRules.phases(program.getPhaseSplit()));
+    }
+
+    private List<RoadmapSketch.TypeRef> typesOf(ProgramVersion program, Track track) {
+        return itemsOf(program.getId()).stream()
+                .filter(i -> i.getTemplate().getTrack() == track)
+                .filter(i -> i.getTemplate().getSkill() != Skill.WRITING)
+                .map(i -> new RoadmapSketch.TypeRef(i.getTemplate().getCode(), i.getTemplate().getName(),
+                        i.getTemplate().getSkill().name()))
+                .toList();
     }
 
     @Transactional

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body style="background: var(--ssak-bg); color: var(--ssak-text-main); font-family: var(--font-body);">
+<div th:replace="~{fragments/navbar :: navbar('placement')}"></div>
+<main class="container py-5" style="max-width: 560px;">
+    <div th:if="${placementError}" class="alert alert-warning" th:text="${placementError}"></div>
+    <a th:href="@{/onboarding}" class="btn btn-sm btn-outline-secondary mb-3 rounded-3">← Quay lại</a>
+
+    <section class="bg-white border rounded-4 shadow-sm p-4 p-md-5 text-center" th:if="${sheet != null}">
+        <h1 class="fw-bold mb-2" style="font-family: var(--font-heading);">Bài kiểm tra trình độ</h1>
+        <p class="mb-1">20 câu · 200 điểm</p>
+        <p class="text-muted mb-4">10 Nghe · 10 Đọc</p>
+        <div th:if="${!sheet.ready}" class="alert alert-warning text-start">
+            Chưa có đủ câu hỏi trong ngân hàng đánh giá. Cần 10 câu Nghe và 10 câu Đọc.
+        </div>
+        <form th:if="${sheet.ready}" method="post" th:action="@{/placement/start}">
+            <input type="hidden" name="paper" th:value="${sheet.paper.name()}">
+            <button class="btn-ssak-primary px-5 py-3 rounded-pill fw-bold" type="submit">Bắt đầu</button>
+        </form>
+    </section>
+</main>
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>
