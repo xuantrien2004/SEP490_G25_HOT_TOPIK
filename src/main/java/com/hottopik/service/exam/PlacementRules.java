@@ -199,7 +199,7 @@ public final class PlacementRules {
     public static String choiceLabel(Track track, int level) {
         if (track == suggestedTrack(level)) return "Nên chọn";
         if (level >= 2 && track == Track.TOPIK_I) return "Học lại";
-        return "Vẫn chọn được";
+        return "Vượt trình độ";
     }
 
     /** Dropdown của lộ trình: TOPIK I là cấp 1–2, TOPIK II là cấp 3–6. */

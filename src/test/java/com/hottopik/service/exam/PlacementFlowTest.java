@@ -57,9 +57,11 @@ class PlacementFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Bạn muốn bắt đầu thế nào?")))
                 .andExpect(content().string(containsString("Mình chưa biết trình độ")))
-                .andExpect(content().string(containsString("Làm một bài kiểm tra trình độ, 20 câu, 200 điểm.")))
+                .andExpect(content().string(containsString("Làm bài kiểm tra 20 câu, 200 điểm.")))
                 .andExpect(content().string(containsString("Mình biết trình độ")))
-                .andExpect(content().string(containsString("Khai cấp hiện tại và mục tiêu, không làm bài.")))
+                .andExpect(content().string(containsString("Khai cấp hiện tại và mục tiêu.")))
+                .andExpect(content().string(containsString("Để sau, vào HOT TOPIK")))
+                .andExpect(content().string(not(containsString("Chỉ có một bài kiểm tra trình độ"))))
                 .andExpect(content().string(not(containsString("Mình đã qua TOPIK I"))))
                 .andExpect(content().string(containsString("/placement/khai")))
                 .andExpect(content().string(not(containsString("<select"))));
@@ -141,7 +143,9 @@ class PlacementFlowTest {
                 .andExpect(content().string(containsString("TOPIK 2 · Sơ cấp 2")))
                 .andExpect(content().string(not(containsString("Bạn vẫn tự chọn"))))
                 .andExpect(content().string(containsString("Nên chọn")))
-                .andExpect(content().string(containsString("Vẫn chọn được")))
+                .andExpect(content().string(containsString("Vượt trình độ")))
+                .andExpect(content().string(containsString("Mục tiêu")))
+                .andExpect(content().string(not(containsString("Sinh hoạt hàng ngày"))))
                 .andExpect(content().string(not(containsString("Làm bài TOPIK II"))))
                 .andExpect(content().string(not(containsString("làm thêm"))));
         openRoadmap(low, "TOPIK_II", 3, 70);

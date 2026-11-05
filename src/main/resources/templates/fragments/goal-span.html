@@ -30,7 +30,7 @@
                 </label>
             </div>
         </div>
-        <p class="text-muted small mt-2 mb-0">Từ 31 đến 200 ngày. Xóa rồi gõ số mới, lịch đổi khi số nằm trong khoảng. Chọn lịch thì số ngày đổi theo.</p>
+        <p class="text-muted small mt-2 mb-0" th:unless="${hideSpanHint}">Từ 31 đến 200 ngày. Xóa rồi gõ số mới, lịch đổi khi số nằm trong khoảng. Chọn lịch thì số ngày đổi theo.</p>
     </div>
     <style>
         .span-choice {

@@ -54,7 +54,7 @@ class PlacementRulesTest {
         assertEquals(Track.TOPIK_I, PlacementRules.suggestedTrack(1));
         assertEquals(Track.TOPIK_II, PlacementRules.suggestedTrack(2));
         assertEquals("Nên chọn", PlacementRules.choiceLabel(Track.TOPIK_I, 0));
-        assertEquals("Vẫn chọn được", PlacementRules.choiceLabel(Track.TOPIK_II, 1));
+        assertEquals("Vượt trình độ", PlacementRules.choiceLabel(Track.TOPIK_II, 1));
         assertEquals("Học lại", PlacementRules.choiceLabel(Track.TOPIK_I, 2));
         assertEquals("Nên chọn", PlacementRules.choiceLabel(Track.TOPIK_II, 2));
         assertEquals(java.util.List.of(1, 2), PlacementRules.roadmapTargets(Track.TOPIK_I));

@@ -22,7 +22,7 @@ public class PlacementService {
 
     public record QuestionView(Long id, int no, String typeName, String skill, String instruction,
                                String prompt, List<String> options, String passage, String audio, String image,
-                               String mediaBase) {
+                               String mediaBase, int answer, String explanation, String script) {
     }
 
     public record EditorRow(QuestionTypeDef type, int count, int available) {
@@ -217,7 +217,10 @@ public class PlacementService {
                 group == null ? null : group.getPassageKo(),
                 audio == null || mediaBase == null ? null : mediaBase + audio,
                 image == null || mediaBase == null ? null : mediaBase + image,
-                mediaBase);
+                mediaBase,
+                question.getAnswerIndex(),
+                question.getExplanationVi() == null ? "" : question.getExplanationVi(),
+                group == null || group.getScriptKo() == null ? "" : group.getScriptKo());
     }
 
     private static Integer parseAnswer(String raw) {

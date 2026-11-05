@@ -7,56 +7,58 @@
     <a th:href="@{/onboarding}" class="btn btn-sm btn-outline-secondary mb-3 rounded-3">← Chọn cách bắt đầu</a>
     <div th:if="${placementError}" class="alert alert-warning" th:text="${placementError}"></div>
     <section class="bg-white border rounded-4 p-4 p-md-5 shadow-sm">
-        <h1 class="h3 fw-bold mb-2" style="font-family: var(--font-heading);">Mình biết trình độ</h1>
-        <p class="text-muted">Khai cấp hiện tại và mục tiêu. Không làm bài.</p>
+        <h1 class="h3 fw-bold mb-3" style="font-family: var(--font-heading);">Mình biết trình độ</h1>
 
         <form method="post" th:action="@{/placement/sinh}" class="d-flex flex-column gap-3" id="declareForm">
-            <label class="fw-bold">Trình hiện tại
-                <select class="form-select mt-1" name="current" id="currentLevel">
+            <label class="fw-bold">Trình độ hiện tại
+                <select class="form-select mt-1" name="current" id="currentLevel" required>
+                    <option value="" selected>Chọn trình độ hiện tại</option>
                     <option value="0">Chưa có cấp</option>
                     <option th:each="item : ${levelChoices}" th:value="${item.level}"
                             th:text="${item.option}">TOPIK 1 · Sơ cấp 1</option>
                 </select>
             </label>
 
-            <div>
-                <div class="fw-bold mb-2">Mục tiêu</div>
-                <div class="d-flex flex-column gap-3" id="trackChoices">
-                    <label class="d-block p-3 rounded-4 border mb-0 track-choice">
-                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-                            <span class="d-flex align-items-center gap-2 fw-bold">
-                                <input class="form-check-input mt-0" type="radio" name="track" value="TOPIK_I" checked>
-                                <span>Lộ trình TOPIK I</span>
-                            </span>
-                            <select class="form-select level-select" name="targetI" style="max-width: 240px;">
+            <p class="text-muted mb-0" id="trackLocked">Chọn trình độ hiện tại để mở lộ trình.</p>
+            <div class="d-none flex-column gap-3" id="trackChoices">
+                <div class="track-card d-block p-3 rounded-4 border mb-0" data-track="TOPIK_I">
+                    <span class="badge rounded-pill mb-2 track-badge">Nên chọn</span>
+                    <div class="d-flex flex-wrap justify-content-between align-items-end gap-2">
+                        <span class="d-flex align-items-center gap-2 fw-bold pb-2">
+                            <input class="form-check-input mt-0" type="radio" name="track" value="TOPIK_I">
+                            <span>Lộ trình TOPIK I</span>
+                        </span>
+                        <label class="mb-0" style="min-width: 220px;">
+                            <span class="d-block small fw-bold mb-1">Mục tiêu</span>
+                            <select class="form-select level-select" name="targetI">
                                 <option th:each="item : ${levelChoices}" th:if="${item.level <= 2}"
                                         th:value="${item.level}" th:selected="${item.level == 2}"
-                                        th:attr="data-detail=${item.detail}"
                                         th:text="${item.option}">TOPIK 2 · Sơ cấp 2</option>
                             </select>
-                        </div>
-                        <small class="d-block text-muted mt-2">Cấp 1–2 · sơ cấp</small>
-                        <small class="level-detail d-block mt-1 fw-bold" style="color: #1F6B56;"></small>
-                    </label>
-                    <label class="d-block p-3 rounded-4 border mb-0 track-choice">
-                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-                            <span class="d-flex align-items-center gap-2 fw-bold">
-                                <input class="form-check-input mt-0" type="radio" name="track" value="TOPIK_II">
-                                <span>Lộ trình TOPIK II</span>
-                            </span>
-                            <select class="form-select level-select" name="targetII" style="max-width: 240px;">
+                        </label>
+                    </div>
+                    <small class="d-block text-muted mt-2">Cấp 1–2 · sơ cấp</small>
+                </div>
+                <div class="track-card d-block p-3 rounded-4 border mb-0" data-track="TOPIK_II">
+                    <span class="badge rounded-pill mb-2 track-badge">Vượt trình độ</span>
+                    <div class="d-flex flex-wrap justify-content-between align-items-end gap-2">
+                        <span class="d-flex align-items-center gap-2 fw-bold pb-2">
+                            <input class="form-check-input mt-0" type="radio" name="track" value="TOPIK_II">
+                            <span>Lộ trình TOPIK II</span>
+                        </span>
+                        <label class="mb-0" style="min-width: 220px;">
+                            <span class="d-block small fw-bold mb-1">Mục tiêu</span>
+                            <select class="form-select level-select" name="targetII">
                                 <option th:each="item : ${levelChoices}" th:if="${item.level >= 3}"
                                         th:value="${item.level}" th:selected="${item.level == 3}"
-                                        th:attr="data-detail=${item.detail}"
                                         th:text="${item.option}">TOPIK 3 · Trung cấp 1</option>
                             </select>
-                        </div>
-                        <small class="d-block text-muted mt-2">Cấp 3–6 · trung cấp và cao cấp</small>
-                        <small class="level-detail d-block mt-1 fw-bold" style="color: #1F6B56;"></small>
-                    </label>
+                        </label>
+                    </div>
+                    <small class="d-block text-muted mt-2">Cấp 3–6 · trung cấp và cao cấp</small>
                 </div>
-                <input type="hidden" name="target" id="declaredTarget" value="2">
             </div>
+            <input type="hidden" name="target" id="declaredTarget" value="2">
 
             <div th:replace="~{fragments/goal-span :: fields}"></div>
             <label class="fw-bold">Phút học mỗi ngày
@@ -73,28 +75,66 @@
         </form>
     </section>
 </main>
+<style>
+    .track-card { cursor: pointer; background: #fff; }
+    .track-card.is-on { border-color: #1F6B56 !important; background: #E3F2EA; }
+</style>
 <script>
-    function paintDeclare() {
-        document.querySelectorAll('#trackChoices .track-choice').forEach(function (card) {
-            var on = card.querySelector('input[name="track"]').checked;
-            card.style.borderColor = on ? '#1F6B56' : '';
-            card.style.background = on ? '#E3F2EA' : '';
-            var select = card.querySelector('select.level-select');
-            var note = card.querySelector('.level-detail');
-            var option = select.options[select.selectedIndex];
-            if (note && option) note.textContent = option.getAttribute('data-detail') || '';
+    function suggestedTrack(level) {
+        return level >= 3 ? 'TOPIK_II' : 'TOPIK_I';
+    }
+    function paintDeclare(resetChoice) {
+        var current = document.getElementById('currentLevel');
+        var box = document.getElementById('trackChoices');
+        var locked = document.getElementById('trackLocked');
+        if (!current.value) {
+            box.classList.add('d-none');
+            box.classList.remove('d-flex');
+            locked.classList.remove('d-none');
+            return;
+        }
+        locked.classList.add('d-none');
+        box.classList.remove('d-none');
+        box.classList.add('d-flex');
+        var level = parseInt(current.value, 10);
+        var suggested = suggestedTrack(level);
+        var first = box.querySelector('[data-track="' + suggested + '"]');
+        if (first) box.prepend(first);
+        box.querySelectorAll('.track-card').forEach(function (card) {
+            var radio = card.querySelector('input[name="track"]');
+            var badge = card.querySelector('.track-badge');
+            var mine = radio.value === suggested;
+            if (resetChoice) radio.checked = mine;
+            card.classList.toggle('is-on', radio.checked);
+            badge.textContent = mine ? 'Nên chọn' : (suggested === 'TOPIK_II' ? 'Học lại' : 'Vượt trình độ');
+            badge.style.background = mine ? '#1F6B56' : '#5C6E72';
         });
-        var track = document.querySelector('#trackChoices input[name="track"]:checked');
+        var track = box.querySelector('input[name="track"]:checked');
         var select = track && track.value === 'TOPIK_II'
                 ? document.querySelector('[name="targetII"]')
                 : document.querySelector('[name="targetI"]');
         if (select) document.getElementById('declaredTarget').value = select.value;
     }
-    document.querySelectorAll('#trackChoices input, #trackChoices select').forEach(function (field) {
-        field.addEventListener('change', paintDeclare);
+    document.querySelectorAll('#trackChoices .track-card').forEach(function (card) {
+        card.addEventListener('click', function (event) {
+            if (event.target.closest('select, option')) return;
+            var radio = card.querySelector('input[name="track"]');
+            if (!radio || radio.checked) return;
+            radio.checked = true;
+            radio.dispatchEvent(new Event('change', {bubbles: true}));
+        });
     });
-    document.getElementById('declareForm').addEventListener('submit', paintDeclare);
-    paintDeclare();
+    document.getElementById('currentLevel').addEventListener('change', function () { paintDeclare(true); });
+    document.querySelectorAll('#trackChoices input, #trackChoices select').forEach(function (field) {
+        field.addEventListener('change', function () { paintDeclare(false); });
+    });
+    document.getElementById('declareForm').addEventListener('submit', function (event) {
+        if (!document.getElementById('currentLevel').value) {
+            event.preventDefault();
+            return;
+        }
+        paintDeclare(false);
+    });
 </script>
 <div th:replace="~{fragments/footer :: footer}"></div>
 </body>

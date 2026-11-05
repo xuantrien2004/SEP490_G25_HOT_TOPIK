@@ -168,6 +168,7 @@ public class PlacementController {
         model.addAttribute("pageTitle", "Mình biết trình độ");
         model.addAttribute("currentUser", user);
         model.addAttribute("levelChoices", PlacementRules.levelChoices());
+        model.addAttribute("hideSpanHint", true);
         fillDates(model);
         return "placement/declare";
     }
