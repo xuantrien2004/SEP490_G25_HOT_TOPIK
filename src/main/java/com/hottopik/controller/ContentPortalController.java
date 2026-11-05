@@ -273,9 +273,10 @@ public class ContentPortalController {
                             g.getId(),
                             g.getNameVi(),
                             (int) g.getLevel(),
+                            (int) g.getGroupNo(),
                             grammarService.getGrammarsByGroup(g.getId()).size(),
                             "Nhóm ngữ pháp số " + g.getGroupNo(),
-                            true
+                            "ACTIVE".equalsIgnoreCase(g.getStatus())
                     )
             ).collect(java.util.stream.Collectors.toList());
 
@@ -367,6 +368,7 @@ public class ContentPortalController {
                     "127.0.0.1"
             );
             resp.put("success", true);
+            resp.put("status", newStatus);
             resp.put("message", "Đã chuyển trạng thái thành " + newStatus);
             return ResponseEntity.ok(resp);
         } catch (Exception e) {
@@ -382,31 +384,36 @@ public class ContentPortalController {
             @RequestBody Map<String, Object> payload,
             HttpSession session) {
         Map<String, Object> resp = new HashMap<>();
+        // Xóa theo id của đúng thẻ được thao tác; tên có thể trùng giữa các cấp TOPIK.
+        Integer id;
         try {
-            String name = (String) payload.get("name");
-            GrammarGroup group = grammarGroupService.getAllGroups().stream()
-                    .filter(g -> g.getNameVi().equals(name))
-                    .findFirst().orElse(null);
-
-            if (group != null) {
-                grammarGroupService.deleteGroup(group.getId());
-                UserDTO currentUser = AuthHelper.getLoggedInUser(session);
-                String actorName = currentUser != null ? currentUser.getFullName() : "Lê Thu Hà";
-                String actorRole = currentUser != null ? currentUser.getRole() : "ROLE_CONTENT_MANAGER";
-                adminSystemService.logAction(
-                        actorName,
-                        actorRole,
-                        "DELETE_GRAMMAR_GROUP",
-                        "GRAMMAR_GROUP",
-                        "Xóa dạng ngữ pháp: \"" + name + "\"",
-                        "127.0.0.1"
-                );
-                resp.put("success", true);
-                resp.put("message", "Đã xóa dạng ngữ pháp thành công!");
-                return ResponseEntity.ok(resp);
-            }
+            id = Integer.valueOf(String.valueOf(payload.get("id")));
+        } catch (NumberFormatException e) {
             resp.put("success", false);
-            resp.put("message", "Không tìm thấy dạng ngữ pháp.");
+            resp.put("message", "Thiếu hoặc sai id dạng/nhóm ngữ pháp.");
+            return ResponseEntity.badRequest().body(resp);
+        }
+        try {
+            GrammarGroup group = grammarGroupService.getGroupById(id);
+            String groupName = group != null ? group.getNameVi() : ("ID #" + id);
+            grammarGroupService.deleteGroup(id);
+            UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+            String actorName = currentUser != null ? currentUser.getFullName() : "Lê Thu Hà";
+            String actorRole = currentUser != null ? currentUser.getRole() : "ROLE_CONTENT_MANAGER";
+            adminSystemService.logAction(
+                    actorName,
+                    actorRole,
+                    "DELETE_GRAMMAR_GROUP",
+                    "GRAMMAR_GROUP",
+                    "Xóa dạng ngữ pháp: \"" + groupName + "\"",
+                    "127.0.0.1"
+            );
+            resp.put("success", true);
+            resp.put("message", "Đã xóa dạng ngữ pháp thành công!");
+            return ResponseEntity.ok(resp);
+        } catch (IllegalArgumentException e) {
+            resp.put("success", false);
+            resp.put("message", e.getMessage());
             return ResponseEntity.status(404).body(resp);
         } catch (Exception e) {
             resp.put("success", false);
@@ -663,17 +670,44 @@ public class ContentPortalController {
             return ResponseEntity.status(401).body(resp);
         }
         try {
-            grammarGroupService.saveGroup(form);
+            GrammarGroup saved = grammarGroupService.saveGroup(form);
             adminSystemService.logAction(
                     currentUser.getFullName(),
                     currentUser.getRole(),
-                    "CREATE_GRAMMAR_GROUP",
+                    form.getId() == null ? "CREATE_GRAMMAR_GROUP" : "UPDATE_GRAMMAR_GROUP",
                     "GRAMMAR_GROUP",
-                    "Tạo dạng ngữ pháp mới: \"" + form.getNameVi() + "\"",
+                    (form.getId() == null ? "Tạo dạng ngữ pháp mới: \"" : "Cập nhật dạng ngữ pháp: \"") + form.getNameVi() + "\"",
                     "127.0.0.1"
             );
             resp.put("success", true);
-            resp.put("message", "Đã tạo dạng ngữ pháp mới thành công!");
+            resp.put("id", saved.getId());
+            resp.put("message", form.getId() == null ? "Đã tạo dạng ngữ pháp mới thành công!" : "Đã cập nhật dạng ngữ pháp thành công!");
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(resp);
+        }
+    }
+
+    @PostMapping("/grammar/group/toggle")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> toggleGrammarGroup(
+            @RequestBody Map<String, Object> payload, HttpSession session) {
+        Map<String, Object> resp = new HashMap<>();
+        if (AuthHelper.getLoggedInUser(session) == null) {
+            resp.put("success", false);
+            resp.put("message", "Chưa đăng nhập.");
+            return ResponseEntity.status(401).body(resp);
+        }
+        try {
+            Integer id = Integer.valueOf(payload.get("id").toString());
+            boolean active = Boolean.parseBoolean(payload.get("active").toString());
+            GrammarGroup saved = grammarGroupService.toggleStatus(id, active);
+            resp.put("success", true);
+            resp.put("id", saved.getId());
+            resp.put("active", "ACTIVE".equalsIgnoreCase(saved.getStatus()));
+            resp.put("message", active ? "Đã bật dạng/nhóm ngữ pháp." : "Đã ẩn dạng/nhóm ngữ pháp.");
             return ResponseEntity.ok(resp);
         } catch (Exception e) {
             resp.put("success", false);
@@ -715,4 +749,5 @@ public class ContentPortalController {
             return ResponseEntity.badRequest().body(resp);
         }
     }
+
 }

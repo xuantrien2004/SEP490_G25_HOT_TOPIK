@@ -61,16 +61,32 @@ public class WritingSubmissionService {
     /** Caller khóa và xác minh lượt thi; chỉ nhận nội dung đã lưu của chính lượt đó. */
     public WritingSubmissionDTO submitExam(UserDTO user, Long promptId, String answer, Long attemptId, String title) {
         if (!user.isVip()) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Gửi Giáo viên chấm là quyền lợi VIP.");
-        // Kiểm tra đã gửi lần nào chưa (bất kể attempt nào) — mỗi câu chỉ được gửi GV 1 lần
-        var existingAny = getSubmissionsByLearner(user.getId()).stream()
-                .filter(s -> Objects.equals(s.getPromptId(), promptId)
-                        && !"submitted".equalsIgnoreCase(s.getStatus())
-                        && !"draft".equalsIgnoreCase(s.getStatus()))
-                .findFirst();
-        if (existingAny.isPresent()) return existingAny.get();
-        // Attempt hiện tại chưa gửi → tạo mới
-        var existing = examSubmissions(user.getId(), attemptId).get(promptId);
-        return existing != null ? existing : submit(user, promptId, answer, true, attemptId, title);
+        WritingPrompt p = prompts.findById(promptId).orElseThrow(() -> new IllegalArgumentException("Đề viết không còn khả dụng."));
+        String reason = examSendBlockReason(examSubmissions(user.getId(), attemptId).get(promptId),
+                sentToTeacherByPrompt(user.getId()).get(promptId), p.getNo(), answer);
+        if (reason != null) throw new IllegalArgumentException(reason);
+        return submit(user, promptId, answer, true, attemptId, title);
+    }
+
+    /**
+     * Quy tắc gửi GV cho một câu Viết của một lượt thi. Trả về lý do bị chặn, hoặc null nếu được gửi.
+     * - Bài của chính lượt này đã bị từ chối: phải làm lại đề (lượt mới) mới được gửi lại.
+     * - Câu đã gửi/đang chấm/đã chấm (ở bất kỳ lượt nào): không được gửi nữa.
+     */
+    public static String examSendBlockReason(WritingSubmissionDTO thisAttempt, WritingSubmissionDTO sentAny, int no, String answer) {
+        if (isRejectedExamSubmission(thisAttempt))
+            return "Giáo viên đã từ chối chấm câu này. Hãy làm lại đề để gửi lại Giáo viên chấm.";
+        WritingSubmissionDTO sent = thisAttempt != null ? thisAttempt : sentAny;
+        if (sent != null)
+            return "graded".equalsIgnoreCase(sent.getStatus()) ? "Câu này đã được Giáo viên chấm, không thể gửi lại."
+                    : "Câu này đã được gửi Giáo viên chấm.";
+        if (!hasAnswer(no, answer)) return "Câu này chưa có nội dung nên không thể gửi Giáo viên chấm.";
+        return null;
+    }
+
+    /** Bài đề thi chỉ ở trạng thái "submitted" sau khi GV từ chối (kể cả bản ghi cũ không lưu rejectReason). */
+    public static boolean isRejectedExamSubmission(WritingSubmissionDTO s) {
+        return s != null && s.getExamAttemptId() != null && "submitted".equalsIgnoreCase(s.getStatus());
     }
     @Transactional(readOnly = true)
     public Map<Long, WritingSubmissionDTO> examSubmissions(Long userId, Long attemptId) {
@@ -87,6 +103,20 @@ public class WritingSubmissionService {
             if (!"submitted".equalsIgnoreCase(s.getStatus()) && !"draft".equalsIgnoreCase(s.getStatus()))
                 result.putIfAbsent(s.getPromptId(), s);
         return result;
+    }
+    @Transactional(readOnly = true)
+    public Map<Long, WritingSubmissionDTO> rejectedByPrompt(Long userId) {
+        Map<Long, WritingSubmissionDTO> result = new LinkedHashMap<>();
+        for (var s : getSubmissionsByLearner(userId))
+            if ("submitted".equalsIgnoreCase(s.getStatus()) && s.getRejectReason() != null && !s.getRejectReason().isBlank())
+                result.put(s.getPromptId(), s);
+        return result;
+    }
+    public static boolean canResendRejected(WritingSubmissionDTO rejected, String answer) {
+        return rejected != null && !normalizeAnswer(rejected.getStudentAnswer()).equals(normalizeAnswer(answer));
+    }
+    private static String normalizeAnswer(String answer) {
+        return Objects.toString(answer, "").replace("①", "").replace("②", "").trim();
     }
     private WritingSubmissionDTO submit(UserDTO user, Long promptId, String answer, boolean teacher, Long attemptId, String title) {
         if (user.getId() == null || users.findById(user.getId())
@@ -129,6 +159,9 @@ public class WritingSubmissionService {
         WritingSubmission e = locked(id); WritingSubmissionDTO s = decode(e);
         if (!Objects.equals(e.getLearnerId(), user.getId())) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         if (!"submitted".equals(s.getStatus())) throw new IllegalArgumentException("Bài đã được gửi chấm.");
+        // Bị GV từ chối thì phải làm lại (tạo bài mới) mới được gửi; không gửi lại chính bản đã bị từ chối.
+        if (isRejectedExamSubmission(s) || (s.getRejectReason() != null && !s.getRejectReason().isBlank()))
+            throw new IllegalArgumentException("Giáo viên đã từ chối chấm bài này. Hãy làm lại để gửi lại Giáo viên chấm.");
         if (!hasAnswer(s.getQuestionNo(), s.getStudentAnswer()))
             throw new IllegalArgumentException("Bài chưa có nội dung nên không thể gửi Giáo viên chấm.");
         s.setStatus("waiting"); s.setDueDeadline("Đang chờ Giáo viên nhận chấm"); s.setRejectReason(null); save(e,s);

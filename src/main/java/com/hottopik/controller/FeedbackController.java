@@ -1,9 +1,12 @@
 package com.hottopik.controller;
 
 import com.hottopik.dto.ReviewDTO;
-import com.hottopik.entity.User; // <-- Dùng đúng entity User của dự án
-import com.hottopik.repository.UserRepository; // <-- Thêm repository để tìm user theo email
+import com.hottopik.dto.UserDTO;
+import com.hottopik.entity.User;
+import com.hottopik.repository.UserRepository;
 import com.hottopik.service.ReviewService;
+import com.hottopik.util.AuthHelper;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,30 +18,40 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.security.Principal; // <-- Thêm import Principal
+import java.security.Principal;
 
 @Controller
 @RequiredArgsConstructor
 public class FeedbackController {
 
     private final ReviewService reviewService;
-    private final UserRepository userRepository; // <-- Tiêm UserRepository vào đây
+    private final UserRepository userRepository;
 
     @PostMapping("/api/feedback/submit")
     @ResponseBody
-    public ResponseEntity<?> submitFeedback(@RequestBody ReviewDTO reviewDTO, Principal principal) {
+    public ResponseEntity<?> submitFeedback(@RequestBody ReviewDTO reviewDTO, HttpSession session, Principal principal) {
         try {
-            if (principal == null) {
+            Long currentUserId = null;
+            if (principal != null) {
+                String email = principal.getName();
+                User currentUser = userRepository.findByEmail(email).orElse(null);
+                if (currentUser != null) {
+                    currentUserId = currentUser.getId();
+                }
+            }
+            if (currentUserId == null && session != null) {
+                UserDTO loggedIn = AuthHelper.getLoggedInUser(session);
+                if (loggedIn != null) {
+                    currentUserId = loggedIn.getId();
+                }
+            }
+
+            if (currentUserId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(new ApiResponse(false, "Cậu cần đăng nhập để gửi đánh giá nhé!"));
             }
 
-            // Lấy email từ principal (Spring Security mặc định dùng username/email làm principal name)
-            String email = principal.getName();
-            User currentUser = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin người dùng"));
-
-            reviewService.saveReview(currentUser.getId(), reviewDTO);
+            reviewService.saveReview(currentUserId, reviewDTO);
 
             return ResponseEntity.ok().body(new ApiResponse(true, "Cảm ơn cậu đã gửi đánh giá! Đánh giá của cậu đã được đăng tải thành công."));
         } catch (Exception e) {

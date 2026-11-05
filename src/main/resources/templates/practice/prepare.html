@@ -54,28 +54,32 @@
             Lịch sử bên dưới chỉ gồm lượt đã nộp; Chi tiết đọc kết quả cũ, Làm lại tạo lượt mới giữ câu.
         -->
         <!-- Nút Bắt đầu luyện -->
-        <div class="d-flex align-items-center gap-3">
-            <form th:if="${summary.available > 0}" method="post" th:action="@{/practice/start}" class="m-0">
-                <input type="hidden" name="typeCode" th:value="${type.code}">
-                <input th:if="${day != null and slot != null}" type="hidden" name="day" th:value="${day}">
-                <input th:if="${day != null and slot != null}" type="hidden" name="slot" th:value="${slot}">
-                <!--/* So cau tuy chon: chi hien khi khong phai Writing */-->
-                <div th:unless="${type.isWriting()}" class="mb-3 d-flex align-items-center gap-2 flex-wrap">
-                    <label class="fw-bold text-dark mb-0" style="font-size:14px;">Số câu muốn làm:</label>
-                    <input type="number" name="questionCount"
+        <form th:if="${summary.available > 0}" id="practiceStartForm" method="post" th:action="@{/practice/start}" class="m-0">
+            <input type="hidden" name="typeCode" th:value="${type.code}">
+            <input th:if="${day != null and slot != null}" type="hidden" name="day" th:value="${day}">
+            <input th:if="${day != null and slot != null}" type="hidden" name="slot" th:value="${slot}">
+            <!--/* So cau tuy chon: chi hien khi khong phai Writing. Nut -/+ tang giam theo buoc so cau mac dinh. */-->
+            <div th:unless="${type.isWriting()}" class="pp-count">
+                <div>
+                    <label for="questionCount" class="pp-count-label">Số câu muốn làm</label>
+                    <div class="pp-count-hint">Mặc định <strong th:text="${type.requiredCount()}">3</strong> câu. Tăng thêm để luyện nhiều hơn.</div>
+                </div>
+                <div class="pp-stepper" th:attr="data-step=${type.requiredCount()}">
+                    <button type="button" class="pp-step-btn" data-delta="-1" aria-label="Giảm số câu">−</button>
+                    <input type="number" id="questionCount" name="questionCount"
                            th:min="${type.requiredCount()}"
                            th:value="${type.requiredCount()}"
-                           class="form-control form-control-sm"
-                           style="width:90px;"
-                           oninput="validateQCount(this)"/>
-                    <small class="text-muted">Mặc định: <span th:text="${type.requiredCount()}">3</span> câu. Chọn nhiều hơn để luyện thêm.</small>
+                           class="pp-step-input" inputmode="numeric"
+                           onchange="validateQCount(this)"/>
+                    <button type="button" class="pp-step-btn" data-delta="1" aria-label="Tăng số câu">+</button>
                 </div>
-                <button class="btn btn-success btn-lg fw-bold px-5 py-3 rounded-3 shadow-sm d-flex align-items-center gap-2" type="submit">
-                    <span>🚀</span>
-                    <span th:text="${type.isWriting()} ? 'Mở khu vực luyện Viết →' : 'Bắt đầu bài luyện mới →'">Bắt đầu bài luyện mới →</span>
-                </button>
-            </form>
-            <a th:href="@{/practice(skill=${type.skill.name()},track=${type.track.name()})}" class="btn btn-outline-secondary btn-lg rounded-3 px-4 py-3">Chọn dạng khác</a>
+            </div>
+        </form>
+        <div class="pp-actions">
+            <button th:if="${summary.available > 0}" form="practiceStartForm" type="submit" class="btn btn-success btn-lg fw-bold rounded-3 shadow-sm pp-btn">
+                <span th:text="${type.isWriting()} ? 'Mở khu vực luyện Viết →' : 'Bắt đầu bài luyện mới →'">Bắt đầu bài luyện mới →</span>
+            </button>
+            <a th:href="@{/practice(skill=${type.skill.name()},track=${type.track.name()})}" class="btn btn-outline-secondary btn-lg fw-bold rounded-3 pp-btn">Chọn dạng khác</a>
         </div>
     </section>
 
@@ -147,12 +151,39 @@
 </main>
 
 <div th:replace="~{fragments/footer :: footer}"></div>
+<style>
+.pp-count{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;background:var(--ssak-primary-light,#E3F2EA);border:1.5px solid #A7D7BE;border-radius:16px;padding:16px 20px;margin-bottom:16px}
+.pp-count-label{font-weight:800;font-size:15px;color:var(--ssak-primary-dark,#1F6B56);margin:0}
+.pp-count-hint{font-size:13px;color:var(--ssak-text-muted,#5C6E72);margin-top:2px}
+.pp-stepper{display:inline-flex;align-items:center;background:#fff;border:1.5px solid #A7D7BE;border-radius:12px;overflow:hidden}
+.pp-step-btn{width:44px;height:44px;border:0;background:#fff;color:var(--ssak-primary,#2E7D67);font-size:22px;font-weight:800;line-height:1}
+.pp-step-btn:hover{background:var(--ssak-primary-light,#E3F2EA)}
+.pp-step-btn:disabled{color:var(--ssak-text-light,#8E9EA2);background:#fff}
+.pp-step-input{width:64px;height:44px;border:0;border-left:1px solid var(--ssak-border,#E6E1D3);border-right:1px solid var(--ssak-border,#E6E1D3);text-align:center;font-weight:800;font-size:18px;color:var(--ssak-text-main,#24363D);-moz-appearance:textfield;appearance:textfield}
+.pp-step-input::-webkit-outer-spin-button,.pp-step-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.pp-actions{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+.pp-btn{display:flex;align-items:center;justify-content:center;min-height:56px;padding:12px 20px}
+@media (max-width:575.98px){.pp-actions{grid-template-columns:1fr}}
+</style>
 <script>
 function validateQCount(input) {
     var min = parseInt(input.min) || 1;
     var val = parseInt(input.value) || min;
     if (val < min) { input.value = min; }
+    var minus = input.parentElement.querySelector('[data-delta="-1"]');
+    if (minus) minus.disabled = (parseInt(input.value) || min) <= min;
 }
+document.querySelectorAll('.pp-stepper').forEach(function (box) {
+    var input = box.querySelector('input');
+    var step = parseInt(box.dataset.step) || 1;
+    box.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-delta]');
+        if (!btn) return;
+        input.value = (parseInt(input.value) || step) + step * parseInt(btn.dataset.delta);
+        validateQCount(input);
+    });
+    validateQCount(input);
+});
 </script>
 </body>
 </html>

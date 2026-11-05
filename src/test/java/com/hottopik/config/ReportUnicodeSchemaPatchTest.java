@@ -1,7 +1,9 @@
 package com.hottopik.config;
 
 import com.hottopik.entity.QuestionReport;
+import com.hottopik.entity.Topic;
 import com.hottopik.entity.UserNotification;
+import com.hottopik.entity.Vocabulary;
 import jakarta.persistence.Column;
 import org.hibernate.annotations.Nationalized;
 import org.junit.jupiter.api.Test;
@@ -122,5 +124,41 @@ class ReportUnicodeSchemaPatchTest {
         var error = assertThrows(IllegalStateException.class, () -> LocalSchemaPatch.apply(source));
         assertTrue(error.getMessage().contains("dbo.question_reports"));
         assertInstanceOf(SQLException.class, error.getCause());
+    }
+
+    @Test
+    void upgradesLegacyVocabularyTextColumnsBeforeLearnerReadsThem() throws Exception {
+        when(source.getConnection()).thenReturn(connection);
+        when(connection.createStatement()).thenReturn(statement);
+        when(connection.getMetaData()).thenReturn(metadata);
+        when(metadata.getDatabaseProductName()).thenReturn("Microsoft SQL Server");
+        when(metadata.getColumns(null, "dbo", "question_reports", null))
+                .thenReturn(columns(QuestionReport.class, Types.NVARCHAR));
+        when(metadata.getColumns(null, "dbo", "user_notifications", null))
+                .thenReturn(columns(UserNotification.class, Types.NVARCHAR));
+        when(metadata.getColumns(null, "dbo", "vocabularies", null))
+                .thenReturn(columns(Vocabulary.class, Types.VARCHAR));
+
+        LocalSchemaPatch.apply(source);
+
+        List<String> executed = statements();
+        assertTrue(executed.contains("ALTER TABLE dbo.vocabularies ALTER COLUMN word NVARCHAR(100) NOT NULL"));
+        assertTrue(executed.contains("ALTER TABLE dbo.vocabularies ALTER COLUMN romanization NVARCHAR(100) NULL"));
+        assertTrue(executed.contains("ALTER TABLE dbo.vocabularies ALTER COLUMN meaning_vi NVARCHAR(300) NOT NULL"));
+        assertTrue(executed.contains("ALTER TABLE dbo.vocabularies ALTER COLUMN example_kr NVARCHAR(500) NULL"));
+    }
+
+    @Test
+    void upgradesLegacyTopicTextColumnsSoTopicToggleCanReadThem() throws Exception {
+        database(Types.NVARCHAR);
+        when(metadata.getColumns(null, "dbo", "topics", null))
+                .thenReturn(columns(Topic.class, Types.VARCHAR));
+
+        LocalSchemaPatch.apply(source);
+
+        List<String> executed = statements();
+        assertTrue(executed.contains("ALTER TABLE dbo.topics ALTER COLUMN name NVARCHAR(100) NOT NULL"));
+        assertTrue(executed.contains("ALTER TABLE dbo.topics ALTER COLUMN description NVARCHAR(500) NULL"));
+        assertTrue(executed.stream().noneMatch(s -> s.startsWith("ALTER TABLE dbo.topics ALTER COLUMN status")));
     }
 }

@@ -491,7 +491,7 @@ public class LearnerRoadmapService {
         } catch (ExamDomainException e) {
             return null;
         }
-        RoadmapSketch.Result next = programs.preview(nextProgram, nextTrack, nextDays, nextPerDay);
+        RoadmapSketch.Result next = programs.preview(nextProgram, nextTrack, nextDays);
         return remapDoneKeys(plan, previous, next);
     }
 

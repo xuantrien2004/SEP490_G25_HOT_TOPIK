@@ -144,7 +144,7 @@ class ExamLibraryRegressionTest {
         imports.startManual(source.getId(), CM);
         for (int no = 1; no <= 50; no++) {
             imports.saveCard(source.getId(), new ExamImportService.CardForm(null, "TPL2-REA-01",
-                    null, null, "지문 " + source.getId() + " " + no, null,
+                    null, null, "지문 " + source.getId() + " " + no, null, null,
                     List.of("질문 " + no), List.of("가"), List.of("나"), List.of("다"), List.of("라"),
                     List.of("2"), List.of("Giải thích " + no), null, null, null, null, null, null, List.of(no)), CM);
         }

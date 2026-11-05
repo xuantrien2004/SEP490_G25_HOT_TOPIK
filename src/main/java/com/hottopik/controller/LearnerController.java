@@ -236,25 +236,6 @@ public class LearnerController {
         return "learner/settings";
     }
 
-    @GetMapping({"/thong-bao", "/notifications"})
-    public String notifications(Model model, HttpSession session) {
-        UserDTO user = AuthHelper.getLoggedInUser(session);
-        java.util.List<com.hottopik.dto.NotificationDTO> userNotifs = Collections.emptyList();
-        int unreadCount = 0;
-
-        if (user != null && notificationService != null) {
-            userNotifs = notificationService.getNotificationsForUser(user);
-            unreadCount = (int) userNotifs.stream().filter(n -> !n.isRead()).count();
-        }
-
-        model.addAttribute("pageTitle", "Trung tâm thông báo · HOT TOPIK");
-        model.addAttribute("activePage", "notifications");
-        model.addAttribute("currentUser", user);
-        model.addAttribute("notifications", userNotifs);
-        model.addAttribute("unreadCount", unreadCount);
-        return "learner/notifications";
-    }
-
     @PostMapping({"/thong-bao/read", "/api/notifications/read"})
     @ResponseBody
     public ResponseEntity<Map<String, Object>> markNotifAsRead(

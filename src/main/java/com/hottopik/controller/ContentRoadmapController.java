@@ -153,8 +153,8 @@ public class ContentRoadmapController {
     @PostMapping("/{id}/publish")
     public String publish(@PathVariable Long id, HttpSession session, RedirectAttributes ra) {
         return mutate(session, ra, "/content/roadmap/" + id, actor -> {
-            programs.submitForPublish(id, actor);
-            ra.addFlashAttribute("flashOk", "Đã gửi Admin duyệt. Học viên vẫn học theo bản đang phát hành cho đến khi được duyệt.");
+            programs.activateDirectly(id, actor);
+            ra.addFlashAttribute("flashOk", "Đã kích hoạt lộ trình mới thành công.");
             return "redirect:/content/roadmap/" + id;
         });
     }

@@ -14,6 +14,9 @@ import java.util.List;
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
+    @Query("SELECT r FROM Review r JOIN FETCH r.user ORDER BY r.createdAt DESC")
+    List<Review> findAllWithUser();
+
     // Dùng JOIN FETCH để load luôn thông tin User, tránh tuyệt đối lỗi LazyInitializationException (Dùng cho danh sách đầy đủ)
     @Query("SELECT r FROM Review r JOIN FETCH r.user WHERE LOWER(r.status) = LOWER(:status) ORDER BY r.createdAt DESC")
     List<Review> findByStatusWithUser(@Param("status") String status);

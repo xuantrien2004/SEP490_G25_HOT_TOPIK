@@ -5,6 +5,7 @@ import com.hottopik.entity.Review;
 import com.hottopik.repository.ReviewRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.PostConstruct;
 import java.time.LocalDateTime;
@@ -74,9 +75,10 @@ public class OperationService {
         return Optional.ofNullable(packagePrices.get(id));
     }
 
+    @Transactional(readOnly = true)
     public List<ReviewDTO> getReviews() {
         if (reviewRepository == null) return Collections.emptyList();
-        return reviewRepository.findAll().stream().map(r -> {
+        return reviewRepository.findAllWithUser().stream().map(r -> {
             ReviewDTO dto = new ReviewDTO();
             dto.setId(r.getId());
             dto.setAuthorName(r.getUser() != null && r.getUser().getDisplayName() != null

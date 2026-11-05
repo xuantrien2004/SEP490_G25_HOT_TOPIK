@@ -39,43 +39,40 @@
         </div>
     </section>
 
-    <!-- Layout: Sidebar + Nội dung câu -->
-    <div class="d-flex gap-3 align-items-start">
+    <!-- Khung xem lại dùng chung với Luyện tập: fragments/result-review -->
+    <div class="rv-review">
+    <div th:replace="~{fragments/result-review :: toolbar}"></div>
+    <div class="rv-layout">
 
         <!-- Sidebar điều hướng số câu -->
-        <aside style="width:180px;flex-shrink:0;position:sticky;top:80px;z-index:10;">
-            <div class="bg-white border rounded-4 p-3 shadow-sm">
+        <aside class="rv-side">
 
                 <!-- Câu trắc nghiệm -->
-                <div th:unless="${#lists.isEmpty(paper.questions)}">
-                    <div class="fw-bold mb-2" style="font-size:12px;color:#5C6E72;text-transform:uppercase;letter-spacing:.5px;">Câu hỏi</div>
-                    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">
+                <div th:unless="${#lists.isEmpty(paper.questions)}" class="rv-group">
+                    <div class="rv-side-title">Danh sách câu</div>
+                    <div class="rv-chips">
                         <a th:each="q : ${paper.questions}"
                            th:href="'#question-' + ${q.id}"
-                           th:classappend="${(q.selected == #strings.toString(q.answer) or creditedAnswers.containsKey(q.key)) ? ' nav-q-correct' : (q.selected == null ? ' nav-q-skip' : ' nav-q-wrong')}"
-                           class="nav-q"
+                           class="rv-chip"
+                           th:attr="data-target=${'question-' + q.id}, data-state=${(q.selected == #strings.toString(q.answer) or creditedAnswers.containsKey(q.key)) ? 'correct' : (q.selected == null ? 'skip' : 'wrong')}"
                            th:text="${q.no}">1</a>
                     </div>
                 </div>
 
                 <!-- Câu Viết -->
-                <div th:unless="${#lists.isEmpty(paper.writing)}">
-                    <div class="fw-bold mb-2" style="font-size:12px;color:#5C6E72;text-transform:uppercase;letter-spacing:.5px;">Câu Viết</div>
-                    <div style="display:flex;flex-wrap:wrap;gap:5px;">
+                <div th:unless="${#lists.isEmpty(paper.writing)}" class="rv-group">
+                    <div class="rv-side-title">Câu Viết</div>
+                    <div class="rv-chips">
                         <a th:each="q : ${paper.writing}"
                            th:href="'#writing-' + ${q.id}"
-                           th:id="'nav-w-' + ${q.id}"
-                           class="nav-q nav-q-writing"
+                           class="rv-chip"
+                           th:attr="data-target=${'writing-' + q.id}, data-state='writing'"
                            th:text="${q.no}">51</a>
                     </div>
                 </div>
 
                 <!-- Chú thích -->
-                <div class="mt-3 pt-2 border-top" style="font-size:11px;color:#5C6E72;line-height:1.8;">
-                    <div><span class="nav-q nav-q-correct" style="display:inline-flex;pointer-events:none;margin-right:4px;"></span>Đúng</div>
-                    <div><span class="nav-q nav-q-wrong" style="display:inline-flex;pointer-events:none;margin-right:4px;"></span>Sai</div>
-                    <div><span class="nav-q nav-q-skip" style="display:inline-flex;pointer-events:none;margin-right:4px;"></span>Bỏ qua</div>
-                </div>
+                <div th:replace="~{fragments/result-review :: legend(${!#lists.isEmpty(paper.writing)})}"></div>
 
                 <!-- Lịch sử làm đề (dưới sidebar) -->
                 <div th:if="${paper.history != null and !#lists.isEmpty(paper.history)}"
@@ -93,14 +90,14 @@
                     </th:block>
                     <p th:if="${paper.history.size() <= 1}" style="font-size:11px;color:#9BA8AB;margin:0;">Chưa có lần làm nào khác.</p>
                 </div>
-            </div>
         </aside>
 
-        <!-- Nội dung câu hỏi -->
-        <div style="flex:1;min-width:0;">
+        <!-- Nội dung câu hỏi: JS chỉ hiện một thẻ .rv-card tại một thời điểm -->
+        <div class="rv-main">
 
             <!-- Câu trắc nghiệm -->
-            <article th:each="q : ${paper.questions}" th:id="'question-' + ${q.id}" class="bg-white border rounded-4 p-4 mb-3">
+            <article th:each="q : ${paper.questions}" th:id="'question-' + ${q.id}" class="bg-white border rounded-4 p-4 shadow-sm rv-card"
+                     th:attr="data-state=${(q.selected == #strings.toString(q.answer) or creditedAnswers.containsKey(q.key)) ? 'correct' : (q.selected == null ? 'skip' : 'wrong')}">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="d-flex align-items-center gap-2">
                         <strong th:text="${q.label}"></strong>
@@ -137,7 +134,7 @@
             </article>
 
             <!-- Câu Viết -->
-            <article th:each="q : ${paper.writing}" th:id="'writing-' + ${q.id}" class="bg-white border rounded-4 p-4 mb-3">
+            <article th:each="q : ${paper.writing}" th:id="'writing-' + ${q.id}" class="bg-white border rounded-4 p-4 shadow-sm rv-card" data-state="writing">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h3 class="h6 mb-0" th:text="${'Viết · Câu ' + q.no}"></h3>
                     <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 rounded-3 px-2 py-1"
@@ -180,15 +177,23 @@
                     </div>
                     <div th:if="${q.rubric != null}"><h4 class="h6 mt-2">Tiêu chí</h4><p style="white-space:pre-wrap" th:text="${q.rubric}"></p></div>
                 </div>
+                <th:block th:with="rejectedHere=${writingReviews.containsKey(q.id) and writingReviews[q.id].status == 'submitted'}">
                 <p th:if="${!writingReviews.containsKey(q.id) and !sentByPrompt.containsKey(q.id)}" class="text-muted mt-2">Chưa có kết quả: bài chưa gửi Giáo viên chấm.</p>
-                <p th:if="${writingReviews.containsKey(q.id) and writingReviews[q.id].totalScore == null}" class="text-muted mt-2">Đã gửi Giáo viên, đang chờ kết quả chấm.</p>
+                <!-- Bị GV từ chối: không cho gửi lại ở lượt này, phải làm lại đề -->
+                <div th:if="${rejectedHere}" class="alert alert-danger mt-2 mb-0 py-2 small">
+                    <strong>Giáo viên đã từ chối chấm câu này.</strong>
+                    <span th:if="${writingReviews[q.id].rejectReason != null}" th:text="${' Lý do: ' + writingReviews[q.id].rejectReason}"></span>
+                    <div>Hãy làm lại đề để gửi lại Giáo viên chấm.</div>
+                </div>
+                <p th:if="${writingReviews.containsKey(q.id) and !rejectedHere and writingReviews[q.id].totalScore == null}" class="text-muted mt-2">Đã gửi Giáo viên, đang chờ kết quả chấm.</p>
+                </th:block>
                 <!-- Đã gửi GV (từ attempt khác) nhưng chưa có trong writingReviews lần này -->
                 <p th:if="${sentByPrompt.containsKey(q.id) and !writingReviews.containsKey(q.id)}" class="text-muted small mt-2">
                     ✅ Đã gửi Giáo viên chấm ·
                     <a th:href="@{/writing/feedback(id=${sentByPrompt[q.id].id})}">Xem tiến độ</a>
                 </p>
-                <!-- Nút gửi GV per-câu: chỉ hiện nếu chưa từng gửi và có nội dung -->
-                <form th:if="${currentUser.vip and !sentByPrompt.containsKey(q.id) and q.selected != null and !#strings.isEmpty(q.selected)}"
+                <!-- Nút gửi GV per-câu: canSendByPrompt dùng cùng quy tắc với lúc gửi (examSendBlockReason) -->
+                <form th:if="${currentUser.vip and canSendByPrompt[q.id]}"
                       method="post" th:action="@{/exam/attempt/{id}/send-teacher-q(id=${paper.attempt.id})}"
                       class="mt-2 d-inline">
                     <input type="hidden" name="promptId" th:value="${q.id}">
@@ -197,52 +202,16 @@
                 <a th:if="${writingReviews.containsKey(q.id)}" class="btn btn-outline-success mt-2 btn-sm"
                    th:href="@{/writing/feedback(id=${writingReviews[q.id].id})}">Xem bài gửi Giáo viên chấm</a>
             </article>
-
+            <th:block th:replace="~{fragments/result-review :: pager}"></th:block>
         </div>
+    </div>
     </div>
 
 
 </main>
 
-<style>
-.nav-q {
-    width: 34px; height: 34px; border-radius: 8px;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-weight: 700; font-size: 12px; text-decoration: none; flex-shrink: 0;
-}
-.nav-q-correct { background: #2E7D67; color: #fff; }
-.nav-q-wrong   { background: #FFF1F0; color: #CF1322; border: 1.5px solid #FFA39E; }
-.nav-q-skip    { background: #F1EEE6; color: #5C6E72; }
-.nav-q-writing { background: #E4EEF5; color: #2F5F7D; }
-.nav-q-active  { outline: 2.5px solid #2E7D67; outline-offset: 2px; }
-</style>
-
-<script>
-(function () {
-    const articles = document.querySelectorAll('article[id^="question-"], article[id^="writing-"]');
-    const navMap = {};
-    articles.forEach(function (el) {
-        const m = el.id.match(/^(question|writing)-(\d+)$/);
-        if (!m) return;
-        const kind = m[1], id = m[2];
-        const navEl = document.querySelector(kind === 'question'
-            ? 'a[href="#question-' + id + '"].nav-q'
-            : 'a[href="#writing-' + id + '"].nav-q');
-        if (navEl) navMap[el.id] = navEl;
-    });
-    function markActive() {
-        let active = null;
-        articles.forEach(function (el) {
-            const rect = el.getBoundingClientRect();
-            if (rect.top <= window.innerHeight * 0.45 && rect.bottom > 0) active = el;
-        });
-        Object.values(navMap).forEach(function (n) { n.classList.remove('nav-q-active'); });
-        if (active && navMap[active.id]) navMap[active.id].classList.add('nav-q-active');
-    }
-    window.addEventListener('scroll', markActive, { passive: true });
-    markActive();
-})();
-</script>
+<th:block th:replace="~{fragments/result-review :: styles}"></th:block>
+<th:block th:replace="~{fragments/result-review :: script}"></th:block>
 
 <!-- Modal và Script Báo lỗi câu hỏi -->
 <div th:replace="~{fragments/report-modal :: reportModal}"></div>

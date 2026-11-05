@@ -188,6 +188,33 @@ public class VocabularyServiceTest {
     }
 
     @Test
+    @DisplayName("Excel import ignores inactive and topicless existing records")
+    void testBulkCreateAllowsInactiveExistingWord() {
+        VocabularyDTO existing = new VocabularyDTO(null, "엑셀재등록", "", "Bản ghi cũ", "Danh từ",
+                1, "Dữ liệu cũ", null, null, null, "ACTIVE", null, null);
+        VocabularyDTO savedExisting = vocabularyService.saveOrUpdate(existing);
+        assertNotNull(savedExisting.getId());
+        assertTrue(vocabularyService.toggleWordStatus(savedExisting.getId()));
+
+        VocabularyDTO topiclessExisting = new VocabularyDTO(null, "엑셀누락", "", "Bản ghi thiếu chủ đề", "Danh từ",
+                1, "", null, null, null, "ACTIVE", null, null);
+        assertNotNull(vocabularyService.saveOrUpdate(topiclessExisting).getId());
+
+        VocabularyDTO imported = new VocabularyDTO(null, "엑셀재등록", "", "Bản ghi mới", "Danh từ",
+                1, "Dữ liệu mới", null, null, null, "ACTIVE", null, null);
+        VocabularyDTO importedTopicless = new VocabularyDTO(null, "엑셀누락", "", "Bản ghi mới từ dòng thiếu chủ đề", "Danh từ",
+                1, "Dữ liệu mới", null, null, null, "ACTIVE", null, null);
+        assertEquals(2, vocabularyService.bulkCreate(List.of(imported, importedTopicless)));
+
+        List<VocabularyDTO> matches = vocabularyService.searchAndFilter("엑셀재등록", null, null, "Danh từ", null);
+        assertEquals(2, matches.size());
+        assertTrue(matches.stream().anyMatch(v -> "ACTIVE".equalsIgnoreCase(v.getStatus())
+                && "Bản ghi mới".equals(v.getMeaning())));
+        assertTrue(vocabularyService.searchAndFilter("엑셀누락", null, null, "Danh từ", null).stream()
+                .anyMatch(v -> "Bản ghi mới từ dòng thiếu chủ đề".equals(v.getMeaning())));
+    }
+
+    @Test
     @DisplayName("Test Topic CRUD and Delete Cascade on Vocabularies")
     void testTopicCrudAndDelete() {
         // Create topic

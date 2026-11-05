@@ -74,7 +74,12 @@ public class TheoryController {
         model.addAttribute("selectedLevel", level);
         model.addAttribute("topicsByLevel", vocabularyService.getAllTopicsGroupedByLevel());
         if ("grammar".equals(tab != null ? tab : "vocab")) {
-            model.addAttribute("grammarGroups", grammarGroupService.getGroupsByLevel(level));
+            var groups = grammarGroupService.getActiveGroupsByLevel(level);
+            model.addAttribute("grammarGroups", groups);
+            model.addAttribute("categoryTitle", VocabularyDTO.formatTopikName(Integer.valueOf(level)) + " · " + groups.size() + " nhóm ngữ pháp");
+        } else {
+            var topics = vocabularyService.getTopicsForLearner(level.intValue());
+            model.addAttribute("categoryTitle", VocabularyDTO.formatTopikName(Integer.valueOf(level)) + " · " + topics.size() + " chủ đề");
         }
         return "theory/index";
     }

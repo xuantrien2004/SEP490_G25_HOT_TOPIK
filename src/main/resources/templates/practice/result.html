@@ -27,6 +27,7 @@
         <p class="mb-4 text-muted" style="font-size: 15px;">
             Kết quả của bạn đã được ghi lại vào lịch sử rèn luyện. Xem chi tiết giải thích bên dưới hoặc luyện tập tiếp để củng cố phản xạ!
         </p>
+        <div class="small text-muted mb-3"><strong>Thời gian nộp:</strong> <span th:text="${#temporals.format(result.attempt.completedAt, 'dd/MM/yyyy HH:mm')}">05/11/2026 12:00</span></div>
 
         <!-- Thẻ điểm số & thời gian -->
         <div class="d-flex flex-wrap align-items-center gap-4 bg-white p-3 p-md-4 rounded-3 border" style="max-width: 600px;">
@@ -102,28 +103,29 @@
         <!-- ========================================== -->
         <div class="tab-pane fade show active" id="content-answers" role="tabpanel">
 
-            <!-- Bộ lọc câu hỏi Đúng / Sai -->
-            <div class="d-flex align-items-center justify-content-between mb-3 bg-white p-3 rounded-3 border">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="small fw-bold text-muted text-uppercase">Bộ lọc:</span>
-                    <button type="button" class="btn btn-sm btn-outline-success active" onclick="filterReview('ALL', this)">Tất cả</button>
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="filterReview('WRONG', this)">Câu sai</button>
-                    <button type="button" class="btn btn-sm btn-outline-success" onclick="filterReview('CORRECT', this)">Câu đúng</button>
-                </div>
-                <div class="small text-muted">
-                    Bấm vào từng câu để xem lời giải thích chi tiết tiếng Việt và đáp án đúng.
-                </div>
-            </div>
+            <!-- Khung xem lại dùng chung với Đề thi: fragments/result-review -->
+            <div class="rv-review">
+            <div th:replace="~{fragments/result-review :: toolbar}"></div>
 
-            <div class="d-flex flex-column gap-4">
+            <div class="rv-layout">
+                <aside class="rv-side">
+                    <div class="rv-side-title">Danh sách câu</div>
+                    <div class="rv-chips">
+                        <a th:each="a,nav : ${result.answers}" th:href="${'#question-' + a.question.id}" class="rv-chip"
+                           th:attr="data-target=${'question-' + a.question.id}, data-state=${a.correct ? 'correct' : (a.selected == null ? 'skip' : 'wrong')}"
+                           th:text="${nav.count}">1</a>
+                    </div>
+                    <div th:replace="~{fragments/result-review :: legend(false)}"></div>
+                </aside>
+                <div class="rv-main">
                 <!--
                     Mỗi AnswerView có câu gốc, lựa chọn người học và correct; template tô màu, hiển thị giải thích.
                     ID question-<bankId> là điểm đến liên kết từ trang phản hồi báo lỗi; đây không phải chỉ số trong danh sách.
                 -->
                 <div th:each="a, iter : ${result.answers}"
                      th:id="${'question-' + a.question.id}"
-                     class="bg-white border rounded-4 p-4 shadow-sm answer-review-card"
-                     th:attr="data-correct=${a.correct}">
+                     class="bg-white border rounded-4 p-4 shadow-sm rv-card"
+                     th:attr="data-state=${a.correct ? 'correct' : (a.selected == null ? 'skip' : 'wrong')}">
                     <p th:if="${creditedAnswers.containsKey(#strings.toString(a.question.id))}" class="alert alert-info">Câu hỏi đã được sửa; bài làm này được công nhận điểm câu đó.</p>
 
                     <!-- Câu Header -->
@@ -223,6 +225,9 @@
                     </div>
 
                 </div>
+                <th:block th:replace="~{fragments/result-review :: pager}"></th:block>
+            </div>
+            </div>
             </div>
 
         </div>
@@ -251,7 +256,7 @@
                         </tr>
                         </thead>
                         <tbody>
-                        <tr th:each="h, hIter : ${result.history}" th:classappend="${h.id == result.attempt.id} ? 'table-success' : ''">
+                        <tr th:each="h, hIter : ${result.history}" th:if="${h.id != result.attempt.id}">
                             <td>
                                 <div class="fw-medium text-dark" th:text="${#temporals.format(h.completedAt, 'dd/MM/yyyy HH:mm')}">21/10/2026 17:00</div>
                             </td>
@@ -290,24 +295,8 @@
 
 <div th:replace="~{fragments/footer :: footer}"></div>
 
-<script>
-    function filterReview(mode, btn) {
-        const parent = btn.parentElement;
-        parent.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
-        document.querySelectorAll('.answer-review-card').forEach(card => {
-            const isCorrect = card.getAttribute('data-correct') === 'true';
-            if (mode === 'ALL') {
-                card.style.display = 'block';
-            } else if (mode === 'CORRECT') {
-                card.style.display = isCorrect ? 'block' : 'none';
-            } else if (mode === 'WRONG') {
-                card.style.display = !isCorrect ? 'block' : 'none';
-            }
-        });
-    }
-</script>
+<th:block th:replace="~{fragments/result-review :: styles}"></th:block>
+<th:block th:replace="~{fragments/result-review :: script}"></th:block>
 
 <!-- Modal và Script Báo lỗi câu hỏi -->
 <div th:replace="~{fragments/report-modal :: reportModal}"></div>

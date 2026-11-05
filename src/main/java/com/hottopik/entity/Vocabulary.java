@@ -73,6 +73,7 @@ public class Vocabulary {
     private String exampleVi;
 
     @Column(name = "status", length = 10, nullable = false)
+    @Convert(converter = VocabularyStatusConverter.class)
     @Builder.Default
     private String status = "ACTIVE";
 

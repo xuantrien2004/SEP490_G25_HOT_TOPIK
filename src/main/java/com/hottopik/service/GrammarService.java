@@ -13,6 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.hottopik.service.VocabularySyncService;
 
 @Service
 public class GrammarService {
@@ -22,6 +25,9 @@ public class GrammarService {
 
     private final GrammarRepository grammarRepository;
     private final GrammarGroupRepository grammarGroupRepository;
+
+    @Autowired(required = false)
+    private VocabularySyncService syncService;
 
     public GrammarService(
             GrammarRepository grammarRepository,
@@ -218,7 +224,11 @@ public class GrammarService {
         // Các câu cũ không còn trong danh sách sẽ bị loại bỏ.
         grammar.setExamples(updatedExamples);
 
-        return grammarRepository.save(grammar);
+        Grammar saved = grammarRepository.save(grammar);
+        grammarRepository.flush();
+        broadcast("GRAMMAR_CHANGED", Map.of("actionType", "SAVE", "id", saved.getId(),
+                "groupId", saved.getGrammarGroup().getId(), "status", saved.getStatus()));
+        return saved;
     }
 
     // Đánh dấu hoặc bỏ đánh dấu ngữ pháp thường gặp
@@ -227,7 +237,14 @@ public class GrammarService {
         Grammar grammar = getGrammarById(id);
         grammar.setIsFrequent(frequent);
 
-        return grammarRepository.save(grammar);
+        Grammar saved = grammarRepository.save(grammar);
+        grammarRepository.flush();
+        broadcast("GRAMMAR_CHANGED", Map.of("actionType", "TOGGLE", "id", saved.getId(), "status", saved.getStatus()));
+        return saved;
+    }
+
+    private void broadcast(String action, Map<String, Object> payload) {
+        if (syncService != null) syncService.broadcast(action, payload);
     }
 
     // Cập nhật trạng thái ngữ pháp
@@ -239,7 +256,10 @@ public class GrammarService {
         Grammar grammar = getGrammarById(id);
         grammar.setStatus(normalizedStatus);
 
-        return grammarRepository.save(grammar);
+        Grammar saved = grammarRepository.save(grammar);
+        grammarRepository.flush();
+        broadcast("GRAMMAR_CHANGED", Map.of("actionType", "TOGGLE", "id", saved.getId(), "status", saved.getStatus()));
+        return saved;
     }
 
     // Xóa ngữ pháp
@@ -429,12 +449,12 @@ public class GrammarService {
     // Lấy danh sách ngữ pháp theo nhóm nhưng bắt buộc status = "ACTIVE" cho học viên
     @Transactional(readOnly = true)
     public List<Grammar> getActiveGrammarsByGroupIdWithExamples(Integer groupId) {
-        return grammarRepository.findByGrammarGroupIdAndStatusWithExamples(groupId, "ACTIVE");
+        return grammarRepository.findActiveByGrammarGroupIdWithExamples(groupId, "ACTIVE");
     }
 
     @Transactional(readOnly = true)
     public List<Grammar> getActiveGrammarsByLevel(Short level) {
-        return grammarRepository.findByLevelAndStatus(level, "ACTIVE");
+        return grammarRepository.findActiveByLevelAndStatus(level, "ACTIVE");
     }
 
     // Lấy danh sách ngữ pháp theo nhóm có kèm theo ví dụ (Fetch Join)

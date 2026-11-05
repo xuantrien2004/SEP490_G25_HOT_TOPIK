@@ -26,7 +26,7 @@
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
         
         <!-- Tab 1: Từ vựng (Active in image 4 & 5) -->
-        <div id="tab-vocab" class="theory-main-tab active" onclick="switchTheoryCategory('vocab')">
+        <div id="tab-vocab" class="theory-main-tab" th:classappend="${currentTab == 'vocab'} ? ' active' : ''" onclick="switchTheoryCategory('vocab')">
             <div class="theory-tab-icon" style="background: #E8F5E9; color: #2E7D67;">
                 가
             </div>
@@ -37,7 +37,7 @@
         </div>
 
         <!-- Tab 2: Ngữ pháp -->
-        <div id="tab-grammar" class="theory-main-tab" onclick="switchTheoryCategory('grammar')">
+        <div id="tab-grammar" class="theory-main-tab" th:classappend="${currentTab == 'grammar'} ? ' active' : ''" onclick="switchTheoryCategory('grammar')">
             <div class="theory-tab-icon" style="background: #EBF3F8; color: #2B6CB0;">
                 문
             </div>
@@ -76,27 +76,27 @@
         <span style="font-size: 13.5px; font-weight: 800; color: #53646C; width: 40px;">Cấp</span>
         
         <div style="flex-grow: 1; background: #EFECE3; border-radius: 14px; padding: 4px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px;">
-            <button type="button" class="level-btn active" onclick="selectLevel(1)">
+            <button type="button" class="level-btn" th:classappend="${selectedLevel == 1} ? ' active' : ''" onclick="selectLevel(1)">
                 <span class="level-main">TOPIK 1</span>
                 <span class="level-sub">Sơ cấp 1</span>
             </button>
-            <button type="button" class="level-btn" onclick="selectLevel(2)">
+            <button type="button" class="level-btn" th:classappend="${selectedLevel == 2} ? ' active' : ''" onclick="selectLevel(2)">
                 <span class="level-main">TOPIK 2</span>
                 <span class="level-sub">Sơ cấp 2</span>
             </button>
-            <button type="button" class="level-btn" onclick="selectLevel(3)">
+            <button type="button" class="level-btn" th:classappend="${selectedLevel == 3} ? ' active' : ''" onclick="selectLevel(3)">
                 <span class="level-main">TOPIK 3</span>
                 <span class="level-sub">Trung cấp 1</span>
             </button>
-            <button type="button" class="level-btn" onclick="selectLevel(4)">
+            <button type="button" class="level-btn" th:classappend="${selectedLevel == 4} ? ' active' : ''" onclick="selectLevel(4)">
                 <span class="level-main">TOPIK 4</span>
                 <span class="level-sub">Trung cấp 2</span>
             </button>
-            <button type="button" class="level-btn" onclick="selectLevel(5)">
+            <button type="button" class="level-btn" th:classappend="${selectedLevel == 5} ? ' active' : ''" onclick="selectLevel(5)">
                 <span class="level-main">TOPIK 5</span>
                 <span class="level-sub">Cao cấp 1</span>
             </button>
-            <button type="button" class="level-btn" onclick="selectLevel(6)">
+            <button type="button" class="level-btn" th:classappend="${selectedLevel == 6} ? ' active' : ''" onclick="selectLevel(6)">
                 <span class="level-main">TOPIK 6</span>
                 <span class="level-sub">Cao cấp 2</span>
             </button>
@@ -106,7 +106,7 @@
     <!-- SECTION TITLE ROW: e.g. "TOPIK 1 · 6 chủ đề" AND "⭐ <span id="unlearnedCountText">0</span> từ chưa thuộc ➔" -->
     <div id="sectionHeaderRow" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
         <h2 id="currentCategoryTitle" style="margin: 0; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D;">
-            TOPIK 1 · 6 chủ đề
+            <span th:text="${categoryTitle}">TOPIK 1 · 6 chủ đề</span>
         </h2>
 
         <!-- Shortcut to Unlearned Words / Quiz -->

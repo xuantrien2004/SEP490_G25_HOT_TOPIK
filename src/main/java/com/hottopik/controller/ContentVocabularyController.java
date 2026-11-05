@@ -546,7 +546,7 @@ public class ContentVocabularyController {
 
             if (word == null || word.trim().isEmpty()) continue;
 
-            VocabularyDTO dup = vocabularyService.findDuplicate(null, word, wordType);
+            VocabularyDTO dup = vocabularyService.findActiveImportDuplicate(word, wordType);
             if (dup != null) {
                 duplicates.add(Map.of(
                         "index", index,

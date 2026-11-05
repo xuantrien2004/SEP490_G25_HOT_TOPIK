@@ -205,6 +205,11 @@ public class ProgramRoadmapService {
 
     @Transactional
     public void submitForPublish(Long id, Actor actor) {
+        activateDirectly(id, actor);
+    }
+
+    @Transactional
+    public void activateDirectly(Long id, Actor actor) {
         ProgramVersion program = editable(id, actor);
         List<ProgramVersionItem> rows = itemsOf(id);
         if (rows.isEmpty()) throw new ExamDomainException("Lộ trình chưa có dạng nào.");
@@ -215,20 +220,16 @@ public class ProgramRoadmapService {
         ProgramRules.checkCounts(program.getSessionsPerType(), program.getQuestionsPerSession(),
                 program.getWeeklyReviewQuestions(), ProgramRules.reviews(program.getReviewOffsets()));
         ProgramRules.phases(program.getPhaseSplit());
-        ApprovalRequestDTO req;
-        try {
-            req = approvals.submitTargetedRequest(actor.name(), "Content Manager", REQ_PUBLISH,
-                    "Phát hành lộ trình " + program.getVersionCode(),
-                    rows.size() + " dạng Nghe và Đọc. Ôn sau " + program.getReviewOffsets()
-                            + " ngày. Ba chặng " + program.getPhaseSplit() + ".",
-                    APPROVAL_TARGET, program.getId(), null);
-        } catch (IllegalStateException ex) {
-            throw new ExamDomainException(ex.getMessage());
+
+        for (ProgramVersion other : programs.findByStatus(ProgramStatus.PUBLISHED)) {
+            if (!other.getId().equals(program.getId())) other.setStatus(ProgramStatus.ARCHIVED);
         }
-        program.setStatus(ProgramStatus.PENDING_APPROVAL);
-        program.setPendingAction("PUBLISH");
-        program.setApprovalRequestId(req.getId());
-        log(actor, "SUBMIT_PROGRAM_PUBLISH", "Gửi duyệt " + program.getVersionCode() + " (yêu cầu #" + req.getId() + ")");
+        program.setStatus(ProgramStatus.PUBLISHED);
+        program.setPublishedAt(LocalDateTime.now());
+        program.setPendingAction(null);
+        program.setApprovalRequestId(null);
+        programs.save(program);
+        log(actor, "PUBLISH_PROGRAM", "Content Manager kích hoạt phát hành " + program.getVersionCode());
     }
 
     @EventListener

@@ -202,7 +202,7 @@
             <div class="border rounded-3 p-3 mb-3"><b>Bài làm của người học</b><p class="mb-0 mt-2" style="white-space:pre-wrap" th:text="${previewItem.studentAnswer}">Bài làm</p></div>
             <div class="d-flex gap-2">
                 <form th:action="@{/teacher/claim}" method="post"><input type="hidden" name="id" th:value="${previewItem.id}"><button class="btn btn-success" type="submit">Nhận chấm</button></form>
-                <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#rejectModal" th:attr="data-sid=${previewItem.id}">T? ch?i ch?m</button>
+                <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#rejectModal" th:attr="data-sid=${previewItem.id}">Từ chối chấm</button>
             </div>
         </section>
 
@@ -267,7 +267,7 @@
                     <!-- Queue Tab: Preview before claim -->
                     <div class="d-flex gap-2" th:if="${currentTab == 'queue' || r.status == 'waiting'}">
                         <a th:href="@{/teacher(tab='queue', preview=${r.id})}" class="btn btn-outline-success">Xem trước</a>
-                        <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#rejectModal" th:attr="data-sid=${r.id}">Từ chối</button>
+                        <span class="small text-muted">Mở xem trước để nhận hoặc từ chối chấm</span>
                     </div>
                     <!-- Queue Tab: Claim button -->
                     <form th:if="${currentTab != 'queue' and r.status == 'waiting'}" th:action="@{/teacher/claim}" method="post">

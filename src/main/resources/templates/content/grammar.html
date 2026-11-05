@@ -59,9 +59,48 @@
         .btn-ssak-light:hover { background: #E2E8F0; }
         .ssak-input { border: 1.5px solid var(--ssak-border); border-radius: 10px; padding: 8px 12px; }
         .ssak-input:focus { border-color: #2E7D67; box-shadow: 0 0 0 3px rgba(46, 125, 103, 0.15); }
+
+        /* Danh sách Dạng/Nhóm ngữ pháp (GRAMMAR_TYPE_LIST) */
+        .gg-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+        @media (max-width: 1280px) { .gg-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (max-width: 760px) { .gg-grid { grid-template-columns: minmax(0, 1fr); } }
+        .grammar-group-card {
+            background: #FFFFFF; border: 2px solid var(--ssak-border); border-radius: 18px; padding: 18px;
+            display: flex; flex-direction: column; gap: 12px; transition: border-color .2s, box-shadow .2s;
+        }
+        .grammar-group-card:hover { border-color: #A9D9C0; box-shadow: 0 6px 18px rgba(36, 54, 61, .06); }
+        .grammar-group-card.is-hidden { background: #F6F6F3; }
+        .grammar-group-card.is-hidden .grammar-group-name { color: #64748B; }
+        .gg-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+        .grammar-group-name {
+            margin: 0; font-family: var(--font-heading); font-size: 16px; font-weight: 800; color: #1F6B56; line-height: 1.35;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere;
+        }
+        .gg-status { flex-shrink: 0; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 20px; background: #E6F7F0; color: #1F6B56; }
+        .grammar-group-card.is-hidden .gg-status { background: #E2E8F0; color: #475569; }
+        .gg-count { align-self: flex-start; font-size: 12px; }
+        .gg-open { margin-top: auto; height: 38px; text-decoration: none; font-size: 13px; font-weight: 800; }
+        .gg-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .gg-actions button { height: 34px; font-size: 12px; font-weight: 700; padding: 0 6px; }
+        .gg-delete { color: #CF1322; border-color: #FFA39E; }
+        .gg-delete:hover { background: #FFF1F0; }
+        .gg-empty { background: #FFFFFF; border: 2px dashed var(--ssak-border); border-radius: 18px; padding: 32px; text-align: center; color: var(--ssak-text-muted); font-weight: 600; }
+        .gg-pager { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+        .gg-pager:empty { display: none; }
+        .gg-pager-info { font-size: 13px; color: var(--ssak-text-muted); font-weight: 600; }
+        .gg-pager-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+        .gg-page-btn {
+            min-width: 36px; height: 36px; padding: 0 10px; border-radius: 10px; border: 1.5px solid var(--ssak-border);
+            background: #FFFFFF; color: var(--ssak-text-main); font-size: 13px; font-weight: 700;
+        }
+        .gg-page-btn:hover:not(:disabled) { border-color: #2E7D67; color: #2E7D67; }
+        .gg-page-btn[aria-current="page"] { background: #2E7D67; border-color: #2E7D67; color: #FFFFFF; }
+        .gg-page-btn:disabled { opacity: .45; cursor: not-allowed; }
+        .gg-page-btn:focus-visible, .gg-actions button:focus-visible, .gg-open:focus-visible { outline: 3px solid rgba(46, 125, 103, .35); outline-offset: 2px; }
     </style>
 </head>
 <body>
+<div id="grammarSystemToast" style="position:fixed;right:24px;bottom:24px;z-index:2000;display:none;padding:14px 18px;border-radius:12px;background:#24363D;color:#fff;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.18)"></div>
 <div style="min-height: 100vh; background: #F4F3EF; font-family: var(--font-body); color: var(--ssak-text-main); display: flex;">
 
     <!-- Hidden State Anchors for JS (Lấy động từ Model) -->
@@ -321,29 +360,27 @@
                     </div>
                 </div>
 
-                <!-- Danh sách nhóm render động hoàn toàn qua th:each -->
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;">
-                    <div th:each="t : ${grammarTypes}" style="background: #FFFFFF; border-radius: 18px; border: 2px solid var(--ssak-border); padding: 20px; display: flex; flex-direction: column; gap: 14px;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <div>
-                                <h4 style="margin: 0; font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #1F6B56;" th:text="${t.name}">Tên nhóm</h4>
-                                <span style="font-size: 12px; color: var(--ssak-text-muted); margin-top: 4px; display: block;" th:text="${t.description}">Mô tả</span>
-                            </div>
-                            <!-- Số lượng mẫu câu lấy động từ thuộc tính t.grammarCount -->
-                            <span class="ssak-badge badge-mint" style="font-size: 12px;" th:text="${t.grammarCount + ' mẫu câu'}">0 mẫu câu</span>
+                <!-- Danh sách nhóm: 9 nhóm/trang, phân trang phía client (paginateGrammarGroups) -->
+                <div th:if="${#lists.isEmpty(grammarTypes)}" class="gg-empty">
+                    Cấp độ này chưa có dạng/nhóm ngữ pháp nào. Bấm "+ Tạo Dạng/Nhóm mới" để bắt đầu.
+                </div>
+                <div id="grammarGroupsGrid" class="gg-grid" th:unless="${#lists.isEmpty(grammarTypes)}">
+                    <div th:each="t : ${grammarTypes}" class="grammar-group-card" th:classappend="${t.active} ? '' : ' is-hidden'" th:attr="data-group-id=${t.id}">
+                        <div class="gg-head">
+                            <h4 class="grammar-group-name" th:text="${t.name}" th:title="${t.name}">Tên nhóm</h4>
+                            <span class="gg-status" th:text="${t.active} ? 'Đang hiện' : 'Đang ẩn'">Đang hiện</span>
                         </div>
+                        <span class="ssak-badge badge-mint gg-count" th:text="${t.grammarCount + ' mẫu câu'}">0 mẫu câu</span>
 
-                        <div style="display: flex; gap: 8px; margin-top: auto;">
-                            <!-- Link truyền động groupId (thay vì cố định groupId=1) -->
-                            <a th:href="@{/content/grammar(level=${currentLevel}, groupId=${t.id})}" class="btn-ssak-primary" style="flex-grow: 1; height: 36px; text-decoration: none; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800;">
-                                Mở mẫu câu →
-                            </a>
-                            <button type="button" class="btn-ssak-outline" style="height: 36px; padding: 0 10px; font-size: 12px; color: red; border-color: #FFA39E;" th:data-name="${t.name}" th:data-count="${t.grammarCount}" onclick="openDeleteTypeModal(this.getAttribute('data-name'), this.getAttribute('data-count'))">
-                                Xóa
-                            </button>
+                        <a th:href="@{/content/grammar(level=${currentLevel}, groupId=${t.id})}" class="btn-ssak-primary gg-open">Mở mẫu câu →</a>
+                        <div class="gg-actions">
+                            <button type="button" class="btn-ssak-light gg-toggle" th:data-id="${t.id}" th:data-active="${t.active}" th:text="${t.active} ? 'Ẩn' : 'Hiện'" onclick="toggleGrammarGroup(this)">Ẩn</button>
+                            <button type="button" class="btn-ssak-light" th:data-id="${t.id}" th:data-level="${t.level}" th:data-group-no="${t.groupNo}" th:data-name="${t.name}" onclick="openEditGrammarTypeModal(this)">Sửa tên</button>
+                            <button type="button" class="btn-ssak-outline gg-delete" th:data-id="${t.id}" th:data-name="${t.name}" th:data-count="${t.grammarCount}" onclick="openDeleteTypeModal(this.getAttribute('data-id'), this.getAttribute('data-name'), this.getAttribute('data-count'))">Xóa</button>
                         </div>
                     </div>
                 </div>
+                <nav id="grammarGroupsPagination" class="gg-pager" aria-label="Phân trang dạng/nhóm ngữ pháp"></nav>
             </th:block>
 
             <!-- ============================================================== -->
@@ -587,7 +624,8 @@
                 <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
                     <div>
                         <label class="form-label" style="font-size: 13px; font-weight: 700;">Tên nhóm tiếng Việt <span style="color:red">*</span></label>
-                        <input type="text" id="newGrammarTypeName" class="form-control ssak-input" required placeholder="Ví dụ: Nối mệnh đề chỉ mục đích..." />
+                        <input type="text" id="newGrammarTypeName" class="form-control ssak-input" required maxlength="100" placeholder="Ví dụ: Nối mệnh đề chỉ mục đích..." oninput="setCreateGrammarTypeError('')" />
+                        <div id="newGrammarTypeError" style="display: none; margin-top: 6px; font-size: 12px; font-weight: 700; color: #CF1322;"></div>
                     </div>
                 </div>
                 <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px;">
@@ -618,6 +656,13 @@
             </div>
         </div>
     </div>
+</div>
+<div class="modal fade" id="modalEditGrammarType" tabindex="-1" aria-hidden="true">
+ <div class="modal-dialog modal-dialog-centered"><div class="modal-content" style="border-radius:20px;padding:8px">
+  <div class="modal-header"><h5 class="modal-title">Sửa tên dạng/nhóm ngữ pháp</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body"><input id="editGrammarTypeName" class="form-control ssak-input" maxlength="100"></div>
+  <div class="modal-footer"><button class="btn-ssak-outline" data-bs-dismiss="modal">Hủy</button><button class="btn-ssak-primary" onclick="saveEditedGrammarType()">Lưu</button></div>
+ </div></div>
 </div>
 
 <!-- MODAL: THÊM NGỮ PHÁP -->
@@ -766,8 +811,15 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
-    let deleteTargetTypeName = "";
     let validatedGrammarRows = [];
+
+    window.addEventListener('hottopik:grammar-sync', function(event) {
+        const detail = event.detail || {};
+        const payload = detail.payload || {};
+        if (detail.action === 'GRAMMAR_GROUP_CHANGED' && payload.id && typeof payload.active === 'boolean') {
+            applyGrammarGroupActive(document.querySelector('.grammar-group-card[data-group-id="' + payload.id + '"]'), payload.active);
+        }
+    });
 
     function performGrammarInstantFilter() {
         const query = (document.getElementById('liveGrammarSearch')?.value || '').trim().toLowerCase();
@@ -819,8 +871,19 @@
         })
             .then(res => res.json())
             .then(data => {
-                alert(data.message || 'Đã cập nhật trạng thái!');
-                setTimeout(() => window.location.reload(), 400);
+                if (!data.success) { showGrammarToast(data.message || 'Không thể cập nhật trạng thái!'); return; }
+                const row = document.querySelector('.grammar-data-row button[data-id="' + id + '"]')?.closest('.grammar-data-row');
+                if (row) {
+                    const status = data.status || (row.getAttribute('data-status') === 'ACTIVE' ? 'HIDDEN' : 'ACTIVE');
+                    row.setAttribute('data-status', status);
+                    const statusCell = row.querySelector('td:nth-last-child(2)');
+                    const toggle = row.querySelector('button[data-id="' + id + '"]');
+                    if (statusCell) statusCell.innerHTML = status === 'ACTIVE'
+                        ? '<span class="ssak-badge badge-mint" style="font-size: 11px;">Hoạt động</span>'
+                        : '<span class="ssak-badge badge-terracotta" style="font-size: 11px;">Đã ẩn</span>';
+                    if (toggle) toggle.innerText = status === 'ACTIVE' ? 'Ẩn' : 'Bật';
+                }
+                if (window.HotTopikSync) window.HotTopikSync.broadcast('GRAMMAR_CHANGED', {id: id, status: data.status});
             });
     }
 
@@ -853,28 +916,35 @@
         })
             .then(res => res.json())
             .then(data => {
-                alert(data.message || 'Đã lưu ngữ pháp!');
+                showGrammarToast(data.message || 'Đã lưu ngữ pháp!');
                 window.location.reload();
             });
     }
 
-    function openDeleteTypeModal(name, count) {
-        deleteTargetTypeName = name;
+    let deleteTargetTypeId = null;
+    function openDeleteTypeModal(id, name, count) {
+        deleteTargetTypeId = parseInt(id);
         document.getElementById('deleteGrammarTypeNameDisplay').innerText = name;
         new bootstrap.Modal(document.getElementById('modalDeleteGrammarType')).show();
     }
 
     function confirmDeleteGrammarType() {
+        if (!deleteTargetTypeId) return;
         fetch('/content/grammar/delete-type', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: deleteTargetTypeName })
+            body: JSON.stringify({ id: deleteTargetTypeId })
         })
             .then(res => res.json())
             .then(data => {
-                alert(data.message || 'Đã xóa dạng ngữ pháp!');
+                if (!data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('modalDeleteGrammarType'))?.hide();
+                    showGrammarToast(data.message || 'Không thể xóa dạng/nhóm ngữ pháp.');
+                    return;
+                }
                 window.location.reload();
-            });
+            })
+            .catch(() => showGrammarToast('Có lỗi xảy ra khi xóa dạng/nhóm ngữ pháp.'));
     }
 
     function handleCreateGrammarType(e) {
@@ -883,15 +953,11 @@
         const typeName = document.getElementById('newGrammarTypeName').value.trim();
 
         if (!typeName) {
-            alert('Vui lòng nhập tên dạng/nhóm ngữ pháp!');
+            setCreateGrammarTypeError('Vui lòng nhập tên dạng/nhóm ngữ pháp!');
             return;
         }
 
-        const payload = {
-            level: currentLevel,
-            groupNo: 1,
-            nameVi: typeName
-        };
+        const payload = { level: currentLevel, nameVi: typeName };
 
         fetch('/content/grammar/group/save', {
             method: 'POST',
@@ -900,17 +966,124 @@
         })
             .then(res => res.json())
             .then(data => {
-                alert(data.message || 'Đã tạo dạng ngữ pháp thành công!');
-                const modalEl = document.getElementById('modalCreateGrammarType');
-                const modal = bootstrap.Modal.getInstance(modalEl);
-                if (modal) modal.hide();
+                if (!data.success) {
+                    setCreateGrammarTypeError(data.message || 'Không thể tạo dạng/nhóm ngữ pháp.');
+                    return;
+                }
+                // Sau khi tải lại, mở đúng trang chứa nhóm vừa tạo.
+                try { sessionStorage.setItem('grammarGroupFocusId', String(data.id)); } catch (ignored) {}
+                bootstrap.Modal.getInstance(document.getElementById('modalCreateGrammarType'))?.hide();
                 window.location.reload();
             })
             .catch(err => {
                 console.error(err);
-                alert('Có lỗi xảy ra khi tạo dạng ngữ pháp.');
+                setCreateGrammarTypeError('Có lỗi xảy ra khi tạo dạng ngữ pháp.');
             });
     }
+
+    function setCreateGrammarTypeError(message) {
+        const el = document.getElementById('newGrammarTypeError');
+        if (!el) return;
+        el.textContent = message || '';
+        el.style.display = message ? 'block' : 'none';
+    }
+    document.getElementById('modalCreateGrammarType')?.addEventListener('show.bs.modal', function () {
+        const input = document.getElementById('newGrammarTypeName');
+        if (input) input.value = '';
+        setCreateGrammarTypeError('');
+    });
+
+    function openEditGrammarTypeModal(btn) {
+        window.editGrammarTypeButton = btn;
+        document.getElementById('editGrammarTypeName').value = btn.getAttribute('data-name') || '';
+        new bootstrap.Modal(document.getElementById('modalEditGrammarType')).show();
+    }
+    function saveEditedGrammarType() {
+        const btn = window.editGrammarTypeButton;
+        const name = document.getElementById('editGrammarTypeName').value.trim();
+        if (!btn || !name) { showGrammarToast('Vui lòng nhập tên dạng/nhóm ngữ pháp!'); return; }
+        fetch('/content/grammar/group/save', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id: parseInt(btn.getAttribute('data-id')), level: parseInt(btn.getAttribute('data-level')), groupNo: parseInt(btn.getAttribute('data-group-no') || '1'), nameVi: name.trim()})
+        }).then(r => r.json()).then(data => {
+            if (!data.success) { showGrammarToast(data.message || 'Không thể cập nhật dạng/nhóm.'); return; }
+            const card = btn.closest('.grammar-group-card');
+            const title = card && card.querySelector('.grammar-group-name');
+            if (title) title.innerText = name.trim();
+            bootstrap.Modal.getInstance(document.getElementById('modalEditGrammarType'))?.hide();
+            showGrammarToast(data.message || 'Đã cập nhật dạng/nhóm.');
+        });
+    }
+
+    function toggleGrammarGroup(btn) {
+        const active = btn.getAttribute('data-active') === 'true';
+        fetch('/content/grammar/group/toggle', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id: parseInt(btn.getAttribute('data-id')), active: !active})
+        }).then(r => r.json()).then(data => {
+            if (!data.success) { showGrammarToast(data.message || 'Không thể đổi trạng thái dạng/nhóm.'); return; }
+            applyGrammarGroupActive(btn.closest('.grammar-group-card'), !active);
+            showGrammarToast(data.message || (!active ? 'Đã hiện dạng/nhóm.' : 'Đã ẩn dạng/nhóm.'));
+            if (window.HotTopikSync) window.HotTopikSync.broadcast('GRAMMAR_GROUP_CHANGED', {id: parseInt(btn.getAttribute('data-id')), active: !active});
+        });
+    }
+
+    function applyGrammarGroupActive(card, active) {
+        if (!card) return;
+        card.classList.toggle('is-hidden', !active);
+        const toggle = card.querySelector('.gg-toggle');
+        if (toggle) { toggle.setAttribute('data-active', String(active)); toggle.textContent = active ? 'Ẩn' : 'Hiện'; }
+        const status = card.querySelector('.gg-status');
+        if (status) status.textContent = active ? 'Đang hiện' : 'Đang ẩn';
+    }
+    function showGrammarToast(message) {
+        const el = document.getElementById('grammarSystemToast'); if (!el) return;
+        el.textContent = message; el.style.display = 'block';
+        clearTimeout(window.grammarToastTimer); window.grammarToastTimer = setTimeout(() => el.style.display = 'none', 2800);
+    }
+    (function paginateGrammarGroups(){
+        const grid = document.getElementById('grammarGroupsGrid'), pager = document.getElementById('grammarGroupsPagination');
+        if (!grid || !pager) return;
+        const PAGE_SIZE = 9;
+        const cards = [...grid.querySelectorAll('.grammar-group-card')];
+        const pages = Math.ceil(cards.length / PAGE_SIZE);
+        if (pages <= 1) return;
+
+        // Mở lại đúng trang chứa nhóm vừa tạo (handleCreateGrammarType ghi id trước khi reload).
+        let current = 0;
+        try {
+            const focusId = sessionStorage.getItem('grammarGroupFocusId');
+            sessionStorage.removeItem('grammarGroupFocusId');
+            const idx = focusId ? cards.findIndex(c => c.getAttribute('data-group-id') === focusId) : -1;
+            if (idx >= 0) current = Math.floor(idx / PAGE_SIZE);
+        } catch (ignored) {}
+
+        function pageButton(label, target, opts) {
+            const b = document.createElement('button');
+            b.type = 'button'; b.className = 'gg-page-btn'; b.textContent = label;
+            if (opts && opts.ariaLabel) b.setAttribute('aria-label', opts.ariaLabel);
+            if (target === current && !(opts && opts.nav)) b.setAttribute('aria-current', 'page');
+            if (target < 0 || target >= pages) b.disabled = true;
+            else b.onclick = () => { current = target; render(); grid.scrollIntoView({behavior: 'smooth', block: 'start'}); };
+            return b;
+        }
+
+        function render() {
+            const start = current * PAGE_SIZE, end = Math.min(start + PAGE_SIZE, cards.length);
+            cards.forEach((c, i) => c.style.display = (i >= start && i < end) ? '' : 'none');
+            pager.innerHTML = '';
+            const info = document.createElement('span');
+            info.className = 'gg-pager-info';
+            info.textContent = 'Hiển thị ' + (start + 1) + '–' + end + ' / ' + cards.length + ' nhóm';
+            const buttons = document.createElement('div');
+            buttons.className = 'gg-pager-buttons';
+            buttons.appendChild(pageButton('‹ Trước', current - 1, {nav: true, ariaLabel: 'Trang trước'}));
+            for (let i = 0; i < pages; i++) buttons.appendChild(pageButton(String(i + 1), i, {ariaLabel: 'Trang ' + (i + 1)}));
+            buttons.appendChild(pageButton('Sau ›', current + 1, {nav: true, ariaLabel: 'Trang sau'}));
+            pager.append(info, buttons);
+        }
+        render();
+    })();
 
     function downloadSampleGrammarExcel() {
         const sample = [
@@ -970,7 +1143,7 @@
         })
             .then(res => res.json())
             .then(data => {
-                alert(data.message || 'Đã import thành công!');
+                showGrammarToast(data.message || 'Đã import thành công!');
                 window.location.reload();
             });
     }
@@ -1026,12 +1199,12 @@
         })
             .then(res => res.json())
             .then(data => {
-                alert(data.message || 'Đã cập nhật ngữ pháp thành công!');
+                showGrammarToast(data.message || 'Đã cập nhật ngữ pháp thành công!');
                 window.location.reload();
             })
             .catch(err => {
                 console.error(err);
-                alert('Có lỗi xảy ra khi cập nhật ngữ pháp.');
+                showGrammarToast('Có lỗi xảy ra khi cập nhật ngữ pháp.');
             });
     }
 </script>

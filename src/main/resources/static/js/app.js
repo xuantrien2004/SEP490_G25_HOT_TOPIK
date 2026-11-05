@@ -195,4 +195,3 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(() => {});
     }
 });
-

@@ -75,6 +75,12 @@ public interface GrammarRepository extends JpaRepository<Grammar, Long> {
     @Query("SELECT g FROM Grammar g LEFT JOIN FETCH g.examples WHERE g.grammarGroup.id = :groupId AND g.status = :status ORDER BY g.sortOrder ASC, g.id ASC")
     List<Grammar> findByGrammarGroupIdAndStatusWithExamples(Integer groupId, String status);
 
+    @Query("SELECT g FROM Grammar g LEFT JOIN FETCH g.examples WHERE g.grammarGroup.id = :groupId AND g.status = :status AND g.grammarGroup.status = 'ACTIVE' ORDER BY g.sortOrder ASC, g.id ASC")
+    List<Grammar> findActiveByGrammarGroupIdWithExamples(@Param("groupId") Integer groupId, @Param("status") String status);
+
     // Lấy theo level và status (phục vụ phần ngữ pháp liên quan)
     List<Grammar> findByLevelAndStatus(Short level, String status);
+
+    @Query("SELECT g FROM Grammar g WHERE g.level = :level AND g.status = :status AND g.grammarGroup.status = 'ACTIVE' ORDER BY g.sortOrder ASC, g.id ASC")
+    List<Grammar> findActiveByLevelAndStatus(@Param("level") Short level, @Param("status") String status);
 }

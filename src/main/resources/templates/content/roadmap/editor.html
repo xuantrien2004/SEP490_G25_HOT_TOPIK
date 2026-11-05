@@ -116,10 +116,11 @@
             </div>
 
             <section class="cm-card" th:if="${editable}">
-                <h2>Gửi duyệt phát hành</h2>
-                <p class="cm-muted">Khi Admin duyệt, bản đang phát hành chuyển vào lưu trữ. Học viên tạo lộ trình mới sẽ dùng bản này. Lộ trình đã tạo của học viên không bị xếp lại.</p>
-                <form method="post" th:action="@{/content/roadmap/{id}/publish(id=${program.id})}" style="margin-top: 12px;">
-                    <button class="btn btn-ssak-primary btn-sm" type="submit">Gửi Admin duyệt</button>
+                <h2>Kích hoạt lộ trình</h2>
+                <p class="cm-muted">Khi kích hoạt, bản đang phát hành chuyển vào lưu trữ. Học viên tạo lộ trình mới sẽ dùng bản này. Lộ trình đã tạo của học viên không bị xếp lại.</p>
+                <form method="post" th:action="@{/content/roadmap/{id}/publish(id=${program.id})}" style="margin-top: 12px;"
+                      onsubmit="return confirm('Kích hoạt bản lộ trình này để áp dụng cho học viên? Bản đang phát hành sẽ chuyển vào lưu trữ.');">
+                    <button class="btn btn-ssak-primary btn-sm" type="submit">Kích hoạt lộ trình</button>
                 </form>
             </section>
 

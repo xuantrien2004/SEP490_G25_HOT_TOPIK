@@ -8,6 +8,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.hibernate.annotations.Nationalized;
 
 @Entity
 @Table(
@@ -32,6 +33,7 @@ public class GrammarGroup {
     @Column(name = "group_no", nullable = false)
     private Short groupNo;
 
+    @Nationalized
     @Column(
             name = "name_vi",
             nullable = false,
@@ -39,6 +41,9 @@ public class GrammarGroup {
             columnDefinition = "nvarchar(100)"
     )
     private String nameVi;
+
+    @Column(name = "status", nullable = false, length = 10)
+    private String status = "ACTIVE";
 
     @Column(
             name = "created_at",
@@ -108,6 +113,14 @@ public class GrammarGroup {
 
     public void setNameVi(String nameVi) {
         this.nameVi = nameVi;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = (status == null || status.isBlank()) ? "ACTIVE" : status.trim().toUpperCase();
     }
 
     public LocalDateTime getCreatedAt() {

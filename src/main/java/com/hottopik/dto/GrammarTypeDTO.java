@@ -4,15 +4,21 @@ public class GrammarTypeDTO {
     private Integer id; // Thêm trường id này
     private String name;
     private int level;
+    private int groupNo;
     private int grammarCount;
     private String description;
     private boolean active;
 
     // Cập nhật constructor có nhận id hoặc thêm getter/setter đầy đủ
     public GrammarTypeDTO(Integer id, String name, int level, int grammarCount, String description, boolean active) {
+        this(id, name, level, 0, grammarCount, description, active);
+    }
+
+    public GrammarTypeDTO(Integer id, String name, int level, int groupNo, int grammarCount, String description, boolean active) {
         this.id = id;
         this.name = name;
         this.level = level;
+        this.groupNo = groupNo;
         this.grammarCount = grammarCount;
         this.description = description;
         this.active = active;
@@ -27,6 +33,9 @@ public class GrammarTypeDTO {
 
     public int getLevel() { return level; }
     public void setLevel(int level) { this.level = level; }
+
+    public int getGroupNo() { return groupNo; }
+    public void setGroupNo(int groupNo) { this.groupNo = groupNo; }
 
     public int getGrammarCount() { return grammarCount; }
     public void setGrammarCount(int grammarCount) { this.grammarCount = grammarCount; }

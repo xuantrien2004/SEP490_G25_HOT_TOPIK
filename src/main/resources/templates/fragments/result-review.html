@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<!--
+    Khung xem lại kết quả dùng chung cho Luyện tập (practice/result) và Đề thi (exam/result).
+    Trang dùng: .rv-review bọc toàn bộ; chip .rv-chip[data-target][data-state] trong sidebar;
+    thẻ câu .rv-card[id][data-state]. data-state: correct | wrong | skip | writing.
+    JS chỉ hiện một câu; bộ lọc thu gọn cả danh sách chip lẫn câu được phép xem.
+    ID thẻ (question-<id>, writing-<id>) giữ nguyên để link báo lỗi #question-... mở đúng câu.
+-->
+<body>
+
+<th:block th:fragment="styles">
+<style>
+.rv-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid var(--ssak-border,#E6E1D3);border-radius:16px;padding:12px 16px;margin-bottom:16px}
+.rv-filters{display:flex;flex-wrap:wrap;gap:8px}
+.rv-filter{border:1.5px solid var(--ssak-border,#E6E1D3);background:#fff;color:var(--ssak-text-muted,#5C6E72);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.rv-filter .rv-count{background:var(--ssak-bg-muted,#F1EEE6);border-radius:999px;padding:1px 8px;font-size:12px}
+.rv-filter.active{background:var(--ssak-primary,#2E7D67);border-color:var(--ssak-primary,#2E7D67);color:#fff}
+.rv-filter.active .rv-count{background:rgba(255,255,255,.25)}
+.rv-filter[data-filter="WRONG"].active{background:#CF1322;border-color:#CF1322}
+.rv-hint{font-size:13px;color:var(--ssak-text-muted,#5C6E72)}
+.rv-layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:18px;align-items:start}
+.rv-side{background:#fff;border:1px solid var(--ssak-border,#E6E1D3);border-radius:16px;padding:16px;position:sticky;top:84px;z-index:1}
+.rv-side-title{font-size:12px;font-weight:800;color:var(--ssak-text-muted,#5C6E72);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.rv-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.rv-chip{width:38px;height:38px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;text-decoration:none;border:1.5px solid transparent;cursor:pointer}
+.rv-chip[data-state="correct"]{background:#E3F2EA;color:#1F6B56;border-color:#A7D7BE}
+.rv-chip[data-state="wrong"]{background:#FFF1F0;color:#CF1322;border-color:#FFA39E}
+.rv-chip[data-state="skip"]{background:var(--ssak-bg-muted,#F1EEE6);color:var(--ssak-text-muted,#5C6E72);border-color:var(--ssak-border-subtle,#D8D1C2)}
+.rv-chip[data-state="writing"]{background:#E4EEF5;color:#2F5F7D;border-color:#BCD3E3}
+.rv-chip.is-active{outline:2.5px solid var(--ssak-primary,#2E7D67);outline-offset:2px}
+.rv-chip.rv-hidden,.rv-group.rv-hidden{display:none}
+.rv-legend{border-top:1px solid var(--ssak-border,#E6E1D3);padding-top:10px;font-size:12px;color:var(--ssak-text-muted,#5C6E72);display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.rv-legend span{display:inline-flex;align-items:center;gap:6px}
+.rv-legend i{width:12px;height:12px;border-radius:4px;display:inline-block;border:1.5px solid transparent}
+.rv-review.rv-ready .rv-card{display:none}
+.rv-review.rv-ready .rv-card.is-active{display:block}
+.rv-pager{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}
+.rv-pos{font-size:13px;font-weight:700;color:var(--ssak-text-muted,#5C6E72)}
+.rv-empty{display:none;background:#fff;border:1px dashed var(--ssak-border-subtle,#D8D1C2);border-radius:16px;padding:32px;text-align:center;color:var(--ssak-text-muted,#5C6E72)}
+.rv-review.is-empty .rv-empty{display:block}
+.rv-review.is-empty .rv-pager{display:none}
+@media (max-width:767.98px){
+  .rv-layout{grid-template-columns:1fr}
+  .rv-side{position:static}
+}
+</style>
+</th:block>
+
+<!-- Thanh bộ lọc; số lượng do JS đếm từ data-state của thẻ câu -->
+<div th:fragment="toolbar" class="rv-toolbar">
+    <div class="rv-filters" role="group" aria-label="Lọc câu hỏi">
+        <button type="button" class="rv-filter active" data-filter="ALL">Tất cả <span class="rv-count" data-count="ALL">0</span></button>
+        <button type="button" class="rv-filter" data-filter="WRONG">Câu sai <span class="rv-count" data-count="WRONG">0</span></button>
+        <button type="button" class="rv-filter" data-filter="CORRECT">Câu đúng <span class="rv-count" data-count="CORRECT">0</span></button>
+    </div>
+    <div class="rv-hint">Chọn số câu bên trái để xem đáp án và lời giải.</div>
+</div>
+
+<div th:fragment="legend(showWriting)" class="rv-legend">
+    <span><i style="background:#E3F2EA;border-color:#A7D7BE"></i>Đúng</span>
+    <span><i style="background:#FFF1F0;border-color:#FFA39E"></i>Sai</span>
+    <span><i style="background:#F1EEE6;border-color:#D8D1C2"></i>Bỏ qua</span>
+    <span th:if="${showWriting}"><i style="background:#E4EEF5;border-color:#BCD3E3"></i>Viết</span>
+</div>
+
+<!-- Điều hướng câu trước/sau và thông báo khi bộ lọc rỗng -->
+<th:block th:fragment="pager">
+    <div class="rv-empty">Không có câu nào trong bộ lọc này.</div>
+    <div class="rv-pager">
+        <button type="button" class="btn btn-outline-secondary rounded-3 fw-bold px-3" data-step="-1">← Câu trước</button>
+        <span class="rv-pos"></span>
+        <button type="button" class="btn btn-success rounded-3 fw-bold px-3" data-step="1">Câu sau →</button>
+    </div>
+</th:block>
+
+<th:block th:fragment="script">
+<script>
+(function () {
+    document.querySelectorAll('.rv-review').forEach(function (root) {
+        var chips = Array.prototype.slice.call(root.querySelectorAll('.rv-chip'));
+        var cards = {};
+        root.querySelectorAll('.rv-card').forEach(function (c) { cards[c.id] = c; });
+        var filter = 'ALL', visible = [], current = null;
+
+        // Câu sai gồm cả câu bỏ qua; câu Viết chỉ hiện ở Tất cả vì chưa có đúng/sai.
+        function matches(state) {
+            if (filter === 'CORRECT') return state === 'correct';
+            if (filter === 'WRONG') return state === 'wrong' || state === 'skip';
+            return true;
+        }
+        function counts() {
+            var n = { ALL: chips.length, WRONG: 0, CORRECT: 0 };
+            chips.forEach(function (c) {
+                var s = c.dataset.state;
+                if (s === 'correct') n.CORRECT++;
+                else if (s === 'wrong' || s === 'skip') n.WRONG++;
+            });
+            root.querySelectorAll('[data-count]').forEach(function (el) { el.textContent = n[el.dataset.count]; });
+        }
+        function show(chip, updateHash) {
+            current = chip;
+            chips.forEach(function (c) { c.classList.toggle('is-active', c === chip); });
+            Object.keys(cards).forEach(function (id) { cards[id].classList.toggle('is-active', chip && id === chip.dataset.target); });
+            root.classList.toggle('is-empty', !chip);
+            if (!chip) return;
+            var i = visible.indexOf(chip);
+            var pos = root.querySelector('.rv-pos');
+            if (pos) pos.textContent = (i + 1) + ' / ' + visible.length;
+            var prev = root.querySelector('[data-step="-1"]'), next = root.querySelector('[data-step="1"]');
+            if (prev) prev.disabled = i <= 0;
+            if (next) next.disabled = i >= visible.length - 1;
+            // Dừng audio của câu vừa rời để không phát chồng.
+            root.querySelectorAll('.rv-card:not(.is-active) audio').forEach(function (a) { a.pause(); });
+            if (updateHash && history.replaceState) history.replaceState(null, '', '#' + chip.dataset.target);
+        }
+        function apply(mode, keep) {
+            filter = mode;
+            root.querySelectorAll('.rv-filter').forEach(function (b) { b.classList.toggle('active', b.dataset.filter === mode); });
+            visible = chips.filter(function (c) { return matches(c.dataset.state); });
+            chips.forEach(function (c) { c.classList.toggle('rv-hidden', visible.indexOf(c) < 0); });
+            root.querySelectorAll('.rv-group').forEach(function (g) {
+                g.classList.toggle('rv-hidden', !g.querySelector('.rv-chip:not(.rv-hidden)'));
+            });
+            show(keep && visible.indexOf(keep) >= 0 ? keep : (visible[0] || null), true);
+        }
+
+        root.addEventListener('click', function (e) {
+            var chip = e.target.closest('.rv-chip');
+            if (chip && root.contains(chip)) { e.preventDefault(); show(chip, true); return; }
+            var f = e.target.closest('.rv-filter');
+            if (f) { apply(f.dataset.filter, current); return; }
+            var step = e.target.closest('[data-step]');
+            if (step) {
+                var i = visible.indexOf(current) + parseInt(step.dataset.step, 10);
+                if (visible[i]) {
+                    show(visible[i], true);
+                    var top = root.getBoundingClientRect().top + window.scrollY - 90;
+                    if (window.scrollY > top) window.scrollTo({ top: top, behavior: 'smooth' });
+                }
+            }
+        });
+
+        counts();
+        root.classList.add('rv-ready');
+        // Link từ trang báo lỗi (#question-<id>) mở thẳng câu đó.
+        var hash = decodeURIComponent((location.hash || '').slice(1));
+        var start = chips.filter(function (c) { return c.dataset.target === hash; })[0];
+        apply('ALL', start || null);
+        if (start) root.scrollIntoView({ block: 'start' });
+    });
+})();
+</script>
+</th:block>
+
+</body>
+</html>

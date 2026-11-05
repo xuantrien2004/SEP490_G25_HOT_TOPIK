@@ -152,11 +152,15 @@ public class LearnerExamController {
         common(model, user, paper);
         var reviews = service.writingReviews(user.getId(), id);
         var sentByPrompt = service.sentToTeacherByPrompt(user.getId());
+        // Cùng một quy tắc với lúc gửi (WritingSubmissionService.examSendBlockReason) để nút hiện đúng khi được gửi.
+        java.util.Map<Long, Boolean> canSendByPrompt = new java.util.HashMap<>();
+        for (var q : paper.writing())
+            canSendByPrompt.put(q.id(), com.hottopik.service.WritingSubmissionService.examSendBlockReason(
+                    reviews.get(q.id()), sentByPrompt.get(q.id()), q.no(), q.selected()) == null);
         model.addAttribute("writingReviews", reviews);
         model.addAttribute("sentByPrompt", sentByPrompt);
-        model.addAttribute("canSendWriting", paper.writing().stream()
-                .anyMatch(q -> com.hottopik.service.WritingSubmissionService.hasAnswer(q.no(), q.selected())
-                        && !sentByPrompt.containsKey(q.id())));
+        model.addAttribute("canSendByPrompt", canSendByPrompt);
+        model.addAttribute("canSendWriting", canSendByPrompt.containsValue(true));
         return "exam/result";
     }
 

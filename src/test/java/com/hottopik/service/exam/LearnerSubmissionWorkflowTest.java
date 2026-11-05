@@ -322,7 +322,7 @@ class LearnerSubmissionWorkflowTest {
     @Test void writingLongQuestionNeedsNeitherPromptModelNorImageToActivate() {
         var source=imports.createSource(new ExamImportService.SourceForm("Viết tối giản "+UUID.randomUUID(),Track.TOPIK_II,2026,null,null,false,"Nội bộ",null),CM);
         imports.startManual(source.getId(),CM);
-        imports.saveCard(source.getId(),new ExamImportService.CardForm(null,"TPL2-WRI-03",null,null,"지문",null,
+        imports.saveCard(source.getId(),new ExamImportService.CardForm(null,"TPL2-WRI-03",null,null,"지문",null,null,
                 List.of(""),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),null,List.of(53)),CM);
         assertEquals(0,imports.revalidate(source.getId(),CM).getErrorCount());
         imports.activate(source.getId(),CM);
@@ -567,6 +567,54 @@ class LearnerSubmissionWorkflowTest {
         assertEquals("㉠ 답안\n㉡",result.getStudentAnswer());
         mvc.perform(get("/ket-qua/{id}",a.getId()).sessionAttr(AuthHelper.SESSION_KEY,learner)).andExpect(status().isOk())
                 .andExpect(content().string(not(containsString("/send-teacher"))));
+    }
+
+    @Test void rejectedExamWritingNeedsRedoAndGradedWritingCannotBeResent() throws Exception {
+        var learner=user(88230,"STUDENT",true);var teacher=user(88231,"MENTOR",false);var p=prompt(52);
+        var a1=writingExamAttempt(learner.getId(),p);
+        mvc.perform(post("/exam/attempt/{id}/submit",a1.getId()).param("w"+p.getId(),"㉠ 답\n㉡ 답")
+                .sessionAttr(AuthHelper.SESSION_KEY,learner)).andExpect(redirectedUrl("/ket-qua/"+a1.getId()));
+        mvc.perform(post("/exam/attempt/{id}/send-teacher-q",a1.getId()).param("promptId",p.getId().toString())
+                .sessionAttr(AuthHelper.SESSION_KEY,learner)).andExpect(flash().attributeCount(1)).andExpect(flash().attributeExists("successMessage"));
+        String rejectedId=writing.examSubmissions(learner.getId(),a1.getId()).get(p.getId()).getId();
+        assertTrue(writing.rejectSubmission(rejectedId,teacher,"Không thích"));
+
+        // Bị từ chối: không còn nút gửi (từng câu lẫn cả bài), gửi lại bằng request cũng bị chặn.
+        mvc.perform(get("/ket-qua/{id}",a1.getId()).sessionAttr(AuthHelper.SESSION_KEY,learner)).andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("/send-teacher"))))
+                .andExpect(content().string(containsString("Giáo viên đã từ chối chấm câu này")))
+                .andExpect(content().string(containsString("Không thích")));
+        mvc.perform(post("/exam/attempt/{id}/send-teacher-q",a1.getId()).param("promptId",p.getId().toString())
+                .sessionAttr(AuthHelper.SESSION_KEY,learner)).andExpect(flash().attributeExists("errorMessage"));
+        mvc.perform(post("/exam/attempt/{id}/send-teacher",a1.getId())
+                .sessionAttr(AuthHelper.SESSION_KEY,learner)).andExpect(flash().attributeExists("errorMessage"));
+        assertThrows(IllegalArgumentException.class,()->writing.sendToTeacher(rejectedId,learner));
+        assertEquals("submitted",writing.owned(rejectedId,learner.getId()).getStatus());
+        assertEquals(1,writing.getSubmissionsByLearner(learner.getId()).size());
+
+        // Làm lại đề (lượt mới, kể cả cùng nội dung) thì được gửi lại.
+        var a2=writingExamAttempt(learner.getId(),p);
+        mvc.perform(post("/exam/attempt/{id}/submit",a2.getId()).param("w"+p.getId(),"㉠ 답\n㉡ 답")
+                .sessionAttr(AuthHelper.SESSION_KEY,learner)).andExpect(redirectedUrl("/ket-qua/"+a2.getId()));
+        mvc.perform(get("/ket-qua/{id}",a2.getId()).sessionAttr(AuthHelper.SESSION_KEY,learner)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("/send-teacher-q")));
+        mvc.perform(post("/exam/attempt/{id}/send-teacher",a2.getId())
+                .sessionAttr(AuthHelper.SESSION_KEY,learner)).andExpect(flash().attributeExists("successMessage"));
+        var resent=writing.examSubmissions(learner.getId(),a2.getId()).get(p.getId());
+        assertEquals("waiting",resent.getStatus());
+        assertTrue(writing.claimSubmission(resent.getId(),teacher));
+        assertTrue(writing.gradeSubmission(resent.getId(),teacher,Map.of("Chỗ trống ㉠",4,"Chỗ trống ㉡",5),null,"Tốt",null,null,null));
+
+        // Đã chấm: không gửi được nữa, kể cả ở lượt làm sau.
+        var a3=writingExamAttempt(learner.getId(),p);
+        mvc.perform(post("/exam/attempt/{id}/submit",a3.getId()).param("w"+p.getId(),"㉠ 새 답\n㉡ 새 답")
+                .sessionAttr(AuthHelper.SESSION_KEY,learner)).andExpect(redirectedUrl("/ket-qua/"+a3.getId()));
+        for (var a : List.of(a2,a3))
+            mvc.perform(get("/ket-qua/{id}",a.getId()).sessionAttr(AuthHelper.SESSION_KEY,learner)).andExpect(status().isOk())
+                    .andExpect(content().string(not(containsString("/send-teacher"))));
+        mvc.perform(post("/exam/attempt/{id}/send-teacher-q",a3.getId()).param("promptId",p.getId().toString())
+                .sessionAttr(AuthHelper.SESSION_KEY,learner)).andExpect(flash().attributeExists("errorMessage"));
+        assertTrue(writing.examSubmissions(learner.getId(),a3.getId()).isEmpty());
     }
 
     @Test void writingBankDetailsEditTheWritingPromptAndProtectSnapshots() throws Exception {

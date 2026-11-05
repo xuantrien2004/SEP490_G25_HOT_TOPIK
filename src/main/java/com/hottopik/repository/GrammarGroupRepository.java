@@ -15,6 +15,8 @@ public interface GrammarGroupRepository
     // Lấy danh sách nhóm theo cấp TOPIK
     List<GrammarGroup> findByLevelOrderByGroupNoAsc(Short level);
 
+    List<GrammarGroup> findByLevelAndStatusOrderByGroupNoAsc(Short level, String status);
+
     // Lấy toàn bộ nhóm, sắp xếp theo cấp TOPIK và số thứ tự
     List<GrammarGroup> findAllByOrderByLevelAscGroupNoAsc();
 

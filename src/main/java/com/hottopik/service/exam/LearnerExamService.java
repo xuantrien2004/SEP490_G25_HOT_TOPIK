@@ -152,12 +152,23 @@ public class LearnerExamService {
         List<WritingPrompt> writing = exam(attempt).writingPrompts();
         if (writing.stream().noneMatch(p -> com.hottopik.service.WritingSubmissionService.hasAnswer(p.getNo(), saved.get("w" + p.getId()))))
             throw new ExamDomainException("Cần có nội dung bài viết để gửi Giáo viên chấm.");
-        // Chỉ gửi những câu có nội dung; bỏ qua câu trống.
+        // Chỉ gửi những câu được phép (có nội dung, chưa gửi/chấm, không bị từ chối ở lượt này).
+        var thisAttempt = writingSubmissions.examSubmissions(user.getId(), attemptId);
+        var sentAny = writingSubmissions.sentToTeacherByPrompt(user.getId());
+        int sent = 0;
+        String rejected = null;
         for (WritingPrompt p : writing) {
             String ans = saved.get("w" + p.getId());
-            if (com.hottopik.service.WritingSubmissionService.hasAnswer(p.getNo(), ans))
+            String reason = com.hottopik.service.WritingSubmissionService.examSendBlockReason(
+                    thisAttempt.get(p.getId()), sentAny.get(p.getId()), p.getNo(), ans);
+            if (reason == null) {
                 writingSubmissions.submitExam(user, p.getId(), ans, attemptId, attempt.getExam().getName());
+                sent++;
+            } else if (com.hottopik.service.WritingSubmissionService.isRejectedExamSubmission(thisAttempt.get(p.getId()))) {
+                rejected = reason;
+            }
         }
+        if (sent == 0 && rejected != null) throw new ExamDomainException(rejected);
     }
 
     public Map<Long, com.hottopik.dto.WritingSubmissionDTO> writingReviews(Long userId, Long attemptId) {
@@ -168,6 +179,9 @@ public class LearnerExamService {
     @Transactional(readOnly = true)
     public Map<Long, com.hottopik.dto.WritingSubmissionDTO> sentToTeacherByPrompt(Long userId) {
         return writingSubmissions.sentToTeacherByPrompt(userId);
+    }
+    public Map<Long, com.hottopik.dto.WritingSubmissionDTO> rejectedByPrompt(Long userId) {
+        return writingSubmissions.rejectedByPrompt(userId);
     }
 
     /*

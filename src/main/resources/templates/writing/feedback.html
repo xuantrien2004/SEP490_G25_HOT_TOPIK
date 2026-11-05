@@ -131,14 +131,14 @@
                 <div style="font-size: 32px; line-height: 1; flex-shrink:0;">&#x274C;</div>
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                     <div style="font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #B91C1C;">
-                        Yeu cau cham bai bi Giao vien tu choi
+                        Yêu cầu chấm bài bị Giáo viên từ chối
                     </div>
                     <div style="font-size: 14px; color: #6B7280; line-height: 1.6;">
-                        <b>Ly do:</b>
+                        <b>Lý do:</b>
                         <span th:text="${sub.rejectReason}" style="color: #374151;">...</span>
                     </div>
                     <p style="margin: 0; font-size: 13px; color: #9CA3AF;">
-                        Ban co the hieu chinh bai viet va gui lai cho Giao vien khac cham.
+                        Hãy làm lại bài để gửi lại Giáo viên chấm.
                     </p>
                 </div>
             </div>
@@ -149,7 +149,7 @@
 <table th:if="${sub.hasChart}" class="table table-bordered"><tr th:each="c : ${sub.chartItems}"><th th:text="${c.label}"></th><td th:text="${c.value}"></td></tr></table>
 <pre style="white-space:pre-wrap" th:text="${sub.studentAnswer}"></pre>
 <div th:if="${sub.questionNo &lt;= 52 and (sub.examAttemptId == null or sub.totalScore != null)}"><h3 class="h6">Đáp án tham khảo</h3><p style="white-space:pre-wrap" th:text="${sub.modelAnswer}"></p></div>
-<div th:if="${sub.status == 'submitted' and (sub.rejectReason == null or sub.rejectReason.isEmpty())}">
+<div th:if="${sub.status == 'submitted' and (sub.rejectReason == null or sub.rejectReason.isEmpty()) and sub.examAttemptId == null}">
 <form th:if="${currentUser.vip and canSendTeacher}" method="post" th:action="@{/writing/send-teacher}"><input type="hidden" name="id" th:value="${sub.id}"><p>Giáo viên cần thời gian chấm. Bạn sẽ nhận thông báo khi có kết quả.</p><button class="btn btn-success">Gửi Giáo viên chấm</button></form>
 <p th:if="${currentUser.vip and !canSendTeacher}">Bài chưa có nội dung nên không thể gửi Giáo viên chấm. Bạn có thể làm lại để viết bài mới.</p>
 <p th:unless="${currentUser.vip}">Muốn Giáo viên chấm, hãy <a th:href="@{/vip}">đăng ký VIP</a>.</p></div>

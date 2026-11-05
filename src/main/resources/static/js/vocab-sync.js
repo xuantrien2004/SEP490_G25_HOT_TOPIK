@@ -34,6 +34,7 @@
         const path = window.location.pathname.toLowerCase();
         return path.includes('/admin/vocabulary') || 
                path.includes('/content/vocabulary') || 
+               path.includes('/content/grammar') ||
                path.includes('/ly-thuyet') || 
                path.includes('/theory') ||
                path.includes('/tu-chua-thuoc');
@@ -98,7 +99,18 @@
     });
 
     function dispatchSyncEvent(data) {
-        window.dispatchEvent(new CustomEvent('hottopik:vocab-sync', { detail: data }));
+        const normalized = Object.assign({}, data || {});
+        if (normalized.action && !normalized.payload) {
+            normalized.payload = Object.keys(normalized).reduce((payload, key) => {
+                if (key !== 'action' && key !== 'timestamp') payload[key] = normalized[key];
+                return payload;
+            }, {});
+        }
+        window.dispatchEvent(new CustomEvent('hottopik:vocab-sync', { detail: normalized }));
+        if ((normalized.action === 'GRAMMAR_CHANGED' || normalized.action === 'GRAMMAR_GROUP_CHANGED')
+                && window.location.pathname.toLowerCase().includes('/content/grammar')) {
+            window.dispatchEvent(new CustomEvent('hottopik:grammar-sync', { detail: normalized }));
+        }
     }
 
     // 3. Quản lý Sổ từ chưa thuộc (Unlearned Words)

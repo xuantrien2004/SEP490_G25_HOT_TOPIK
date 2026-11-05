@@ -2483,7 +2483,8 @@
         document.querySelectorAll('#vocabTableBody tr.vocab-data-row').forEach(row => {
             const w = (row.getAttribute('data-word') || '').trim().toLowerCase();
             const t = (row.getAttribute('data-type') || 'Danh từ').trim().toLowerCase();
-            if (w) existingWordsOnPage.set(w + '_' + t, "Đã có trong chủ đề hiện tại");
+            const status = (row.getAttribute('data-status') || 'ACTIVE').toUpperCase();
+            if (w && status === 'ACTIVE') existingWordsOnPage.set(w + '_' + t, "Đã có trong chủ đề hiện tại");
         });
 
         // 2. Trích xuất ứng viên để kiểm tra trùng lặp trên server
