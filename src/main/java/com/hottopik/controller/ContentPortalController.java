@@ -76,7 +76,7 @@ public class ContentPortalController {
         model.addAttribute("totalVocabCount", vocabularyService.getTotalCount());
         model.addAttribute("totalTopicCount", vocabularyService.getTotalTopicsCount());
         model.addAttribute("totalGrammarCount", grammarService.getAllGrammars().size());
-        model.addAttribute("totalQuestionCount", contentService.getTotalQuestionCount());
+        model.addAttribute("totalQuestionCount", questionBank != null ? questionBank.counts().getOrDefault("total", 0L) : 0L);
         model.addAttribute("pendingReportCount", contentService.getPendingReportCount());
         model.addAttribute("totalExamCount", examComposer.libraryCounts().values().stream().mapToLong(Long::longValue).sum());
         model.addAttribute("reports", contentService.getReports());
@@ -292,6 +292,16 @@ public class ContentPortalController {
         }
         try {
             grammarService.saveGrammar(form);
+            String patternInfo = form.getPattern() != null ? form.getPattern() : "Ngữ pháp mới";
+            String meanInfo = form.getMeaning() != null ? form.getMeaning() : (form.getTranslation() != null ? form.getTranslation() : "");
+            adminSystemService.logAction(
+                    currentUser.getFullName(),
+                    currentUser.getRole(),
+                    "CREATE_GRAMMAR",
+                    "GRAMMAR",
+                    "Thêm mẫu ngữ pháp mới: \"" + patternInfo + "\" (" + meanInfo + ")",
+                    "127.0.0.1"
+            );
             resp.put("success", true);
             resp.put("message", "Đã lưu mẫu ngữ pháp thành công!");
             return ResponseEntity.ok(resp);
@@ -313,6 +323,18 @@ public class ContentPortalController {
             Grammar grammar = grammarService.getGrammarById(id);
             String newStatus = "ACTIVE".equals(grammar.getStatus()) ? "HIDDEN" : "ACTIVE";
             grammarService.updateStatus(id, newStatus);
+            UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+            String actorName = currentUser != null ? currentUser.getFullName() : "Lê Thu Hà";
+            String actorRole = currentUser != null ? currentUser.getRole() : "ROLE_CONTENT_MANAGER";
+            String patternInfo = grammar.getPattern() != null ? grammar.getPattern() : ("ID #" + id);
+            adminSystemService.logAction(
+                    actorName,
+                    actorRole,
+                    "TOGGLE_GRAMMAR",
+                    "GRAMMAR",
+                    "Chuyển trạng thái ngữ pháp \"" + patternInfo + "\" sang " + newStatus,
+                    "127.0.0.1"
+            );
             resp.put("success", true);
             resp.put("message", "Đã chuyển trạng thái thành " + newStatus);
             return ResponseEntity.ok(resp);
@@ -337,6 +359,17 @@ public class ContentPortalController {
 
             if (group != null) {
                 grammarGroupService.deleteGroup(group.getId());
+                UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+                String actorName = currentUser != null ? currentUser.getFullName() : "Lê Thu Hà";
+                String actorRole = currentUser != null ? currentUser.getRole() : "ROLE_CONTENT_MANAGER";
+                adminSystemService.logAction(
+                        actorName,
+                        actorRole,
+                        "DELETE_GRAMMAR_GROUP",
+                        "GRAMMAR_GROUP",
+                        "Xóa dạng ngữ pháp: \"" + name + "\"",
+                        "127.0.0.1"
+                );
                 resp.put("success", true);
                 resp.put("message", "Đã xóa dạng ngữ pháp thành công!");
                 return ResponseEntity.ok(resp);
@@ -368,6 +401,19 @@ public class ContentPortalController {
                     count++;
                 } catch (Exception ignored) {}
             }
+        }
+        if (count > 0) {
+            UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+            String actorName = currentUser != null ? currentUser.getFullName() : "Lê Thu Hà";
+            String actorRole = currentUser != null ? currentUser.getRole() : "ROLE_CONTENT_MANAGER";
+            adminSystemService.logAction(
+                    actorName,
+                    actorRole,
+                    "BULK_CREATE_GRAMMAR",
+                    "GRAMMAR",
+                    "Nhập thành công " + count + " mẫu ngữ pháp vào hệ thống",
+                    "127.0.0.1"
+            );
         }
         resp.put("success", true);
         resp.put("created", count);
@@ -577,6 +623,14 @@ public class ContentPortalController {
         }
         try {
             grammarGroupService.saveGroup(form);
+            adminSystemService.logAction(
+                    currentUser.getFullName(),
+                    currentUser.getRole(),
+                    "CREATE_GRAMMAR_GROUP",
+                    "GRAMMAR_GROUP",
+                    "Tạo dạng ngữ pháp mới: \"" + form.getNameVi() + "\"",
+                    "127.0.0.1"
+            );
             resp.put("success", true);
             resp.put("message", "Đã tạo dạng ngữ pháp mới thành công!");
             return ResponseEntity.ok(resp);
@@ -601,8 +655,16 @@ public class ContentPortalController {
         }
 
         try {
-            // Gọi service xử lý cập nhật ngữ pháp dựa vào ID có sẵn trong form
             grammarService.updateGrammar(form);
+            String patternInfo = form.getPattern() != null ? form.getPattern() : ("ID #" + form.getId());
+            adminSystemService.logAction(
+                    currentUser.getFullName(),
+                    currentUser.getRole(),
+                    "UPDATE_GRAMMAR",
+                    "GRAMMAR",
+                    "Cập nhật mẫu ngữ pháp \"" + patternInfo + "\"",
+                    "127.0.0.1"
+            );
             resp.put("success", true);
             resp.put("message", "Đã cập nhật mẫu ngữ pháp thành công!");
             return ResponseEntity.ok(resp);

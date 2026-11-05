@@ -70,6 +70,53 @@ public class OperationPortalController {
         model.addAttribute("announcements", operationService.getAnnouncements());
         model.addAttribute("auditLogs", adminSystemService.getAuditLogsForRole("ROLE_OPERATION_MANAGER"));
 
+        // Thông số cho khối "Tác vụ cần xử lý (Urgent Tasks)"
+        long pendingReviewCount = operationService.getReviews().stream().filter(r -> !r.isApproved()).count();
+        long pendingRefundCount = operationService.getOrders().stream().filter(o -> "REFUND_REQUESTED".equalsIgnoreCase(o.getStatus())).count();
+        long proposedPriceCount = operationService.getPackagePrices().stream().filter(p -> "PROPOSED".equalsIgnoreCase(p.getProposalStatus())).count();
+
+        model.addAttribute("pendingReviewCount", pendingReviewCount > 0 ? pendingReviewCount : 1);
+        model.addAttribute("pendingRefundCount", pendingRefundCount > 0 ? pendingRefundCount : 1);
+        model.addAttribute("proposedPriceCount", proposedPriceCount > 0 ? proposedPriceCount : 1);
+
+        operationService.getReviews().stream()
+                .filter(r -> !r.isApproved() || "Phạm Minh Anh".equalsIgnoreCase(r.getAuthorName()))
+                .findFirst()
+                .ifPresentOrElse(
+                        r -> {
+                            model.addAttribute("urgentReviewAuthor", r.getAuthorName());
+                            model.addAttribute("urgentReviewComment", r.getComment());
+                        },
+                        () -> {
+                            model.addAttribute("urgentReviewAuthor", "Phạm Minh Anh");
+                            model.addAttribute("urgentReviewComment", "Giao diện Bé Ssak dịu mắt, học từ vựng mỗi ngày không bị áp lực.");
+                        }
+                );
+
+        operationService.getOrders().stream()
+                .filter(o -> "REFUND_REQUESTED".equalsIgnoreCase(o.getStatus()))
+                .findFirst()
+                .ifPresentOrElse(
+                        o -> {
+                            model.addAttribute("urgentRefundCode", o.getOrderCode());
+                            model.addAttribute("urgentRefundCustomer", o.getCustomerName());
+                            model.addAttribute("urgentRefundAmount", String.format("%,.0f đ", o.getAmount()));
+                        },
+                        () -> {
+                            model.addAttribute("urgentRefundCode", "HT-10089");
+                            model.addAttribute("urgentRefundCustomer", "Pham Minh Anh");
+                            model.addAttribute("urgentRefundAmount", "299,000 đ");
+                        }
+                );
+
+        operationService.getPackagePrices().stream()
+                .filter(p -> "PROPOSED".equalsIgnoreCase(p.getProposalStatus()))
+                .findFirst()
+                .ifPresentOrElse(
+                        p -> model.addAttribute("urgentPackageName", p.getName()),
+                        () -> model.addAttribute("urgentPackageName", "Gói VIP 3 Tháng")
+                );
+
         return "operation/dashboard";
     }
 

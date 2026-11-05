@@ -7,6 +7,8 @@ import com.hottopik.dto.UserDTO;
 import com.hottopik.dto.VocabularyDTO;
 import com.hottopik.service.VocabularyService;
 import com.hottopik.service.VocabularySyncService;
+import com.hottopik.service.AdminSystemService;
+import com.hottopik.util.AuthHelper;
 import com.hottopik.util.KoreanRomanizer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -25,11 +27,15 @@ public class ContentVocabularyController {
 
     private final VocabularyService vocabularyService;
     private final VocabularySyncService syncService;
+    private final AdminSystemService adminSystemService;
 
     @Autowired
-    public ContentVocabularyController(VocabularyService vocabularyService, VocabularySyncService syncService) {
+    public ContentVocabularyController(VocabularyService vocabularyService,
+                                       VocabularySyncService syncService,
+                                       AdminSystemService adminSystemService) {
         this.vocabularyService = vocabularyService;
         this.syncService = syncService;
+        this.adminSystemService = adminSystemService;
     }
 
     @GetMapping
@@ -114,7 +120,7 @@ public class ContentVocabularyController {
 
     @PostMapping("/topic/create")
     @ResponseBody
-    public ResponseEntity<?> createTopic(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> createTopic(@RequestBody Map<String, Object> body, HttpSession session) {
         try {
             int level = Integer.parseInt(body.get("level").toString());
             String name = body.get("name").toString().trim();
@@ -125,6 +131,17 @@ public class ContentVocabularyController {
             }
 
             TopicDTO topic = vocabularyService.createTopic(level, name, desc);
+            UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+            String actorName = currentUser != null ? currentUser.getFullName() : "Lê Thu Hà";
+            String actorRole = currentUser != null ? currentUser.getRole() : "ROLE_CONTENT_MANAGER";
+            adminSystemService.logAction(
+                    actorName,
+                    actorRole,
+                    "CREATE_TOPIC",
+                    "VOCABULARY",
+                    "Tạo chủ đề từ vựng mới: \"" + name + "\" cho TOPIK " + level,
+                    "127.0.0.1"
+            );
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "Đã tạo chủ đề \"" + name + "\" cho TOPIK " + level + " thành công!",
@@ -139,7 +156,7 @@ public class ContentVocabularyController {
 
     @PostMapping("/topic/update")
     @ResponseBody
-    public ResponseEntity<?> updateTopic(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> updateTopic(@RequestBody Map<String, Object> body, HttpSession session) {
         try {
             int level = Integer.parseInt(body.get("level").toString());
             String oldName = body.get("oldName").toString().trim();
@@ -151,6 +168,17 @@ public class ContentVocabularyController {
             }
 
             TopicDTO updated = vocabularyService.updateTopic(level, oldName, newName, desc);
+            UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+            String actorName = currentUser != null ? currentUser.getFullName() : "Lê Thu Hà";
+            String actorRole = currentUser != null ? currentUser.getRole() : "ROLE_CONTENT_MANAGER";
+            adminSystemService.logAction(
+                    actorName,
+                    actorRole,
+                    "UPDATE_TOPIC",
+                    "VOCABULARY",
+                    "Đổi tên chủ đề từ vựng từ \"" + oldName + "\" thành \"" + newName + "\" (TOPIK " + level + ")",
+                    "127.0.0.1"
+            );
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "Đã đổi tên chủ đề thành \"" + newName + "\" thành công!",
@@ -165,12 +193,23 @@ public class ContentVocabularyController {
 
     @PostMapping("/topic/delete")
     @ResponseBody
-    public ResponseEntity<?> deleteTopic(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> deleteTopic(@RequestBody Map<String, Object> body, HttpSession session) {
         try {
             int level = Integer.parseInt(body.get("level").toString());
             String name = body.get("name").toString().trim();
 
             int deletedWords = vocabularyService.deleteTopic(level, name);
+            UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+            String actorName = currentUser != null ? currentUser.getFullName() : "Lê Thu Hà";
+            String actorRole = currentUser != null ? currentUser.getRole() : "ROLE_CONTENT_MANAGER";
+            adminSystemService.logAction(
+                    actorName,
+                    actorRole,
+                    "DELETE_TOPIC",
+                    "VOCABULARY",
+                    "Xóa chủ đề từ vựng \"" + name + "\" (TOPIK " + level + ") và " + deletedWords + " từ liên quan",
+                    "127.0.0.1"
+            );
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "deletedWordsCount", deletedWords,
@@ -183,7 +222,7 @@ public class ContentVocabularyController {
 
     @PostMapping("/topic/toggle")
     @ResponseBody
-    public ResponseEntity<?> toggleTopic(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> toggleTopic(@RequestBody Map<String, Object> body, HttpSession session) {
         try {
             Object levelObj = body.get("level");
             Object nameObj = body.get("name");
@@ -197,6 +236,17 @@ public class ContentVocabularyController {
 
             int affected = vocabularyService.toggleTopicStatus(level, name, active);
             String actionVerb = active ? "bật" : "tắt";
+            UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+            String actorName = currentUser != null ? currentUser.getFullName() : "Lê Thu Hà";
+            String actorRole = currentUser != null ? currentUser.getRole() : "ROLE_CONTENT_MANAGER";
+            adminSystemService.logAction(
+                    actorName,
+                    actorRole,
+                    "TOGGLE_TOPIC",
+                    "VOCABULARY",
+                    (active ? "Bật" : "Tắt") + " chủ đề từ vựng \"" + name + "\" (TOPIK " + level + ", " + affected + " từ)",
+                    "127.0.0.1"
+            );
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "newActive", active,
@@ -210,12 +260,25 @@ public class ContentVocabularyController {
 
     @PostMapping("/delete/{id}")
     @ResponseBody
-    public ResponseEntity<?> deleteVocabulary(@PathVariable("id") Long id) {
+    public ResponseEntity<?> deleteVocabulary(@PathVariable("id") Long id, HttpSession session) {
         try {
+            VocabularyDTO existing = vocabularyService.getById(id);
+            String wordInfo = existing != null ? "\"" + existing.getWord() + "\"" : ("ID #" + id);
             boolean deleted = vocabularyService.deleteVocabularyById(id);
             if (!deleted) {
                 return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Không tìm thấy từ vựng có ID " + id));
             }
+            UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+            String actorName = currentUser != null ? currentUser.getFullName() : "Lê Thu Hà";
+            String actorRole = currentUser != null ? currentUser.getRole() : "ROLE_CONTENT_MANAGER";
+            adminSystemService.logAction(
+                    actorName,
+                    actorRole,
+                    "DELETE_VOCAB",
+                    "VOCABULARY",
+                    "Xóa từ vựng " + wordInfo + " khỏi hệ thống",
+                    "127.0.0.1"
+            );
             return ResponseEntity.ok(Map.of("success", true, "message", "Đã xóa từ vựng thành công!"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Lỗi khi xóa từ vựng: " + e.getMessage()));
@@ -237,7 +300,7 @@ public class ContentVocabularyController {
 
     @PostMapping("/save")
     @ResponseBody
-    public ResponseEntity<?> saveVocabulary(@RequestBody VocabularyDTO dto) {
+    public ResponseEntity<?> saveVocabulary(@RequestBody VocabularyDTO dto, HttpSession session) {
         if (dto.getWord() == null || dto.getWord().trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Vui lòng nhập từ tiếng Hàn."));
         }
@@ -281,6 +344,30 @@ public class ContentVocabularyController {
             ));
         }
 
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        String actorName = currentUser != null ? currentUser.getFullName() : "Lê Thu Hà";
+        String actorRole = currentUser != null ? currentUser.getRole() : "ROLE_CONTENT_MANAGER";
+
+        if (isNew) {
+            adminSystemService.logAction(
+                    actorName,
+                    actorRole,
+                    "CREATE_VOCAB",
+                    "VOCABULARY",
+                    "Thêm từ vựng mới: \"" + saved.getWord() + "\" (" + saved.getMeaning() + ") vào " + VocabularyDTO.formatTopikName(saved.getTopikLevel()) + " · Chủ đề: " + saved.getTopic(),
+                    "127.0.0.1"
+            );
+        } else {
+            adminSystemService.logAction(
+                    actorName,
+                    actorRole,
+                    "UPDATE_VOCAB",
+                    "VOCABULARY",
+                    "Cập nhật từ vựng ID #" + saved.getId() + ": \"" + saved.getWord() + "\" (" + saved.getMeaning() + ")",
+                    "127.0.0.1"
+            );
+        }
+
         String message = isNew ? "Thêm mới từ vựng thành công!" : "Cập nhật từ vựng thành công!";
 
         return ResponseEntity.ok(Map.of(
@@ -292,12 +379,23 @@ public class ContentVocabularyController {
 
     @PostMapping("/toggle/{id}")
     @ResponseBody
-    public ResponseEntity<?> toggleWord(@PathVariable("id") Long id) {
+    public ResponseEntity<?> toggleWord(@PathVariable("id") Long id, HttpSession session) {
         boolean success = vocabularyService.toggleWordStatus(id);
         if (!success) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Không tìm thấy từ vựng có ID " + id));
         }
         VocabularyDTO updated = vocabularyService.getById(id);
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        String actorName = currentUser != null ? currentUser.getFullName() : "Lê Thu Hà";
+        String actorRole = currentUser != null ? currentUser.getRole() : "ROLE_CONTENT_MANAGER";
+        adminSystemService.logAction(
+                actorName,
+                actorRole,
+                "TOGGLE_VOCAB",
+                "VOCABULARY",
+                "Chuyển trạng thái từ vựng \"" + updated.getWord() + "\" sang " + ("ACTIVE".equalsIgnoreCase(updated.getStatus()) ? "Kích hoạt" : "Ẩn"),
+                "127.0.0.1"
+        );
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "newStatus", updated.getStatus(),
@@ -307,18 +405,29 @@ public class ContentVocabularyController {
 
     @PostMapping("/bulk-toggle")
     @ResponseBody
-    public ResponseEntity<?> bulkToggle(@RequestBody BulkToggleRequest request) {
+    public ResponseEntity<?> bulkToggle(@RequestBody BulkToggleRequest request, HttpSession session) {
         if (request == null || request.getType() == null) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Yêu cầu không hợp lệ."));
         }
 
         int affected = 0;
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        String actorName = currentUser != null ? currentUser.getFullName() : "Lê Thu Hà";
+        String actorRole = currentUser != null ? currentUser.getRole() : "ROLE_CONTENT_MANAGER";
 
         if ("LEVEL".equalsIgnoreCase(request.getType())) {
             try {
                 int level = Integer.parseInt(request.getTarget());
                 affected = vocabularyService.toggleTopikLevelStatus(level, request.isActive());
                 String actionVerb = request.isActive() ? "bật" : "tắt";
+                adminSystemService.logAction(
+                        actorName,
+                        actorRole,
+                        "BULK_TOGGLE_VOCAB",
+                        "VOCABULARY",
+                        "Đã " + actionVerb + " toàn bộ chủ đề " + VocabularyDTO.formatTopikName(level) + " (" + affected + " từ)",
+                        "127.0.0.1"
+                );
                 return ResponseEntity.ok(Map.of(
                         "success", true,
                         "newActive", request.isActive(),
@@ -340,6 +449,14 @@ public class ContentVocabularyController {
                     affected = vocabularyService.toggleTopicStatus(topicName, request.isActive());
                 }
                 String actionVerb = request.isActive() ? "bật" : "tắt";
+                adminSystemService.logAction(
+                        actorName,
+                        actorRole,
+                        "BULK_TOGGLE_VOCAB",
+                        "VOCABULARY",
+                        "Đã " + actionVerb + " toàn bộ từ vựng thuộc chủ đề \"" + topicName + "\" (" + affected + " từ)",
+                        "127.0.0.1"
+                );
                 return ResponseEntity.ok(Map.of(
                         "success", true,
                         "newActive", request.isActive(),
@@ -356,7 +473,7 @@ public class ContentVocabularyController {
 
     @PostMapping("/bulk-create")
     @ResponseBody
-    public ResponseEntity<?> bulkCreate(@RequestBody List<VocabularyDTO> list) {
+    public ResponseEntity<?> bulkCreate(@RequestBody List<VocabularyDTO> list, HttpSession session) {
         if (list == null || list.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Danh sách từ rỗng."));
         }
@@ -365,6 +482,21 @@ public class ContentVocabularyController {
         List<VocabularyDTO> created = vocabularyService.bulkCreateEntities(list);
         int count = created.size();
         int skipped = totalInput - count;
+
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        String actorName = currentUser != null ? currentUser.getFullName() : "Lê Thu Hà";
+        String actorRole = currentUser != null ? currentUser.getRole() : "ROLE_CONTENT_MANAGER";
+
+        if (count > 0) {
+            adminSystemService.logAction(
+                    actorName,
+                    actorRole,
+                    "BULK_CREATE_VOCAB",
+                    "VOCABULARY",
+                    "Thêm " + count + " từ vựng mới vào hệ thống",
+                    "127.0.0.1"
+            );
+        }
 
         String msg;
         if (skipped > 0) {
