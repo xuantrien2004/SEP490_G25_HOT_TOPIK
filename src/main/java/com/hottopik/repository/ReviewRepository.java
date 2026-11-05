@@ -3,6 +3,7 @@ package com.hottopik.repository;
 import com.hottopik.entity.Review;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -26,4 +27,5 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     @Query(value = "SELECT r FROM Review r JOIN FETCH r.user WHERE LOWER(r.status) = LOWER(:status) AND r.rating = :rating",
             countQuery = "SELECT COUNT(r) FROM Review r WHERE LOWER(r.status) = LOWER(:status) AND r.rating = :rating")
     Page<Review> findByStatusAndRating(@Param("status") String status, @Param("rating") Short rating, Pageable pageable);
+    List<Review> findByStatusAndRating(String status, Short rating, Sort sort);
 }
