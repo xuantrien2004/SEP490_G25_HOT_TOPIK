@@ -150,54 +150,86 @@
             <!-- ============================================================== -->
             <section id="pane-overview" style="display: flex; flex-direction: column; gap: 24px;">
                 
-                <!-- 3 KPI Cards: Khi ấn vào số tổng sẽ hiển thị nguồn tương ứng -->
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <!-- 5 KPI Cards: Tổng từ vựng, Tổng số ngữ pháp, Tổng số đề thi, Tổng câu hỏi hệ thống, Báo cáo xử lý (Được thu gọn vừa vặn & hỗ trợ lướt ngang) -->
+                <div class="kpi-scroll-container" style="display: grid; grid-template-columns: repeat(5, minmax(180px, 1fr)); gap: 12px; overflow-x: auto; padding-bottom: 6px;">
                     
-                    <!-- KPI 1: Tổng số câu hỏi (Click -> chuyển sang Ngân hàng câu hỏi) -->
-                    <div class="ssak-card kpi-clickable-card" onclick="location.href='/content/questions'"
-                         style="padding: 24px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); cursor: pointer; transition: all 0.2s;"
-                         onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='#2E7D67';"
+                    <!-- KPI 1: Tổng từ vựng (Click -> chuyển sang Kho từ vựng) -->
+                    <div class="ssak-card kpi-clickable-card" onclick="location.href='/content/vocabulary'"
+                         style="padding: 16px 16px; background: #FFFFFF; border-radius: 16px; border: 2px solid var(--ssak-border); cursor: pointer; transition: all 0.2s;"
+                         onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#1F6B56';"
                          onmouseout="this.style.transform='none'; this.style.borderColor='var(--ssak-border)';">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Tổng câu hỏi hệ thống</span>
-                            <span style="font-size: 24px;">📝</span>
+                            <span style="font-size: 11px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Tổng từ vựng</span>
+                            <span style="font-size: 18px;">📖</span>
                         </div>
-                        <div style="font-family: var(--font-heading); font-size: 34px; font-weight: 800; color: #24363D; margin: 8px 0;" th:text="${totalQuestionCount + ' câu'}">8 câu</div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
-                            <span style="color: var(--ssak-text-muted);">Đọc, Nghe & Viết biểu đồ</span>
-                            <span style="color: #2E7D67; font-weight: 800;">Xem nguồn câu hỏi →</span>
+                        <div style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: #1F6B56; margin: 4px 0;" th:text="${totalVocabCount + ' từ'}">50 từ</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+                            <span style="color: var(--ssak-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" th:text="${totalTopicCount + ' chủ đề'}">6 chủ đề</span>
+                            <span style="color: #1F6B56; font-weight: 800; white-space: nowrap; margin-left: 4px;">Kho từ →</span>
                         </div>
                     </div>
 
-                    <!-- KPI 2: Báo lỗi cần xử lý (Click -> chuyển sang Xử lý báo lỗi) -->
-                    <div class="ssak-card kpi-clickable-card" onclick="switchContentTab('reports')"
-                         style="padding: 24px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); cursor: pointer; transition: all 0.2s;"
-                         onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='#CF1322';"
+                    <!-- KPI 2: Tổng số ngữ pháp (Click -> chuyển sang Kho ngữ pháp) -->
+                    <div class="ssak-card kpi-clickable-card" onclick="location.href='/content/grammar'"
+                         style="padding: 16px 16px; background: #FFFFFF; border-radius: 16px; border: 2px solid var(--ssak-border); cursor: pointer; transition: all 0.2s;"
+                         onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#2F5F7D';"
                          onmouseout="this.style.transform='none'; this.style.borderColor='var(--ssak-border)';">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 12px; font-weight: 800; color: #CF1322; text-transform: uppercase;">Báo lỗi cần xử lý</span>
-                            <span style="font-size: 24px;">⚠️</span>
+                            <span style="font-size: 11px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Tổng số ngữ pháp</span>
+                            <span style="font-size: 18px;">📑</span>
                         </div>
-                        <div style="font-family: var(--font-heading); font-size: 34px; font-weight: 800; color: #CF1322; margin: 8px 0;" th:text="${pendingReportCount + ' báo cáo'}">2 báo cáo</div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
-                            <span style="color: #CF1322; font-weight: 700;">Học viên phản hồi lỗi nội dung</span>
-                            <span style="color: #CF1322; font-weight: 800;">Xử lý ngay →</span>
+                        <div style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: #2F5F7D; margin: 4px 0;" th:text="${totalGrammarCount + ' mẫu'}">45 mẫu</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+                            <span style="color: var(--ssak-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">TOPIK 1-6</span>
+                            <span style="color: #2F5F7D; font-weight: 800; white-space: nowrap; margin-left: 4px;">Kho mẫu →</span>
                         </div>
                     </div>
 
-                    <!-- KPI 3: Tổng đề thi (Click -> chuyển sang Quản lý đề) -->
+                    <!-- KPI 3: Tổng số Đề thi (Click -> chuyển sang Thư viện đề) -->
                     <div class="ssak-card kpi-clickable-card" onclick="location.href='/content/exams'"
-                         style="padding: 24px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); cursor: pointer; transition: all 0.2s;"
-                         onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='#2F5F7D';"
+                         style="padding: 16px 16px; background: #FFFFFF; border-radius: 16px; border: 2px solid var(--ssak-border); cursor: pointer; transition: all 0.2s;"
+                         onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#4F46E5';"
                          onmouseout="this.style.transform='none'; this.style.borderColor='var(--ssak-border)';">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Tổng số Đề thi</span>
-                            <span style="font-size: 24px;">📋</span>
+                            <span style="font-size: 11px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Tổng số đề thi</span>
+                            <span style="font-size: 18px;">📚</span>
                         </div>
-                        <div style="font-family: var(--font-heading); font-size: 34px; font-weight: 800; color: #2F5F7D; margin: 8px 0;" th:text="${totalExamCount + ' bộ đề'}">4 bộ đề</div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
-                            <span style="color: var(--ssak-text-muted);">Đề thi TOPIK I & II theo dạng</span>
-                            <span style="color: #2F5F7D; font-weight: 800;">Xem danh sách đề →</span>
+                        <div style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: #4F46E5; margin: 4px 0;" th:text="${totalExamCount + ' đề'}">4 đề</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+                            <span style="color: var(--ssak-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">TOPIK I & II</span>
+                            <span style="color: #4F46E5; font-weight: 800; white-space: nowrap; margin-left: 4px;">Thư viện đề →</span>
+                        </div>
+                    </div>
+
+                    <!-- KPI 4: Tổng câu hỏi hệ thống (Click -> chuyển sang Ngân hàng câu hỏi) -->
+                    <div class="ssak-card kpi-clickable-card" onclick="location.href='/content/questions'"
+                         style="padding: 16px 16px; background: #FFFFFF; border-radius: 16px; border: 2px solid var(--ssak-border); cursor: pointer; transition: all 0.2s;"
+                         onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#24363D';"
+                         onmouseout="this.style.transform='none'; this.style.borderColor='var(--ssak-border)';">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 11px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Tổng câu hỏi</span>
+                            <span style="font-size: 18px;">📝</span>
+                        </div>
+                        <div style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: #24363D; margin: 4px 0;" th:text="${totalQuestionCount + ' câu'}">87 câu</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+                            <span style="color: var(--ssak-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Ngân hàng câu</span>
+                            <span style="color: #24363D; font-weight: 800; white-space: nowrap; margin-left: 4px;">Xem nguồn →</span>
+                        </div>
+                    </div>
+
+                    <!-- KPI 5: Báo cáo xử lý (Click -> chuyển sang Xử lý báo lỗi) -->
+                    <div class="ssak-card kpi-clickable-card" onclick="switchContentTab('reports')"
+                         style="padding: 16px 16px; background: #FFFFFF; border-radius: 16px; border: 2px solid var(--ssak-border); cursor: pointer; transition: all 0.2s;"
+                         onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#CF1322';"
+                         onmouseout="this.style.transform='none'; this.style.borderColor='var(--ssak-border)';">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 11px; font-weight: 800; color: #CF1322; text-transform: uppercase;">Báo cáo xử lý</span>
+                            <span style="font-size: 18px;">⚠️</span>
+                        </div>
+                        <div style="font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: #CF1322; margin: 4px 0;" th:text="${pendingReportCount + ' báo cáo'}">2 báo cáo</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+                            <span style="color: #CF1322; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Cần phản hồi</span>
+                            <span style="color: #CF1322; font-weight: 800; white-space: nowrap; margin-left: 4px;">Xử lý ngay →</span>
                         </div>
                     </div>
 
@@ -212,8 +244,12 @@
                             <h4 style="margin: 0; font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #24363D;">Lối tắt tác vụ nhanh</h4>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 8px;">
-                            <button type="button" class="btn-ssak-light" style="text-align: left; padding: 12px 16px; font-weight: 700; font-size: 13px; display: flex; justify-content: space-between;" onclick="location.href='/content/sources'">
-                                <span>📥 Nhập đề TOPIK mới từ Excel</span>
+                            <button type="button" class="btn-ssak-light" style="text-align: left; padding: 12px 16px; font-weight: 700; font-size: 13px; display: flex; justify-content: space-between;" onclick="location.href='/content/vocabulary'">
+                                <span>📖 Quản lý Kho Từ vựng TOPIK 1-6</span>
+                                <span>→</span>
+                            </button>
+                            <button type="button" class="btn-ssak-light" style="text-align: left; padding: 12px 16px; font-weight: 700; font-size: 13px; display: flex; justify-content: space-between;" onclick="location.href='/content/grammar'">
+                                <span>📑 Quản lý Kho Ngữ pháp TOPIK 1-6</span>
                                 <span>→</span>
                             </button>
                             <button type="button" class="btn-ssak-light" style="text-align: left; padding: 12px 16px; font-weight: 700; font-size: 13px; display: flex; justify-content: space-between;" onclick="switchContentTab('reports')">
@@ -227,15 +263,40 @@
                         </div>
                     </div>
 
+                    <!-- Card: Nhật ký hoạt động gần đây (Đồng bộ theo thời gian và hành động thực) -->
                     <div class="ssak-card" style="padding: 24px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 14px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 22px;">📜</span>
-                            <h4 style="margin: 0; font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #24363D;">Nhật ký hoạt động gần đây</h4>
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 22px;">📜</span>
+                                <h4 style="margin: 0; font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #24363D;">Nhật ký hoạt động gần đây</h4>
+                            </div>
+                            <span style="font-size: 11px; font-weight: 700; color: #2E7D67; background: #E6F7F0; padding: 3px 8px; border-radius: 8px;">Thời gian thực</span>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 8px;">
-                            <div th:each="log : ${auditLogs}" style="padding: 10px 14px; background: #F8FAFC; border-radius: 12px; border: 1px solid var(--ssak-border); display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
-                                <span style="font-weight: 700; color: #24363D;" th:text="${log.details}">Thao tác hệ thống</span>
-                                <span style="color: var(--ssak-text-muted);" th:text="${log.timestamp}">2026-10-15</span>
+                            <div th:each="log, stat : ${auditLogs}" th:if="${stat.index < 6}"
+                                 onclick="navigateLogByEntity(this.getAttribute('data-entity'), this.getAttribute('data-details'))"
+                                 th:data-entity="${log.targetEntity}"
+                                 th:data-details="${log.details}"
+                                 style="padding: 10px 14px; background: #F8FAFC; border-radius: 12px; border: 1px solid var(--ssak-border); display: flex; justify-content: space-between; align-items: center; font-size: 12px; cursor: pointer; transition: all 0.15s;"
+                                 onmouseover="this.style.background='#F0F9F5'; this.style.borderColor='#6CC49F';"
+                                 onmouseout="this.style.background='#F8FAFC'; this.style.borderColor='var(--ssak-border)';">
+                                <div style="display: flex; align-items: center; gap: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 12px;">
+                                    <span th:if="${#strings.contains(log.action, 'CREATE')}" class="ssak-badge badge-mint" style="font-size: 10.5px; padding: 2px 7px; flex-shrink: 0;" th:text="${log.action}">CREATE</span>
+                                    <span th:if="${#strings.contains(log.action, 'UPDATE') or #strings.contains(log.action, 'SUBMIT')}" class="ssak-badge badge-honey" style="font-size: 10.5px; padding: 2px 7px; flex-shrink: 0;" th:text="${log.action}">UPDATE</span>
+                                    <span th:if="${#strings.contains(log.action, 'DELETE') or #strings.contains(log.action, 'REJECT')}" class="ssak-badge badge-terracotta" style="font-size: 10.5px; padding: 2px 7px; flex-shrink: 0;" th:text="${log.action}">DELETE</span>
+                                    <span th:if="${#strings.contains(log.action, 'TOGGLE')}" class="ssak-badge badge-sky" style="font-size: 10.5px; padding: 2px 7px; flex-shrink: 0;" th:text="${log.action}">TOGGLE</span>
+                                    <span th:if="${!#strings.contains(log.action, 'CREATE') and !#strings.contains(log.action, 'UPDATE') and !#strings.contains(log.action, 'DELETE') and !#strings.contains(log.action, 'TOGGLE') and !#strings.contains(log.action, 'SUBMIT') and !#strings.contains(log.action, 'REJECT')}" class="ssak-badge badge-mint" style="font-size: 10.5px; padding: 2px 7px; flex-shrink: 0;" th:text="${log.action}">ACTION</span>
+                                    <span style="font-weight: 700; color: #24363D; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" th:text="${log.details}">Thao tác hệ thống</span>
+                                </div>
+                                <span style="color: var(--ssak-text-muted); font-size: 11px; white-space: nowrap; flex-shrink: 0;" th:text="${log.timestamp}">2026-10-15 14:00:00</span>
+                            </div>
+                            <div th:if="${#lists.isEmpty(auditLogs)}" style="padding: 16px; text-align: center; color: var(--ssak-text-muted); font-size: 12px;">
+                                Chưa có nhật ký hoạt động nào được ghi nhận.
+                            </div>
+                            <div style="text-align: right; margin-top: 6px;">
+                                <a href="javascript:void(0)" onclick="switchContentTab('audit')" style="font-size: 12px; font-weight: 800; color: #2E7D67; text-decoration: none; cursor: pointer;">
+                                    Xem toàn bộ nhật ký thao tác →
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -387,13 +448,21 @@
                             <tr th:each="log : ${auditLogs}" class="audit-data-row"
                                 th:data-action="${log.action}"
                                 th:data-details="${log.details}"
-                                style="border-bottom: 1px solid var(--ssak-border);">
-                                <td style="padding: 12px 14px; color: var(--ssak-text-muted);" th:text="${log.timestamp}">2026-10-15 14:00</td>
+                                th:data-entity="${log.targetEntity}"
+                                onclick="navigateLogByEntity(this.getAttribute('data-entity'), this.getAttribute('data-details'))"
+                                style="border-bottom: 1px solid var(--ssak-border); cursor: pointer; transition: background 0.15s;"
+                                onmouseover="this.style.background='#F8FAFC'"
+                                onmouseout="this.style.background='transparent'">
+                                <td style="padding: 12px 14px; color: var(--ssak-text-muted); font-size: 12px;" th:text="${log.timestamp}">2026-10-15 14:00:00</td>
                                 <td style="padding: 12px 14px;">
-                                    <span class="ssak-badge badge-mint" th:text="${log.action}">CREATE</span>
+                                    <span th:if="${#strings.contains(log.action, 'CREATE')}" class="ssak-badge badge-mint" th:text="${log.action}">CREATE</span>
+                                    <span th:if="${#strings.contains(log.action, 'UPDATE') or #strings.contains(log.action, 'SUBMIT')}" class="ssak-badge badge-honey" th:text="${log.action}">UPDATE</span>
+                                    <span th:if="${#strings.contains(log.action, 'DELETE') or #strings.contains(log.action, 'REJECT')}" class="ssak-badge badge-terracotta" th:text="${log.action}">DELETE</span>
+                                    <span th:if="${#strings.contains(log.action, 'TOGGLE')}" class="ssak-badge badge-sky" th:text="${log.action}">TOGGLE</span>
+                                    <span th:if="${!#strings.contains(log.action, 'CREATE') and !#strings.contains(log.action, 'UPDATE') and !#strings.contains(log.action, 'DELETE') and !#strings.contains(log.action, 'TOGGLE') and !#strings.contains(log.action, 'SUBMIT') and !#strings.contains(log.action, 'REJECT')}" class="ssak-badge badge-mint" th:text="${log.action}">ACTION</span>
                                 </td>
                                 <td style="padding: 12px 14px; font-weight: 700; color: #24363D;" th:text="${log.targetEntity}">MOCK_TEST</td>
-                                <td style="padding: 12px 16px;" th:text="${log.details}">Thao tác trong hệ thống</td>
+                                <td style="padding: 12px 16px; font-weight: 600; color: #24363D;" th:text="${log.details}">Thao tác trong hệ thống</td>
                             </tr>
                         </tbody>
                     </table>
@@ -582,6 +651,20 @@
 .kpi-clickable-card:hover {
     box-shadow: 0 10px 24px rgba(0,0,0,0.06);
 }
+.kpi-scroll-container::-webkit-scrollbar {
+    height: 5px;
+}
+.kpi-scroll-container::-webkit-scrollbar-track {
+    background: #EFEFEF;
+    border-radius: 4px;
+}
+.kpi-scroll-container::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 4px;
+}
+.kpi-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+}
 </style>
 
 <!-- Bootstrap 5 Bundle JS -->
@@ -606,6 +689,31 @@
         }
     };
 
+
+    // ==========================================
+    // 0. AUDIT LOG NAVIGATION (ĐIỀU HƯỚNG TỪ NHẬT KÝ THAO TÁC)
+    // ==========================================
+    function navigateLogByEntity(entity, details) {
+        if (!entity && !details) return;
+        const e = (entity || '').toUpperCase();
+        const d = (details || '').toLowerCase();
+
+        if (e.includes('VOCAB') || d.includes('từ vựng') || d.includes('chủ đề')) {
+            location.href = '/content/vocabulary';
+        } else if (e.includes('GRAMMAR') || d.includes('ngữ pháp')) {
+            location.href = '/content/grammar';
+        } else if (e.includes('MOCK_TEST') || e.includes('EXAM') || d.includes('đề thi')) {
+            location.href = '/content/exams';
+        } else if (e.includes('CONTENT_REPORT') || d.includes('báo lỗi') || d.includes('báo cáo')) {
+            switchContentTab('reports');
+        } else if (e.includes('USER_PROFILE') || d.includes('hồ sơ')) {
+            location.href = '/content/profile';
+        } else if (e.includes('QUESTION') || d.includes('câu hỏi')) {
+            location.href = '/content/questions';
+        } else {
+            switchContentTab('audit');
+        }
+    }
 
     // ==========================================
     // 1. TAB SWITCHING

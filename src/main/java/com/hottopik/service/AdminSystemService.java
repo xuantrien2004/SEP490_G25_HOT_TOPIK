@@ -41,16 +41,22 @@ public class AdminSystemService {
     }
 
     public List<AuditLogDTO> getAuditLogs() {
-        return new ArrayList<>(auditLogs);
+        List<AuditLogDTO> list = new ArrayList<>(auditLogs);
+        list.sort((a, b) -> Long.compare(b.getId(), a.getId()));
+        return list;
     }
 
     public List<AuditLogDTO> getAuditLogsForRole(String role) {
+        List<AuditLogDTO> list;
         if (role == null || role.equals("ROLE_ADMIN")) {
-            return new ArrayList<>(auditLogs);
+            list = new ArrayList<>(auditLogs);
+        } else {
+            list = auditLogs.stream()
+                    .filter(l -> l.getActorRole() != null && l.getActorRole().equalsIgnoreCase(role))
+                    .collect(Collectors.toList());
         }
-        return auditLogs.stream()
-                .filter(l -> l.getActorRole().equalsIgnoreCase(role))
-                .collect(Collectors.toList());
+        list.sort((a, b) -> Long.compare(b.getId(), a.getId()));
+        return list;
     }
 
     public void logAction(String actorName, String actorRole, String action, String targetEntity, String details, String ip) {

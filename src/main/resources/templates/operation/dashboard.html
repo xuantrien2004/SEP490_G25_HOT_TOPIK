@@ -42,8 +42,14 @@
                 Tác vụ Vận hành
             </div>
 
+            <!-- Tab 0: Tổng quan -->
+            <a href="javascript:void(0)" onclick="switchOperationTab('overview')" id="side-nav-overview" class="sidebar-item active">
+                <span style="font-size: 17px;">📊</span>
+                <span style="flex-grow: 1;">Tổng quan</span>
+            </a>
+
             <!-- Tab 1: Manage Users -->
-            <a href="javascript:void(0)" onclick="switchOperationTab('users')" id="side-nav-users" class="sidebar-item active">
+            <a href="javascript:void(0)" onclick="switchOperationTab('users')" id="side-nav-users" class="sidebar-item">
                 <span style="font-size: 17px;">👥</span>
                 <span style="flex-grow: 1;">Quản lý Học viên</span>
                 <span class="ssak-badge badge-mint" style="font-size: 11px; padding: 2px 7px;" th:text="${#lists.size(learners)}">2</span>
@@ -117,13 +123,13 @@
         <!-- Top Header Bar inside Content -->
         <header style="height: 68px; padding: 0 40px; background: #FFFFFF; border-bottom: 2px solid var(--ssak-border); display: flex; align-items: center; justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 12px;">
-                <span id="currentSectionIcon" style="font-size: 22px;">👥</span>
+                <span id="currentSectionIcon" style="font-size: 22px;">📊</span>
                 <div>
                     <h2 id="currentSectionTitle" style="margin: 0; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D;">
-                        Quản lý Học viên & Thành viên VIP (Manage Users)
+                        Tổng quan Vận hành (Operation Overview)
                     </h2>
                     <span id="currentSectionSubtitle" style="font-size: 12px; color: var(--ssak-text-muted);">
-                        Xem thông tin học viên, cấp độ mục tiêu, trạng thái gói VIP và khóa/mở khóa tài khoản khi có vi phạm.
+                        Bức tranh tổng quan các chỉ số vận hành và các tác vụ cần xử lý ưu tiên.
                     </span>
                 </div>
             </div>
@@ -141,47 +147,173 @@
         <!-- Main Workspace -->
         <main style="padding: 28px 40px; display: flex; flex-direction: column; gap: 24px; flex-grow: 1;">
             
-            <!-- 4 Metric KPI Cards -->
+            <!-- ============================================================== -->
+            <!-- TAB 0: TỔNG QUAN (OVERVIEW WITH KPIS & URGENT TASKS)           -->
+            <!-- ============================================================== -->
+            <section id="pane-overview" style="display: flex; flex-direction: column; gap: 24px;">
+            <!-- 4 Metric KPI Cards (Click để chuyển tab tương ứng) -->
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
-                <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border);">
+                <div class="ssak-card kpi-clickable-card" onclick="switchOperationTab('users')"
+                     style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); cursor: pointer; transition: all 0.2s ease;"
+                     onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#1F6B56';"
+                     onmouseout="this.style.transform='none'; this.style.borderColor='var(--ssak-border)';">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Tổng học viên</span>
                         <span style="font-size: 20px;">👥</span>
                     </div>
                     <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; color: #1F6B56; margin: 4px 0;" th:text="${#lists.size(learners) + ' người'}">2 người</div>
-                    <span style="font-size: 12px; color: #1F6B56; font-weight: 700;">Gồm VIP Learner & Standard</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                        <span style="color: #1F6B56; font-weight: 700;">VIP & Standard</span>
+                        <span style="color: #1F6B56; font-weight: 800;">Quản lý →</span>
+                    </div>
                 </div>
 
-                <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border);">
+                <div class="ssak-card kpi-clickable-card" onclick="switchOperationTab('orders')"
+                     style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); cursor: pointer; transition: all 0.2s ease;"
+                     onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#92400E';"
+                     onmouseout="this.style.transform='none'; this.style.borderColor='var(--ssak-border)';">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Đơn hàng hệ thống</span>
                         <span style="font-size: 20px;">💳</span>
                     </div>
                     <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; color: #24363D; margin: 4px 0;" th:text="${#lists.size(orders) + ' đơn'}">3 đơn</div>
-                    <span style="font-size: 12px; color: var(--ssak-text-muted);">VNPAY, MoMo, Ngân hàng</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                        <span style="color: var(--ssak-text-muted);">VNPAY, MoMo...</span>
+                        <span style="color: #92400E; font-weight: 800;">Xem đơn →</span>
+                    </div>
                 </div>
 
-                <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border);">
+                <div class="ssak-card kpi-clickable-card" onclick="switchOperationTab('reviews')"
+                     style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); cursor: pointer; transition: all 0.2s ease;"
+                     onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#7A5A12';"
+                     onmouseout="this.style.transform='none'; this.style.borderColor='var(--ssak-border)';">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Đánh giá đã tiếp nhận</span>
                         <span style="font-size: 20px;">⭐</span>
                     </div>
                     <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; color: #7A5A12; margin: 4px 0;" th:text="${#lists.size(reviews) + ' review'}">3 review</div>
-                    <span style="font-size: 12px; color: var(--ssak-text-muted);">Điểm đánh giá TB: 4.8 / 5.0</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                        <span style="color: var(--ssak-text-muted);">TB: 4.8 / 5.0</span>
+                        <span style="color: #7A5A12; font-weight: 800;">Duyệt review →</span>
+                    </div>
                 </div>
 
-                <div class="ssak-card" style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border);">
+                <div class="ssak-card kpi-clickable-card" onclick="switchOperationTab('announcements')"
+                     style="padding: 20px; background: #FFFFFF; border-radius: 20px; border: 2px solid var(--ssak-border); cursor: pointer; transition: all 0.2s ease;"
+                     onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='#2F5F7D';"
+                     onmouseout="this.style.transform='none'; this.style.borderColor='var(--ssak-border)';">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-size: 12px; font-weight: 800; color: var(--ssak-text-muted); text-transform: uppercase;">Thông báo đã gửi</span>
                         <span style="font-size: 20px;">📢</span>
                     </div>
                     <div style="font-family: var(--font-heading); font-size: 32px; font-weight: 800; color: #2F5F7D; margin: 4px 0;" th:text="${#lists.size(announcements) + ' bản tin'}">2 bản tin</div>
-                    <span style="font-size: 12px; color: var(--ssak-text-muted);">Tới tất cả học viên & VIP</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                        <span style="color: var(--ssak-text-muted);">Tất cả học viên</span>
+                        <span style="color: #2F5F7D; font-weight: 800;">Phát tin →</span>
+                    </div>
                 </div>
             </div>
 
+            <!-- Khối "Tác vụ cần xử lý (Urgent Tasks)" -->
+            <div class="ssak-card" style="padding: 24px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 20px;">⚡</span>
+                        <div>
+                            <h3 style="margin: 0; font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: #24363D;">
+                                Tác vụ cần xử lý ưu tiên (Pending Action Items)
+                            </h3>
+                            <span style="font-size: 12px; color: var(--ssak-text-muted);">Các yêu cầu cần bộ phận Vận hành xác minh và phản hồi sớm.</span>
+                        </div>
+                    </div>
+                    <span class="ssak-badge badge-honey" style="font-size: 11.5px; font-weight: 800; padding: 4px 10px;"
+                          th:text="${(pendingReviewCount + pendingRefundCount + proposedPriceCount) + ' tác vụ chờ'}">
+                        3 tác vụ chờ
+                    </span>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Row 1: Đánh giá học viên cần duyệt -->
+                    <div style="background: #FFFFFF; border: 1.5px solid var(--ssak-border); border-left: 5px solid #2563EB; border-radius: 14px; padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; transition: all 0.18s ease; cursor: pointer;" onclick="switchOperationTab('reviews')"
+                         onmouseover="this.style.boxShadow='0 4px 14px rgba(37,99,235,0.12)'; this.style.borderColor='#BFDBFE';"
+                         onmouseout="this.style.boxShadow='none'; this.style.borderColor='var(--ssak-border)';">
+                        <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex-grow: 1;">
+                            <div style="width: 42px; height: 42px; border-radius: 12px; background: #EFF6FF; color: #2563EB; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 19px;">
+                                ⭐
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
+                                <div style="font-weight: 800; font-size: 13.5px; color: #24363D;">
+                                    Đánh giá học viên mới (<span th:text="${pendingReviewCount < 10 ? '0' + pendingReviewCount : pendingReviewCount}">01</span> đánh giá) – <span th:text="${urgentReviewAuthor}">Phạm Minh Anh</span>
+                                </div>
+                                <div style="font-size: 12px; color: var(--ssak-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" th:text="${'«' + urgentReviewComment + '»'}">
+                                    «Giao diện Bé Ssak dịu mắt, học từ vựng mỗi ngày không bị áp lực.»
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+                            <button type="button" onclick="switchOperationTab('reviews')" style="height: 36px; padding: 0 18px; border-radius: 8px; border: none; background: #1F6B56; color: #FFFFFF; font-size: 12.5px; font-weight: 800; cursor: pointer; transition: background 0.15s ease;"
+                                    onmouseover="this.style.background='#164E40'" onmouseout="this.style.background='#1F6B56'">
+                                Xem đánh giá
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Yêu cầu Hoàn tiền Đơn hàng -->
+                    <div style="background: #FFFFFF; border: 1.5px solid var(--ssak-border); border-left: 5px solid #E11D48; border-radius: 14px; padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; transition: all 0.18s ease; cursor: pointer;" onclick="switchOperationTab('orders')"
+                         onmouseover="this.style.boxShadow='0 4px 14px rgba(225,29,72,0.12)'; this.style.borderColor='#FECDD3';"
+                         onmouseout="this.style.boxShadow='none'; this.style.borderColor='var(--ssak-border)';">
+                        <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex-grow: 1;">
+                            <div style="width: 42px; height: 42px; border-radius: 12px; background: #FFE4E6; color: #E11D48; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 19px;">
+                                🔄
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
+                                <div style="font-weight: 800; font-size: 13.5px; color: #24363D;">
+                                    Yêu cầu Hoàn tiền Đơn hàng (<span th:text="${pendingRefundCount < 10 ? '0' + pendingRefundCount : pendingRefundCount}">01</span> đơn) – #<span th:text="${urgentRefundCode}">HT-10089</span> - <span th:text="${urgentRefundCustomer}">Pham Minh Anh</span>
+                                </div>
+                                <div style="font-size: 12.5px; font-weight: 800; color: #C25E3E;" th:text="${urgentRefundAmount}">
+                                    299,000 đ
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+                            <button type="button" onclick="switchOperationTab('orders')" style="height: 36px; padding: 0 18px; border-radius: 8px; border: none; background: #1F6B56; color: #FFFFFF; font-size: 12.5px; font-weight: 800; cursor: pointer; transition: background 0.15s ease;"
+                                    onmouseover="this.style.background='#164E40'" onmouseout="this.style.background='#1F6B56'">
+                                Kiểm tra ngay
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Đề xuất Giá Gói VIP Mới -->
+                    <div style="background: #FFFFFF; border: 1.5px solid var(--ssak-border); border-left: 5px solid #EAB308; border-radius: 14px; padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; transition: all 0.18s ease; cursor: pointer;" onclick="switchOperationTab('prices')"
+                         onmouseover="this.style.boxShadow='0 4px 14px rgba(234,179,8,0.12)'; this.style.borderColor='#FEF08A';"
+                         onmouseout="this.style.boxShadow='none'; this.style.borderColor='var(--ssak-border)';">
+                        <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex-grow: 1;">
+                            <div style="width: 42px; height: 42px; border-radius: 12px; background: #FEF3C7; color: #D97706; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 19px;">
+                                🏷️
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
+                                <div style="font-weight: 800; font-size: 13.5px; color: #24363D;">
+                                    Đề xuất Giá Gói VIP Mới (New VIP Package Price Proposal) – <span th:text="${urgentPackageName}">Gói VIP 3 Tháng</span>
+                                </div>
+                                <div style="font-size: 12px; font-weight: 700; color: #D97706;">
+                                    Chờ Admin
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+                            <button type="button" onclick="switchOperationTab('prices')" style="height: 36px; padding: 0 18px; border-radius: 8px; border: none; background: #1F6B56; color: #FFFFFF; font-size: 12.5px; font-weight: 800; cursor: pointer; transition: background 0.15s ease;"
+                                    onmouseover="this.style.background='#164E40'" onmouseout="this.style.background='#1F6B56'">
+                                Xem chi tiết
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            </section>
+
             <!-- TAB 1: MANAGE USERS (Use Case: Manage Users) -->
-            <section id="pane-users" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: flex; flex-direction: column; gap: 18px;">
+            <section id="pane-users" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: none; flex-direction: column; gap: 18px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <h3 style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">
@@ -811,6 +943,11 @@
 
 <script th:inline="none">
     const tabMeta = {
+        overview: {
+            icon: '📊',
+            title: 'Tổng quan Vận hành (Operation Overview)',
+            subtitle: 'Bức tranh tổng quan các chỉ số vận hành và các tác vụ cần xử lý ưu tiên.'
+        },
         users: {
             icon: '👥',
             title: 'Quản lý Học viên & Thành viên VIP (Manage Users)',
@@ -854,7 +991,7 @@
     };
 
     function switchOperationTab(tabName) {
-        const tabs = ['users', 'orders', 'prices', 'compensation', 'reviews', 'announcements', 'aiBudget', 'audit'];
+        const tabs = ['overview', 'users', 'orders', 'prices', 'compensation', 'reviews', 'announcements', 'aiBudget', 'audit'];
         tabs.forEach(t => {
             const pane = document.getElementById('pane-' + t);
             const sideNav = document.getElementById('side-nav-' + t);
@@ -1467,6 +1604,8 @@
         const tab = urlParams.get('tab');
         if (tab && tabMeta[tab]) {
             switchOperationTab(tab);
+        } else {
+            switchOperationTab('overview');
         }
     });
 

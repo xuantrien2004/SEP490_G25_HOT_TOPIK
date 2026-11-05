@@ -20,6 +20,9 @@ public class ContentManagementService {
     @Autowired
     private GrammarGroupService grammarGroupService;
 
+    @Autowired(required = false)
+    private com.hottopik.repository.exam.QuestionRepository questionRepository;
+
     @PostConstruct
     public void init() {
         // Seed Content Reports matching SEP490.sql
@@ -133,6 +136,11 @@ public class ContentManagementService {
     }
 
     public int getTotalQuestionCount() {
+        if (questionRepository != null) {
+            try {
+                return (int) questionRepository.count();
+            } catch (Exception ignored) {}
+        }
         return 0;
     }
 }
