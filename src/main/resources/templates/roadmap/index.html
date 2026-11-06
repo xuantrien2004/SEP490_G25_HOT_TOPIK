@@ -21,7 +21,7 @@
             </div>
             <div class="lr-head-actions">
                 <button type="button" class="btn-makeup" id="makeupJump" hidden>Còn 0 bài làm bù</button>
-                <a class="btn-soft" th:href="@{/lo-trinh/tao}">Sắp nhập lộ trình</a>
+                <button type="button" class="btn-soft" id="rhythmOpen">Khôi phục nhịp học</button>
                 <a class="btn-soft btn-soft-dark" th:href="@{/lo-trinh/dieu-chinh}">Điều chỉnh</a>
             </div>
         </header>
@@ -102,6 +102,44 @@
 </main>
 
 <div th:replace="~{fragments/footer :: footer}"></div>
+
+<div class="rhythm-back" id="rhythmModal" hidden
+     th:if="${rhythm != null}"
+     th:attr="data-key=${rhythm.fromLabel + '-' + rhythm.days}">
+    <div class="rhythm-card" role="dialog" aria-labelledby="rhythmTitle">
+        <div class="rhythm-top">
+            <div class="rhythm-mascot">
+                <div th:replace="~{fragments/ssak :: mascot('sleep', 'sprout', 72, 'Ssak đang ngủ')}"></div>
+            </div>
+            <h2 id="rhythmTitle">Ssak ngủ một giấc <span th:text="${rhythm.days}">3</span> ngày rồi!</h2>
+        </div>
+        <p class="rhythm-lead">Mình học tiếp nhẹ nhàng nhé. Bạn muốn khôi phục nhịp học không?</p>
+        <p class="rhythm-explain">
+            <b>Khôi phục nhịp học là gì?</b>
+            Các bài của <span th:text="${rhythm.days}">3</span> ngày bạn nghỉ
+            (<span th:text="${rhythm.fromLabel}">09/10</span> – <span th:text="${rhythm.toLabel}">11/10</span>,
+            <span th:text="${rhythm.lessons}">4</span> bài)
+            sẽ được chuyển sang bắt đầu từ hôm nay. Phần sau dời theo nền nhịp cũ giữ nguyên.
+            Bài còn thiếu từ trước đợt nghỉ vẫn ở mục làm bù.
+        </p>
+        <div class="rhythm-dates">
+            <div>
+                <span>Kết thúc hiện tại</span>
+                <strong th:text="${rhythm.currentEnd}">26/11</strong>
+            </div>
+            <div class="is-next">
+                <span>Sau khi khôi phục</span>
+                <strong th:text="${rhythm.nextEnd}">29/11</strong>
+            </div>
+        </div>
+        <div class="rhythm-actions">
+            <form method="post" th:action="@{/lo-trinh/khoi-phuc-nhip}">
+                <button class="rhythm-go" type="submit">Khôi phục nhịp học</button>
+            </form>
+            <button type="button" class="rhythm-later" id="rhythmLater">Để sau</button>
+        </div>
+    </div>
+</div>
 
 <script th:if="${plan != null}" th:inline="javascript">
 (function () {
@@ -371,6 +409,19 @@
         wrap.style.display = hidden ? "block" : "none";
         this.textContent = hidden ? "Thu gọn" : "Mở rộng";
     };
+    var rhythmModal = document.getElementById("rhythmModal");
+    var rhythmOpen = document.getElementById("rhythmOpen");
+    if (rhythmModal && rhythmOpen) {
+        var rhythmKey = "rhythm-later-" + (rhythmModal.getAttribute("data-key") || "");
+        rhythmOpen.onclick = function () { rhythmModal.hidden = false; };
+        document.getElementById("rhythmLater").onclick = function () {
+            sessionStorage.setItem(rhythmKey, "1");
+            rhythmModal.hidden = true;
+        };
+        rhythmModal.hidden = sessionStorage.getItem(rhythmKey) === "1";
+    } else if (rhythmOpen) {
+        rhythmOpen.onclick = function () {};
+    }
     selectedSlot = firstOpen(selectedDay);
     var query = new URLSearchParams(window.location.search);
     var queryDay = parseInt(query.get("day") || "", 10);

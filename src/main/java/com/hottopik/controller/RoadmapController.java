@@ -50,11 +50,23 @@ public class RoadmapController {
         model.addAttribute("learnerName", LearnerRoadmapService.givenName(displayName(session)));
         model.addAttribute("levelPath", levelPath(session));
         try {
-            model.addAttribute("plan", roadmaps.view(plan));
+            Map<String, Object> schedule = roadmaps.view(plan);
+            model.addAttribute("plan", schedule);
+            model.addAttribute("rhythm", roadmaps.rhythmOffer(plan, schedule));
         } catch (ExamDomainException e) {
             model.addAttribute("loadError", e.getMessage());
         }
         return "roadmap/index";
+    }
+
+    @PostMapping("/lo-trinh/khoi-phuc-nhip")
+    public String restoreRhythm(HttpSession session) {
+        try {
+            roadmaps.restoreRhythm(owner(session));
+        } catch (ExamDomainException e) {
+            return "redirect:/lo-trinh?loi=" + url(e.getMessage());
+        }
+        return "redirect:/lo-trinh";
     }
 
     @GetMapping({"/lo-trinh/tao", "/roadmap/create"})

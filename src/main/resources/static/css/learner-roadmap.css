@@ -134,3 +134,53 @@ button.task-block { font: inherit; text-align: left; cursor: pointer; width: 100
 @media (max-width: 640px) {
     .lr-days { grid-template-columns: 1fr; }
 }
+
+.rhythm-back {
+    position: fixed; inset: 0; z-index: 80;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px; background: rgba(36, 54, 61, .46);
+}
+.rhythm-back[hidden] { display: none; }
+.rhythm-card {
+    width: min(560px, 100%); background: #fff; color: #24363D;
+    border-radius: 28px; padding: 22px 22px 18px;
+    box-shadow: 0 24px 60px rgba(36, 54, 61, .18);
+}
+.rhythm-top { display: flex; gap: 14px; align-items: center; }
+.rhythm-mascot { position: relative; flex: 0 0 auto; }
+.rhythm-card h2 {
+    margin: 0; font-family: var(--font-heading); font-size: 26px;
+    font-weight: 800; letter-spacing: -0.3px; line-height: 1.2;
+}
+.rhythm-lead { margin: 8px 0 0; color: #6B6560; font-size: 14px; line-height: 1.45; }
+.rhythm-explain {
+    margin: 16px 0; background: #F6F3EC; border-radius: 16px;
+    padding: 14px 16px; color: #5C564C; font-size: 14px; line-height: 1.55;
+}
+.rhythm-explain b { color: #24363D; }
+.rhythm-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.rhythm-dates > div { background: #F4F1EA; border-radius: 16px; padding: 14px 16px; }
+.rhythm-dates .is-next { background: #E7F3EC; }
+.rhythm-dates span {
+    display: block; font-size: 11px; font-weight: 800; letter-spacing: .04em;
+    text-transform: uppercase; color: #8A847A;
+}
+.rhythm-dates strong {
+    display: block; margin-top: 4px; font-family: var(--font-heading);
+    font-size: 28px; font-weight: 800;
+}
+.rhythm-dates .is-next strong { color: #1F6B56; }
+.rhythm-actions { display: flex; gap: 10px; margin-top: 16px; }
+.rhythm-actions form { flex: 1.3; }
+.rhythm-go, .rhythm-later {
+    width: 100%; border-radius: 999px; padding: 12px 16px;
+    font-weight: 800; font-size: 15px; cursor: pointer;
+}
+.rhythm-go { border: 0; background: #1F6B56; color: #fff; }
+.rhythm-go:hover { background: #185745; }
+.rhythm-later { flex: 1; background: #fff; color: #24363D; border: 1.5px solid #D9D3C7; }
+.rhythm-later:hover { background: #FBF9F4; }
+@media (max-width: 640px) {
+    .rhythm-card h2, .rhythm-dates strong { font-size: 22px; }
+    .rhythm-actions { flex-direction: column; }
+}
