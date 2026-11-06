@@ -144,6 +144,7 @@ class PlacementFlowTest {
                 .andExpect(content().string(not(containsString("Bạn vẫn tự chọn"))))
                 .andExpect(content().string(containsString("Nên chọn")))
                 .andExpect(content().string(containsString("Vượt trình độ")))
+                .andExpect(content().string(containsString("Xem chi tiết bài kiểm tra")))
                 .andExpect(content().string(containsString("Mục tiêu")))
                 .andExpect(content().string(not(containsString("Sinh hoạt hàng ngày"))))
                 .andExpect(content().string(not(containsString("Làm bài TOPIK II"))))

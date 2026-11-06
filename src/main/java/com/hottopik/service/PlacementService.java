@@ -36,6 +36,9 @@ public class PlacementService {
                              int level, String levelLabel, String message) {
     }
 
+    public record ReviewItem(QuestionView question, Integer selected, boolean correct) {
+    }
+
     private static final ObjectMapper JSON = new ObjectMapper();
 
     private final PlacementLineRepository lines;
@@ -178,6 +181,17 @@ public class PlacementService {
                 level, PlacementRules.levelLabel(level), message);
     }
 
+    @Transactional(readOnly = true)
+    public List<ReviewItem> review(PlacementAttempt attempt) {
+        Map<String, Integer> picked = readAnswers(attempt.getAnswersJson());
+        List<ReviewItem> rows = new ArrayList<>();
+        for (QuestionView question : questions(attempt)) {
+            Integer selected = picked.get(String.valueOf(question.id()));
+            rows.add(new ReviewItem(question, selected, selected != null && selected == question.answer()));
+        }
+        return rows;
+    }
+
     public PlacementAttempt require(Long id) {
         return attempts.findById(id).orElseThrow(() -> new ExamDomainException("Không tìm thấy bài kiểm tra."));
     }
@@ -242,6 +256,20 @@ public class PlacementService {
     private static List<Long> parseIds(String raw) {
         if (raw == null || raw.isBlank()) return List.of();
         return Arrays.stream(raw.split(",")).map(Long::parseLong).toList();
+    }
+
+    private static Map<String, Integer> readAnswers(String raw) {
+        if (raw == null || raw.isBlank()) return Map.of();
+        try {
+            Map<?, ?> parsed = JSON.readValue(raw, Map.class);
+            Map<String, Integer> answers = new LinkedHashMap<>();
+            parsed.forEach((key, value) -> {
+                if (value instanceof Number number) answers.put(String.valueOf(key), number.intValue());
+            });
+            return answers;
+        } catch (Exception e) {
+            return Map.of();
+        }
     }
 
     private static String writeJson(Object value) {
