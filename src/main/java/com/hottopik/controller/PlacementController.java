@@ -161,6 +161,28 @@ public class PlacementController {
         }
     }
 
+    @GetMapping("/placement/result/{id}/chi-tiet")
+    public String review(@PathVariable Long id, HttpSession session, Model model, RedirectAttributes flash) {
+        try {
+            PlacementAttempt attempt = owned(id, session);
+            if (attempt.getCompletedAt() == null) return "redirect:/placement/play/" + id;
+            List<PlacementService.ReviewItem> items = placement.review(attempt);
+            long right = items.stream().filter(PlacementService.ReviewItem::correct).count();
+            long blank = items.stream().filter(item -> item.selected() == null).count();
+            model.addAttribute("pageTitle", "Chi tiết bài kiểm tra trình độ");
+            model.addAttribute("attempt", attempt);
+            model.addAttribute("items", items);
+            model.addAttribute("right", right);
+            model.addAttribute("wrong", items.size() - right - blank);
+            model.addAttribute("blank", blank);
+            model.addAttribute("currentUser", AuthHelper.getLoggedInUser(session));
+            return "placement/review";
+        } catch (ExamDomainException e) {
+            flash.addFlashAttribute("placementError", e.getMessage());
+            return "redirect:/onboarding";
+        }
+    }
+
     @GetMapping("/placement/khai")
     public String declare(HttpSession session, Model model) {
         UserDTO user = AuthHelper.getLoggedInUser(session);

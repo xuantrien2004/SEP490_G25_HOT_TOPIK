@@ -13,7 +13,9 @@
                 <div class="fs-4 fw-bold mt-2" th:text="${result.levelLabel}">Chưa đạt cấp 1</div>
                 <p class="mb-1 mt-3">Nghe <span th:text="${listenPoints} + '/100'">0/100</span></p>
                 <p class="mb-1">Đọc <span th:text="${readPoints} + '/100'">0/100</span></p>
-                <p class="text-muted mb-0" th:text="'Bạn đúng ' + ${result.attempt.correctCount} + '/' + ${result.attempt.total} + ' câu'">Bạn đúng 6/20 câu</p>
+                <p class="text-muted mb-3" th:text="'Bạn đúng ' + ${result.attempt.correctCount} + '/' + ${result.attempt.total} + ' câu'">Bạn đúng 6/20 câu</p>
+                <a class="btn btn-outline-success fw-bold rounded-pill px-4"
+                   th:href="@{/placement/result/{id}/chi-tiet(id=${result.attempt.id})}">Xem chi tiết bài kiểm tra</a>
             </div>
             <div class="col-md-7">
                 <h2 class="h4 fw-bold mb-3" style="font-family: var(--font-heading);">Gợi ý</h2>

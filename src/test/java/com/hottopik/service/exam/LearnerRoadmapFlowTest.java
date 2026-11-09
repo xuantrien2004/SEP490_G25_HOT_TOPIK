@@ -2,7 +2,9 @@ package com.hottopik.service.exam;
 
 import com.hottopik.dto.UserDTO;
 import com.hottopik.entity.exam.PracticeAttempt;
+import com.hottopik.entity.exam.StudyPlan;
 import com.hottopik.entity.exam.Track;
+import com.hottopik.repository.exam.StudyPlanRepository;
 import com.hottopik.service.PracticeService;
 import com.hottopik.util.AuthHelper;
 import org.junit.jupiter.api.Test;
@@ -14,11 +16,15 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
@@ -39,6 +45,7 @@ class LearnerRoadmapFlowTest {
     @Autowired MockMvc mvc;
     @Autowired LearnerRoadmapService roadmaps;
     @Autowired PracticeService practice;
+    @Autowired StudyPlanRepository plans;
 
     @Test
     void learnerBuildsScheduleFromPublishedProgram() throws Exception {
@@ -49,7 +56,7 @@ class LearnerRoadmapFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Hành trình của")))
                 .andExpect(content().string(containsString("TOPIK 3 → TOPIK 4")))
-                .andExpect(content().string(containsString("Sắp nhập lộ trình")))
+                .andExpect(content().string(containsString("Khôi phục nhịp học")))
                 .andExpect(content().string(not(containsString("Đánh dấu xong"))))
                 .andExpect(content().string(containsString("Minh Anh")))
                 .andExpect(content().string(containsString("TPL2-LIS-01")))
@@ -208,6 +215,45 @@ class LearnerRoadmapFlowTest {
         mvc.perform(get("/lo-trinh").sessionAttr(AuthHelper.SESSION_KEY, learner))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("TOPIK I · TOPIK 3 → TOPIK 4 · 60 ngày")));
+    }
+
+    @Test
+    void threeEmptyDaysOfferRhythmRestoreAndShiftTheStart() throws Exception {
+        UserDTO learner = new UserDTO(9L, "minh", "learner@hottopik.com", "", "Phạm Minh Anh",
+                "ROLE_USER", "Học viên", "ACTIVE", "", "", "TOPIK_4", "TOPIK_3", false, null);
+        mvc.perform(post("/lo-trinh").param("track", "TOPIK_II").param("days", "90").param("minutes", "20")
+                        .sessionAttr(AuthHelper.SESSION_KEY, learner))
+                .andExpect(status().is3xxRedirection());
+
+        StudyPlan plan = plans.findByOwnerEmail(learner.getEmail()).orElseThrow();
+        LocalDate start = LocalDate.now().minusDays(6);
+        plan.setStartDate(start);
+        plan.setDoneKeys(null);
+        plans.saveAndFlush(plan);
+
+        LearnerRoadmapService.RhythmOffer offer = roadmaps.rhythmOffer(plan);
+        assertNotNull(offer);
+        assertTrue(offer.days() >= 3);
+        assertTrue(offer.lessons() > 0);
+
+        mvc.perform(get("/lo-trinh").sessionAttr(AuthHelper.SESSION_KEY, learner))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Khôi phục nhịp học")))
+                .andExpect(content().string(containsString("Ssak ngủ một giấc")))
+                .andExpect(content().string(containsString(">" + offer.days() + "</span> ngày rồi")))
+                .andExpect(content().string(containsString("Để sau")))
+                .andExpect(content().string(not(containsString("Giữ ngày kết thúc"))))
+                .andExpect(content().string(not(containsString("Sắp nhập lộ trình"))));
+
+        mvc.perform(post("/lo-trinh/khoi-phuc-nhip").sessionAttr(AuthHelper.SESSION_KEY, learner))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/lo-trinh"));
+
+        StudyPlan shifted = plans.findByOwnerEmail(learner.getEmail()).orElseThrow();
+        assertEquals(start.plusDays(offer.days()), shifted.getStartDate());
+        int oldCalendar = (int) ChronoUnit.DAYS.between(start, LocalDate.now()) + 1;
+        assertEquals(oldCalendar - offer.days(), LearnerRoadmapService.todayIndex(shifted));
+        assertNull(roadmaps.rhythmOffer(shifted));
     }
 
     @Test

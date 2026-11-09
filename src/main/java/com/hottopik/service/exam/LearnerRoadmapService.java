@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -109,6 +110,72 @@ public class LearnerRoadmapService {
         plan.setDoneKeys(kept);
         return plans.save(plan);
     }
+
+    /**
+     * Dời ngày bắt đầu để ngày đầu của chuỗi nghỉ trùng hôm nay.
+     * Bài đã làm trước chuỗi nghỉ giữ nguyên số ngày trên lịch.
+     */
+    @Transactional
+    public StudyPlan restoreRhythm(String owner) {
+        StudyPlan plan = plans.findByOwnerEmail(owner)
+                .orElseThrow(() -> new ExamDomainException("Bạn chưa có lộ trình để khôi phục nhịp học."));
+        RhythmOffer offer = rhythmOffer(plan);
+        if (offer == null) {
+            throw new ExamDomainException("Chưa cần khôi phục nhịp học.");
+        }
+        plan.setStartDate(plan.getStartDate().plusDays(offer.days()));
+        return plans.save(plan);
+    }
+
+    /** Chuỗi ngày nghỉ sát hôm nay. Hiện gợi ý khi có ít nhất 3 ngày có bài mà chưa làm. */
+    public RhythmOffer rhythmOffer(StudyPlan plan) {
+        return rhythmOffer(plan, view(plan));
+    }
+
+    @SuppressWarnings("unchecked")
+    public RhythmOffer rhythmOffer(StudyPlan plan, Map<String, Object> schedule) {
+        int calendarDay = (int) ChronoUnit.DAYS.between(plan.getStartDate(), LocalDate.now()) + 1;
+        if (calendarDay <= 1) return null;
+        List<Map<String, Object>> days = (List<Map<String, Object>>) schedule.get("days");
+        Set<String> done = new HashSet<>();
+        for (Object key : (List<?>) schedule.get("done")) done.add(String.valueOf(key));
+
+        int missedStudy = 0;
+        int first = -1;
+        int lessons = 0;
+        int lastPlanDay = Math.min(calendarDay - 1, plan.getTotalDays());
+        for (int day = lastPlanDay; day >= 1; day--) {
+            List<Map<String, Object>> slots = (List<Map<String, Object>>) days.get(day - 1).get("slots");
+            if (slots == null || slots.isEmpty()) continue;
+            boolean studied = false;
+            for (int slot = 0; slot < slots.size(); slot++) {
+                if (done.contains(day + ":" + slot)) {
+                    studied = true;
+                    break;
+                }
+            }
+            if (studied) break;
+            missedStudy++;
+            first = day;
+            lessons += slots.size();
+        }
+        if (missedStudy < 3 || first < 1) return null;
+
+        int span = calendarDay - first;
+        LocalDate start = plan.getStartDate();
+        LocalDate currentEnd = start.plusDays(plan.getTotalDays() - 1L);
+        return new RhythmOffer(
+                span,
+                lessons,
+                start.plusDays(first - 1L).format(DAY_LABEL),
+                LocalDate.now().minusDays(1).format(DAY_LABEL),
+                currentEnd.format(DAY_LABEL),
+                currentEnd.plusDays(span).format(DAY_LABEL));
+    }
+
+    /** Số ngày nghỉ, số bài bị dời, và ngày kết thúc trước / sau khi khôi phục. */
+    public record RhythmOffer(int days, int lessons, String fromLabel, String toLabel,
+                              String currentEnd, String nextEnd) {}
 
     /** Ít ngày nhất mà vẫn còn một ngày học mới trước hạn ôn. */
     public int minimumDays(Track track) {
