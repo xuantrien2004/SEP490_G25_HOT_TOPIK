@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
     'use strict';
     document.querySelectorAll('.qp-player').forEach(root => {
         const cards = [...root.querySelectorAll('.qp-question')];
@@ -14,6 +14,24 @@
         if (!state || typeof state !== 'object') state = {};
         let locked = {};
         try { locked = preview ? (state.checked || {}) : JSON.parse(root.dataset.checkedJson || '{}'); } catch (_) {}
+        const groupSticky = root.querySelector('.qp-group-sticky');
+        const groupRange = groupSticky?.querySelector('.qp-group-range');
+        const groupInstruction = groupSticky?.querySelector('.qp-group-instruction');
+        const groupAudio = groupSticky?.querySelector('.qp-group-audio');
+        const groupPassage = groupSticky?.querySelector('.qp-group-passage');
+        const groupImage = groupSticky?.querySelector('.qp-group-image');
+        const groupToggle = groupSticky?.querySelector('.qp-group-toggle');
+        let activeGroup = null;
+        if (groupToggle && groupSticky) {
+            groupToggle.addEventListener('click', () => {
+                const collapsed = groupSticky.classList.toggle('is-collapsed');
+                const textEl = groupToggle.querySelector('.qp-toggle-text');
+                const iconEl = groupToggle.querySelector('.qp-toggle-icon');
+                if (textEl) textEl.textContent = collapsed ? 'Mở rộng' : 'Thu gọn';
+                if (iconEl) iconEl.textContent = collapsed ? '▼' : '▲';
+                groupToggle.setAttribute('aria-expanded', String(!collapsed));
+            });
+        }
         function lock(card, selected) {
             card.dataset.checked=String(selected);
             card.querySelectorAll('input[type=radio]').forEach(input=>{ input.checked=input.value===String(selected); input.disabled=true; });
@@ -54,16 +72,116 @@
             root.querySelector('.qp-progress').textContent = `Đã làm ${answered}/${cards.length} câu`;
             persist();
         }
-        // Chỉ đổi câu hiển thị và dừng audio câu vừa rời; các input vẫn trong form nên nộp đủ lựa chọn của mọi câu.
+        // Hien thi cau chi dinh va tat ca cau cung nhom (chia se audio/passage/image); cac input van trong form.
         function show(index, scroll = true) {
             if (index < 0 || index >= cards.length) return;
+            const targetGroup = cards[index].dataset.group;
+            const matchingCards = (targetGroup && !targetGroup.startsWith('ng-'))
+                ? cards.filter(c => c.dataset.group === targetGroup)
+                : [];
+            // Chi ap dung nhom khi co tu 2 cau tro len dung chung noi dung (2 hay 3 cau)
+            const isGrouped = matchingCards.length >= 2;
+            const groupCards = isGrouped ? matchingCards : [];
+            const lastInGroup = isGrouped ? groupCards[groupCards.length - 1] : null;
+            root.classList.toggle('qp-group-mode', isGrouped);
+
+            if (isGrouped && groupSticky) {
+                groupSticky.hidden = false;
+                const firstCard = groupCards[0];
+                const firstNo = firstCard.querySelector('.qp-pill')?.textContent?.trim() || `Câu ${cards.indexOf(firstCard) + 1}`;
+                const lastNo = lastInGroup?.querySelector('.qp-pill')?.textContent?.trim() || `Câu ${cards.indexOf(lastInGroup) + 1}`;
+                if (groupRange) groupRange.textContent = firstNo === lastNo ? firstNo : `${firstNo} ~ ${lastNo}`;
+
+                if (activeGroup !== targetGroup) {
+                    activeGroup = targetGroup;
+                    // Huong dan chung cua nhom
+                    const instrText = firstCard.querySelector('.qp-instruction')?.textContent?.trim() || '';
+                    if (groupInstruction) {
+                        groupInstruction.textContent = instrText;
+                        groupInstruction.hidden = !instrText;
+                    }
+                    // Audio chung cua nhom: giu am thanh lien tuc
+                    const audioSrc = firstCard.querySelector('.qp-audio audio')?.getAttribute('src');
+                    if (groupAudio) {
+                        if (audioSrc) {
+                            groupAudio.innerHTML = `<div><audio controls preload="none" src="${audioSrc}" aria-label="Âm thanh câu hỏi"></audio><small>Bấm để nghe, nghe lại thoải mái</small></div>`;
+                            groupAudio.hidden = false;
+                        } else {
+                            groupAudio.innerHTML = '';
+                            groupAudio.hidden = true;
+                        }
+                    }
+                    // Doan van chung cua nhom
+                    const passageText = firstCard.querySelector('.qp-passage')?.textContent?.trim() || '';
+                    if (groupPassage) {
+                        if (passageText) {
+                            groupPassage.textContent = passageText;
+                            groupPassage.hidden = false;
+                        } else {
+                            groupPassage.textContent = '';
+                            groupPassage.hidden = true;
+                        }
+                    }
+                    // Hinh anh chung cua nhom
+                    const imgEl = firstCard.querySelector('.qp-question-image img');
+                    if (groupImage) {
+                        if (imgEl && imgEl.getAttribute('src')) {
+                            const src = imgEl.getAttribute('src');
+                            groupImage.innerHTML = `<a href="${src}" target="_blank" rel="noopener" title="Mở ảnh kích thước đầy đủ"><img src="${src}" alt="Hình câu hỏi"><small>Mở ảnh lớn ↗</small></a>`;
+                            groupImage.hidden = false;
+                        } else {
+                            groupImage.innerHTML = '';
+                            groupImage.hidden = true;
+                        }
+                    }
+                }
+            } else if (groupSticky) {
+                activeGroup = null;
+                groupSticky.hidden = true;
+                if (groupAudio) {
+                    groupAudio.querySelectorAll('audio').forEach(a => a.pause());
+                    groupAudio.innerHTML = '';
+                }
+            }
+
             cards.forEach((card, i) => {
-                card.hidden = i !== index;
-                if (i !== index) card.querySelectorAll('audio').forEach(audio => audio.pause());
+                const inGroup = isGrouped && card.dataset.group === targetGroup;
+                card.hidden = !inGroup && i !== index;
+                if (inGroup) {
+                    // An noi dung dung chung tren tung the cau de khong bi lap lai
+                    const audioEl = card.querySelector('.qp-audio');
+                    if (audioEl) audioEl.hidden = true;
+                    const passageEl = card.querySelector('.qp-passage');
+                    if (passageEl) passageEl.hidden = true;
+                    const imgEl = card.querySelector('.qp-question-image');
+                    if (imgEl) imgEl.hidden = true;
+                    const instrEl = card.querySelector('.qp-instruction');
+                    if (instrEl) instrEl.hidden = true;
+                    // Chi an nav (qp-actions), giu nguyen qp-per-card-actions (flag/report/check)
+                    const navEl = card.querySelector('.qp-actions');
+                    if (navEl) navEl.hidden = (card !== lastInGroup);
+                } else {
+                    const audioEl = card.querySelector('.qp-audio');
+                    if (audioEl) audioEl.hidden = false;
+                    const passageEl = card.querySelector('.qp-passage');
+                    if (passageEl) passageEl.hidden = false;
+                    const imgEl = card.querySelector('.qp-question-image');
+                    if (imgEl) imgEl.hidden = false;
+                    const instrEl = card.querySelector('.qp-instruction');
+                    if (instrEl) instrEl.hidden = false;
+                    const navEl = card.querySelector('.qp-actions');
+                    if (navEl) navEl.hidden = false;
+                }
+                if (card.hidden) card.querySelectorAll('audio').forEach(a => a.pause());
             });
             current = index;
             update();
-            if (scroll) cards[current].scrollIntoView({behavior: 'smooth', block: 'start'});
+            if (scroll) {
+                const scrollTarget = (isGrouped && index !== cards.indexOf(groupCards[0]))
+                    ? cards[index]
+                    : (groupCards.length ? (groupSticky || groupCards[0]) : cards[index]);
+                scrollTarget.scrollIntoView({behavior: 'smooth', block: 'start'});
+            }
         }
         cards.forEach((card, i) => {
             // Exam selections come from its autosave backend; local recovery is only for practice/preview.
@@ -79,8 +197,41 @@
             options.classList.toggle('qp-images', images);
             const longText = [...options.querySelectorAll('.qp-option-content')].some(o => o.textContent.trim().length > 38);
             options.classList.toggle('qp-stacked', !images && longText);
-            card.querySelector('.qp-prev').addEventListener('click', () => show(i - 1));
-            card.querySelector('.qp-next').addEventListener('click', () => show(i + 1));
+            card.querySelector('.qp-prev').addEventListener('click', () => {
+                const myGroup = card.dataset.group;
+                const myMatching = (myGroup && !myGroup.startsWith('ng-')) ? cards.filter(c => c.dataset.group === myGroup) : [];
+                if (myMatching.length >= 2) {
+                    // Nut prev o cuoi group -> nhay ve cau truoc dau group
+                    let groupStart = i;
+                    while (groupStart > 0 && cards[groupStart-1].dataset.group === myGroup) groupStart--;
+                    let target = groupStart - 1;
+                    if (target < 0) return;
+                    const prevGroup = cards[target].dataset.group;
+                    const prevMatching = (prevGroup && !prevGroup.startsWith('ng-')) ? cards.filter(c => c.dataset.group === prevGroup) : [];
+                    if (prevMatching.length >= 2) {
+                        let prevStart = target;
+                        while (prevStart > 0 && cards[prevStart-1].dataset.group === prevGroup) prevStart--;
+                        target = prevStart;
+                    }
+                    show(target);
+                } else {
+                    // Cau don: chi lui 1 cau
+                    show(i - 1);
+                }
+            });
+            card.querySelector('.qp-next').addEventListener('click', () => {
+                const myGroup = card.dataset.group;
+                const myMatching = (myGroup && !myGroup.startsWith('ng-')) ? cards.filter(c => c.dataset.group === myGroup) : [];
+                if (myMatching.length >= 2) {
+                    // Nhay qua tat ca cau trong cung group
+                    let target = i + 1;
+                    while (target < cards.length && cards[target].dataset.group === myGroup) target++;
+                    show(target);
+                } else {
+                    // Cau don: chi tien 1 cau
+                    show(i + 1);
+                }
+            });
             numbers[i].addEventListener('click', () => show(i));
             card.querySelector('.qp-flag').addEventListener('click', () => {
                 if (flagged.has(card.dataset.key)) flagged.delete(card.dataset.key); else flagged.add(card.dataset.key);
@@ -195,6 +346,25 @@
                 if (!check.hidden) { event.preventDefault(); check.click(); }
             }
         });
+        // IntersectionObserver: đánh dấu câu đang scroll đến trong Phiếu câu hỏi
+        if (typeof IntersectionObserver !== "undefined") {
+            const ioOptions = { root: null, threshold: 0.4 };
+            const io = new IntersectionObserver((entries) => {
+                // Tìm card có intersection ratio cao nhất
+                let best = -1, bestRatio = 0;
+                entries.forEach(entry => {
+                    const idx = cards.indexOf(entry.target);
+                    if (idx >= 0 && entry.isIntersecting && entry.intersectionRatio > bestRatio) {
+                        best = idx; bestRatio = entry.intersectionRatio;
+                    }
+                });
+                if (best >= 0 && best !== current) {
+                    current = best;
+                    update(); // cập nhật đánh dấu số câu bên Phiếu câu hỏi
+                }
+            }, ioOptions);
+            cards.forEach(card => io.observe(card));
+        }
         show(Number.isInteger(state.current) && state.current >= 0 && state.current < cards.length ? state.current : 0, false);
     });
 })();

@@ -57,10 +57,12 @@
     <div class="rv-hint">Chọn số câu bên trái để xem đáp án và lời giải.</div>
 </div>
 
-<div th:fragment="legend(showWriting)" class="rv-legend">
-    <span><i style="background:#E3F2EA;border-color:#A7D7BE"></i>Đúng</span>
-    <span><i style="background:#FFF1F0;border-color:#FFA39E"></i>Sai</span>
-    <span><i style="background:#F1EEE6;border-color:#D8D1C2"></i>Bỏ qua</span>
+<div th:fragment="legend(showWriting, showMcq)" class="rv-legend" th:if="${(showMcq == null or showMcq) or showWriting}">
+    <th:block th:if="${showMcq == null or showMcq}">
+        <span><i style="background:#E3F2EA;border-color:#A7D7BE"></i>Đúng</span>
+        <span><i style="background:#FFF1F0;border-color:#FFA39E"></i>Sai</span>
+        <span><i style="background:#F1EEE6;border-color:#D8D1C2"></i>Bỏ qua</span>
+    </th:block>
     <span th:if="${showWriting}"><i style="background:#E4EEF5;border-color:#BCD3E3"></i>Viết</span>
 </div>
 
@@ -97,6 +99,11 @@
                 else if (s === 'wrong' || s === 'skip') n.WRONG++;
             });
             root.querySelectorAll('[data-count]').forEach(function (el) { el.textContent = n[el.dataset.count]; });
+            if (n.CORRECT === 0 && n.WRONG === 0) {
+                root.querySelectorAll('.rv-filter[data-filter="WRONG"], .rv-filter[data-filter="CORRECT"]').forEach(function(b) {
+                    b.style.display = 'none';
+                });
+            }
         }
         function show(chip, updateHash) {
             current = chip;

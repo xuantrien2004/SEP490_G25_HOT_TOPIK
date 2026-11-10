@@ -394,18 +394,28 @@ public class ExamImportService {
                            String scriptVi, List<String> prompt, List<String> opt1, List<String> opt2, List<String> opt3,
                            List<String> opt4, List<String> answer, List<String> explanation, List<String> keys1,
                            List<String> keys2, List<String> modelAnswer, List<String> rubric, List<String> chart,
+                           List<String> opt1Img, List<String> opt2Img, List<String> opt3Img, List<String> opt4Img,
                            String typeCode, List<Integer> qno) {
+        public CardForm(String cardId, String templateCode, String audio, String image, String passage, String script,
+                        String scriptVi, List<String> prompt, List<String> opt1, List<String> opt2, List<String> opt3,
+                        List<String> opt4, List<String> answer, List<String> explanation, List<String> keys1,
+                        List<String> keys2, List<String> modelAnswer, List<String> rubric, List<String> chart,
+                        String typeCode, List<Integer> qno) {
+            this(cardId, templateCode, audio, image, passage, script, scriptVi, prompt, opt1, opt2, opt3, opt4,
+                    answer, explanation, keys1, keys2, modelAnswer, rubric, chart, null, null, null, null, typeCode, qno);
+        }
     }
 
     public record AskView(String prompt, String opt1, String opt2, String opt3, String opt4, String answer,
                           String explanation, String keys1, String keys2, String modelAnswer, String rubric, String chart,
+                          String opt1Img, String opt2Img, String opt3Img, String opt4Img,
                           Integer no) {
         public static AskView blank() {
-            return new AskView("", "", "", "", "", "", "", "", "", "", "", "", null);
+            return new AskView("", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", null);
         }
 
         public AskView withNo(Integer no) {
-            return new AskView(prompt, opt1, opt2, opt3, opt4, answer, explanation, keys1, keys2, modelAnswer, rubric, chart, no);
+            return new AskView(prompt, opt1, opt2, opt3, opt4, answer, explanation, keys1, keys2, modelAnswer, rubric, chart, opt1Img, opt2Img, opt3Img, opt4Img, no);
         }
     }
 
@@ -512,8 +522,19 @@ public class ExamImportService {
             ask.modelAnswer = emptyToNull(at(form.modelAnswer(), i));
             ask.rubricNote = emptyToNull(at(form.rubric(), i));
             ask.chart = emptyToNull(at(form.chart(), i));
+            if (ask.optImgs == null) ask.optImgs = new String[4];
+            ask.optImgs[0] = emptyToNull(at(form.opt1Img(), i));
+            ask.optImgs[1] = emptyToNull(at(form.opt2Img(), i));
+            ask.optImgs[2] = emptyToNull(at(form.opt3Img(), i));
+            ask.optImgs[3] = emptyToNull(at(form.opt4Img(), i));
             ask.no = form.qno() == null || i >= form.qno().size() ? null : form.qno().get(i);
             card.asks.add(ask);
+        }
+        if (card.imageFile == null && card.asks.size() == 1 && card.asks.get(0).chart != null) {
+            String c = card.asks.get(0).chart.trim();
+            if (!c.startsWith("[")) {
+                card.imageFile = c;
+            }
         }
         storeDraft(job, wb);
         jobs.save(job);
@@ -640,6 +661,9 @@ public class ExamImportService {
                     boolean pictures = template.getImageScope() == ResourceScope.OPTIONS;
                     for (int i = 0; i < 4; i++) {
                         String option = i < options.length ? options[i] : null;
+                        if (blank(option) && ask.optImgs != null && !blank(at(ask.optImgs, i))) {
+                            option = at(ask.optImgs, i);
+                        }
                         if (blank(option)) {
                             issues.add(ImportIssue.error("CARD", index, skill, index, where + " thiếu phương án " + (i + 1) + ".").forQuestion(ask.no));
                         } else if (pictures && !MediaStorageService.isImage(option)) {
@@ -697,13 +721,18 @@ public class ExamImportService {
 
     private static AskView toView(ParsedWorkbook.ManualAsk ask) {
         String[] options = ask.options == null ? new String[4] : ask.options;
+        String[] imgs = ask.optImgs == null ? new String[4] : ask.optImgs;
         return new AskView(nz(ask.promptKo), nz(at(options, 0)), nz(at(options, 1)), nz(at(options, 2)), nz(at(options, 3)),
                 ask.answer == null ? nz(ask.answerRaw) : String.valueOf(ask.answer),
                 nz(ask.explanationVi), nz(ask.keys1), nz(ask.keys2), nz(ask.modelAnswer), nz(ask.rubricNote), nz(ask.chart),
+                nz(at(imgs, 0)), nz(at(imgs, 1)), nz(at(imgs, 2)), nz(at(imgs, 3)),
                 ask.no);
     }
 
     private static int askCount(CardForm form) {
+        if (form.qno() != null && !form.qno().isEmpty()) {
+            return (int) form.qno().stream().filter(java.util.Objects::nonNull).count();
+        }
         int n = 0;
         n = Math.max(n, len(form.prompt()));
         n = Math.max(n, len(form.opt1()));
@@ -782,7 +811,7 @@ public class ExamImportService {
     }
 
     public record LearnerAsk(int no, String prompt, String opt1, String opt2, String opt3, String opt4,
-                             String answer, String explanation) {
+                             String answer, String explanation, String image) {
     }
 
     /** Một bài trên màn học viên: hướng dẫn dạng, nguyên liệu chung, rồi các câu của bài. */
@@ -814,7 +843,7 @@ public class ExamImportService {
                         instructionOf(source.getTrack(), Skill.WRITING, slot.no()),
                         "Phần Viết · 4 câu · 100 điểm", guide, true,
                         "", slot.chart().startsWith("[") ? "" : slot.chart(), slot.passage(), "", "",
-                        List.of(new LearnerAsk(slot.no(), slot.prompt(), "", "", "", "", "", explain))));
+                        List.of(new LearnerAsk(slot.no(), slot.prompt(), "", "", "", "", "", explain, slot.chart()))));
                 continue;
             }
             QuestionTypeDef type = QuestionTypeCatalog.resolve(source.getTrack(), slot.skill(), slot.no()).orElse(null);
@@ -839,7 +868,7 @@ public class ExamImportService {
             int count = QuestionTypeCatalog.section(source.getTrack(), slot.skill()).map(QuestionTypeCatalog.Section::count).orElse(0);
             String points = "Phần " + slot.skill().getLabel() + " · " + count + " câu · 100 điểm";
             List<LearnerAsk> asks = members.stream()
-                    .map(s -> new LearnerAsk(s.no(), s.prompt(), s.opt1(), s.opt2(), s.opt3(), s.opt4(), s.answer(), s.explanation()))
+                    .map(s -> new LearnerAsk(s.no(), s.prompt(), s.opt1(), s.opt2(), s.opt3(), s.opt4(), s.answer(), s.explanation(), s.chart()))
                     .toList();
             out.add(new LearnerBai(key, slot.skill(), type.code(), type.name(), type.instructionKo(), points, guide, false,
                     audio, image, passage, script, "", asks));
@@ -855,27 +884,36 @@ public class ExamImportService {
             QuestionTemplate template = blank(card.templateCode) ? null : templateRepo.findByCode(card.templateCode).orElse(null);
             Skill skill = template == null ? Skill.READING : template.getSkill();
             boolean writing = skill == Skill.WRITING;
+            String image = nz(card.imageFile);
+            if (card.asks.size() == 1 && !blank(card.asks.get(0).chart)) {
+                String chart = card.asks.get(0).chart.trim();
+                if (!chart.startsWith("[")) {
+                    image = chart;
+                }
+            }
             List<LearnerAsk> asks = new ArrayList<>();
             for (ParsedWorkbook.ManualAsk ask : card.asks) {
                 running++;
                 String[] options = ask.options == null ? new String[4] : ask.options;
+                String[] optImgs = ask.optImgs == null ? new String[4] : ask.optImgs;
+                String opt1 = !blank(at(options, 0)) ? at(options, 0) : nz(at(optImgs, 0));
+                String opt2 = !blank(at(options, 1)) ? at(options, 1) : nz(at(optImgs, 1));
+                String opt3 = !blank(at(options, 2)) ? at(options, 2) : nz(at(optImgs, 2));
+                String opt4 = !blank(at(options, 3)) ? at(options, 3) : nz(at(optImgs, 3));
                 String answer = ask.answer == null ? nz(ask.answerRaw) : String.valueOf(ask.answer);
                 String explain = writing
                         ? joinNonBlank(ask.explanationVi, joinNonBlank(ask.modelAnswer, ask.rubricNote))
                         : nz(ask.explanationVi);
-                asks.add(new LearnerAsk(writing && ask.no != null ? ask.no : running, nz(ask.promptKo), nz(at(options, 0)), nz(at(options, 1)),
-                        nz(at(options, 2)), nz(at(options, 3)), answer, explain));
+                String askChart = blank(ask.chart) ? "" : ask.chart.trim();
+                String askImg = !askChart.startsWith("[") && !askChart.isEmpty() ? askChart : image;
+                asks.add(new LearnerAsk(writing && ask.no != null ? ask.no : running, nz(ask.promptKo), opt1, opt2,
+                        opt3, opt4, answer, explain, askImg));
             }
             if (asks.isEmpty()) continue;
             String code = template == null ? nz(card.templateCode) : template.getCode();
             boolean guide = !code.equals(lastCode);
             lastCode = code;
             String points = "Phần " + skill.getLabel() + " · " + asks.size() + " câu trong bài này";
-            String image = nz(card.imageFile);
-            if (writing && card.asks.size() == 1 && !blank(card.asks.get(0).chart)) {
-                String chart = card.asks.get(0).chart.trim();
-                image = chart.startsWith("[") ? "" : chart;
-            }
             out.add(new LearnerBai(card.id, skill, code, template == null ? "Bài" : template.getName(),
                     template == null ? "" : template.getDescription(), points, guide, writing,
                     nz(card.audioFile), image, nz(card.passageKo), nz(card.scriptKo), nz(card.scriptVi), asks));
@@ -1181,7 +1219,14 @@ public class ExamImportService {
             group.setScriptVi(card.scriptVi);
             group.setPassageKo(card.passageKo);
             group.setAudioFile(card.audioFile);
-            group.setImageFile(template.getImageScope() == ResourceScope.OPTIONS ? null : card.imageFile);
+            String groupImg = template.getImageScope() == ResourceScope.OPTIONS ? null : card.imageFile;
+            if (blank(groupImg) && !card.asks.isEmpty() && !blank(card.asks.get(0).chart)) {
+                String chart = card.asks.get(0).chart.trim();
+                if (!chart.startsWith("[")) {
+                    groupImg = chart;
+                }
+            }
+            group.setImageFile(groupImg);
             groups.save(group);
             for (ParsedWorkbook.ManualAsk ask : card.asks) {
                 int no = ask.no != null ? ask.no : nextNo.merge(template.getSkill(), 1, Integer::sum);
@@ -1241,6 +1286,10 @@ public class ExamImportService {
 
     private static String optionAt(ParsedWorkbook.ManualAsk ask, int index) {
         String value = at(ask.options, index);
+        if (blank(value) && ask.optImgs != null) {
+            String img = at(ask.optImgs, index);
+            if (!blank(img)) return img;
+        }
         return blank(value) ? "-" : value;
     }
 

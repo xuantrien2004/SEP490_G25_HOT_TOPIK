@@ -30,7 +30,11 @@ public class LearnerExamService {
         public Long id() { return questionId; }
     }
     public record WritingView(Long promptId, String key, int no, String prompt, String image, List<Map<String, Object>> chart,
-                              String selected, String modelAnswer, String rubric) {
+                              String selected, String modelAnswer, String rubric, String keys1, String keys2) {
+        public WritingView(Long promptId, String key, int no, String prompt, String image, List<Map<String, Object>> chart,
+                           String selected, String modelAnswer, String rubric) {
+            this(promptId, key, no, prompt, image, chart, selected, modelAnswer, rubric, null, null);
+        }
         public Long id() { return promptId; }
     }
     public record Paper(ExamAttempt attempt, String title, Track track, ExamKind kind,
@@ -177,6 +181,18 @@ public class LearnerExamService {
     }
 
     @Transactional(readOnly = true)
+    public Map<Long, Map<Long, com.hottopik.dto.WritingSubmissionDTO>> allWritingReviewsByAttempt(Long userId) {
+        if (userId == null) return Map.of();
+        Map<Long, Map<Long, com.hottopik.dto.WritingSubmissionDTO>> map = new LinkedHashMap<>();
+        for (var s : writingSubmissions.getSubmissionsByLearner(userId)) {
+            if (s.getExamAttemptId() != null) {
+                map.computeIfAbsent(s.getExamAttemptId(), k -> new LinkedHashMap<>()).put(s.getPromptId(), s);
+            }
+        }
+        return map;
+    }
+
+    @Transactional(readOnly = true)
     public Map<Long, com.hottopik.dto.WritingSubmissionDTO> sentToTeacherByPrompt(Long userId) {
         return writingSubmissions.sentToTeacherByPrompt(userId);
     }
@@ -296,9 +312,11 @@ public class LearnerExamService {
         List<WritingView> writing = exam.writingPrompts().stream().map(p -> {
             var review = reviews.get(p.getId());
             boolean graded = review != null && review.getTotalScore() != null;
+            String model = graded ? review.getModelAnswer()
+                    : (result && p.getNo() <= 52 ? (p.getKeys1() != null && p.getKeys2() != null ? "㉠ " + p.getKeys1() + "\n㉡ " + p.getKeys2() : p.getModelAnswer()) : null);
             return new WritingView(p.getId(), "w" + p.getId(), p.getNo(), p.getPromptKo(),
                     media(p.getSource(), p.getChartImage()), chart(p.getChartJson()), answers.get("w" + p.getId()),
-                    graded ? review.getModelAnswer() : null, graded ? p.getRubricNote() : null);
+                    model, graded ? p.getRubricNote() : null, p.getKeys1(), p.getKeys2());
         }).toList();
         // Do not expose the entity's question associations (or their answer keys) to the browser.
         List<ExamAttempt> history = result ? attempts.findByUserIdOrderByStartedAtDescIdDesc(attempt.getUserId()).stream()

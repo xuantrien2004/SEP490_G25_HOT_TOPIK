@@ -256,7 +256,7 @@
                         </tr>
                         </thead>
                         <tbody>
-                        <tr th:each="h, hIter : ${result.history}" th:if="${h.id != result.attempt.id}">
+                        <tr th:each="h, hIter : ${result.history}" th:if="${h.id != result.attempt.id}" class="prac-hist-row">
                             <td>
                                 <div class="fw-medium text-dark" th:text="${#temporals.format(h.completedAt, 'dd/MM/yyyy HH:mm')}">21/10/2026 17:00</div>
                             </td>
@@ -286,6 +286,27 @@
                         </tbody>
                     </table>
                 </div>
+                <!-- Phân trang Lịch sử lần luyện -->
+                <div id="pracHistPager" class="d-flex align-items-center justify-content-between mt-3 pt-3 border-top" style="display:none!important"></div>
+                <script>
+                (function(){
+                    var PAGE=5, rows=Array.from(document.querySelectorAll('.prac-hist-row')), page=1;
+                    var pager=document.getElementById('pracHistPager');
+                    function total(){return Math.ceil(rows.length/PAGE)||1;}
+                    function render(){
+                        rows.forEach(function(r,i){r.style.display=(i>=(page-1)*PAGE && i<page*PAGE)?'':'none';});
+                        var t=total();
+                        pager.style.display = t>1 ? 'flex' : 'none';
+                        pager.innerHTML='<span class="small text-muted">Trang <strong>'+page+'</strong> / '+t+' · '+rows.length+' lần</span>'
+                            +'<div class="d-flex gap-2">'
+                            +(page>1?'<button class="btn btn-sm btn-outline-secondary rounded-3" onclick="pracHistPage(-1)">← Trước</button>':'')
+                            +(page<t?'<button class="btn btn-sm btn-outline-secondary rounded-3" onclick="pracHistPage(1)">Sau →</button>':'')
+                            +'</div>';
+                    }
+                    window.pracHistPage=function(d){page=Math.max(1,Math.min(total(),page+d));render();};
+                    if(rows.length>0)render();
+                })();
+                </script>
             </div>
         </div>
 

@@ -161,6 +161,13 @@ public class LearnerExamController {
         model.addAttribute("sentByPrompt", sentByPrompt);
         model.addAttribute("canSendByPrompt", canSendByPrompt);
         model.addAttribute("canSendWriting", canSendByPrompt.containsValue(true));
+
+        java.util.Map<String, String> creditedAnswers = com.hottopik.service.exam.CheckedAnswers.read(paper.attempt().getCreditedAnswersJson());
+        com.hottopik.dto.ExamScoreDTO scoreSummary = com.hottopik.service.exam.ExamScoreCalculator.calculate(paper, reviews, creditedAnswers, sentByPrompt);
+        var allReviews = service.allWritingReviewsByAttempt(user.getId());
+        java.util.List<com.hottopik.dto.ExamScoreDTO.HistoryItem> historyItems = com.hottopik.service.exam.ExamScoreCalculator.calculateHistory(paper, scoreSummary, allReviews);
+        model.addAttribute("scoreSummary", scoreSummary);
+        model.addAttribute("historyItems", historyItems);
         return "exam/result";
     }
 

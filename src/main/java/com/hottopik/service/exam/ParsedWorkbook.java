@@ -53,6 +53,8 @@ public class ParsedWorkbook {
     public static class ManualAsk {
         public String promptKo;
         public String[] options = new String[4];
+        /** Tên file ảnh cho từng phương án (tương ứng với options[0..3]). */
+        public String[] optImgs = new String[4];
         public String answerRaw;
         public Integer answer;
         public String explanationVi;

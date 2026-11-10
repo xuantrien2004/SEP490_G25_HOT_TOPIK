@@ -41,9 +41,10 @@ public record QuestionPlayerItem(String key, Long id, int no, String skill, Stri
                                             ExamImportService.LearnerAsk ask, Long sourceId, int index) {
         String base = "/content/media/" + sourceId + "/";
         Integer answer = ask.answer() != null && ask.answer().matches("[1-4]") ? Integer.valueOf(ask.answer()) : null;
+        String img = (ask.image() != null && !ask.image().isBlank()) ? ask.image() : bai.image();
         return new QuestionPlayerItem("preview_" + index, null, ask.no(), bai.skill().name(),
                 bai.skill().getLabel(), bai.instructionKo(), ask.prompt(), bai.passage(),
-                media(base, bai.audio()), media(base, bai.image()),
+                media(base, bai.audio()), media(base, img),
                 java.util.Arrays.asList(ask.opt1(), ask.opt2(), ask.opt3(), ask.opt4()).stream().map(o -> choice(o, base)).toList(),
                 null, null, answer, ask.explanation(), bai.script());
     }

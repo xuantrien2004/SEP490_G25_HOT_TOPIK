@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿﻿﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="vi"><body>
 <th:block th:fragment="assets">
     <link rel="stylesheet" th:href="@{/css/question-player.css}">
@@ -11,8 +11,29 @@
 <div th:fragment="player(items, preview, examId, title)" class="qp-player" th:attr="data-preview=${preview},data-checked-json=${checkedAnswersJson}">
     <div class="qp-layout" th:unless="${#lists.isEmpty(items)}">
         <div class="qp-main">
+            <!-- Khung co dinh cho noi dung dung chung cua nhom cau (audio, doan van, hinh anh) -->
+            <div class="qp-group-sticky" hidden>
+                <div class="qp-group-sticky-card">
+                    <div class="qp-group-sticky-top">
+                        <div class="qp-group-sticky-tags">
+                            <span class="qp-pill qp-group-pill">Nội dung dùng chung</span>
+                            <span class="qp-pill qp-skill qp-group-range"></span>
+                        </div>
+                        <button type="button" class="qp-group-toggle" aria-expanded="true">
+                            <span class="qp-toggle-text">Thu gọn</span> <span class="qp-toggle-icon">▲</span>
+                        </button>
+                    </div>
+                    <div class="qp-group-sticky-content">
+                        <p class="qp-instruction qp-group-instruction" hidden></p>
+                        <div class="qp-audio qp-group-audio" hidden></div>
+                        <div class="qp-passage qp-group-passage" hidden></div>
+                        <div class="qp-question-image qp-group-image" hidden></div>
+                    </div>
+                </div>
+            </div>
+
             <section th:each="q, stat : ${items}" class="qp-question" th:hidden="${!stat.first}"
-                     th:attr="data-key=${q.key},data-skill=${q.skill},data-check-url=${q.checkUrl},data-answer=${q.answer}"
+                     th:attr="data-key=${q.key},data-skill=${q.skill},data-check-url=${q.checkUrl},data-answer=${q.answer},data-group=${(q.audio != null and !#strings.isEmpty(q.audio)) ? q.audio : ((q.passage != null and !#strings.isEmpty(q.passage)) ? q.passage : ((q.image != null and !#strings.isEmpty(q.image)) ? q.image : ('ng-' + stat.index)))}"
                      th:id="${'player-' + q.key}">
                 <div class="qp-card">
                     <div class="qp-tags"><span class="qp-pill" th:text="${'Câu ' + stat.count}"></span>
@@ -59,15 +80,17 @@
                         <span class="qp-source-script" th:text="${q.script}"></span>
                     </div>
                 </div>
-                <div class="qp-actions">
-                    <button type="button" class="qp-button qp-prev" th:disabled="${stat.first}">← Câu trước</button>
+                <div class="qp-per-card-actions">
                     <button type="button" class="qp-button qp-flag" aria-pressed="false">Chưa chắc</button>
                     <button th:unless="${preview}" type="button" class="qp-report"
                             th:attr="data-qid=${q.id},data-code=${q.label + ' - Câu ' + q.no},data-prompt=${q.prompt},data-examid=${examId},data-examtitle=${title},data-no=${q.no}"
                             onclick="openReportModalFromBtn(this)">Báo lỗi câu hỏi</button>
+                    <button type="button" class="qp-button qp-primary qp-check" hidden>Kiểm tra</button>
+                </div>
+                <div class="qp-actions">
+                    <button type="button" class="qp-button qp-prev" th:disabled="${stat.first}">← Câu trước</button>
                     <div class="qp-actions-end">
                         <button type="button" class="qp-button qp-next" th:disabled="${stat.last}">Câu tiếp →</button>
-                        <button type="button" class="qp-button qp-primary qp-check" hidden>Kiểm tra</button>
                     </div>
                 </div>
             </section>

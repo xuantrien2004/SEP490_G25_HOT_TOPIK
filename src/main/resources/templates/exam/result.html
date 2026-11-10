@@ -1,214 +1,452 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="vi">
 <head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
-<body style="background:#F8F6EF;color:#24363D;font-family:var(--font-body)">
+<body style="background: var(--ssak-bg, #F8F6EF); color: var(--ssak-text-main, #24363D); font-family: var(--font-body)">
 <div th:replace="~{fragments/navbar :: navbar('exam')}"></div>
-<main class="container py-4" style="max-width:1080px" data-report-attempt-kind="EXAM" th:attr="data-report-attempt-id=${paper.attempt.id}">
 
-    <!-- Header -->
-    <section class="bg-white border rounded-4 p-4 mb-4 shadow-sm">
-        <span class="badge text-bg-success" th:text="${paper.track.label}"></span>
-        <h1 class="h3 mt-2" th:text="${'Kết quả: ' + paper.title}"></h1>
-        <p th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></p>
-        <p th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></p>
+<main class="container py-4" style="max-width: 1080px; min-height: 85vh;" data-report-attempt-kind="EXAM" th:attr="data-report-attempt-id=${paper.attempt.id}">
 
-        <!-- Thời gian nộp bài -->
-        <p class="text-muted small mb-2" th:if="${paper.attempt.completedAt != null}">
-            ⏱ Nộp bài lúc: <strong th:text="${#temporals.format(paper.attempt.completedAt, 'HH:mm  dd/MM/yyyy')}"></strong>
-        </p>
+    <!-- ========================================== -->
+    <!-- BANNER KẾT QUẢ ĐỀ THI & BẢNG ĐIỂM CHUẨN TOPIK -->
+    <!-- ========================================== -->
+    <section class="position-relative p-4 p-md-5 rounded-4 mb-4 border shadow-sm overflow-hidden"
+             style="background: linear-gradient(135deg, #E8F5E9 0%, #F1F8E9 100%); border-color: #A9D9C0 !important;">
+        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+            <span class="badge" style="background: #1F6B56; color: #FFFFFF; font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 20px;">
+                🎉 Hoàn thành đề thi
+            </span>
+            <span class="badge bg-white text-dark border fw-bold" th:text="${paper.track.label}">TOPIK I</span>
+            <span class="badge bg-light text-muted border fw-medium" th:text="${paper.kind.label}">Đề thi trọn bộ</span>
+        </div>
 
-        <p th:if="${paper.attempt.total > 0}" class="h4 text-success"
-           th:text="${'Trắc nghiệm: ' + paper.attempt.correct + '/' + paper.attempt.total + ' câu đúng'}"></p>
-        <p th:unless="${#lists.isEmpty(paper.writing)}">Bài Viết đã được lưu. Kết quả sẽ được cập nhật tại đây sau khi Giáo viên chấm.</p>
+        <h1 class="h3 fw-bold mb-2" style="font-family: var(--font-heading, sans-serif); color: #164E40;"
+            th:text="'Kết quả: ' + ${paper.title}">Kết quả đề thi</h1>
+
+        <div th:if="${successMessage}" class="alert alert-success my-2" th:text="${successMessage}"></div>
+        <div th:if="${errorMessage}" class="alert alert-danger my-2" th:text="${errorMessage}"></div>
+
+        <div class="small text-muted mb-3" th:if="${paper.attempt.completedAt != null}">
+            ⏱ <strong>Thời gian nộp:</strong> <span th:text="${#temporals.format(paper.attempt.completedAt, 'dd/MM/yyyy HH:mm')}"></span>
+        </div>
+
+        <!-- Bảng điểm số: Hiển thị điểm số theo từng kỹ năng và tổng điểm (không dùng % đúng) -->
+        <div class="row g-3 mb-3" style="max-width: 880px;">
+            <!-- Cột Tổng Điểm -->
+            <div class="col-12 col-md-5">
+                <div class="bg-white p-3 p-md-4 rounded-3 border h-100 shadow-sm d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="small text-muted fw-bold text-uppercase" style="letter-spacing: .5px;">Tổng điểm đạt được</span>
+                            <span class="badge"
+                                  th:classappend="'bg-' + ${scoreSummary.gradeCss} + '-subtle text-' + ${scoreSummary.gradeCss} + '-emphasis border border-' + ${scoreSummary.gradeCss}"
+                                  th:text="${scoreSummary.gradeBadge}">Đạt</span>
+                        </div>
+                        <div class="d-flex align-items-baseline gap-1 my-1">
+                            <span class="display-5 fw-bold text-success" th:text="${scoreSummary.formattedTotalScore}">85</span>
+                            <span class="fs-4 text-muted fw-semibold">/ <span th:text="${scoreSummary.formattedMaxScore}">100</span> đ</span>
+                        </div>
+                    </div>
+                    <div class="small text-muted pt-2 border-top mt-2" th:if="${scoreSummary.totalQuestions > 0}">
+                        Số câu trắc nghiệm đúng: <strong class="text-dark" th:text="${scoreSummary.totalCorrect} + '/' + ${scoreSummary.totalQuestions}"></strong> câu
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cột Điểm chi tiết các kỹ năng -->
+            <div class="col-12 col-md-7">
+                <div class="d-flex flex-column gap-2 h-100 justify-content-center">
+                    <!-- Kỹ năng Nghe -->
+                    <div th:if="${scoreSummary.hasListening}" class="bg-white p-3 rounded-3 border shadow-sm d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                            <span style="font-size: 20px;">🎧</span>
+                            <div>
+                                <div class="fw-bold text-dark" style="font-size: 14px;">Kỹ năng Nghe</div>
+                                <div class="small text-muted" th:text="${scoreSummary.listenCorrect} + '/' + ${scoreSummary.listenTotal} + ' câu đúng (' + ${scoreSummary.listenPointPerQuestion} + ' đ/câu)'"></div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="fs-5 fw-bold text-success" th:text="${scoreSummary.formattedListenScore}"></span>
+                            <span class="small text-muted fw-bold"> / <span th:text="${scoreSummary.formattedListenMaxScore}">100</span> đ</span>
+                        </div>
+                    </div>
+
+                    <!-- Kỹ năng Đọc -->
+                    <div th:if="${scoreSummary.hasReading}" class="bg-white p-3 rounded-3 border shadow-sm d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                            <span style="font-size: 20px;">📖</span>
+                            <div>
+                                <div class="fw-bold text-dark" style="font-size: 14px;">Kỹ năng Đọc</div>
+                                <div class="small text-muted" th:text="${scoreSummary.readCorrect} + '/' + ${scoreSummary.readTotal} + ' câu đúng (' + ${scoreSummary.readPointPerQuestion} + ' đ/câu)'"></div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="fs-5 fw-bold text-success" th:text="${scoreSummary.formattedReadScore}"></span>
+                            <span class="small text-muted fw-bold"> / <span th:text="${scoreSummary.formattedReadMaxScore}">100</span> đ</span>
+                        </div>
+                    </div>
+
+                    <!-- Kỹ năng Viết (100 đ) -->
+                    <div th:if="${scoreSummary.hasWriting}" class="bg-white p-3 rounded-3 border shadow-sm">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span style="font-size: 20px;">✍️</span>
+                                <div>
+                                    <span class="fw-bold text-dark" style="font-size: 14px;">Kỹ năng Viết (100 đ)</span>
+                                    <span th:if="${scoreSummary.hasAnyWritingWaiting()}" class="badge bg-warning-subtle text-warning-emphasis border border-warning ms-1" style="font-size: 11px;">⏳ Có câu chờ GV chấm</span>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="fs-5 fw-bold text-success" th:text="${scoreSummary.formattedWritingScore}"></span>
+                                <span class="small text-muted fw-bold"> / 100 đ</span>
+                            </div>
+                        </div>
+
+                        <!-- Chi tiết từng câu Viết 51, 52, 53, 54 -->
+                        <div class="d-flex flex-wrap gap-2 pt-2 border-top small">
+                            <!-- Câu 51 -->
+                            <div class="px-2 py-1 rounded bg-light border">
+                                <strong>C51:</strong>
+                                <span th:if="${scoreSummary.writing51Score != null}" class="text-success fw-bold" th:text="${scoreSummary.formattedWriting51Score} + '/10đ'"></span>
+                                <span th:if="${scoreSummary.writing51Waiting}" class="text-warning-emphasis fw-semibold">⏳ Chờ chấm</span>
+                                <span th:if="${scoreSummary.writing51Score == null and !scoreSummary.writing51Waiting}" class="text-muted">—/10đ</span>
+                                <span th:if="${scoreSummary.writing51Auto}" class="text-muted" style="font-size:10px;" title="Chấm theo đáp án tham khảo">(Tham khảo)</span>
+                                <span th:if="${scoreSummary.writing51Graded}" class="text-primary" style="font-size:10px;" title="Giáo viên đã chấm">(GV chấm)</span>
+                            </div>
+
+                            <!-- Câu 52 -->
+                            <div class="px-2 py-1 rounded bg-light border">
+                                <strong>C52:</strong>
+                                <span th:if="${scoreSummary.writing52Score != null}" class="text-success fw-bold" th:text="${scoreSummary.formattedWriting52Score} + '/10đ'"></span>
+                                <span th:if="${scoreSummary.writing52Waiting}" class="text-warning-emphasis fw-semibold">⏳ Chờ chấm</span>
+                                <span th:if="${scoreSummary.writing52Score == null and !scoreSummary.writing52Waiting}" class="text-muted">—/10đ</span>
+                                <span th:if="${scoreSummary.writing52Auto}" class="text-muted" style="font-size:10px;" title="Chấm theo đáp án tham khảo">(Tham khảo)</span>
+                                <span th:if="${scoreSummary.writing52Graded}" class="text-primary" style="font-size:10px;" title="Giáo viên đã chấm">(GV chấm)</span>
+                            </div>
+
+                            <!-- Câu 53 -->
+                            <div class="px-2 py-1 rounded bg-light border">
+                                <strong>C53:</strong>
+                                <span th:if="${scoreSummary.writing53Score != null}" class="text-success fw-bold" th:text="${scoreSummary.formattedWriting53Score} + '/30đ'"></span>
+                                <span th:if="${scoreSummary.writing53Waiting}" class="text-warning-emphasis fw-semibold">⏳ Chờ chấm</span>
+                                <span th:if="${scoreSummary.writing53Score == null and !scoreSummary.writing53Waiting}" class="text-muted">—/30đ</span>
+                                <span th:if="${scoreSummary.writing53Graded}" class="text-primary" style="font-size:10px;">(GV chấm)</span>
+                            </div>
+
+                            <!-- Câu 54 -->
+                            <div class="px-2 py-1 rounded bg-light border">
+                                <strong>C54:</strong>
+                                <span th:if="${scoreSummary.writing54Score != null}" class="text-success fw-bold" th:text="${scoreSummary.formattedWriting54Score} + '/50đ'"></span>
+                                <span th:if="${scoreSummary.writing54Waiting}" class="text-warning-emphasis fw-semibold">⏳ Chờ chấm</span>
+                                <span th:if="${scoreSummary.writing54Score == null and !scoreSummary.writing54Waiting}" class="text-muted">—/50đ</span>
+                                <span th:if="${scoreSummary.writing54Graded}" class="text-primary" style="font-size:10px;">(GV chấm)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Gửi GV chấm: chỉ gửi các câu có nội dung -->
-        <div th:unless="${#lists.isEmpty(paper.writing)}">
+        <div th:unless="${#lists.isEmpty(paper.writing)}" class="mb-3">
             <form th:if="${currentUser.vip and canSendWriting}" method="post"
                   th:action="@{/exam/attempt/{id}/send-teacher(id=${paper.attempt.id})}">
                 <button type="submit" class="btn btn-outline-success">Gửi Giáo viên chấm</button>
                 <span class="small text-muted ms-2">Chỉ gửi những câu Viết đã có nội dung. Giáo viên sẽ thông báo khi chấm xong.</span>
             </form>
-            <p th:unless="${currentUser.vip}" class="small">Muốn Giáo viên chấm bài, hãy <a th:href="@{/vip}">đăng ký VIP</a>.</p>
+            <p th:unless="${currentUser.vip}" class="small mb-0">Muốn Giáo viên chấm bài, hãy <a th:href="@{/vip}">đăng ký VIP</a>.</p>
         </div>
 
+        <!-- Nút Hành động chuyển hướng -->
         <div class="d-flex flex-wrap gap-3 mt-3">
-            <a class="btn btn-outline-secondary" th:href="${backUrl}">← Danh sách đề</a>
+            <a class="btn btn-outline-secondary rounded-3 fw-bold" th:href="${backUrl}">← Danh sách đề</a>
             <form method="post" th:action="@{/exam/{id}/retry(id=${paper.attempt.exam.id})}">
-                <button class="btn btn-success" type="submit">Làm lại đề này</button>
+                <button class="btn btn-success rounded-3 fw-bold shadow-sm" type="submit">🔄 Làm lại đề này</button>
             </form>
         </div>
     </section>
 
-    <!-- Khung xem lại dùng chung với Luyện tập: fragments/result-review -->
-    <div class="rv-review">
-    <div th:replace="~{fragments/result-review :: toolbar}"></div>
-    <div class="rv-layout">
+    <!-- ============================================================ -->
+    <!-- 2 TABS ĐIỀU HƯỚNG: CHI TIẾT CÂU HỎI & LỊCH SỬ LÀM ĐỀ NÀY      -->
+    <!-- ============================================================ -->
+    <ul class="nav nav-tabs nav-fill mb-4 fw-bold" id="resultTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active py-3 text-dark d-flex align-items-center justify-content-center gap-2"
+                    id="tab-answers" data-bs-toggle="tab" data-bs-target="#content-answers" type="button" role="tab"
+                    aria-controls="content-answers" aria-selected="true">
+                <span>📝 Chi tiết từng câu hỏi</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link py-3 text-dark d-flex align-items-center justify-content-center gap-2"
+                    id="tab-history" data-bs-toggle="tab" data-bs-target="#content-history" type="button" role="tab"
+                    aria-controls="content-history" aria-selected="false">
+                <span>📜 Lịch sử làm đề này</span>
+            </button>
+        </li>
+    </ul>
 
-        <!-- Sidebar điều hướng số câu -->
-        <aside class="rv-side">
+    <div class="tab-content" id="resultTabsContent">
 
-                <!-- Câu trắc nghiệm -->
-                <div th:unless="${#lists.isEmpty(paper.questions)}" class="rv-group">
-                    <div class="rv-side-title">Danh sách câu</div>
-                    <div class="rv-chips">
-                        <a th:each="q : ${paper.questions}"
-                           th:href="'#question-' + ${q.id}"
-                           class="rv-chip"
-                           th:attr="data-target=${'question-' + q.id}, data-state=${(q.selected == #strings.toString(q.answer) or creditedAnswers.containsKey(q.key)) ? 'correct' : (q.selected == null ? 'skip' : 'wrong')}"
-                           th:text="${q.no}">1</a>
-                    </div>
-                </div>
+        <!-- ========================================== -->
+        <!-- TAB 1: CHI TIẾT TỪNG CÂU HỎI               -->
+        <!-- ========================================== -->
+        <div class="tab-pane fade show active" id="content-answers" role="tabpanel" aria-labelledby="tab-answers">
+            <div class="rv-review">
+                <!-- Bộ lọc câu đúng/sai: chỉ hiện khi có câu trắc nghiệm (không hiện cho đề thi kỹ năng Viết thuần) -->
+                <div th:if="${!#lists.isEmpty(paper.questions) and (paper.kind == null or paper.kind.name() != 'WRITING')}" th:replace="~{fragments/result-review :: toolbar}"></div>
+                <div class="rv-layout">
 
-                <!-- Câu Viết -->
-                <div th:unless="${#lists.isEmpty(paper.writing)}" class="rv-group">
-                    <div class="rv-side-title">Câu Viết</div>
-                    <div class="rv-chips">
-                        <a th:each="q : ${paper.writing}"
-                           th:href="'#writing-' + ${q.id}"
-                           class="rv-chip"
-                           th:attr="data-target=${'writing-' + q.id}, data-state='writing'"
-                           th:text="${q.no}">51</a>
-                    </div>
-                </div>
-
-                <!-- Chú thích -->
-                <div th:replace="~{fragments/result-review :: legend(${!#lists.isEmpty(paper.writing)})}"></div>
-
-                <!-- Lịch sử làm đề (dưới sidebar) -->
-                <div th:if="${paper.history != null and !#lists.isEmpty(paper.history)}"
-                     class="mt-3 pt-2 border-top">
-                    <div class="fw-bold mb-2" style="font-size:12px;color:#5C6E72;text-transform:uppercase;letter-spacing:.5px;">Lịch sử làm đề</div>
-                    <th:block th:each="attempt : ${paper.history}">
-                        <div th:unless="${attempt.id == paper.attempt.id}"
-                             class="py-2 border-bottom" style="font-size:12px;">
-                            <div style="color:#5C6E72;" th:text="${#temporals.format(attempt.completedAt, 'HH:mm dd/MM/yy')}"></div>
-                            <div class="d-flex justify-content-between align-items-center mt-1">
-                                <span style="font-size:11px;" th:text="${attempt.total == 0 ? 'Bài Viết' : attempt.correct + '/' + attempt.total + ' đúng'}"></span>
-                                <a th:href="@{/ket-qua/{id}(id=${attempt.id})}" style="font-size:11px;color:#2E7D67;font-weight:700;">Xem</a>
+                    <!-- Sidebar điều hướng số câu: Đã lược bỏ bảng lịch sử để giao diện thoáng, dễ quan sát -->
+                    <aside class="rv-side">
+                        <!-- Câu trắc nghiệm -->
+                        <div th:unless="${#lists.isEmpty(paper.questions)}" class="rv-group">
+                            <div class="rv-side-title">Danh sách câu</div>
+                            <div class="rv-chips">
+                                <a th:each="q : ${paper.questions}"
+                                   th:href="'#question-' + ${q.id}"
+                                   class="rv-chip"
+                                   th:attr="data-target=${'question-' + q.id}, data-state=${(q.selected == #strings.toString(q.answer) or creditedAnswers.containsKey(q.key)) ? 'correct' : (q.selected == null ? 'skip' : 'wrong')}"
+                                   th:text="${q.no}">1</a>
                             </div>
                         </div>
-                    </th:block>
-                    <p th:if="${paper.history.size() <= 1}" style="font-size:11px;color:#9BA8AB;margin:0;">Chưa có lần làm nào khác.</p>
-                </div>
-        </aside>
 
-        <!-- Nội dung câu hỏi: JS chỉ hiện một thẻ .rv-card tại một thời điểm -->
-        <div class="rv-main">
+                        <!-- Câu Viết -->
+                        <div th:unless="${#lists.isEmpty(paper.writing)}" class="rv-group">
+                            <div class="rv-side-title">Câu Viết</div>
+                            <div class="rv-chips">
+                                <a th:each="q : ${paper.writing}"
+                                   th:href="'#writing-' + ${q.id}"
+                                   class="rv-chip"
+                                   th:attr="data-target=${'writing-' + q.id}, data-state='writing'"
+                                   th:text="${q.no}">51</a>
+                            </div>
+                        </div>
 
-            <!-- Câu trắc nghiệm -->
-            <article th:each="q : ${paper.questions}" th:id="'question-' + ${q.id}" class="bg-white border rounded-4 p-4 shadow-sm rv-card"
-                     th:attr="data-state=${(q.selected == #strings.toString(q.answer) or creditedAnswers.containsKey(q.key)) ? 'correct' : (q.selected == null ? 'skip' : 'wrong')}">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <strong th:text="${q.label}"></strong>
-                        <span class="badge"
-                              th:classappend="${(q.selected == #strings.toString(q.answer) or creditedAnswers.containsKey(q.key)) ? 'text-bg-success' : 'text-bg-danger'}"
-                              th:text="${q.selected == null ? 'Chưa trả lời' : (q.selected == #strings.toString(q.answer) or creditedAnswers.containsKey(q.key)) ? 'Đúng' : 'Sai'}"></span>
+                        <!-- Chú thích màu sắc -->
+                        <div th:replace="~{fragments/result-review :: legend(${!#lists.isEmpty(paper.writing)}, ${!#lists.isEmpty(paper.questions) and (paper.kind == null or paper.kind.name() != 'WRITING')})}"></div>
+                    </aside>
+
+                    <!-- Nội dung chi tiết từng câu hỏi -->
+                    <div class="rv-main">
+                        <!-- Câu trắc nghiệm -->
+                        <article th:each="q : ${paper.questions}" th:id="'question-' + ${q.id}" class="bg-white border rounded-4 p-4 shadow-sm rv-card"
+                                 th:attr="data-state=${(q.selected == #strings.toString(q.answer) or creditedAnswers.containsKey(q.key)) ? 'correct' : (q.selected == null ? 'skip' : 'wrong')}">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <strong th:text="${q.label}"></strong>
+                                    <span class="badge"
+                                          th:classappend="${(q.selected == #strings.toString(q.answer) or creditedAnswers.containsKey(q.key)) ? 'text-bg-success' : 'text-bg-danger'}"
+                                          th:text="${q.selected == null ? 'Chưa trả lời' : (q.selected == #strings.toString(q.answer) or creditedAnswers.containsKey(q.key)) ? 'Đúng' : 'Sai'}"></span>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 rounded-3 px-2 py-1"
+                                        style="font-size: 12px; font-weight: 600; border-color: #FFA39E; color: #CF1322;"
+                                        th:attr="data-qid=${q.id}, data-code=${q.label}, data-prompt=${q.prompt}, data-examid=${paper.attempt.exam.id}, data-examtitle=${paper.title}, data-no=${q.no}"
+                                        onclick="openReportModalFromBtn(this)"
+                                        title="Báo lỗi nội dung câu hỏi này cho Content Manager">
+                                    <span>🚩</span><span>Báo lỗi</span>
+                                </button>
+                            </div>
+                            <audio th:if="${q.audio != null}" controls preload="none" class="w-100 mb-3" th:src="${q.audio}"></audio>
+                            <img th:if="${q.image != null}" th:src="${q.image}" alt="Hình đề bài" style="max-width:100%;max-height:400px">
+                            <p style="white-space:pre-wrap" th:text="${q.passage}"></p>
+                            <p class="fw-semibold" style="white-space:pre-wrap" th:text="${q.prompt}"></p>
+                            <div th:each="option, stat : ${q.options}" class="border rounded-3 p-3 mb-2"
+                                 th:classappend="${stat.count == q.answer ? 'border-success bg-success-subtle' : #strings.toString(stat.count) == q.selected ? 'border-danger bg-danger-subtle' : ''}">
+                                <strong th:text="${stat.count + '. '}"></strong>
+                                <img th:if="${option.image != null}" th:src="${option.image}" alt="Hình đáp án" style="max-width:85%;max-height:180px">
+                                <span th:unless="${option.image != null}" th:text="${option.text}"></span>
+                                <span class="fw-bold ms-2" th:if="${#strings.toString(stat.count) == q.selected}">← Bạn chọn</span>
+                            </div>
+                            <p th:if="${creditedAnswers.containsKey(q.key)}" class="alert alert-info">Câu hỏi đã được sửa; bài làm này được công nhận điểm câu đó.</p>
+                            <p class="text-success fw-bold" th:text="${'Đáp án đúng: ' + q.answer}"></p>
+                            <div style="white-space:pre-wrap"><strong>Giải thích: </strong><span th:text="${q.explanation}"></span></div>
+                            <details th:if="${q.script != null}" class="mt-3">
+                                <summary>Lời thoại</summary>
+                                <p style="white-space:pre-wrap" th:text="${q.script}"></p>
+                            </details>
+                        </article>
+
+                        <!-- Câu Viết -->
+                        <article th:each="q : ${paper.writing}" th:id="'writing-' + ${q.id}" class="bg-white border rounded-4 p-4 shadow-sm rv-card" data-state="writing">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h3 class="h6 mb-0" th:text="${'Viết · Câu ' + q.no}"></h3>
+                                <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 rounded-3 px-2 py-1"
+                                        style="font-size: 12px; font-weight: 600; border-color: #FFA39E; color: #CF1322;"
+                                        th:attr="data-kind='WRITING', data-qid=${q.id}, data-code=${'Viết · Câu ' + q.no}, data-prompt=${q.prompt}, data-examid=${paper.attempt.exam.id}, data-examtitle=${paper.title}, data-no=${q.no}"
+                                        onclick="openReportModalFromBtn(this)"
+                                        title="Báo lỗi câu viết này cho Content Manager">
+                                    <span>🚩</span><span>Báo lỗi</span>
+                                </button>
+                            </div>
+                            <p style="white-space:pre-wrap" th:text="${q.prompt}"></p>
+                            <img th:if="${q.image != null}" th:src="${q.image}" alt="Biểu đồ đề bài" style="max-width:100%;max-height:400px">
+                            <table th:unless="${#lists.isEmpty(q.chart)}" class="table table-bordered"><tbody>
+                                <tr th:each="row : ${q.chart}"><th th:text="${row['label']}"></th><td th:text="${row['value']}"></td></tr>
+                            </tbody></table>
+
+                            <h4 class="h6 mt-3">Bài làm của bạn</h4>
+                            <p class="p-3 rounded-3 bg-light" style="white-space:pre-wrap"
+                               th:text="${q.selected == null ? 'Chưa trả lời' : q.selected}"></p>
+
+                            <!-- Đánh giá tự động theo đáp án tham khảo (khi câu 51/52 nộp bài mà không gửi GV) -->
+                            <div th:if="${q.no == 51 and scoreSummary.writing51Auto}"
+                                 class="mt-3 p-3 rounded-3" style="background:#F0F9FF;border:1.5px solid #BAE6FD;">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <h4 class="h6 mb-0 text-primary-emphasis fw-bold">🎯 Điểm đánh giá theo đáp án tham khảo</h4>
+                                    <span class="badge bg-primary text-white" th:text="${scoreSummary.writing51Score + ' / 10 điểm'}"></span>
+                                </div>
+                                <div class="small text-dark mb-1" th:text="${scoreSummary.writing51Feedback}"></div>
+                                <div class="small text-muted" style="font-size: 12px;">
+                                    (Tiêu chí: 1. Nội dung & bối cảnh 2.5đ/ý · 2. Sử dụng ngôn ngữ & đúng đuôi kính ngữ trang trọng 2.5đ/ý. Điểm này sẽ được cập nhật lại nếu bạn gửi Giáo viên chấm).
+                                </div>
+                            </div>
+
+                            <div th:if="${q.no == 52 and scoreSummary.writing52Auto}"
+                                 class="mt-3 p-3 rounded-3" style="background:#F0F9FF;border:1.5px solid #BAE6FD;">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <h4 class="h6 mb-0 text-primary-emphasis fw-bold">🎯 Điểm đánh giá theo đáp án tham khảo</h4>
+                                    <span class="badge bg-primary text-white" th:text="${scoreSummary.writing52Score + ' / 10 điểm'}"></span>
+                                </div>
+                                <div class="small text-dark mb-1" th:text="${scoreSummary.writing52Feedback}"></div>
+                                <div class="small text-muted" style="font-size: 12px;">
+                                    (Tiêu chí: 1. Nội dung & logic 2.5đ/ý · 2. Sử dụng ngôn ngữ & đúng đuôi văn viết -ㄴ/는다 2.5đ/ý. Điểm này sẽ được cập nhật lại nếu bạn gửi Giáo viên chấm).
+                                </div>
+                            </div>
+
+                            <!-- Đáp án tham khảo câu 51/52: hiển thị ngay sau khi nộp -->
+                            <div th:if="${q.no <= 52 and q.modelAnswer != null and !#strings.isEmpty(q.modelAnswer)}"
+                                 class="mt-3 p-3 rounded-3" style="background:#E3F2EA;border:1.5px solid #A7D7BE;">
+                                <h4 class="h6 mb-2" style="color:#1F6B56;">🌟 Đáp án tham khảo</h4>
+                                <p style="white-space:pre-wrap;margin:0;font-size:14px;line-height:1.7;" th:text="${q.modelAnswer}"></p>
+                            </div>
+
+                            <!-- Kết quả Giáo viên chấm -->
+                            <div th:if="${writingReviews.containsKey(q.id) and writingReviews[q.id].totalScore != null}" class="mt-3">
+                                <h4 class="h6">Kết quả Giáo viên chấm</h4>
+                                <p>Điểm: <strong th:text="${writingReviews[q.id].totalScore + '/' + writingReviews[q.id].maxScore}"></strong>
+                                   · Giáo viên: <span th:text="${writingReviews[q.id].mentorName}"></span>
+                                   · Ngày chấm: <span th:text="${writingReviews[q.id].gradedAt}"></span></p>
+                                <!-- Đáp án tham khảo câu 53/54 chỉ hiện sau khi GV chấm -->
+                                <div th:if="${q.no > 52 and q.modelAnswer != null and !#strings.isEmpty(q.modelAnswer)}"
+                                     class="p-3 rounded-3" style="background:#E3F2EA;border:1.5px solid #A7D7BE;">
+                                    <h4 class="h6 mb-2" style="color:#1F6B56;">🌟 Đáp án tham khảo</h4>
+                                    <p style="white-space:pre-wrap;margin:0;font-size:14px;line-height:1.7;" th:text="${q.modelAnswer}"></p>
+                                </div>
+                                <div th:if="${q.rubric != null}"><h4 class="h6 mt-2">Tiêu chí</h4><p style="white-space:pre-wrap" th:text="${q.rubric}"></p></div>
+                            </div>
+
+                            <!-- Thông báo trạng thái gửi GV chấm -->
+                            <th:block th:with="rejectedHere=${writingReviews.containsKey(q.id) and writingReviews[q.id].status == 'submitted'}">
+                            <p th:if="${!writingReviews.containsKey(q.id) and q.no > 52}" class="text-muted mt-2">Chưa có kết quả: bài chưa gửi Giáo viên chấm.</p>
+                            <!-- Bị GV từ chối: không cho gửi lại ở lượt này, phải làm lại đề -->
+                            <div th:if="${rejectedHere}" class="alert alert-danger mt-2 mb-0 py-2 small">
+                                <strong>Giáo viên đã từ chối chấm câu này.</strong>
+                                <span th:if="${writingReviews[q.id].rejectReason != null}" th:text="${' Lý do: ' + writingReviews[q.id].rejectReason}"></span>
+                                <div>Hãy làm lại đề để gửi lại Giáo viên chấm.</div>
+                            </div>
+                            <p th:if="${writingReviews.containsKey(q.id) and !rejectedHere and writingReviews[q.id].totalScore == null}" class="text-muted mt-2">
+                                ⏳ Đã gửi Giáo viên, đang chờ kết quả chấm (chưa hiển thị điểm).
+                                · <a th:href="@{/writing/feedback(id=${writingReviews[q.id].id})}">Xem tiến độ</a>
+                            </p>
+                            </th:block>
+
+                            <!-- Nút gửi GV per-câu: canSendByPrompt dùng cùng quy tắc với lúc gửi (examSendBlockReason) -->
+                            <form th:if="${currentUser.vip and canSendByPrompt[q.id]}"
+                                  method="post" th:action="@{/exam/attempt/{id}/send-teacher-q(id=${paper.attempt.id})}"
+                                  class="mt-2 d-inline">
+                                <input type="hidden" name="promptId" th:value="${q.id}">
+                                <button type="submit" class="btn btn-sm btn-outline-success">Gửi câu này cho Giáo viên chấm</button>
+                            </form>
+                            <a th:if="${writingReviews.containsKey(q.id)}" class="btn btn-outline-success mt-2 btn-sm"
+                               th:href="@{/writing/feedback(id=${writingReviews[q.id].id})}">Xem bài gửi Giáo viên chấm</a>
+                        </article>
+                        <th:block th:replace="~{fragments/result-review :: pager}"></th:block>
                     </div>
-                    <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 rounded-3 px-2 py-1"
-                            style="font-size: 12px; font-weight: 600; border-color: #FFA39E; color: #CF1322;"
-                            th:attr="data-qid=${q.id}, data-code=${q.label}, data-prompt=${q.prompt}, data-examid=${paper.attempt.exam.id}, data-examtitle=${paper.title}, data-no=${q.no}"
-                            onclick="openReportModalFromBtn(this)"
-                            title="Báo lỗi nội dung câu hỏi này cho Content Manager">
-                        <span>🚩</span><span>Báo lỗi</span>
-                    </button>
                 </div>
-                <audio th:if="${q.audio != null}" controls preload="none" class="w-100 mb-3" th:src="${q.audio}"></audio>
-                <img th:if="${q.image != null}" th:src="${q.image}" alt="Hình đề bài" style="max-width:100%;max-height:400px">
-                <p style="white-space:pre-wrap" th:text="${q.passage}"></p>
-                <p class="fw-semibold" style="white-space:pre-wrap" th:text="${q.prompt}"></p>
-                <div th:each="option, stat : ${q.options}" class="border rounded-3 p-3 mb-2"
-                     th:classappend="${stat.count == q.answer ? 'border-success bg-success-subtle' : #strings.toString(stat.count) == q.selected ? 'border-danger bg-danger-subtle' : ''}">
-                    <strong th:text="${stat.count + '. '}"></strong>
-                    <img th:if="${option.image != null}" th:src="${option.image}" alt="Hình đáp án" style="max-width:85%;max-height:180px">
-                    <span th:unless="${option.image != null}" th:text="${option.text}"></span>
-                    <span class="fw-bold ms-2" th:if="${#strings.toString(stat.count) == q.selected}">← Bạn chọn</span>
-                </div>
-                <p th:if="${creditedAnswers.containsKey(q.key)}" class="alert alert-info">Câu hỏi đã được sửa; bài làm này được công nhận điểm câu đó.</p>
-                <p class="text-success fw-bold" th:text="${'Đáp án đúng: ' + q.answer}"></p>
-                <div style="white-space:pre-wrap"><strong>Giải thích: </strong><span th:text="${q.explanation}"></span></div>
-                <details th:if="${q.script != null}" class="mt-3">
-                    <summary>Lời thoại</summary>
-                    <p style="white-space:pre-wrap" th:text="${q.script}"></p>
-                </details>
-            </article>
-
-            <!-- Câu Viết -->
-            <article th:each="q : ${paper.writing}" th:id="'writing-' + ${q.id}" class="bg-white border rounded-4 p-4 shadow-sm rv-card" data-state="writing">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h3 class="h6 mb-0" th:text="${'Viết · Câu ' + q.no}"></h3>
-                    <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 rounded-3 px-2 py-1"
-                            style="font-size: 12px; font-weight: 600; border-color: #FFA39E; color: #CF1322;"
-                            th:attr="data-kind='WRITING', data-qid=${q.id}, data-code=${'Viết · Câu ' + q.no}, data-prompt=${q.prompt}, data-examid=${paper.attempt.exam.id}, data-examtitle=${paper.title}, data-no=${q.no}"
-                            onclick="openReportModalFromBtn(this)"
-                            title="Báo lỗi câu viết này cho Content Manager">
-                        <span>🚩</span><span>Báo lỗi</span>
-                    </button>
-                </div>
-                <p style="white-space:pre-wrap" th:text="${q.prompt}"></p>
-                <img th:if="${q.image != null}" th:src="${q.image}" alt="Biểu đồ đề bài" style="max-width:100%;max-height:400px">
-                <table th:unless="${#lists.isEmpty(q.chart)}" class="table table-bordered"><tbody>
-                    <tr th:each="row : ${q.chart}"><th th:text="${row['label']}"></th><td th:text="${row['value']}"></td></tr>
-                </tbody></table>
-
-                <h4 class="h6 mt-3">Bài làm của bạn</h4>
-                <p class="p-3 rounded-3 bg-light" style="white-space:pre-wrap"
-                   th:text="${q.selected == null ? 'Chưa trả lời' : q.selected}"></p>
-
-                <!-- Đáp án tham khảo câu 51/52: hiển thị ngay sau khi nộp -->
-                <div th:if="${q.no <= 52 and q.modelAnswer != null and !#strings.isEmpty(q.modelAnswer)}"
-                     class="mt-3 p-3 rounded-3" style="background:#E3F2EA;border:1.5px solid #A7D7BE;">
-                    <h4 class="h6 mb-2" style="color:#1F6B56;">🌟 Đáp án tham khảo</h4>
-                    <p style="white-space:pre-wrap;margin:0;font-size:14px;line-height:1.7;" th:text="${q.modelAnswer}"></p>
-                </div>
-
-                <!-- Kết quả Giáo viên chấm -->
-                <div th:if="${writingReviews.containsKey(q.id) and writingReviews[q.id].totalScore != null}" class="mt-3">
-                    <h4 class="h6">Kết quả Giáo viên chấm</h4>
-                    <p>Điểm: <strong th:text="${writingReviews[q.id].totalScore + '/' + writingReviews[q.id].maxScore}"></strong>
-                       · Giáo viên: <span th:text="${writingReviews[q.id].mentorName}"></span>
-                       · Ngày chấm: <span th:text="${writingReviews[q.id].gradedAt}"></span></p>
-                    <p style="white-space:pre-wrap" th:text="${writingReviews[q.id].overallFeedback}"></p>
-                    <!-- Đáp án tham khảo câu 53/54 chỉ hiện sau khi GV chấm -->
-                    <div th:if="${q.no > 52 and q.modelAnswer != null and !#strings.isEmpty(q.modelAnswer)}"
-                         class="p-3 rounded-3" style="background:#E3F2EA;border:1.5px solid #A7D7BE;">
-                        <h4 class="h6 mb-2" style="color:#1F6B56;">🌟 Đáp án tham khảo</h4>
-                        <p style="white-space:pre-wrap;margin:0;font-size:14px;line-height:1.7;" th:text="${q.modelAnswer}"></p>
-                    </div>
-                    <div th:if="${q.rubric != null}"><h4 class="h6 mt-2">Tiêu chí</h4><p style="white-space:pre-wrap" th:text="${q.rubric}"></p></div>
-                </div>
-                <th:block th:with="rejectedHere=${writingReviews.containsKey(q.id) and writingReviews[q.id].status == 'submitted'}">
-                <p th:if="${!writingReviews.containsKey(q.id) and !sentByPrompt.containsKey(q.id)}" class="text-muted mt-2">Chưa có kết quả: bài chưa gửi Giáo viên chấm.</p>
-                <!-- Bị GV từ chối: không cho gửi lại ở lượt này, phải làm lại đề -->
-                <div th:if="${rejectedHere}" class="alert alert-danger mt-2 mb-0 py-2 small">
-                    <strong>Giáo viên đã từ chối chấm câu này.</strong>
-                    <span th:if="${writingReviews[q.id].rejectReason != null}" th:text="${' Lý do: ' + writingReviews[q.id].rejectReason}"></span>
-                    <div>Hãy làm lại đề để gửi lại Giáo viên chấm.</div>
-                </div>
-                <p th:if="${writingReviews.containsKey(q.id) and !rejectedHere and writingReviews[q.id].totalScore == null}" class="text-muted mt-2">Đã gửi Giáo viên, đang chờ kết quả chấm.</p>
-                </th:block>
-                <!-- Đã gửi GV (từ attempt khác) nhưng chưa có trong writingReviews lần này -->
-                <p th:if="${sentByPrompt.containsKey(q.id) and !writingReviews.containsKey(q.id)}" class="text-muted small mt-2">
-                    ✅ Đã gửi Giáo viên chấm ·
-                    <a th:href="@{/writing/feedback(id=${sentByPrompt[q.id].id})}">Xem tiến độ</a>
-                </p>
-                <!-- Nút gửi GV per-câu: canSendByPrompt dùng cùng quy tắc với lúc gửi (examSendBlockReason) -->
-                <form th:if="${currentUser.vip and canSendByPrompt[q.id]}"
-                      method="post" th:action="@{/exam/attempt/{id}/send-teacher-q(id=${paper.attempt.id})}"
-                      class="mt-2 d-inline">
-                    <input type="hidden" name="promptId" th:value="${q.id}">
-                    <button type="submit" class="btn btn-sm btn-outline-success">Gửi câu này cho Giáo viên chấm</button>
-                </form>
-                <a th:if="${writingReviews.containsKey(q.id)}" class="btn btn-outline-success mt-2 btn-sm"
-                   th:href="@{/writing/feedback(id=${writingReviews[q.id].id})}">Xem bài gửi Giáo viên chấm</a>
-            </article>
-            <th:block th:replace="~{fragments/result-review :: pager}"></th:block>
+            </div>
         </div>
-    </div>
-    </div>
 
+        <!-- ========================================== -->
+        <!-- TAB 2: LỊCH SỬ LÀM ĐỀ NÀY                  -->
+        <!-- ========================================== -->
+        <div class="tab-pane fade" id="content-history" role="tabpanel" aria-labelledby="tab-history">
+            <div class="bg-white border rounded-4 p-4 shadow-sm">
+                <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-3">
+                    <div>
+                        <h2 class="h5 fw-bold mb-1">Lịch sử làm đề: <span th:text="${paper.title}"></span></h2>
+                        <p class="small text-muted mb-0">Theo dõi điểm số và tiến bộ qua các lần thi. Bấm "Xem lại" để mở lại chi tiết bài làm.</p>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="examHistoryTable">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Thời gian nộp</th>
+                            <th>Số câu đúng</th>
+                            <th>Điểm đạt được</th>
+                            <th>Đánh giá</th>
+                            <th style="width: 140px;" class="text-end">Thao tác</th>
+                        </tr>
+                        </thead>
+                        <tbody id="examHistoryBody">
+                        <tr th:each="h : ${historyItems}" th:classappend="${h.current} ? 'table-success-subtle bg-light' : ''" class="exam-hist-row">
+                            <td>
+                                <div class="fw-medium text-dark" th:text="${h.completedAt}">21/10/2026 17:00</div>
+                                <span th:if="${h.current}" class="badge bg-success-subtle text-success-emphasis border border-success" style="font-size:11px;">Lần này</span>
+                            </td>
+                            <td>
+                                <strong th:text="${h.total == 0 ? 'Bài Viết' : h.correct + '/' + h.total + ' câu'}">25/30 câu</strong>
+                            </td>
+                            <td>
+                                <span class="fw-bold text-success fs-6" th:text="${h.formattedScore} + ' điểm'">83.3 / 100 điểm</span>
+                                <span th:if="${h.waiting}" class="badge bg-warning-subtle text-warning-emphasis border border-warning ms-1" style="font-size:10px;">⏳ Chờ GV chấm</span>
+                            </td>
+                            <td>
+                                <span class="badge" th:classappend="'bg-' + ${h.gradeCss} + '-subtle text-' + ${h.gradeCss} + '-emphasis border border-' + ${h.gradeCss}" th:text="${h.gradeBadge}">Đạt</span>
+                            </td>
+                            <td class="text-end">
+                                <a th:if="${!h.current}" th:href="@{/ket-qua/{id}(id=${h.id})}" class="btn btn-sm btn-outline-secondary px-3 rounded-3">
+                                    Xem lại →
+                                </a>
+                                <span th:if="${h.current}" class="text-muted small fw-bold">Đang xem</span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(historyItems)}">
+                            <td colspan="5" class="text-center text-muted py-4">Chưa có lịch sử làm đề.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Phân trang Lịch sử làm đề -->
+                <div id="examHistoryPager" class="d-flex align-items-center justify-content-between mt-3 pt-3 border-top" style="display:none!important"></div>
+                <script>
+                (function(){
+                    var PAGE=5, rows=Array.from(document.querySelectorAll('.exam-hist-row')), page=1;
+                    var pager=document.getElementById('examHistoryPager');
+                    function total(){return Math.ceil(rows.length/PAGE)||1;}
+                    function render(){
+                        rows.forEach(function(r,i){r.style.display=(i>=(page-1)*PAGE && i<page*PAGE)?'':'none';});
+                        var t=total();
+                        pager.style.display = t>1 ? 'flex' : 'none';
+                        pager.innerHTML='<span class="small text-muted">Trang <strong>'+page+'</strong> / '+t+' · '+rows.length+' lần</span>'
+                            +'<div class="d-flex gap-2">'
+                            +(page>1?'<button class="btn btn-sm btn-outline-secondary rounded-3" onclick="examHistPage(-1)">← Trước</button>':'')
+                            +(page<t?'<button class="btn btn-sm btn-outline-secondary rounded-3" onclick="examHistPage(1)">Sau →</button>':'')
+                            +'</div>';
+                    }
+                    window.examHistPage=function(d){page=Math.max(1,Math.min(total(),page+d));render();};
+                    if(rows.length>0)render();
+                })();
+                </script>
+            </div>
+        </div>
+
+    </div>
 
 </main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
 
 <th:block th:replace="~{fragments/result-review :: styles}"></th:block>
 <th:block th:replace="~{fragments/result-review :: script}"></th:block>

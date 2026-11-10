@@ -35,6 +35,7 @@ build/
 Thumbs.db
 *.log
 scratch/
+outputs/
 
 ### Dữ liệu chạy local (H2 + file upload) ###
 data/

@@ -291,17 +291,30 @@ public class ContentExamController {
                            @RequestParam(required = false) String scriptVi,
                            @RequestParam(required = false) List<Integer> qno,
                            @RequestParam(required = false) MultipartFile questionImage,
+                           @RequestParam(required = false) List<MultipartFile> opt1Image,
+                           @RequestParam(required = false) List<MultipartFile> opt2Image,
+                           @RequestParam(required = false) List<MultipartFile> opt3Image,
+                           @RequestParam(required = false) List<MultipartFile> opt4Image,
                            jakarta.servlet.http.HttpServletRequest request, HttpSession session, RedirectAttributes ra) {
         return mutate(session, ra, "/content/sources/" + id + "#paper", actor -> {
             List<String> charts = values(request.getParameterValues("chart"));
             if (questionImage != null && !questionImage.isEmpty()) {
-                if (qno == null || qno.size() != 1 || qno.get(0) < 53 || qno.get(0) > 54)
-                    throw new ExamDomainException("Ảnh này chỉ dành cho câu Viết đang nhập.");
+                // Cho phép ảnh đề bài cho cả câu Nghe/Đọc và Viết
+                if (qno == null || qno.size() != 1)
+                    throw new ExamDomainException("Vui lòng chọn đúng một câu khi tải ảnh đề bài.");
                 charts = List.of(importService.uploadQuestionImage(id, questionImage, actor));
             }
+            List<String> opt1Imgs = processOptionImages(id, values(request.getParameterValues("opt1Img")), opt1Image, actor);
+            List<String> opt2Imgs = processOptionImages(id, values(request.getParameterValues("opt2Img")), opt2Image, actor);
+            List<String> opt3Imgs = processOptionImages(id, values(request.getParameterValues("opt3Img")), opt3Image, actor);
+            List<String> opt4Imgs = processOptionImages(id, values(request.getParameterValues("opt4Img")), opt4Image, actor);
             String saved = importService.saveCard(id, new ExamImportService.CardForm(cardId, templateCode, audio, image,
-                    passage, script, scriptVi, values(request.getParameterValues("prompt")), values(request.getParameterValues("opt1")), values(request.getParameterValues("opt2")), values(request.getParameterValues("opt3")), values(request.getParameterValues("opt4")), values(request.getParameterValues("answer")), values(request.getParameterValues("explanation")), values(request.getParameterValues("keys1")), values(request.getParameterValues("keys2")),
-                    values(request.getParameterValues("modelAnswer")), values(request.getParameterValues("rubric")), charts, typeCode, qno), actor);
+                    passage, script, scriptVi, values(request.getParameterValues("prompt")), values(request.getParameterValues("opt1")), values(request.getParameterValues("opt2")),
+                    values(request.getParameterValues("opt3")), values(request.getParameterValues("opt4")), values(request.getParameterValues("answer")), values(request.getParameterValues("explanation")),
+                    values(request.getParameterValues("keys1")), values(request.getParameterValues("keys2")), values(request.getParameterValues("modelAnswer")), values(request.getParameterValues("rubric")),
+                    charts,
+                    opt1Imgs, opt2Imgs, opt3Imgs, opt4Imgs,
+                    typeCode, qno), actor);
 
             ExamImportService.CardView view = importService.cards(id).stream()
                     .filter(c -> c.id().equals(saved)).findFirst().orElse(null);
@@ -311,6 +324,22 @@ public class ContentExamController {
             return "redirect:/content/sources/" + id + "?skill=" + skillName + "&card=" + saved
                     + (focus == null ? "" : "&focus=" + focus) + "#paper";
         });
+    }
+
+    private List<String> processOptionImages(Long sourceId, List<String> existingNames, List<MultipartFile> files, Actor actor) throws IOException {
+        if (files == null || files.isEmpty()) return existingNames;
+        List<String> result = new ArrayList<>();
+        int max = Math.max(existingNames != null ? existingNames.size() : 0, files.size());
+        for (int i = 0; i < max; i++) {
+            String existing = (existingNames != null && i < existingNames.size()) ? existingNames.get(i) : "";
+            MultipartFile file = (i < files.size()) ? files.get(i) : null;
+            if (file != null && !file.isEmpty()) {
+                result.add(importService.uploadQuestionImage(sourceId, file, actor));
+            } else {
+                result.add(existing != null ? existing : "");
+            }
+        }
+        return result;
     }
 
     @PostMapping("/sources/{id}/cards/delete")
