@@ -70,6 +70,19 @@ class ExamImportValidatorTest {
     }
 
     @Test
+    void blankExplanationIsAWarningAndAMissingFourthOptionIsAnError() throws IOException {
+        SampleExamFactory.Sample sample = SampleExamFactory.full(Track.TOPIK_I, 1);
+        byte[] excel = edit(sample.excel(), sheet -> {
+            set(sheet, 1, "explanation_vi", "");
+            set(sheet, 2, "opt_4", "");
+        });
+        ExamImportValidator.Result result = validate(excel, Track.TOPIK_I, media(sample));
+        assertTrue(result.issues().stream().anyMatch(issue -> !issue.isError()
+                && issue.message().contains("explanation_vi")), () -> result.issues().toString());
+        assertTrue(hasError(result, "Thiếu phương án 4"), () -> result.issues().toString());
+    }
+
+    @Test
     void detectsBadAnswerDuplicateOptionsAndWrongType() throws IOException {
         SampleExamFactory.Sample s = SampleExamFactory.full(Track.TOPIK_I, 1);
         byte[] bad = edit(s.excel(), sh -> {

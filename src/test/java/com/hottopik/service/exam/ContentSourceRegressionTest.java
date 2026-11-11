@@ -6,13 +6,18 @@ import com.hottopik.repository.exam.ExamSourceRepository;
 import com.hottopik.repository.exam.ProgramVersionRepository;
 import com.hottopik.util.AuthHelper;
 import org.junit.jupiter.api.Test;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
+import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,6 +25,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -194,5 +200,186 @@ class ContentSourceRegressionTest {
                         .sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
                 .andExpect(status().isOk()).andExpect(content().string(containsString("Bài 1, câu 2 thiếu phương án 2.")))
                 .andExpect(content().string(not(containsString("Bài 1, câu 1 thiếu giải thích."))));
+    }
+
+    @Test
+    void topikOneSourceOpensTheManualSheetAndHidesTheExcelDump() throws Exception {
+        long id = createTopikOne();
+        ExamSource saved = sources.findById(id).orElseThrow();
+        assertEquals(Track.TOPIK_I, saved.getTrack());
+        assertEquals(70, saved.getExpectedCount());
+        mvc.perform(get("/content/sources/" + id).sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Nhập đề")))
+                .andExpect(content().string(containsString("Dạng câu")))
+                .andExpect(content().string(containsString("Thêm câu")))
+                .andExpect(content().string(not(containsString("Đổ nhanh từ Excel"))));
+    }
+
+    @Test
+    void savedReadingQuestionReopensWithItsPrompt() throws Exception {
+        long id = createTopikOne();
+        mvc.perform(get("/content/sources/" + id).sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
+                .andExpect(status().isOk());
+        String prompt = "SYS reading prompt for question 31";
+        MvcResult saved = mvc.perform(post("/content/sources/" + id + "/cards")
+                        .param("templateCode", "TPL1-REA-01")
+                        .param("typeCode", "I-D1")
+                        .param("qno", "31")
+                        .param("prompt", prompt)
+                        .param("opt1", "가")
+                        .param("opt2", "나")
+                        .param("opt3", "다")
+                        .param("opt4", "라")
+                        .param("answer", "1")
+                        .param("explanation", "Giải thích câu đọc")
+                        .sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+        String location = saved.getResponse().getRedirectedUrl();
+        assertNotNull(location);
+        mvc.perform(get(location.replace("#paper", "")).sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(prompt)))
+                .andExpect(content().string(containsString("Lưu câu này")))
+                .andExpect(content().string(not(containsString("Mỗi câu cần một ô số trên lưới."))));
+    }
+
+    @Test
+    void mediaKeepsMp3AndRejectsOtherAudio() throws Exception {
+        long id = createTopikOne();
+        mvc.perform(get("/content/sources/" + id).sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
+                .andExpect(status().isOk());
+        mvc.perform(multipart("/content/sources/" + id + "/media")
+                        .file(new MockMultipartFile("files", "notes.txt", "text/plain", "not audio".getBytes()))
+                        .sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("flashInfo", containsString("chỉ nhận .mp3")));
+        mvc.perform(multipart("/content/sources/" + id + "/media")
+                        .file(new MockMultipartFile("files", "clip.mp3", "audio/mpeg", SampleExamFactory.fakeMp3()))
+                        .sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("flashOk", containsString("Đã lưu 1 file")));
+        mvc.perform(get("/content/sources/" + id).sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("clip.mp3")));
+        mvc.perform(multipart("/content/sources/" + id + "/media")
+                        .file(oversized("files", "big.mp3", "audio/mpeg", MediaStorageService.MAX_AUDIO_BYTES + 1))
+                        .sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("flashInfo", containsString("15 MB")));
+        assertTrue(imports.mediaOf(id).stream().noneMatch(file -> "big.mp3".equals(file.getFilename())));
+        assertTrue(imports.mediaOf(id).stream().anyMatch(file -> "clip.mp3".equals(file.getFilename())));
+    }
+
+    @Test
+    void excelNamesTheMissingQuestionAndRejectsTheWrongFile() throws Exception {
+        long id = createTopikOne();
+        mvc.perform(multipart("/content/sources/" + id + "/excel")
+                        .file(new MockMultipartFile("file", "de.xlsx",
+                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headerOnlyWorkbook()))
+                        .sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
+                .andExpect(status().is3xxRedirection());
+        mvc.perform(get("/content/sources/" + id).sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Nghe 1: Không đủ số câu")))
+                .andExpect(content().string(containsString("thiếu câu")));
+
+        mvc.perform(multipart("/content/sources/" + id + "/excel")
+                        .file(new MockMultipartFile("file", "de.xls", "application/vnd.ms-excel", new byte[]{1, 2, 3}))
+                        .sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("flashError", containsString("Chỉ nhận file .xlsx")));
+        mvc.perform(multipart("/content/sources/" + id + "/excel")
+                        .file(oversized("file", "big.xlsx",
+                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                MediaStorageService.MAX_EXCEL_BYTES + 1))
+                        .sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("flashError", containsString("tối đa 10 MB")));
+    }
+
+    @Test
+    void activationStoresOneDraftQuestionAndPreviewShowsFourOptions() throws Exception {
+        long id = createTopikOne();
+        mvc.perform(get("/content/sources/" + id).sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
+                .andExpect(status().isOk());
+        String prompt = "SYS reading prompt for activation";
+        mvc.perform(post("/content/sources/" + id + "/cards")
+                        .param("templateCode", "TPL1-REA-01")
+                        .param("typeCode", "I-D1")
+                        .param("qno", "31")
+                        .param("prompt", prompt)
+                        .param("opt1", "가")
+                        .param("opt2", "나")
+                        .param("opt3", "다")
+                        .param("opt4", "라")
+                        .param("answer", "2")
+                        .param("explanation", "Giải thích")
+                        .sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
+                .andExpect(status().is3xxRedirection());
+
+        mvc.perform(post("/content/sources/" + id + "/activate").sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("/content/exams/*"));
+        assertEquals(1, imports.questionsOf(id).size());
+        assertEquals(1, composer.library("DRAFT", null, null).stream()
+                .filter(exam -> exam.getSource() != null && id == exam.getSource().getId()
+                        && exam.getStatus() == ExamStatus.DRAFT)
+                .count());
+
+        mvc.perform(post("/content/sources/" + id + "/activate").sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("flashError", containsString("Không thể kích hoạt lần nữa")));
+        assertEquals(1, imports.questionsOf(id).size());
+
+        mvc.perform(get("/content/sources/" + id + "/preview").sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(prompt)))
+                .andExpect(content().string(containsString("가")))
+                .andExpect(content().string(containsString("나")))
+                .andExpect(content().string(containsString("다")))
+                .andExpect(content().string(containsString("라")));
+    }
+
+    private long createTopikOne() throws Exception {
+        MvcResult created = mvc.perform(post("/content/sources")
+                        .param("name", "WF09 TOPIK I " + UUID.randomUUID())
+                        .param("track", "TOPIK_I")
+                        .param("year", "2026")
+                        .param("expectedCount", "70")
+                        .param("copyrightNote", "Đề nội bộ của nhóm")
+                        .sessionAttr(AuthHelper.SESSION_KEY, contentUser()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("/content/sources/*"))
+                .andReturn();
+        String location = created.getResponse().getRedirectedUrl();
+        assertNotNull(location);
+        return Long.parseLong(location.substring("/content/sources/".length()));
+    }
+
+    private static MockMultipartFile oversized(String field, String name, String type, long size) {
+        return new MockMultipartFile(field, name, type, new byte[]{1}) {
+            @Override
+            public long getSize() {
+                return size;
+            }
+
+            @Override
+            public boolean isEmpty() {
+                return false;
+            }
+        };
+    }
+
+    private static byte[] headerOnlyWorkbook() throws Exception {
+        try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet(ParsedWorkbook.SHEET_QUESTIONS);
+            Row header = sheet.createRow(0);
+            int column = 0;
+            for (String name : ExamWorkbookParser.QUESTION_COLUMNS) header.createCell(column++).setCellValue(name);
+            workbook.write(out);
+            return out.toByteArray();
+        }
     }
 }

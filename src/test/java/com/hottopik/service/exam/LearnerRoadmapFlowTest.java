@@ -32,6 +32,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 
@@ -253,7 +254,75 @@ class LearnerRoadmapFlowTest {
         assertEquals(start.plusDays(offer.days()), shifted.getStartDate());
         int oldCalendar = (int) ChronoUnit.DAYS.between(start, LocalDate.now()) + 1;
         assertEquals(oldCalendar - offer.days(), LearnerRoadmapService.todayIndex(shifted));
+        assertEquals(offer.nextEnd(), shifted.getStartDate().plusDays(shifted.getTotalDays() - 1L)
+                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM")));
         assertNull(roadmaps.rhythmOffer(shifted));
+    }
+
+    @Test
+    void laterLeavesThePlanDatesAlone() throws Exception {
+        UserDTO learner = learner();
+        mvc.perform(post("/lo-trinh").param("track", "TOPIK_II").param("days", "90").param("minutes", "20")
+                        .sessionAttr(AuthHelper.SESSION_KEY, learner))
+                .andExpect(status().is3xxRedirection());
+        StudyPlan plan = backdate(learner, 6, null);
+        LocalDate start = plan.getStartDate();
+
+        mvc.perform(get("/lo-trinh").sessionAttr(AuthHelper.SESSION_KEY, learner))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"rhythmLater\">Để sau")))
+                .andExpect(content().string(containsString("sessionStorage.setItem")))
+                .andExpect(content().string(containsString("rhythmModal.hidden = false")));
+
+        StudyPlan untouched = plans.findByOwnerEmail(learner.getEmail()).orElseThrow();
+        assertEquals(start, untouched.getStartDate());
+        assertNotNull(roadmaps.rhythmOffer(untouched));
+    }
+
+    @Test
+    void restoreKeepsLessonsFinishedBeforeTheGap() throws Exception {
+        UserDTO learner = learner();
+        mvc.perform(post("/lo-trinh").param("track", "TOPIK_II").param("days", "90").param("minutes", "20")
+                        .sessionAttr(AuthHelper.SESSION_KEY, learner))
+                .andExpect(status().is3xxRedirection());
+        roadmaps.setDone(learner.getEmail(), 1, 0, true);
+        StudyPlan plan = backdate(learner, 8, plans.findByOwnerEmail(learner.getEmail()).orElseThrow().getDoneKeys());
+        LocalDate start = plan.getStartDate();
+        LearnerRoadmapService.RhythmOffer offer = roadmaps.rhythmOffer(plan);
+        assertNotNull(offer);
+        assertTrue(offer.days() >= 3);
+
+        mvc.perform(post("/lo-trinh/khoi-phuc-nhip").sessionAttr(AuthHelper.SESSION_KEY, learner))
+                .andExpect(redirectedUrl("/lo-trinh"));
+
+        StudyPlan shifted = plans.findByOwnerEmail(learner.getEmail()).orElseThrow();
+        assertTrue(shifted.getDoneKeys().contains("1:0"));
+        assertEquals(start.plusDays(offer.days()), shifted.getStartDate());
+        int oldCalendar = (int) ChronoUnit.DAYS.between(start, LocalDate.now()) + 1;
+        assertEquals(oldCalendar - offer.days(), LearnerRoadmapService.todayIndex(shifted));
+        assertNull(roadmaps.rhythmOffer(shifted));
+    }
+
+    @Test
+    void aFinishedYesterdayDoesNotOfferRestore() throws Exception {
+        UserDTO learner = learner();
+        mvc.perform(post("/lo-trinh").param("track", "TOPIK_II").param("days", "90").param("minutes", "20")
+                        .sessionAttr(AuthHelper.SESSION_KEY, learner))
+                .andExpect(status().is3xxRedirection());
+        roadmaps.setDone(learner.getEmail(), 1, 0, true);
+        StudyPlan plan = backdate(learner, 1, plans.findByOwnerEmail(learner.getEmail()).orElseThrow().getDoneKeys());
+        assertNull(roadmaps.rhythmOffer(plan));
+
+        mvc.perform(get("/lo-trinh").sessionAttr(AuthHelper.SESSION_KEY, learner))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("id=\"rhythmModal\""))))
+                .andExpect(content().string(containsString("rhythmOpen.onclick = function () {}")));
+
+        mvc.perform(post("/lo-trinh/khoi-phuc-nhip").sessionAttr(AuthHelper.SESSION_KEY, learner))
+                .andExpect(redirectedUrlPattern("/lo-trinh?loi=*"));
+        StudyPlan after = plans.findByOwnerEmail(learner.getEmail()).orElseThrow();
+        assertEquals(plan.getStartDate(), after.getStartDate());
+        assertTrue(after.getDoneKeys().contains("1:0"));
     }
 
     @Test
@@ -268,6 +337,18 @@ class LearnerRoadmapFlowTest {
                 .andExpect(redirectedUrl("/practice/prepare?typeCode=I-N1"))
                 .andExpect(flash().attributeExists("practiceError"));
         assertFalse(doneKeys(learner).contains(position[0] + ":" + position[1]));
+    }
+
+    private static UserDTO learner() {
+        return new UserDTO(9L, "minh", "learner@hottopik.com", "", "Phạm Minh Anh",
+                "ROLE_USER", "Học viên", "ACTIVE", "", "", "TOPIK_4", "TOPIK_3", false, null);
+    }
+
+    private StudyPlan backdate(UserDTO learner, int daysAgo, String doneKeys) {
+        StudyPlan plan = plans.findByOwnerEmail(learner.getEmail()).orElseThrow();
+        plan.setStartDate(LocalDate.now().minusDays(daysAgo));
+        plan.setDoneKeys(doneKeys);
+        return plans.saveAndFlush(plan);
     }
 
     @SuppressWarnings("unchecked")

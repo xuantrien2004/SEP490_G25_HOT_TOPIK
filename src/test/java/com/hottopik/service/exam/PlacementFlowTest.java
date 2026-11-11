@@ -5,6 +5,7 @@ import com.hottopik.entity.exam.*;
 import com.hottopik.repository.exam.ExamSourceRepository;
 import com.hottopik.repository.exam.QuestionGroupRepository;
 import com.hottopik.repository.exam.QuestionRepository;
+import com.hottopik.repository.exam.StudyPlanRepository;
 import com.hottopik.service.PlacementService;
 import com.hottopik.service.exam.PlacementRules.Paper;
 import com.hottopik.util.AuthHelper;
@@ -25,6 +26,7 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -50,6 +52,7 @@ class PlacementFlowTest {
     @Autowired QuestionRepository questions;
     @Autowired QuestionGroupRepository groups;
     @Autowired ExamSourceRepository sources;
+    @Autowired StudyPlanRepository plans;
 
     @Test
     void threeEntryCardsDoNotAskForALevel() throws Exception {
@@ -241,6 +244,12 @@ class PlacementFlowTest {
                 .andExpect(redirectedUrl("/lo-trinh"));
     }
 
+    private static int count(String text, String piece) {
+        int found = 0;
+        for (int at = 0; (at = text.indexOf(piece, at)) >= 0; at += piece.length()) found++;
+        return found;
+    }
+
     private long start(String paper) throws Exception {
         MvcResult result = mvc.perform(post("/placement/start").param("paper", paper)
                         .sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
@@ -282,6 +291,90 @@ class PlacementFlowTest {
             for (int i = 0; i < entry.getValue(); i++) copy(pool.get(i), source);
         }
         placement.save(paper.name(), plan);
+    }
+
+    @Test
+    void placementScreenUsesStartCheckAndNextThenScoresThePaper() throws Exception {
+        bank(Paper.TOPIK_I);
+        mvc.perform(get("/placement").sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Bắt đầu")))
+                .andExpect(content().string(containsString("20 câu · 200 điểm")));
+
+        long id = start(Paper.TOPIK_I.name());
+        String play = mvc.perform(get("/placement/play/" + id).sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Câu 1 / 20")))
+                .andExpect(content().string(containsString("Kiểm tra")))
+                .andExpect(content().string(containsString("Câu tiếp")))
+                .andExpect(content().string(containsString("Chọn một đáp án rồi bấm Kiểm tra.")))
+                .andExpect(content().string(containsString("is-current")))
+                .andExpect(content().string(containsString("is-done")))
+                .andExpect(content().string(containsString("Xanh là câu đã làm")))
+                .andExpect(content().string(containsString("LỜI GIẢI THÍCH CHI TIẾT")))
+                .andExpect(content().string(containsString("Bạn đã chọn")))
+                .andExpect(content().string(containsString("classList.remove('d-none')")))
+                .andReturn().getResponse().getContentAsString();
+        assertEquals(1, count(play, "q-card p-4 p-md-5 rounded-4 bg-white border shadow-sm\""));
+        assertEquals(19, count(play, "q-card p-4 p-md-5 rounded-4 bg-white border shadow-sm d-none"));
+
+        List<Question> paper = placed(id);
+        var submit = post("/placement/submit/" + id).sessionAttr(AuthHelper.SESSION_KEY, LEARNER);
+        for (int i = 0; i < 4; i++) {
+            submit.param("answer_" + paper.get(i).getId(), String.valueOf(paper.get(i).getAnswerIndex()));
+        }
+        int wrong = paper.get(4).getAnswerIndex() == 1 ? 2 : 1;
+        submit.param("answer_" + paper.get(4).getId(), String.valueOf(wrong));
+        mvc.perform(submit).andExpect(redirectedUrl("/placement/result/" + id));
+
+        mvc.perform(get("/placement/result/" + id).sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("40/200")))
+                .andExpect(content().string(containsString("Bạn đúng 4/20 câu")))
+                .andExpect(content().string(containsString("Nên chọn")))
+                .andExpect(content().string(containsString("Vượt trình độ")))
+                .andExpect(content().string(containsString("Lộ trình TOPIK I")))
+                .andExpect(content().string(containsString("Lộ trình TOPIK II")))
+                .andExpect(content().string(containsString("Xem chi tiết bài kiểm tra")));
+
+        mvc.perform(get("/placement/result/" + id + "/chi-tiet").sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Chi tiết bài kiểm tra")))
+                .andExpect(content().string(containsString("LỜI GIẢI THÍCH CHI TIẾT")));
+    }
+
+    @Test
+    void declaringALevelHidesTheTracksUntilOneIsChosenAndReplacesTheOldPlan() throws Exception {
+        mvc.perform(get("/placement/khai").sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"trackChoices\"")))
+                .andExpect(content().string(containsString("class=\"d-none flex-column gap-3\" id=\"trackChoices\"")))
+                .andExpect(content().string(containsString("Chọn trình độ hiện tại để mở lộ trình.")))
+                .andExpect(content().string(containsString("if (!current.value)")));
+
+        mvc.perform(post("/placement/sinh").sessionAttr(AuthHelper.SESSION_KEY, LEARNER)
+                        .param("current", "0").param("target", "2")
+                        .param("date", LocalDate.now().plusDays(70).toString()).param("minutes", "20"))
+                .andExpect(redirectedUrl("/lo-trinh"));
+        StudyPlan first = plans.findByOwnerEmail(LEARNER.getEmail()).orElseThrow();
+        assertEquals(Track.TOPIK_I, first.getTrack());
+        long plansForLearner = plans.findAll().stream()
+                .filter(plan -> LEARNER.getEmail().equals(plan.getOwnerEmail())).count();
+        assertEquals(1, plansForLearner);
+
+        mvc.perform(post("/placement/sinh").sessionAttr(AuthHelper.SESSION_KEY, LEARNER)
+                        .param("current", "0").param("track", "TOPIK_II")
+                        .param("targetI", "2").param("targetII", "4")
+                        .param("date", LocalDate.now().plusDays(120).toString()).param("minutes", "20"))
+                .andExpect(redirectedUrl("/lo-trinh"));
+        StudyPlan replaced = plans.findByOwnerEmail(LEARNER.getEmail()).orElseThrow();
+        assertEquals(first.getId(), replaced.getId());
+        assertEquals(Track.TOPIK_II, replaced.getTrack());
+        assertEquals(1, plans.findAll().stream()
+                .filter(plan -> LEARNER.getEmail().equals(plan.getOwnerEmail())).count());
+        mvc.perform(get("/lo-trinh").sessionAttr(AuthHelper.SESSION_KEY, LEARNER))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("TOPIK II")));
     }
 
     @Test
