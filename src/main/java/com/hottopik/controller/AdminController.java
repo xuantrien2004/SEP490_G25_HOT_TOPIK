@@ -366,6 +366,61 @@ public class AdminController {
         return ResponseEntity.ok(resp);
     }
 
+    @PostMapping("/staff/create")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> createStaff(
+            @RequestParam("fullName") String fullName,
+            @RequestParam("email") String email,
+            @RequestParam("password") String password,
+            @RequestParam("role") String role,
+            HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+
+        if (currentUser == null || !currentUser.isAdmin()) {
+            resp.put("success", false);
+            resp.put("message", "Từ chối quyền truy cập.");
+            return ResponseEntity.status(403).body(resp);
+        }
+
+        if (fullName == null || fullName.trim().length() < 2 || fullName.trim().length() > 40) {
+            resp.put("success", false);
+            resp.put("message", "Họ và tên nhân sự phải từ 2 đến 40 ký tự.");
+            return ResponseEntity.badRequest().body(resp);
+        }
+
+        if (email == null || email.trim().isEmpty() || !email.contains("@")) {
+            resp.put("success", false);
+            resp.put("message", "Email không hợp lệ.");
+            return ResponseEntity.badRequest().body(resp);
+        }
+
+        if (password == null || password.trim().length() < 6) {
+            resp.put("success", false);
+            resp.put("message", "Mật khẩu ban đầu phải từ 6 ký tự trở lên.");
+            return ResponseEntity.badRequest().body(resp);
+        }
+
+        boolean created = userService.createStaffUser(fullName.trim(), email.trim(), password.trim(), role.trim());
+        if (created) {
+            adminSystemService.logAction(
+                    currentUser.getFullName(),
+                    currentUser.getRole(),
+                    "CREATE_STAFF_USER",
+                    "STAFF",
+                    "Admin tạo tài khoản nhân sự mới: " + email.trim() + " (" + role.trim() + ")",
+                    "127.0.0.1"
+            );
+            resp.put("success", true);
+            resp.put("message", "Tạo tài khoản nhân sự " + email.trim() + " thành công!");
+            return ResponseEntity.ok(resp);
+        } else {
+            resp.put("success", false);
+            resp.put("message", "Email " + email.trim() + " đã tồn tại trên hệ thống.");
+            return ResponseEntity.badRequest().body(resp);
+        }
+    }
+
     @PostMapping("/orders/refund")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> refundOrder(

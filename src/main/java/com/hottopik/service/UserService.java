@@ -356,6 +356,78 @@ public class UserService {
     }
 
     /**
+     * Tạo tài khoản nhân sự mới (Admin quản trị nội bộ)
+     */
+    @Transactional
+    public boolean createStaffUser(String fullName, String email, String rawPassword, String role) {
+        if (email == null || rawPassword == null || fullName == null || role == null) {
+            return false;
+        }
+        String cleanEmail = email.trim().toLowerCase();
+        String cleanName = fullName.trim();
+        String cleanRole = role.trim().toUpperCase();
+        if (cleanRole.startsWith("ROLE_")) {
+            cleanRole = cleanRole.substring(5);
+        }
+
+        // Kiểm tra xem email đã tồn tại hay chưa
+        try {
+            Optional<User> existing = userRepository.findByEmail(cleanEmail);
+            if (existing.isPresent()) {
+                return false;
+            }
+        } catch (Exception ex) {
+            log.warn("Lỗi kiểm tra email trùng trong DB: {}", ex.getMessage());
+        }
+        for (UserDTO u : users.values()) {
+            if (cleanEmail.equalsIgnoreCase(u.getEmail())) {
+                return false;
+            }
+        }
+
+        try {
+            User newUser = User.builder()
+                    .email(cleanEmail)
+                    .passwordHash(passwordEncoder.encode(rawPassword.trim()))
+                    .displayName(cleanName)
+                    .role(cleanRole)
+                    .status("ACTIVE")
+                    .timezone("Asia/Ho_Chi_Minh")
+                    .build();
+            User saved = userRepository.save(newUser);
+
+            UserSetting setting = UserSetting.builder()
+                    .userId(saved.getId())
+                    .theme("LIGHT")
+                    .fontSize("M")
+                    .showRomanization(true)
+                    .audioSpeed(new BigDecimal("1.00"))
+                    .build();
+            userSettingRepository.save(setting);
+
+            UserDTO dto = mapToDTO(saved);
+            dto.setFullName(cleanName);
+            dto.setDisplayName(cleanName);
+            users.put(saved.getId(), dto);
+            return true;
+        } catch (Exception ex) {
+            log.error("Lỗi tạo nhân sự mới trong DB: {}, lưu in-memory fallback", ex.getMessage());
+            long newId = System.currentTimeMillis();
+            UserDTO dto = new UserDTO();
+            dto.setId(newId);
+            dto.setEmail(cleanEmail);
+            dto.setUsername(cleanEmail.split("@")[0]);
+            dto.setFullName(cleanName);
+            dto.setDisplayName(cleanName);
+            dto.setPassword(rawPassword.trim());
+            dto.setRole(cleanRole);
+            dto.setStatus("ACTIVE");
+            users.put(newId, dto);
+            return true;
+        }
+    }
+
+    /**
      * Xác thực tài khoản bằng mã OTP 6 số
      */
     @Transactional
