@@ -418,11 +418,11 @@
                 <!-- Instant Filter & Live Search Toolbar -->
                 <div style="background: #FFFFFF; padding: 16px 20px; border-radius: 16px; border: 2px solid var(--ssak-border); display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
                     <div style="flex-grow: 1; min-width: 250px;">
-                        <input type="text" id="liveGrammarSearch" class="form-control ssak-input" placeholder="🔍 Nhập tìm kiếm tên ngữ pháp, nghĩa..." oninput="performGrammarInstantFilter()" />
+                        <input type="text" id="liveGrammarSearch" class="form-control ssak-input" placeholder="🔍 Nhập tìm kiếm tên ngữ pháp, nghĩa..." oninput="performGrammarInstantFilter(true)" />
                     </div>
 
                     <div style="width: 170px;">
-                        <select id="liveImportanceSelect" class="form-select ssak-input" onchange="performGrammarInstantFilter()">
+                        <select id="liveImportanceSelect" class="form-select ssak-input" onchange="performGrammarInstantFilter(true)">
                             <option value="ALL">Mọi mức độ</option>
                             <option value="IMPORTANT">⭐ Quan trọng</option>
                             <option value="NORMAL">Thường gặp</option>
@@ -430,7 +430,7 @@
                     </div>
 
                     <div style="width: 160px;">
-                        <select id="liveStatusSelect" class="form-select ssak-input" onchange="performGrammarInstantFilter()">
+                        <select id="liveStatusSelect" class="form-select ssak-input" onchange="performGrammarInstantFilter(true)">
                             <option value="ALL">Mọi trạng thái</option>
                             <option value="ACTIVE">Hoạt động</option>
                             <option value="DRAFT">Bản nháp</option>
@@ -501,16 +501,19 @@
                                             th:data-explanation="${g.explanation}"
                                             th:data-status="${g.status}"
                                             th:data-frequent="${g.isFrequent}"
+                                            th:data-notes="${g.notes}"
+                                            th:data-sort-order="${g.sortOrder}"
+                                            th:data-ex-id="${not #lists.isEmpty(g.examples) ? g.examples[0].id : ''}"
                                             th:data-ex-kr="${not #lists.isEmpty(g.examples) ? g.examples[0].sentenceKo : ''}"
                                             th:data-ex-vi="${not #lists.isEmpty(g.examples) ? g.examples[0].sentenceVi : ''}"
                                             onclick="openEditGrammarModal(this)">
                                         Sửa
                                     </button>
 
-                                    <button type="button" class="btn-ssak-outline" style="height: 32px; padding: 0 10px; font-size: 12px;"
+                                    <button type="button" class="btn-ssak-outline grammar-toggle-btn" style="height: 32px; padding: 0 10px; font-size: 12px;"
                                             th:data-id="${g.id}"
                                             onclick="toggleGrammarStatus(this.getAttribute('data-id'))"
-                                            th:text="${g.status == 'ACTIVE' ? 'Ẩn' : 'Bật'}">
+                                            th:text="${g.status == 'ACTIVE' ? 'Ẩn' : 'Hiện'}">
                                         Ẩn
                                     </button>
                                 </div>
@@ -527,6 +530,9 @@
                         </h4>
                     </div>
                 </div>
+
+                <!-- Phân trang bảng mẫu ngữ pháp (JS: performGrammarInstantFilter) -->
+                <nav id="grammarRowsPagination" class="gg-pager" aria-label="Phân trang mẫu ngữ pháp"></nav>
 
             </th:block>
 
@@ -773,23 +779,38 @@
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body" style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
+            <div class="modal-body" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+                <div style="font-size: 13px; color: #24363D; background: #E3F2EA; border-radius: 12px; padding: 12px 16px;">
+                    Dữ liệu sẽ được nhập vào nhóm <strong th:text="${currentGrammarType}">nhóm hiện tại</strong> ở trạng thái <strong>Bản nháp</strong>.
+                    Dùng đúng file mẫu (bấm <a href="javascript:void(0)" onclick="downloadSampleGrammarExcel()">📥 Tải file mẫu Excel</a>), giữ nguyên dòng tiêu đề; cột có dấu (*) là bắt buộc.
+                </div>
+
                 <div id="grammarUploadZone" style="border: 2px dashed #6CC49F; border-radius: 18px; padding: 32px; text-align: center; background: #F8FAFC; display: flex; flex-direction: column; align-items: center; gap: 12px;">
                     <span style="font-size: 40px;">📊</span>
                     <input type="file" id="grammarExcelFileInput" accept=".xlsx, .xls" style="display: none;" onchange="handleGrammarExcelFile(this)" />
-                    <button type="button" class="btn-ssak-primary" style="height: 38px; padding: 0 20px; font-size: 13px; font-weight: 800;" onclick="document.getElementById('grammarExcelFileInput').click()">
+                    <button type="button" id="btnPickGrammarExcel" class="btn-ssak-primary" style="height: 38px; padding: 0 20px; font-size: 13px; font-weight: 800;" onclick="document.getElementById('grammarExcelFileInput').click()">
                         Chọn file Excel từ máy
                     </button>
+                    <span style="font-size: 12px; color: var(--ssak-text-muted);">Hỗ trợ .xlsx, .xls · tối đa 5MB, 500 dòng</span>
                 </div>
 
-                <div id="grammarImportReportBox" style="display: none; flex-direction: column; gap: 14px;">
-                    <div style="max-height: 280px; overflow-y: auto; border: 1px solid var(--ssak-border); border-radius: 12px;">
+                <div id="grammarImportError" style="display: none; font-size: 13px; font-weight: 700; color: #9C4A2E; background: #FBE6DA; border-radius: 12px; padding: 12px 16px;"></div>
+
+                <div id="grammarImportReportBox" style="display: none; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div id="grammarImportSummary" style="font-size: 14px; font-weight: 800; color: #24363D;"></div>
+                        <button type="button" class="btn-ssak-outline" style="height: 34px; padding: 0 14px; font-size: 12px;" onclick="resetGrammarImport()">↺ Chọn file khác</button>
+                    </div>
+                    <div style="max-height: 340px; overflow: auto; border: 1px solid var(--ssak-border); border-radius: 12px;">
                         <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                             <thead>
-                            <tr style="background: #FAFAF9; border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 11px; text-transform: uppercase;">
+                            <tr style="background: #FAFAF9; border-bottom: 2px solid var(--ssak-border); text-align: left; color: var(--ssak-text-muted); font-size: 11px; text-transform: uppercase; position: sticky; top: 0;">
                                 <th style="padding: 8px 10px;">Dòng</th>
-                                <th style="padding: 8px 10px;">Tên ngữ pháp</th>
-                                <th style="padding: 8px 10px;">Nghĩa</th>
+                                <th style="padding: 8px 10px;">Mẫu ngữ pháp</th>
+                                <th style="padding: 8px 10px;">Bản dịch</th>
+                                <th style="padding: 8px 10px;">Ví dụ</th>
+                                <th style="padding: 8px 10px;">Quan trọng</th>
+                                <th style="padding: 8px 10px;">Kết quả kiểm tra</th>
                             </tr>
                             </thead>
                             <tbody id="grammarImportPreviewTbody"></tbody>
@@ -809,7 +830,6 @@
 
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
     let validatedGrammarRows = [];
 
@@ -821,37 +841,73 @@
         }
     });
 
-    function performGrammarInstantFilter() {
+    // Thanh phân trang dùng chung kiểu .gg-pager (nhóm ngữ pháp và bảng mẫu ngữ pháp). current tính từ 0.
+    function renderGgPager(pager, current, pages, total, pageSize, unit, onGo) {
+        pager.innerHTML = '';
+        if (pages <= 1) return;
+        const start = current * pageSize, end = Math.min(start + pageSize, total);
+        const info = document.createElement('span');
+        info.className = 'gg-pager-info';
+        info.textContent = 'Hiển thị ' + (start + 1) + '–' + end + ' / ' + total + ' ' + unit;
+        const buttons = document.createElement('div');
+        buttons.className = 'gg-pager-buttons';
+        const btn = (label, target, isNav, ariaLabel) => {
+            const b = document.createElement('button');
+            b.type = 'button'; b.className = 'gg-page-btn'; b.textContent = label;
+            b.setAttribute('aria-label', ariaLabel);
+            if (target === current && !isNav) b.setAttribute('aria-current', 'page');
+            if (target < 0 || target >= pages) b.disabled = true;
+            else b.onclick = () => onGo(target);
+            return b;
+        };
+        buttons.appendChild(btn('‹ Trước', current - 1, true, 'Trang trước'));
+        for (let i = 0; i < pages; i++) buttons.appendChild(btn(String(i + 1), i, false, 'Trang ' + (i + 1)));
+        buttons.appendChild(btn('Sau ›', current + 1, true, 'Trang sau'));
+        pager.append(info, buttons);
+    }
+
+    // Lọc rồi phân trang bảng mẫu ngữ pháp. resetPage=true khi người dùng đổi từ khóa/bộ lọc;
+    // false khi gọi lại sau thao tác Ẩn/Hiện để giữ nguyên trang đang xem.
+    const GRAMMAR_ROWS_PAGE_SIZE = 10;
+    let grammarRowsPage = 0;
+    function performGrammarInstantFilter(resetPage) {
         const query = (document.getElementById('liveGrammarSearch')?.value || '').trim().toLowerCase();
         const importance = document.getElementById('liveImportanceSelect')?.value || 'ALL';
         const status = document.getElementById('liveStatusSelect')?.value || 'ALL';
 
-        const rows = document.querySelectorAll('.grammar-data-row');
-        let visibleCount = 0;
-
-        rows.forEach(row => {
+        const matched = [];
+        document.querySelectorAll('.grammar-data-row').forEach(row => {
             const pattern = (row.getAttribute('data-pattern') || '').toLowerCase();
             const meaning = (row.getAttribute('data-meaning') || '').toLowerCase();
             const rowImp = row.getAttribute('data-importance') || '';
             const rowStatus = row.getAttribute('data-status') || '';
 
-            let matchText = (query.length === 0 || pattern.includes(query) || meaning.includes(query));
-            let matchImp = (importance === 'ALL' || rowImp === importance);
-            let matchStatus = (status === 'ALL' || rowStatus === status);
-
-            if (matchText && matchImp && matchStatus) {
-                row.style.display = '';
-                visibleCount++;
-            } else {
-                row.style.display = 'none';
-            }
+            const matchText = (query.length === 0 || pattern.includes(query) || meaning.includes(query));
+            const matchImp = (importance === 'ALL' || rowImp === importance);
+            const matchStatus = (status === 'ALL' || rowStatus === status);
+            row.style.display = 'none';
+            if (matchText && matchImp && matchStatus) matched.push(row);
         });
 
+        const pages = Math.ceil(matched.length / GRAMMAR_ROWS_PAGE_SIZE);
+        if (resetPage) grammarRowsPage = 0;
+        grammarRowsPage = Math.max(0, Math.min(grammarRowsPage, pages - 1));
+        const start = grammarRowsPage * GRAMMAR_ROWS_PAGE_SIZE;
+        matched.slice(start, start + GRAMMAR_ROWS_PAGE_SIZE).forEach(row => row.style.display = '');
+
         const countEl = document.getElementById('grammarFilterCount');
-        if (countEl) countEl.innerText = visibleCount;
+        if (countEl) countEl.innerText = matched.length;
         const emptyEl = document.getElementById('grammarEmptyState');
-        if (emptyEl) emptyEl.style.display = (visibleCount === 0) ? 'block' : 'none';
+        if (emptyEl) emptyEl.style.display = (matched.length === 0) ? 'block' : 'none';
+
+        const pager = document.getElementById('grammarRowsPagination');
+        if (pager) renderGgPager(pager, grammarRowsPage, pages, matched.length, GRAMMAR_ROWS_PAGE_SIZE, 'mẫu ngữ pháp', target => {
+            grammarRowsPage = target;
+            performGrammarInstantFilter(false);
+            document.getElementById('grammarTableBody')?.closest('div')?.scrollIntoView({behavior: 'smooth', block: 'start'});
+        });
     }
+    if (document.querySelector('.grammar-data-row')) performGrammarInstantFilter(true);
 
     function openAddGrammarModal() {
         new bootstrap.Modal(document.getElementById('modalAddGrammar')).show();
@@ -872,53 +928,75 @@
             .then(res => res.json())
             .then(data => {
                 if (!data.success) { showGrammarToast(data.message || 'Không thể cập nhật trạng thái!'); return; }
-                const row = document.querySelector('.grammar-data-row button[data-id="' + id + '"]')?.closest('.grammar-data-row');
+                // Chỉ nhắm nút Ẩn/Hiện (class grammar-toggle-btn): nút Sửa cùng hàng cũng có data-id nên
+                // selector button[data-id] cũ trúng nút Sửa và đổi chữ của nó.
+                const toggle = document.querySelector('.grammar-toggle-btn[data-id="' + id + '"]');
+                const row = toggle?.closest('.grammar-data-row');
                 if (row) {
                     const status = data.status || (row.getAttribute('data-status') === 'ACTIVE' ? 'HIDDEN' : 'ACTIVE');
                     row.setAttribute('data-status', status);
                     const statusCell = row.querySelector('td:nth-last-child(2)');
-                    const toggle = row.querySelector('button[data-id="' + id + '"]');
                     if (statusCell) statusCell.innerHTML = status === 'ACTIVE'
                         ? '<span class="ssak-badge badge-mint" style="font-size: 11px;">Hoạt động</span>'
                         : '<span class="ssak-badge badge-terracotta" style="font-size: 11px;">Đã ẩn</span>';
-                    if (toggle) toggle.innerText = status === 'ACTIVE' ? 'Ẩn' : 'Bật';
+                    toggle.innerText = status === 'ACTIVE' ? 'Ẩn' : 'Hiện';
+                    // Cập nhật trạng thái lưu trên nút Sửa để form Sửa mở ra đúng trạng thái mới
+                    row.querySelector('button[onclick^="openEditGrammarModal"]')?.setAttribute('data-status', status);
+                    performGrammarInstantFilter();
                 }
                 if (window.HotTopikSync) window.HotTopikSync.broadcast('GRAMMAR_CHANGED', {id: id, status: data.status});
             });
     }
 
-    function handleSaveGrammar(e) {
-        e.preventDefault();
-        const groupIdVal = document.getElementById('currentGroupId')?.value;
-        const levelVal = document.getElementById('currentViewLevel')?.value;
+    // Ví dụ là tùy chọn: để trống cả hai ô thì không gửi ví dụ (trước đây luôn gửi 1 ví dụ rỗng nên backend từ chối lưu).
+    // Trả về null khi chỉ điền một trong hai ô để form báo lỗi thay vì gửi request.
+    function buildGrammarExamples(koId, viId, exampleId) {
+        const ko = document.getElementById(koId).value.trim();
+        const vi = document.getElementById(viId).value.trim();
+        if (!ko && !vi) return [];
+        if (!ko || !vi) return null;
+        const ex = { sentenceKo: ko, sentenceVi: vi, sortOrder: 1 };
+        if (exampleId) ex.id = parseInt(exampleId);
+        return [ex];
+    }
 
-        const payload = {
-            groupId: groupIdVal ? parseInt(groupIdVal) : 1,
-            level: levelVal ? parseInt(levelVal) : 1,
-            pattern: document.getElementById('gPattern').value.trim(),
-            translation: document.getElementById('gTranslation').value.trim(),
-            meaning: document.getElementById('gMeaning').value.trim(),
-            explanation: document.getElementById('gExplanation').value.trim(),
-            status: document.getElementById('gStatus').value,
-            isFrequent: document.getElementById('gImportance').value === 'IMPORTANT',
-            examples: [
-                {
-                    sentenceKo: document.getElementById('gExKr').value.trim(),
-                    sentenceVi: document.getElementById('gExVi').value.trim()
-                }
-            ]
-        };
-
-        fetch('/content/grammar/save', {
+    // Chỉ tải lại trang khi backend báo thành công; lỗi validate được hiện ra để người dùng sửa.
+    function submitGrammarForm(url, payload, modalId, fallbackMessage) {
+        return fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         })
             .then(res => res.json())
             .then(data => {
-                showGrammarToast(data.message || 'Đã lưu ngữ pháp!');
-                window.location.reload();
-            });
+                if (!data.success) { showGrammarToast(data.message || fallbackMessage); return; }
+                bootstrap.Modal.getInstance(document.getElementById(modalId))?.hide();
+                showGrammarToast(data.message);
+                setTimeout(() => window.location.reload(), 900);
+            })
+            .catch(() => showGrammarToast('Không thể kết nối máy chủ.'));
+    }
+
+    function handleSaveGrammar(e) {
+        e.preventDefault();
+        const groupId = currentGrammarGroupId();
+        const level = parseInt(document.getElementById('currentViewLevel')?.value || '');
+        if (!groupId || !level) { showGrammarToast('Vui lòng mở một nhóm ngữ pháp trước khi thêm.'); return; }
+        const examples = buildGrammarExamples('gExKr', 'gExVi', null);
+        if (examples === null) { showGrammarToast('Ví dụ cần điền đủ câu tiếng Hàn và câu dịch tiếng Việt (hoặc để trống cả hai).'); return; }
+
+        const payload = {
+            groupId: groupId,
+            level: level,
+            pattern: document.getElementById('gPattern').value.trim(),
+            translation: document.getElementById('gTranslation').value.trim(),
+            meaning: document.getElementById('gMeaning').value.trim(),
+            explanation: document.getElementById('gExplanation').value.trim(),
+            status: document.getElementById('gStatus').value,
+            isFrequent: document.getElementById('gImportance').value === 'IMPORTANT',
+            examples: examples
+        };
+        submitGrammarForm('/content/grammar/save', payload, 'modalAddGrammar', 'Không thể lưu ngữ pháp.');
     }
 
     let deleteTargetTypeId = null;
@@ -1085,66 +1163,124 @@
         render();
     })();
 
-    function downloadSampleGrammarExcel() {
-        const sample = [
-            ["Tên ngữ pháp", "Bản dịch", "Ý nghĩa", "Cấp TOPIK", "Ví dụ tiếng Hàn", "Ví dụ tiếng Việt"],
-            ["-아서/어서", "Vì... nên...", "Chỉ nguyên nhân", 1, "배가 아파서 병원에 갔어요.", "Vì đau bụng nên tôi đã đến bệnh viện."]
-        ];
-        const ws = XLSX.utils.aoa_to_sheet(sample);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "MauNguPhap");
-        XLSX.writeFile(wb, "HotTopik_Mau_Nhap_Ngu_Phap.xlsx");
+    // ===== IMPORT EXCEL: backend (Apache POI) tạo file mẫu, đọc file và kiểm tra từng dòng; JS chỉ hiển thị và xác nhận =====
+    function currentGrammarGroupId() {
+        const v = document.getElementById('currentGroupId')?.value;
+        return v ? parseInt(v) : null;
     }
+
+    function downloadSampleGrammarExcel() {
+        const groupId = currentGrammarGroupId();
+        if (!groupId) { showGrammarToast('Vui lòng mở một nhóm ngữ pháp trước khi tải file mẫu.'); return; }
+        window.location.href = '/content/grammar/template?groupId=' + groupId;
+    }
+
+    function setGrammarImportError(message) {
+        const el = document.getElementById('grammarImportError');
+        if (!el) return;
+        el.textContent = message || '';
+        el.style.display = message ? 'block' : 'none';
+    }
+
+    function resetGrammarImport() {
+        validatedGrammarRows = [];
+        const input = document.getElementById('grammarExcelFileInput');
+        if (input) input.value = '';
+        setGrammarImportError('');
+        document.getElementById('grammarImportPreviewTbody').innerHTML = '';
+        document.getElementById('grammarUploadZone').style.display = 'flex';
+        document.getElementById('grammarImportReportBox').style.display = 'none';
+        const btn = document.getElementById('btnConfirmImportGrammar');
+        btn.style.display = 'none';
+        btn.disabled = false;
+    }
+    document.getElementById('modalImportGrammarExcel')?.addEventListener('show.bs.modal', resetGrammarImport);
 
     function handleGrammarExcelFile(input) {
         const file = input.files[0];
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-            parseGrammarRows(json);
-        };
-        reader.readAsArrayBuffer(file);
+        const groupId = currentGrammarGroupId();
+        if (!groupId) { setGrammarImportError('Không xác định được nhóm ngữ pháp đang mở.'); return; }
+        setGrammarImportError('');
+        const pickBtn = document.getElementById('btnPickGrammarExcel');
+        pickBtn.disabled = true;
+        pickBtn.textContent = 'Đang đọc file...';
+
+        const body = new FormData();
+        body.append('file', file);
+        fetch('/content/grammar/import/preview?groupId=' + groupId, { method: 'POST', body: body })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) { setGrammarImportError(data.message || 'Không đọc được file Excel.'); input.value = ''; return; }
+                renderGrammarImportPreview(data.preview);
+            })
+            .catch(() => { setGrammarImportError('Không thể kết nối máy chủ để đọc file.'); input.value = ''; })
+            .finally(() => { pickBtn.disabled = false; pickBtn.textContent = 'Chọn file Excel từ máy'; });
     }
 
-    function parseGrammarRows(rows) {
-        if (!rows || rows.length <= 1) return;
-        let parsedList = [];
-        const groupIdVal = document.getElementById('currentGroupId')?.value;
-        const levelVal = document.getElementById('currentViewLevel')?.value;
-
-        for (let i = 1; i < rows.length; i++) {
-            const r = rows[i];
-            if (!r || r.length === 0) continue;
-            parsedList.push({
-                groupId: groupIdVal ? parseInt(groupIdVal) : 1,
-                level: levelVal ? parseInt(levelVal) : 1,
-                pattern: (r[0] || '').toString().trim(),
-                translation: (r[1] || '').toString().trim(),
-                meaning: (r[2] || '').toString().trim(),
-                status: 'DRAFT'
+    function renderGrammarImportPreview(preview) {
+        const tbody = document.getElementById('grammarImportPreviewTbody');
+        tbody.innerHTML = '';
+        preview.rows.forEach(r => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid var(--ssak-border)';
+            if (!r.valid) tr.style.background = '#FFF7F3';
+            const cells = [
+                String(r.rowNo),
+                r.pattern || '—',
+                r.translation || '—',
+                r.exampleKo ? (r.exampleKo + ' / ' + r.exampleVi) : '—',
+                r.frequent ? '⭐ Có' : 'Không',
+                (r.valid ? '✅ ' : '❌ ') + r.message
+            ];
+            cells.forEach((text, i) => {
+                const td = document.createElement('td');
+                td.style.padding = '8px 10px';
+                td.textContent = text; // textContent: không coi dữ liệu Excel là HTML
+                if (i === 1) { td.style.fontFamily = 'var(--font-korean)'; td.style.fontWeight = '800'; }
+                if (i === 5) { td.style.fontWeight = '700'; td.style.color = r.valid ? '#1F6B56' : '#9C4A2E'; }
+                tr.appendChild(td);
             });
-        }
-        validatedGrammarRows = parsedList;
+            tbody.appendChild(tr);
+        });
+
+        validatedGrammarRows = preview.rows.filter(r => r.valid);
+        document.getElementById('grammarImportSummary').textContent =
+            preview.rows.length + ' dòng · ✅ ' + preview.validCount + ' hợp lệ · ❌ ' + preview.errorCount + ' lỗi (dòng lỗi sẽ không được lưu)';
         document.getElementById('grammarUploadZone').style.display = 'none';
         document.getElementById('grammarImportReportBox').style.display = 'flex';
-        document.getElementById('btnConfirmImportGrammar').style.display = 'block';
+        const btn = document.getElementById('btnConfirmImportGrammar');
+        btn.style.display = validatedGrammarRows.length > 0 ? 'block' : 'none';
+        btn.textContent = '🚀 Lưu ' + validatedGrammarRows.length + ' mẫu hợp lệ (Bản nháp)';
     }
 
     function executeBulkGrammarImport() {
-        if (!validatedGrammarRows || validatedGrammarRows.length === 0) return;
-        fetch('/content/grammar/bulk-create', {
+        const groupId = currentGrammarGroupId();
+        if (!groupId || !validatedGrammarRows || validatedGrammarRows.length === 0) return;
+        const btn = document.getElementById('btnConfirmImportGrammar');
+        btn.disabled = true;
+        btn.textContent = 'Đang lưu...';
+        fetch('/content/grammar/import/confirm?groupId=' + groupId, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(validatedGrammarRows)
         })
             .then(res => res.json())
             .then(data => {
-                showGrammarToast(data.message || 'Đã import thành công!');
-                window.location.reload();
+                if (!data.success) {
+                    const detail = (data.errors && data.errors.length) ? ' ' + data.errors.slice(0, 3).join(' ') : '';
+                    setGrammarImportError((data.message || 'Không lưu được dữ liệu.') + detail);
+                    btn.disabled = false;
+                    btn.textContent = '🚀 Lưu ' + validatedGrammarRows.length + ' mẫu hợp lệ (Bản nháp)';
+                    return;
+                }
+                bootstrap.Modal.getInstance(document.getElementById('modalImportGrammarExcel'))?.hide();
+                showGrammarToast(data.message);
+                setTimeout(() => window.location.reload(), 1200);
+            })
+            .catch(() => {
+                setGrammarImportError('Không thể kết nối máy chủ để lưu dữ liệu.');
+                btn.disabled = false;
             });
     }
 
@@ -1165,47 +1301,40 @@
         document.getElementById('editGExKr').value = btn.getAttribute('data-ex-kr') || '';
         document.getElementById('editGExVi').value = btn.getAttribute('data-ex-vi') || '';
 
-        new bootstrap.Modal(document.getElementById('modalEditGrammar')).show();
+        // Giữ lại các trường không có trên form (ghi chú, thứ tự, id ví dụ) để cập nhật không xóa mất dữ liệu cũ
+        const form = document.getElementById('modalEditGrammar');
+        form.dataset.notes = btn.getAttribute('data-notes') || '';
+        form.dataset.sortOrder = btn.getAttribute('data-sort-order') || '0';
+        form.dataset.exampleId = btn.getAttribute('data-ex-id') || '';
+
+        new bootstrap.Modal(form).show();
     }
 
     // Gửi request cập nhật dữ liệu kèm ví dụ lên Backend khi bấm Lưu trong modal sửa
     function handleUpdateGrammar(e) {
         e.preventDefault();
-        const id = document.getElementById('editGrammarId').value;
-        const levelVal = document.getElementById('currentViewLevel')?.value; // Lấy cấp độ hiện tại của trang
+        const modal = document.getElementById('modalEditGrammar');
+        const groupId = currentGrammarGroupId();
+        const level = parseInt(document.getElementById('currentViewLevel')?.value || '');
+        if (!groupId || !level) { showGrammarToast('Không xác định được nhóm ngữ pháp đang mở.'); return; }
+        const examples = buildGrammarExamples('editGExKr', 'editGExVi', modal.dataset.exampleId);
+        if (examples === null) { showGrammarToast('Ví dụ cần điền đủ câu tiếng Hàn và câu dịch tiếng Việt (hoặc để trống cả hai).'); return; }
 
         const payload = {
-            id: parseInt(id),
-            level: levelVal ? parseInt(levelVal) : 1, // Bổ sung trường level ở đây để không bị lỗi validate
-            groupId: parseInt(document.getElementById('currentGroupId')?.value || '1'), // Bổ sung groupId nếu cần
+            id: parseInt(document.getElementById('editGrammarId').value),
+            level: level,
+            groupId: groupId,
             pattern: document.getElementById('editGPattern').value.trim(),
             translation: document.getElementById('editGTranslation').value.trim(),
             meaning: document.getElementById('editGMeaning').value.trim(),
             explanation: document.getElementById('editGExplanation').value.trim(),
+            notes: modal.dataset.notes || null,
+            sortOrder: parseInt(modal.dataset.sortOrder || '0'),
             status: document.getElementById('editGStatus').value,
             isFrequent: document.getElementById('editGImportance').value === 'IMPORTANT',
-            examples: [
-                {
-                    sentenceKo: document.getElementById('editGExKr').value.trim(),
-                    sentenceVi: document.getElementById('editGExVi').value.trim()
-                }
-            ]
+            examples: examples
         };
-
-        fetch('/content/grammar/update', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-            .then(res => res.json())
-            .then(data => {
-                showGrammarToast(data.message || 'Đã cập nhật ngữ pháp thành công!');
-                window.location.reload();
-            })
-            .catch(err => {
-                console.error(err);
-                showGrammarToast('Có lỗi xảy ra khi cập nhật ngữ pháp.');
-            });
+        submitGrammarForm('/content/grammar/update', payload, 'modalEditGrammar', 'Không thể cập nhật ngữ pháp.');
     }
 </script>
 </body>

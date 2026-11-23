@@ -452,6 +452,15 @@ public class GrammarService {
         return grammarRepository.findActiveByGrammarGroupIdWithExamples(groupId, "ACTIVE");
     }
 
+    // Chi tiết cho học viên: chỉ trả về khi cả mẫu ngữ pháp và nhóm của nó đang ACTIVE (nhóm bị ẩn thì mẫu cũng ẩn theo).
+    @Transactional(readOnly = true)
+    public java.util.Optional<Grammar> getActiveGrammarDetail(Long id) {
+        if (id == null) return java.util.Optional.empty();
+        return grammarRepository.findDetailById(id)
+                .filter(g -> "ACTIVE".equalsIgnoreCase(g.getStatus()))
+                .filter(g -> g.getGrammarGroup() != null && "ACTIVE".equalsIgnoreCase(g.getGrammarGroup().getStatus()));
+    }
+
     @Transactional(readOnly = true)
     public List<Grammar> getActiveGrammarsByLevel(Short level) {
         return grammarRepository.findActiveByLevelAndStatus(level, "ACTIVE");

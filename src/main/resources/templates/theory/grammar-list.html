@@ -10,17 +10,23 @@
 
     <!-- Quay lại -->
     <div style="margin-bottom: 20px; font-size: 14px; color: #53646C;">
-        <a th:href="@{/ly-thuyet(tab='grammar')}" style="color: #2E7D67; text-decoration: none; font-weight: 700;">← Quay lại danh sách nhóm</a>
+        <!-- Giữ đúng cấp TOPIK khi quay lại; trước đây luôn về cấp 1 -->
+        <a th:href="${groupLevel != null} ? @{/ly-thuyet(tab='grammar', level=${groupLevel})} : @{/ly-thuyet(tab='grammar')}" style="color: #2E7D67; text-decoration: none; font-weight: 700;">← Quay lại danh sách nhóm</a>
     </div>
 
-    <h1 style="font-family: var(--font-heading); font-size: 26px; font-weight: 800; margin-bottom: 24px; color: #24363D;">
-        Danh sách mẫu ngữ pháp trong nhóm
-    </h1>
+    <div style="margin-bottom: 24px;">
+        <span th:if="${group != null}" class="ssak-badge badge-sky" th:text="${'TOPIK ' + group.level + ' · Nhóm ' + group.groupNo}">TOPIK 1 · Nhóm 1</span>
+        <h1 style="font-family: var(--font-heading); font-size: 26px; font-weight: 800; margin: 8px 0 4px 0; color: #24363D;"
+            th:text="${group != null ? group.nameVi : 'Danh sách mẫu ngữ pháp trong nhóm'}">
+            Danh sách mẫu ngữ pháp trong nhóm
+        </h1>
+        <span th:if="${group != null}" style="font-size: 14px; color: #53646C;" th:text="${#lists.size(grammars) + ' mẫu ngữ pháp'}">0 mẫu ngữ pháp</span>
+    </div>
 
     <!-- Danh sách các mẫu ngữ pháp dạng thẻ card -->
-    <div style="display: flex; flex-direction: column; gap: 14px;">
+    <div id="grammarCardList" style="display: flex; flex-direction: column; gap: 14px; scroll-margin-top: 80px;">
         <th:block th:if="${grammars != null and not grammars.isEmpty()}">
-            <div th:each="g : ${grammars}" style="background: #FFFFFF; border: 1.5px solid #E8E5DC; border-radius: 16px; padding: 20px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s;">
+            <div th:each="g : ${grammars}" class="grammar-card" style="background: #FFFFFF; border: 1.5px solid #E8E5DC; border-radius: 16px; padding: 20px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s;">
                 <div>
                     <span class="korean-text" style="font-size: 18px; font-weight: 700; color: #2E7D67; display: block; margin-bottom: 4px;" th:text="${g.pattern}">-느니보다</span>
                     <span style="font-size: 14px; color: #53646C;" th:text="${g.translation}">Bản dịch tiếng Việt...</span>
@@ -43,10 +49,15 @@
             </div>
         </th:block>
 
-        <div th:if="${grammars == null or grammars.isEmpty()}" style="text-align: center; padding: 40px; color: #8C9BA2; font-style: italic;">
+        <div th:if="${grammars == null or grammars.isEmpty()}" style="text-align: center; padding: 40px; color: #8C9BA2; font-style: italic;"
+             th:text="${errorMessage != null ? errorMessage : 'Chưa có mẫu ngữ pháp nào trong nhóm này.'}">
             Chưa có mẫu ngữ pháp nào trong nhóm này.
         </div>
     </div>
+
+    <!-- Phân trang danh sách mẫu ngữ pháp (JS tự sinh, ẩn khi chỉ có 1 trang) -->
+    <nav id="grammarCardPagination" aria-label="Phân trang mẫu ngữ pháp"
+         style="display: none; margin-top: 20px; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; background: #FFFFFF; padding: 14px 20px; border-radius: 14px; border: 1.5px solid #E8E5DC;"></nav>
 
 </main>
 
@@ -165,6 +176,49 @@
             modal.style.display = 'none';
         }
     }
+
+    // ===== PHÂN TRANG DANH SÁCH MẪU NGỮ PHÁP (8 mẫu/trang) =====
+    const GRAMMAR_CARDS_PER_PAGE = 8;
+    let grammarCardPage = 1;
+
+    function showGrammarCardPage(page, scroll) {
+        const cards = [...document.querySelectorAll('#grammarCardList .grammar-card')];
+        const pager = document.getElementById('grammarCardPagination');
+        const totalPages = Math.ceil(cards.length / GRAMMAR_CARDS_PER_PAGE);
+        grammarCardPage = Math.min(Math.max(1, page), Math.max(1, totalPages));
+        const start = (grammarCardPage - 1) * GRAMMAR_CARDS_PER_PAGE;
+        cards.forEach((c, i) => c.style.display = (i >= start && i < start + GRAMMAR_CARDS_PER_PAGE) ? 'flex' : 'none');
+
+        pager.innerHTML = '';
+        if (totalPages <= 1) { pager.style.display = 'none'; return; }
+        pager.style.display = 'flex';
+
+        const info = document.createElement('div');
+        info.style.cssText = 'font-size: 13px; font-weight: 700; color: #53646C;';
+        info.textContent = 'Hiển thị ' + (start + 1) + ' - ' + Math.min(start + GRAMMAR_CARDS_PER_PAGE, cards.length) + ' trong tổng số ' + cards.length + ' mẫu ngữ pháp';
+        const buttons = document.createElement('div');
+        buttons.style.cssText = 'display: flex; align-items: center; gap: 6px; flex-wrap: wrap;';
+        const makeBtn = (label, target, active) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = label;
+            const disabled = target < 1 || target > totalPages;
+            b.disabled = disabled;
+            b.style.cssText = 'min-width: 34px; height: 34px; padding: 0 10px; font-size: 13px; font-weight: 700; border-radius: 8px; '
+                + (active ? 'border: 1.5px solid #2E7D67; background: #2E7D67; color: #FFFFFF; cursor: default;'
+                    : disabled ? 'border: 1px solid #E8E5DC; background: #FAF9F5; color: #A0AAB0; cursor: not-allowed;'
+                        : 'border: 1px solid #D0D0C8; background: #FFFFFF; color: #24363D; cursor: pointer;');
+            if (!disabled && !active) b.onclick = () => showGrammarCardPage(target, true);
+            return b;
+        };
+        buttons.appendChild(makeBtn('‹ Trước', grammarCardPage - 1, false));
+        for (let i = 1; i <= totalPages; i++) buttons.appendChild(makeBtn(String(i), i, i === grammarCardPage));
+        buttons.appendChild(makeBtn('Sau ›', grammarCardPage + 1, false));
+        pager.append(info, buttons);
+
+        if (scroll) document.getElementById('grammarCardList').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    showGrammarCardPage(1, false);
 </script>
 
 </body>

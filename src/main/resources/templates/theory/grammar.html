@@ -101,6 +101,17 @@
                 <div style="font-size: 13px; color: var(--ssak-text-muted); font-style: italic;">
                     Khám phá thêm các mẫu câu trong cùng chủ đề để củng cố kiến thức TOPIK của bạn.
                 </div>
+                <a th:each="rel : ${relatedGrammars}" th:href="@{/theory/grammar(id=${rel.id})}"
+                   style="display: block; padding: 12px 14px; border: 1.5px solid var(--ssak-border); border-radius: 12px; text-decoration: none; background: #FFFFFF;">
+                    <span style="display: block; font-family: var(--font-korean); font-size: 15px; font-weight: 800; color: #2E7D67;" th:text="${rel.pattern}">-아서/어서</span>
+                    <span style="display: block; font-size: 13px; color: #53646C;" th:text="${rel.translation}">Vì... nên...</span>
+                </a>
+                <div th:if="${relatedGrammars == null or #lists.isEmpty(relatedGrammars)}" style="font-size: 13px; color: var(--ssak-text-muted);">
+                    Nhóm này chưa có mẫu ngữ pháp nào khác.
+                </div>
+                <a th:href="@{/theory/grammar-list(groupId=${grammar.grammarGroup.id})}" style="font-size: 13px; font-weight: 800; color: #2E7D67; text-decoration: none;">
+                    Xem cả nhóm →
+                </a>
             </div>
         </aside>
 

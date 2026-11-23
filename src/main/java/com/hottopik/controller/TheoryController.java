@@ -3,6 +3,7 @@ package com.hottopik.controller;
 import com.hottopik.dto.TopicDTO;
 import com.hottopik.dto.VocabularyDTO;
 import com.hottopik.entity.Grammar;
+import com.hottopik.entity.GrammarGroup;
 import com.hottopik.service.GrammarService;
 import com.hottopik.service.GrammarGroupService;
 import com.hottopik.service.HanjaService;
@@ -203,22 +204,18 @@ public class TheoryController {
     public String grammarDetail(@RequestParam(value = "id", defaultValue = "1") Long id, Model model) {
         model.addAttribute("pageTitle", "Chi tiết ngữ pháp");
         model.addAttribute("activePage", "theory");
-        try {
-            Grammar grammar = grammarService.getGrammarById(id);
-            if (grammar == null || !"ACTIVE".equalsIgnoreCase(grammar.getStatus())) {
-                model.addAttribute("grammar", null);
-                model.addAttribute("errorMessage", "Mẫu ngữ pháp này hiện không khả dụng.");
-            } else {
-                model.addAttribute("grammar", grammar);
-                List<Grammar> related = grammar.getGrammarGroup() != null
-                        ? grammarService.getActiveGrammarsByGroupIdWithExamples(grammar.getGrammarGroup().getId())
-                        : grammarService.getActiveGrammarsByLevel(grammar.getLevel());
-                related.removeIf(g -> g.getId().equals(grammar.getId()));
-                model.addAttribute("relatedGrammars", related);
-            }
-        } catch (Exception e) {
-            model.addAttribute("grammar", null);
-            model.addAttribute("errorMessage", "Không tìm thấy mẫu ngữ pháp yêu cầu.");
+        // Dùng truy vấn JOIN FETCH nhóm + ví dụ: open-in-view=false nên getGrammarById() trả entity lazy
+        // làm template (grammarGroup.nameVi, examples) ném LazyInitializationException và sập trang.
+        Grammar grammar = grammarService.getActiveGrammarDetail(id).orElse(null);
+        model.addAttribute("grammar", grammar);
+        if (grammar == null) {
+            model.addAttribute("errorMessage", "Mẫu ngữ pháp này không tồn tại hoặc hiện không khả dụng.");
+        } else {
+            model.addAttribute("pageTitle", grammar.getPattern() + " · Ngữ pháp TOPIK " + grammar.getLevel());
+            List<Grammar> related = new java.util.ArrayList<>(
+                    grammarService.getActiveGrammarsByGroupIdWithExamples(grammar.getGrammarGroup().getId()));
+            related.removeIf(g -> g.getId().equals(grammar.getId()));
+            model.addAttribute("relatedGrammars", related);
         }
         return "theory/grammar";
     }
@@ -227,12 +224,21 @@ public class TheoryController {
     public String grammarListByGroup(@RequestParam("groupId") Integer groupId, Model model) {
         model.addAttribute("pageTitle", "Danh sách ngữ pháp theo nhóm");
         model.addAttribute("activePage", "theory");
+        // Nhóm không tồn tại hoặc đã bị Content Manager ẩn thì học viên không xem được (kể cả khi gõ thẳng URL).
+        GrammarGroup group = null;
         try {
-            model.addAttribute("grammars", grammarService.getActiveGrammarsByGroupIdWithExamples(groupId));
-        } catch (Exception e) {
-            model.addAttribute("grammars", java.util.Collections.emptyList());
-            model.addAttribute("errorMessage", "Không tìm thấy nhóm ngữ pháp yêu cầu.");
+            group = grammarGroupService.getGroupById(groupId);
+        } catch (IllegalArgumentException ignored) {
         }
+        if (group == null || !"ACTIVE".equalsIgnoreCase(group.getStatus())) {
+            model.addAttribute("grammars", java.util.Collections.emptyList());
+            model.addAttribute("errorMessage", "Nhóm ngữ pháp này không tồn tại hoặc hiện không khả dụng.");
+            return "theory/grammar-list";
+        }
+        model.addAttribute("group", group);
+        model.addAttribute("groupLevel", group.getLevel());
+        model.addAttribute("pageTitle", group.getNameVi() + " · Ngữ pháp TOPIK " + group.getLevel());
+        model.addAttribute("grammars", grammarService.getActiveGrammarsByGroupIdWithExamples(groupId));
         return "theory/grammar-list";
     }
 

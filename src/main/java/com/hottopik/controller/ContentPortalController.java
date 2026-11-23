@@ -6,6 +6,7 @@ import com.hottopik.entity.Grammar;
 import com.hottopik.entity.GrammarGroup;
 import com.hottopik.service.AdminSystemService;
 import com.hottopik.service.ContentManagementService;
+import com.hottopik.service.GrammarExcelService;
 import com.hottopik.service.GrammarGroupService;
 import com.hottopik.service.GrammarService;
 import com.hottopik.service.QuestionReportService;
@@ -45,6 +46,7 @@ public class ContentPortalController {
     private final QuestionTemplateService questionTemplates;
     private final ExamSourceRepository examSources;
     private final HanjaService hanjaService;
+    private final GrammarExcelService grammarExcelService;
 
 
     @Autowired
@@ -59,7 +61,8 @@ public class ContentPortalController {
                                    QuestionReportService questionReportService,
                                    QuestionTemplateService questionTemplates,
                                    ExamSourceRepository examSources,
-                                   HanjaService hanjaService) {
+                                   HanjaService hanjaService,
+                                   GrammarExcelService grammarExcelService) {
 
         this.contentService = contentService;
         this.vocabularyService = vocabularyService;
@@ -73,6 +76,7 @@ public class ContentPortalController {
         this.questionTemplates = questionTemplates;
         this.examSources = examSources;
         this.hanjaService = hanjaService;
+        this.grammarExcelService = grammarExcelService;
 
     }
 
@@ -422,41 +426,85 @@ public class ContentPortalController {
         }
     }
 
-    @PostMapping("/grammar/bulk-create")
+    // ===== IMPORT EXCEL NGỮ PHÁP: tải file mẫu -> xem trước (kiểm tra từng dòng) -> xác nhận lưu Bản nháp =====
+
+    private static boolean canEditContent(UserDTO user) {
+        return user != null && (user.isContentManager() || user.isAdmin());
+    }
+
+    @GetMapping("/grammar/template")
+    public ResponseEntity<byte[]> downloadGrammarTemplate(@RequestParam("groupId") Integer groupId, HttpSession session) {
+        if (!canEditContent(AuthHelper.getLoggedInUser(session))) return ResponseEntity.status(403).build();
+        try {
+            byte[] bytes = grammarExcelService.buildTemplate(groupId);
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setContentType(org.springframework.http.MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+            headers.setContentDisposition(org.springframework.http.ContentDisposition.attachment()
+                    .filename("HotTopik_Mau_Nhap_Ngu_Phap.xlsx").build());
+            return ResponseEntity.ok().headers(headers).body(bytes);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PostMapping("/grammar/import/preview")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> bulkCreateGrammar(
-            @RequestBody List<com.hottopik.dto.GrammarForm> forms,
+    public ResponseEntity<Map<String, Object>> previewGrammarImport(
+            @RequestParam("groupId") Integer groupId,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
             HttpSession session) {
         Map<String, Object> resp = new HashMap<>();
-        int count = 0;
-        if (forms != null) {
-            for (com.hottopik.dto.GrammarForm form : forms) {
-                try {
-                    if (form.getStatus() == null) {
-                        form.setStatus("DRAFT");
-                    }
-                    grammarService.saveGrammar(form);
-                    count++;
-                } catch (Exception ignored) {}
+        if (!canEditContent(AuthHelper.getLoggedInUser(session))) {
+            resp.put("success", false);
+            resp.put("message", "Bạn không có quyền nhập ngữ pháp.");
+            return ResponseEntity.status(403).body(resp);
+        }
+        try {
+            resp.put("success", true);
+            resp.put("preview", grammarExcelService.preview(file, groupId));
+            return ResponseEntity.ok(resp);
+        } catch (IllegalArgumentException e) {
+            resp.put("success", false);
+            resp.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(resp);
+        }
+    }
+
+    @PostMapping("/grammar/import/confirm")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> confirmGrammarImport(
+            @RequestParam("groupId") Integer groupId,
+            @RequestBody List<GrammarExcelService.ImportRow> rows,
+            HttpSession session) {
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        Map<String, Object> resp = new HashMap<>();
+        if (!canEditContent(currentUser)) {
+            resp.put("success", false);
+            resp.put("message", "Bạn không có quyền nhập ngữ pháp.");
+            return ResponseEntity.status(403).body(resp);
+        }
+        try {
+            GrammarExcelService.ConfirmResult result = grammarExcelService.confirmImport(groupId, rows);
+            if (result.created() > 0) {
+                adminSystemService.logAction(currentUser.getFullName(), currentUser.getRole(),
+                        "BULK_CREATE_GRAMMAR", "GRAMMAR",
+                        "Nhập Excel " + result.created() + " mẫu ngữ pháp (Bản nháp) vào nhóm ID #" + groupId,
+                        "127.0.0.1");
             }
+            resp.put("success", result.created() > 0);
+            resp.put("created", result.created());
+            resp.put("errors", result.errors());
+            resp.put("message", result.created() > 0
+                    ? "Đã nhập " + result.created() + " mẫu ngữ pháp ở trạng thái Bản nháp!"
+                    + (result.errors().isEmpty() ? "" : " Bỏ qua " + result.errors().size() + " dòng lỗi.")
+                    : "Không lưu được dòng nào.");
+            return ResponseEntity.ok(resp);
+        } catch (IllegalArgumentException e) {
+            resp.put("success", false);
+            resp.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(resp);
         }
-        if (count > 0) {
-            UserDTO currentUser = AuthHelper.getLoggedInUser(session);
-            String actorName = currentUser != null ? currentUser.getFullName() : "Lê Thu Hà";
-            String actorRole = currentUser != null ? currentUser.getRole() : "ROLE_CONTENT_MANAGER";
-            adminSystemService.logAction(
-                    actorName,
-                    actorRole,
-                    "BULK_CREATE_GRAMMAR",
-                    "GRAMMAR",
-                    "Nhập thành công " + count + " mẫu ngữ pháp vào hệ thống",
-                    "127.0.0.1"
-            );
-        }
-        resp.put("success", true);
-        resp.put("created", count);
-        resp.put("message", "Đã nhập thành công " + count + " mẫu ngữ pháp dạng Bản nháp!");
-        return ResponseEntity.ok(resp);
     }
 
     @GetMapping("/grammar/check-delete-type")
