@@ -383,11 +383,22 @@
             });
     }
 
-    function filterReviews(rating) {
-        if (rating === 'all') {
-            window.location.href = '/';
-        } else {
-            window.location.href = `/?rating=${rating}`;
+    // Lọc theo số sao mà không tải lại trang: lấy HTML đã lọc từ server rồi chỉ thay phần #reviewsSection,
+    // nên màn hình đứng yên ở khu vực bình luận. Lỗi mạng thì quay về điều hướng thường kèm anchor #reviewsSection.
+    async function filterReviews(rating) {
+        const url = rating === 'all' ? '/' : `/?rating=${rating}`;
+        const section = document.getElementById('reviewsSection');
+        try {
+            const res = await fetch(url, { headers: { 'Accept': 'text/html' } });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+            const fresh = doc.getElementById('reviewsSection');
+            if (!section || !fresh) throw new Error('reviewsSection not found');
+            section.innerHTML = fresh.innerHTML;
+            history.replaceState(null, '', url + '#reviewsSection');
+            initClientPagination();
+        } catch (e) {
+            window.location.href = url + '#reviewsSection';
         }
     }
 

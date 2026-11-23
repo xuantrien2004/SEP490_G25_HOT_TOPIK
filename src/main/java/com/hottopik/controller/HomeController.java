@@ -5,7 +5,6 @@ import com.hottopik.repository.ReviewRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -31,7 +30,7 @@ public class HomeController {
 
         // Lọc theo số sao hoặc lấy tất cả
         if (rating != null) {
-            approvedReviews = reviewRepository.findByStatusAndRating("APPROVED", rating.shortValue(), Sort.by("createdAt").descending());
+            approvedReviews = reviewRepository.findByStatusAndRatingWithUser("APPROVED", rating.shortValue());
         } else {
             approvedReviews = reviewRepository.findByStatusWithUser("APPROVED");
         }

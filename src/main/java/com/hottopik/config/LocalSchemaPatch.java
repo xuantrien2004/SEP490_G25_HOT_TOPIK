@@ -61,6 +61,9 @@ public class LocalSchemaPatch {
                         "ALTER TABLE dbo.vocabularies ALTER COLUMN topic_id INT NULL",
                         "IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'vocab_topics') AND NOT EXISTS (SELECT 1 FROM dbo.vocab_topics WHERE id = 1) BEGIN SET IDENTITY_INSERT dbo.vocab_topics ON; INSERT INTO dbo.vocab_topics (id, level, name_vi, name_ko, icon_char, sort_order) VALUES (1, 1, N'Chung', N'일반', N'📚', 1); SET IDENTITY_INSERT dbo.vocab_topics OFF; END",
                         "IF OBJECT_ID('dbo.topics', 'U') IS NULL BEGIN CREATE TABLE dbo.topics (id BIGINT IDENTITY(1,1) PRIMARY KEY, level INT NOT NULL DEFAULT 1, name NVARCHAR(100) NOT NULL, description NVARCHAR(500) NULL, status VARCHAR(10) NOT NULL DEFAULT 'ACTIVE', created_at DATETIME2 NOT NULL DEFAULT GETDATE(), updated_at DATETIME2 NOT NULL DEFAULT GETDATE()); END",
+                        // UserRepository.countActiveSubscriptions() đọc bảng này ngay sau khi đăng nhập đúng mật khẩu;
+                        // thiếu bảng làm transaction authenticate bị rollback-only và chặn mọi đăng nhập.
+                        "IF OBJECT_ID('dbo.subscriptions', 'U') IS NULL CREATE TABLE dbo.subscriptions (id BIGINT IDENTITY(1,1) PRIMARY KEY, user_id BIGINT NOT NULL, status VARCHAR(20) NOT NULL CONSTRAINT DF_subscriptions_status DEFAULT 'ACTIVE', starts_at DATETIME2 NOT NULL CONSTRAINT DF_subscriptions_starts_at DEFAULT SYSDATETIME(), ends_at DATETIME2 NULL)",
                         "IF OBJECT_ID('dbo.grammar_groups', 'U') IS NOT NULL AND COL_LENGTH('dbo.grammar_groups', 'status') IS NULL ALTER TABLE dbo.grammar_groups ADD status VARCHAR(10) NOT NULL CONSTRAINT DF_grammar_groups_status DEFAULT 'ACTIVE'",
                         "IF OBJECT_ID('dbo.grammar_groups', 'U') IS NOT NULL ALTER TABLE dbo.grammar_groups ALTER COLUMN name_vi NVARCHAR(100) NOT NULL"
                 };

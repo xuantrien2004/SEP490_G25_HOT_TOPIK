@@ -30,5 +30,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     @Query(value = "SELECT r FROM Review r JOIN FETCH r.user WHERE LOWER(r.status) = LOWER(:status) AND r.rating = :rating",
             countQuery = "SELECT COUNT(r) FROM Review r WHERE LOWER(r.status) = LOWER(:status) AND r.rating = :rating")
     Page<Review> findByStatusAndRating(@Param("status") String status, @Param("rating") Short rating, Pageable pageable);
-    List<Review> findByStatusAndRating(String status, Short rating, Sort sort);
+    // Lọc theo số sao cho trang chủ. Phải JOIN FETCH user: open-in-view=false nên template đọc rev.user
+    // sau khi transaction đóng sẽ ném LazyInitializationException nếu user chưa được nạp sẵn.
+    @Query("SELECT r FROM Review r JOIN FETCH r.user WHERE LOWER(r.status) = LOWER(:status) AND r.rating = :rating ORDER BY r.createdAt DESC")
+    List<Review> findByStatusAndRatingWithUser(@Param("status") String status, @Param("rating") Short rating);
 }
