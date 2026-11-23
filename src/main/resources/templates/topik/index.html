@@ -316,8 +316,8 @@
                 <p class="text-muted small mb-0">Cảm nhận thực tế của các học viên đã ôn luyện cẩm nang và đề thi trên HOT TOPIK.</p>
             </div>
             <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                <button type="button" onclick="openFeedbackModal()" class="btn-ssak-primary px-4 py-2 rounded-pill fw-bold">
-                    <i class="bi bi-star-fill me-1"></i> Viết đánh giá của bạn
+                <button type="button" onclick="openFeedbackModal()" class="btn-ssak-primary px-4 py-2 rounded-pill fw-bold js-open-feedback">
+                    <i class="bi bi-star-fill me-1"></i> <span class="js-open-feedback-label">Viết đánh giá của bạn</span>
                 </button>
             </div>
         </div>
@@ -381,8 +381,11 @@
     <div style="background: #FFFFFF; width: 500px; max-width: 90%; border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); position: relative;">
         <button onclick="closeFeedbackModal()" style="position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 20px; cursor: pointer; color: #53646C;">✕</button>
 
-        <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: var(--ssak-text-main); margin-bottom: 8px;">Đánh giá trải nghiệm</h3>
-        <p class="text-muted small mb-4">Ý kiến của cậu giúp đội ngũ phát triển hoàn thiện HOT TOPIK mỗi ngày!</p>
+        <h3 id="feedbackModalTitle" style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: var(--ssak-text-main); margin-bottom: 8px;">Đánh giá trải nghiệm</h3>
+        <p class="text-muted small mb-4">Ý kiến của cậu giúp đội ngũ phát triển hoàn thiện HOT TOPIK mỗi ngày! Mỗi tài khoản có 1 đánh giá, cậu có thể sửa lại bất cứ lúc nào.</p>
+        <div id="feedbackHiddenNote" style="display: none; margin: -12px 0 16px 0; font-size: 13px; font-weight: 700; color: #9C4A2E; background: #FBE6DA; border-radius: 10px; padding: 10px 12px;">
+            Đánh giá của cậu đang tạm ẩn bởi Ban vận hành. Cậu vẫn có thể sửa nội dung, đánh giá sẽ hiển thị lại khi được duyệt.
+        </div>
 
         <!-- Chọn số sao -->
         <div class="text-center mb-3">
@@ -404,7 +407,7 @@
 
         <div class="d-flex justify-content-end gap-2">
             <button type="button" onclick="closeFeedbackModal()" class="btn btn-light rounded-pill px-4 fw-bold">Hủy</button>
-            <button type="button" onclick="submitFeedback()" class="btn-ssak-primary rounded-pill px-4 fw-bold">Gửi đánh giá</button>
+            <button type="button" id="feedbackSubmitBtn" onclick="submitFeedback()" class="btn-ssak-primary rounded-pill px-4 fw-bold">Gửi đánh giá</button>
         </div>
     </div>
 </div>
@@ -441,6 +444,8 @@
     function openFeedbackModal() {
         document.getElementById('feedbackModal').style.display = 'flex';
         setRating(5);
+        // review-form.js: đã có đánh giá thì điền sẵn số sao + nội dung để sửa
+        if (window.fillFeedbackModal) window.fillFeedbackModal();
     }
 
     function closeFeedbackModal() {
@@ -582,5 +587,6 @@
 </script>
 
 <div th:replace="~{fragments/footer :: footer}"></div>
+<script th:src="@{/js/review-form.js}"></script>
 </body>
 </html>

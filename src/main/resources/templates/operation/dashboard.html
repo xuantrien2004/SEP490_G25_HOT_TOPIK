@@ -991,6 +991,13 @@
     };
 
     function switchOperationTab(tabName) {
+        // Ghi tab đang mở lên URL (?tab=...) để các thao tác gọi location.reload() (duyệt/ẩn review, đơn hàng,
+        // bảng giá, thông báo...) mở lại đúng tab thay vì quay về Tổng quan. DOMContentLoaded đã đọc ?tab sẵn.
+        try {
+            const url = new URL(window.location.href);
+            if (tabName === 'overview') url.searchParams.delete('tab'); else url.searchParams.set('tab', tabName);
+            history.replaceState(null, '', url);
+        } catch (ignored) {}
         const tabs = ['overview', 'users', 'orders', 'prices', 'compensation', 'reviews', 'announcements', 'aiBudget', 'audit'];
         tabs.forEach(t => {
             const pane = document.getElementById('pane-' + t);

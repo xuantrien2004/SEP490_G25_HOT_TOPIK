@@ -67,7 +67,10 @@ public class LocalSchemaPatch {
                         "IF OBJECT_ID('dbo.grammar_groups', 'U') IS NOT NULL AND COL_LENGTH('dbo.grammar_groups', 'status') IS NULL ALTER TABLE dbo.grammar_groups ADD status VARCHAR(10) NOT NULL CONSTRAINT DF_grammar_groups_status DEFAULT 'ACTIVE'",
                         "IF OBJECT_ID('dbo.grammar_groups', 'U') IS NOT NULL ALTER TABLE dbo.grammar_groups ALTER COLUMN name_vi NVARCHAR(100) NOT NULL",
                         // Cột dịch câu ví dụ ngữ pháp từng tạo là nvarchar(100) trong khi form cho phép 500 ký tự (COL_LENGTH tính byte).
-                        "IF OBJECT_ID('dbo.grammar_examples', 'U') IS NOT NULL AND COL_LENGTH('dbo.grammar_examples', 'sentence_vi') < 1000 ALTER TABLE dbo.grammar_examples ALTER COLUMN sentence_vi NVARCHAR(500) NOT NULL"
+                        "IF OBJECT_ID('dbo.grammar_examples', 'U') IS NOT NULL AND COL_LENGTH('dbo.grammar_examples', 'sentence_vi') < 1000 ALTER TABLE dbo.grammar_examples ALTER COLUMN sentence_vi NVARCHAR(500) NOT NULL",
+                        // Mỗi học viên 1 đánh giá (ReviewService cập nhật thay vì tạo mới). Chỉ tạo unique index khi bảng
+                        // đã hết bản trùng; nếu còn trùng thì bỏ qua để app vẫn khởi động, service vẫn chặn tạo thêm.
+                        "IF OBJECT_ID('dbo.reviews', 'U') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UQ_reviews_user' AND object_id = OBJECT_ID('dbo.reviews')) AND NOT EXISTS (SELECT user_id FROM dbo.reviews GROUP BY user_id HAVING COUNT(*) > 1) CREATE UNIQUE INDEX UQ_reviews_user ON dbo.reviews(user_id)"
                 };
                 for (String sql : sqlServerStatements) {
                     try {
