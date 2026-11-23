@@ -576,6 +576,11 @@
                         <textarea id="editGMeaning" class="form-control ssak-input" rows="2"></textarea>
                     </div>
 
+                    <div>
+                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Ghi chú</label>
+                        <textarea id="editGNotes" class="form-control ssak-input" rows="2" maxlength="4000" placeholder="Ví dụ: Không dùng với câu mệnh lệnh, rủ rê."></textarea>
+                    </div>
+
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div>
                             <label class="form-label" style="font-size: 13px; font-weight: 700;">Mức độ quan trọng</label>
@@ -701,6 +706,11 @@
                     <div>
                         <label class="form-label" style="font-size: 13px; font-weight: 700;">Giải thích / Cấu trúc (Explanation)</label>
                         <input type="text" id="gExplanation" class="form-control ssak-input" placeholder="Ví dụ: V/A + -아/어서" style="font-family: var(--font-korean);" />
+                    </div>
+
+                    <div>
+                        <label class="form-label" style="font-size: 13px; font-weight: 700;">Ghi chú</label>
+                        <textarea id="gNotes" class="form-control ssak-input" rows="2" maxlength="4000" placeholder="Ví dụ: Không dùng với câu mệnh lệnh, rủ rê."></textarea>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
@@ -992,6 +1002,7 @@
             translation: document.getElementById('gTranslation').value.trim(),
             meaning: document.getElementById('gMeaning').value.trim(),
             explanation: document.getElementById('gExplanation').value.trim(),
+            notes: document.getElementById('gNotes').value.trim(),
             status: document.getElementById('gStatus').value,
             isFrequent: document.getElementById('gImportance').value === 'IMPORTANT',
             examples: examples
@@ -1301,9 +1312,10 @@
         document.getElementById('editGExKr').value = btn.getAttribute('data-ex-kr') || '';
         document.getElementById('editGExVi').value = btn.getAttribute('data-ex-vi') || '';
 
-        // Giữ lại các trường không có trên form (ghi chú, thứ tự, id ví dụ) để cập nhật không xóa mất dữ liệu cũ
+        document.getElementById('editGNotes').value = btn.getAttribute('data-notes') || '';
+
+        // Giữ lại các trường không có trên form (thứ tự, id ví dụ) để cập nhật không xóa mất dữ liệu cũ
         const form = document.getElementById('modalEditGrammar');
-        form.dataset.notes = btn.getAttribute('data-notes') || '';
         form.dataset.sortOrder = btn.getAttribute('data-sort-order') || '0';
         form.dataset.exampleId = btn.getAttribute('data-ex-id') || '';
 
@@ -1328,7 +1340,7 @@
             translation: document.getElementById('editGTranslation').value.trim(),
             meaning: document.getElementById('editGMeaning').value.trim(),
             explanation: document.getElementById('editGExplanation').value.trim(),
-            notes: modal.dataset.notes || null,
+            notes: document.getElementById('editGNotes').value.trim(),
             sortOrder: parseInt(modal.dataset.sortOrder || '0'),
             status: document.getElementById('editGStatus').value,
             isFrequent: document.getElementById('editGImportance').value === 'IMPORTANT',

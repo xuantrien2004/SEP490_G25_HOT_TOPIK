@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Ngữ pháp đã lưu')}"></head>
+<body style="background: #F8F6EF; color: #24363D; font-family: var(--font-body); margin: 0; padding: 0;">
+
+<div th:replace="~{fragments/navbar :: navbar('theory')}"></div>
+
+<main style="max-width: 1000px; margin: 0 auto; padding: 32px; box-sizing: border-box;">
+
+    <div style="margin-bottom: 20px; font-size: 14px;">
+        <a th:href="@{/ly-thuyet(tab='grammar')}" style="color: #2E7D67; text-decoration: none; font-weight: 700;">← Quay lại Ngữ pháp</a>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+        <h1 style="font-family: var(--font-heading); font-size: 26px; font-weight: 800; margin: 0 0 4px 0; color: #24363D;">⭐ Ngữ pháp đã lưu</h1>
+        <span style="font-size: 14px; color: #53646C;">
+            Những mẫu ngữ pháp hay hoặc khó nhớ bạn đã đánh dấu để ôn lại ·
+            <strong id="savedGrammarTotal" th:text="${#lists.size(savedGrammars)}">0</strong> mẫu
+        </span>
+    </div>
+
+    <!-- Lọc theo cấp TOPIK (JS, chỉ hiện các cấp có mẫu đã lưu) -->
+    <div id="savedLevelFilter" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px;"></div>
+
+    <div id="savedGrammarList" style="display: flex; flex-direction: column; gap: 14px; scroll-margin-top: 80px;">
+        <div th:each="s : ${savedGrammars}" class="saved-grammar-card" th:with="g=${s.grammar}"
+             th:data-level="${g.level}" th:data-grammar-id="${g.id}"
+             style="background: #FFFFFF; border: 1.5px solid #E8E5DC; border-radius: 16px; padding: 20px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">
+            <div style="min-width: 0;">
+                <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;">
+                    <span class="ssak-badge badge-mint" th:text="${'TOPIK ' + g.level}">TOPIK 1</span>
+                    <span class="ssak-badge badge-sky" th:text="${g.grammarGroup.nameVi}">Nhóm</span>
+                </div>
+                <span class="korean-text" style="font-size: 20px; font-weight: 800; color: #2E7D67; display: block; margin-bottom: 4px;" th:text="${g.pattern}">-아서/어서</span>
+                <span style="font-size: 14px; color: #24363D; font-weight: 700; display: block;" th:text="${g.translation}">Vì... nên...</span>
+                <div th:if="${not #lists.isEmpty(g.examples)}" style="margin-top: 10px; font-size: 13px; color: #53646C;">
+                    <span class="korean-text" style="display: block;" th:text="${'🇰🇷 ' + g.examples[0].sentenceKo}">🇰🇷 비가 와서...</span>
+                    <span style="display: block;" th:text="${'🇻🇳 ' + g.examples[0].sentenceVi}">🇻🇳 Vì trời mưa...</span>
+                </div>
+                <span style="display: block; margin-top: 8px; font-size: 12px; color: #8C9BA2;"
+                      th:text="${'Đã lưu lúc ' + #temporals.format(s.createdAt, 'dd/MM/yyyy HH:mm')}">Đã lưu lúc ...</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;">
+                <a th:href="@{/theory/grammar(id=${g.id}, from='saved')}"
+                   style="background: #2E7D67; color: #FFFFFF; padding: 10px 16px; border-radius: 12px; font-weight: 700; font-size: 14px; text-decoration: none; text-align: center;">
+                    Xem chi tiết →
+                </a>
+                <button type="button" class="save-grammar-btn save-grammar-compact" th:data-id="${g.id}" data-saved="true"
+                        onclick="toggleSaveGrammar(this, event)"
+                        style="height: 38px; padding: 0 14px; border-radius: 12px; font-size: 13px; font-weight: 800; cursor: pointer;">
+                    ★ Đã lưu
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hiện khi chưa lưu mẫu nào hoặc lọc theo cấp không có mẫu -->
+    <div id="savedGrammarEmpty" style="display: none; text-align: center; padding: 48px 24px; background: #FFFFFF; border: 1.5px dashed #E8E5DC; border-radius: 16px;">
+        <div style="font-size: 40px; margin-bottom: 10px;">📒</div>
+        <h3 id="savedGrammarEmptyTitle" style="margin: 0 0 6px 0; font-family: var(--font-heading); font-size: 18px; font-weight: 800;">Bạn chưa lưu ngữ pháp nào</h3>
+        <p style="margin: 0 0 16px 0; font-size: 14px; color: #53646C;">Bấm ☆ Lưu ở mẫu ngữ pháp hay hoặc khó nhớ để ôn lại tại đây.</p>
+        <a th:href="@{/ly-thuyet(tab='grammar')}" style="display: inline-block; background: #2E7D67; color: #FFFFFF; padding: 10px 20px; border-radius: 12px; font-weight: 700; text-decoration: none;">Khám phá ngữ pháp</a>
+    </div>
+
+    <nav id="savedGrammarPagination" aria-label="Phân trang ngữ pháp đã lưu"
+         style="display: none; margin-top: 20px; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; background: #FFFFFF; padding: 14px 20px; border-radius: 14px; border: 1.5px solid #E8E5DC;"></nav>
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<script>
+    // Lọc theo cấp + phân trang 8 mẫu/trang trên các thẻ do server render sẵn.
+    const SAVED_PER_PAGE = 8;
+    let savedLevel = 'all';
+    let savedPage = 1;
+
+    function savedCards() {
+        return [...document.querySelectorAll('#savedGrammarList .saved-grammar-card')];
+    }
+
+    function renderLevelFilter() {
+        const box = document.getElementById('savedLevelFilter');
+        const levels = [...new Set(savedCards().map(c => c.dataset.level))].sort();
+        if (!levels.includes(savedLevel)) savedLevel = 'all';
+        box.innerHTML = '';
+        if (levels.length <= 1) return;
+        ['all', ...levels].forEach(lv => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = lv === 'all' ? 'Tất cả' : 'TOPIK ' + lv;
+            const active = lv === savedLevel;
+            b.style.cssText = 'height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 800; cursor: pointer; '
+                + (active ? 'background: #2E7D67; color: #FFFFFF; border: none;' : 'background: #FFFFFF; color: #24363D; border: 1px solid #D0D0C8;');
+            b.onclick = () => { savedLevel = lv; savedPage = 1; renderSaved(false); };
+            box.appendChild(b);
+        });
+    }
+
+    function renderSaved(scroll) {
+        renderLevelFilter();
+        const all = savedCards();
+        const matched = all.filter(c => savedLevel === 'all' || c.dataset.level === savedLevel);
+        const totalPages = Math.max(1, Math.ceil(matched.length / SAVED_PER_PAGE));
+        savedPage = Math.min(Math.max(1, savedPage), totalPages);
+        const start = (savedPage - 1) * SAVED_PER_PAGE;
+        all.forEach(c => c.style.display = 'none');
+        matched.slice(start, start + SAVED_PER_PAGE).forEach(c => c.style.display = 'flex');
+
+        document.getElementById('savedGrammarTotal').textContent = all.length;
+        const empty = document.getElementById('savedGrammarEmpty');
+        empty.style.display = matched.length === 0 ? 'block' : 'none';
+
+        const pager = document.getElementById('savedGrammarPagination');
+        pager.innerHTML = '';
+        if (totalPages <= 1) { pager.style.display = 'none'; }
+        else {
+            pager.style.display = 'flex';
+            const info = document.createElement('div');
+            info.style.cssText = 'font-size: 13px; font-weight: 700; color: #53646C;';
+            info.textContent = 'Hiển thị ' + (start + 1) + ' - ' + Math.min(start + SAVED_PER_PAGE, matched.length) + ' trong tổng số ' + matched.length + ' mẫu';
+            const buttons = document.createElement('div');
+            buttons.style.cssText = 'display: flex; align-items: center; gap: 6px; flex-wrap: wrap;';
+            const makeBtn = (label, target, active) => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.textContent = label;
+                const disabled = target < 1 || target > totalPages;
+                b.disabled = disabled;
+                b.style.cssText = 'min-width: 34px; height: 34px; padding: 0 10px; font-size: 13px; font-weight: 700; border-radius: 8px; '
+                    + (active ? 'border: 1.5px solid #2E7D67; background: #2E7D67; color: #FFFFFF; cursor: default;'
+                        : disabled ? 'border: 1px solid #E8E5DC; background: #FAF9F5; color: #A0AAB0; cursor: not-allowed;'
+                            : 'border: 1px solid #D0D0C8; background: #FFFFFF; color: #24363D; cursor: pointer;');
+                if (!disabled && !active) b.onclick = () => { savedPage = target; renderSaved(true); };
+                return b;
+            };
+            buttons.appendChild(makeBtn('‹ Trước', savedPage - 1, false));
+            for (let i = 1; i <= totalPages; i++) buttons.appendChild(makeBtn(String(i), i, i === savedPage));
+            buttons.appendChild(makeBtn('Sau ›', savedPage + 1, false));
+            pager.append(info, buttons);
+        }
+        if (scroll) document.getElementById('savedGrammarList').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Bỏ lưu ngay trên trang này thì gỡ thẻ khỏi danh sách và tính lại phân trang
+    window.addEventListener('hottopik:saved-grammar-changed', e => {
+        if (e.detail && e.detail.saved === false) {
+            document.querySelector('.saved-grammar-card[data-grammar-id="' + e.detail.id + '"]')?.remove();
+            renderSaved(false);
+        }
+    });
+
+    renderSaved(false);
+</script>
+<script th:src="@{/js/saved-grammar.js}"></script>
+</body>
+</html>

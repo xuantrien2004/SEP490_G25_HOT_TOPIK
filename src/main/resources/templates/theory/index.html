@@ -109,10 +109,17 @@
             <span th:text="${categoryTitle}">TOPIK 1 · 6 chủ đề</span>
         </h2>
 
-        <!-- Shortcut to Unlearned Words / Quiz -->
+        <!-- Shortcut to Unlearned Words / Quiz + Sổ ngữ pháp (gom chung để hàng space-between vẫn đúng bố cục) -->
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
         <a th:href="@{/tu-chua-thuoc}" id="unlearnedShortcut" style="display: none; align-items: center; gap: 4px; background: #FEF9E7; color: #B7791F; border: 1.5px solid #F6E05E; padding: 6px 14px; border-radius: 12px; font-size: 13px; font-weight: 800; text-decoration: none; transition: background 0.15s ease;">
             ⭐ <span id="unlearnedCountText">0</span> từ chưa thuộc ➔
         </a>
+        <!-- Sổ ngữ pháp: chỉ hiện khi học viên đã lưu ít nhất 1 mẫu (đếm từ DB) -->
+        <a th:if="${savedGrammarCount != null and savedGrammarCount > 0}" th:href="@{/ly-thuyet/ngu-phap-da-luu}"
+           style="display: inline-flex; align-items: center; gap: 4px; background: #FBF0D3; color: #9A6B00; border: 1.5px solid #F4C45A; padding: 6px 14px; border-radius: 12px; font-size: 13px; font-weight: 800; text-decoration: none;">
+            ⭐ <span th:text="${savedGrammarCount}">0</span> ngữ pháp đã lưu ➔
+        </a>
+        </div>
     </div>
 
     <!-- MAIN CONTENT CARDS GRID (3 COLUMNS) -->

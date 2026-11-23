@@ -9,7 +9,8 @@
 <main style="max-width: 1000px; margin: 0 auto; padding: 32px; box-sizing: border-box;">
 
     <!-- Quay lại -->
-    <div style="margin-bottom: 20px; font-size: 14px; color: #53646C;">
+    <div style="margin-bottom: 20px; font-size: 14px; color: #53646C; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <a th:if="${isLoggedIn}" th:href="@{/ly-thuyet/ngu-phap-da-luu}" style="order: 2; color: #9A6B00; background: #FBF0D3; border: 1.5px solid #F4C45A; padding: 6px 14px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 13px;">⭐ Ngữ pháp đã lưu ➔</a>
         <!-- Giữ đúng cấp TOPIK khi quay lại; trước đây luôn về cấp 1 -->
         <a th:href="${groupLevel != null} ? @{/ly-thuyet(tab='grammar', level=${groupLevel})} : @{/ly-thuyet(tab='grammar')}" style="color: #2E7D67; text-decoration: none; font-weight: 700;">← Quay lại danh sách nhóm</a>
     </div>
@@ -32,12 +33,21 @@
                     <span style="font-size: 14px; color: #53646C;" th:text="${g.translation}">Bản dịch tiếng Việt...</span>
                 </div>
 
+                <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                <!-- Lưu vào Sổ ngữ pháp; savedIds do TheoryController.grammarListByGroup nạp theo người đăng nhập -->
+                <button type="button" class="save-grammar-btn save-grammar-compact"
+                        th:data-id="${g.id}" th:data-saved="${savedIds != null and savedIds.contains(g.id)}"
+                        onclick="toggleSaveGrammar(this, event)"
+                        style="height: 40px; padding: 0 14px; border-radius: 12px; font-size: 13px; font-weight: 800; cursor: pointer;">
+                    ☆ Lưu
+                </button>
                 <!-- Nút mở Popup truyền đầy đủ dữ liệu qua thuộc tính data-* -->
                 <button type="button"
                         th:data-pattern="${g?.pattern}"
                         th:data-translation="${g?.translation}"
                         th:data-meaning="${g?.meaning}"
                         th:data-explanation="${g?.explanation}"
+                        th:data-notes="${g?.notes}"
                         th:data-isfrequent="${g?.isFrequent}"
                         th:data-importancelabel="${g?.isFrequent ? 'Quan trọng' : 'Thường gặp'}"
                         th:data-exampleko="${not #lists.isEmpty(g?.examples) ? g.examples[0].sentenceKo : ''}"
@@ -46,6 +56,7 @@
                         style="background: #2E7D67; color: #FFFFFF; border: none; padding: 10px 20px; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 14px;">
                     Học ngay →
                 </button>
+                </div>
             </div>
         </th:block>
 
@@ -104,6 +115,12 @@
             </div>
         </div>
 
+        <!-- Ghi chú: chỉ hiện khi mẫu ngữ pháp có ghi chú -->
+        <div id="modalNotesBox" style="margin-bottom: 20px; display: none;">
+            <h4 style="font-size: 13.5px; font-weight: 800; color: #53646C; text-transform: uppercase; margin-bottom: 8px;">📝 Ghi chú</h4>
+            <div id="modalNotes" style="font-size: 14.5px; color: #24363D; background: #FBF0D3; border: 1.5px solid #F4C45A; padding: 12px 16px; border-radius: 12px; line-height: 1.5; white-space: pre-line;"></div>
+        </div>
+
         <!-- Nút hành động -->
         <div style="display: flex; justify-content: flex-end;">
             <button onclick="closeGrammarModal()" style="background: #2E7D67; color: #FFFFFF; border: none; padding: 10px 24px; border-radius: 12px; font-weight: 700; cursor: pointer;">Đóng</button>
@@ -141,6 +158,11 @@
         } else {
             exampleBox.style.display = 'none';
         }
+
+        // Ghi chú: hiện khi có nội dung, ẩn hẳn khi ngữ pháp không có ghi chú
+        const notes = (btn.getAttribute('data-notes') || '').trim();
+        document.getElementById('modalNotes').textContent = notes;
+        document.getElementById('modalNotesBox').style.display = notes ? 'block' : 'none';
 
         // Hiển thị nhãn ở góc popup tùy thuộc vào isFrequent (Quan trọng có sao ⭐, Thường gặp thuần chữ)
         const impEl = document.getElementById('modalImportance');
@@ -220,6 +242,7 @@
     }
     showGrammarCardPage(1, false);
 </script>
+<script th:src="@{/js/saved-grammar.js}"></script>
 
 </body>
 </html>
