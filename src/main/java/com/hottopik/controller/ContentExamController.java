@@ -31,6 +31,8 @@ import java.util.*;
 @RequestMapping("/content")
 public class ContentExamController {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ContentExamController.class);
+
     private final ExamImportService importService;
     private final ExamComposerService composer;
     private final QuestionBankService bank;
@@ -87,7 +89,8 @@ public class ContentExamController {
         } catch (IOException e) {
             ra.addFlashAttribute("flashError", "Không lưu được file: " + e.getMessage());
         } catch (Exception e) {
-            ra.addFlashAttribute("flashError", "Có lỗi xảy ra: " + e.getMessage());
+            log.error("Thao tác nội dung thất bại ({})", fallback, e);
+            ra.addFlashAttribute("flashError", "Chưa lưu được thay đổi. Hãy kiểm tra lại dữ liệu vừa nhập rồi thử lại.");
         }
         return "redirect:" + fallback;
     }

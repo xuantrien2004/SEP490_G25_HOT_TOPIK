@@ -36,6 +36,7 @@ public class RoadmapController {
 
     @GetMapping({"/lo-trinh", "/roadmap"})
     public String roadmap(HttpSession session, Model model) {
+        if (owner(session) == null) return "redirect:/login";
         StudyPlan plan;
         try {
             plan = roadmaps.ensure(owner(session), trackFor(session));
@@ -61,6 +62,7 @@ public class RoadmapController {
 
     @PostMapping("/lo-trinh/khoi-phuc-nhip")
     public String restoreRhythm(HttpSession session) {
+        if (owner(session) == null) return "redirect:/login";
         try {
             roadmaps.restoreRhythm(owner(session));
         } catch (ExamDomainException e) {
@@ -75,6 +77,7 @@ public class RoadmapController {
                              @RequestParam(defaultValue = "20") int minutes,
                              @RequestParam(required = false) String error,
                              HttpSession session, Model model) {
+        if (owner(session) == null) return "redirect:/login";
         model.addAttribute("pageTitle", "Tạo lộ trình học cá nhân");
         model.addAttribute("activePage", "roadmap");
         model.addAttribute("minutes", minutes);
@@ -108,11 +111,12 @@ public class RoadmapController {
                          @RequestParam int days,
                          @RequestParam int minutes,
                          HttpSession session) {
+        if (owner(session) == null) return "redirect:/login";
         try {
             roadmaps.open(owner(session), LearnerRoadmapService.trackOf(track), days, minutes);
             return "redirect:/lo-trinh";
         } catch (ExamDomainException e) {
-            return "redirect:/lo-trinh/tao?track=" + track + "&days=" + days + "&minutes=" + minutes
+            return "redirect:/lo-trinh/tao?track=" + url(track) + "&days=" + days + "&minutes=" + minutes
                     + "&error=" + url(e.getMessage());
         }
     }
@@ -123,6 +127,7 @@ public class RoadmapController {
                                                     @RequestParam int slot,
                                                     @RequestParam(defaultValue = "1") String done,
                                                     HttpSession session) {
+        if (owner(session) == null) return ResponseEntity.status(401).body(Map.of("ok", false, "message", "Vui lòng đăng nhập."));
         try {
             boolean finished = !"0".equals(done) && !"false".equalsIgnoreCase(done);
             return ResponseEntity.ok(Map.of("ok", true,
@@ -138,6 +143,7 @@ public class RoadmapController {
                              @RequestParam(required = false) Integer minutes,
                              @RequestParam(required = false) String error,
                              HttpSession session, Model model) {
+        if (owner(session) == null) return "redirect:/login";
         model.addAttribute("pageTitle", "Điều chỉnh lộ trình học");
         model.addAttribute("activePage", "roadmap");
         model.addAttribute("error", error);
@@ -185,17 +191,19 @@ public class RoadmapController {
                          @RequestParam int days,
                          @RequestParam int minutes,
                          HttpSession session) {
+        if (owner(session) == null) return "redirect:/login";
         try {
             roadmaps.reshape(owner(session), LearnerRoadmapService.trackOf(track), days, minutes);
             return "redirect:/lo-trinh";
         } catch (ExamDomainException e) {
-            return "redirect:/lo-trinh/dieu-chinh?track=" + track + "&days=" + days + "&minutes=" + minutes
+            return "redirect:/lo-trinh/dieu-chinh?track=" + url(track) + "&days=" + days + "&minutes=" + minutes
                     + "&error=" + url(e.getMessage());
         }
     }
 
     @GetMapping({"/lo-trinh/nhin-lai-tuan", "/roadmap/retrospective"})
-    public String retrospective(Model model) {
+    public String retrospective(HttpSession session, Model model) {
+        if (owner(session) == null) return "redirect:/login";
         model.addAttribute("pageTitle", "Nhìn lại tuần học");
         model.addAttribute("activePage", "roadmap");
         return "roadmap/retrospective";
@@ -203,7 +211,7 @@ public class RoadmapController {
 
     /** Cùng mốc tháng, ô số ngày và ô lịch với bài kiểm tra trình độ. Ngày tính từ ngày bắt đầu lịch. */
     private static void fillSpan(Model model, LocalDate start, int days) {
-        int shown = days == 30 ? 31 : days;
+        int shown = days;
         if (shown < 1 || shown > 400) shown = PlacementRules.defaultSpan();
         model.addAttribute("minDays", PlacementRules.MIN_DAYS);
         model.addAttribute("maxDays", PlacementRules.MAX_DAYS);
@@ -218,7 +226,7 @@ public class RoadmapController {
     }
 
     private void showPreview(Model model, Track track, int days, ProgramVersion published) {
-        int previewDays = days == 30 ? 31 : days;
+        int previewDays = days;
         try {
             if (previewDays < PlacementRules.MIN_DAYS || previewDays > PlacementRules.MAX_DAYS) {
                 throw new ExamDomainException("Lộ trình từ 31 đến 200 ngày.");
@@ -277,7 +285,7 @@ public class RoadmapController {
         if (user != null && user.getEmail() != null && !user.getEmail().isBlank()) {
             return user.getEmail().trim().toLowerCase();
         }
-        return "guest";
+        return null;
     }
 
     private static String url(String text) {

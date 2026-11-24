@@ -484,7 +484,7 @@ public class LearnerRoadmapService {
 
     @Transactional
     public List<String> setDone(String owner, int day, int slot, boolean done) {
-        StudyPlan plan = plans.findByOwnerEmail(owner)
+        StudyPlan plan = plans.lockByOwnerEmail(owner)
                 .orElseThrow(() -> new ExamDomainException("Bạn chưa có lộ trình."));
         RoadmapSketch.Result schedule = programs.preview(programOf(plan), plan.getTrack(), plan.getTotalDays());
         RoadmapSketch.DayPlan dayPlan = schedule.days().stream()
@@ -586,7 +586,6 @@ public class LearnerRoadmapService {
     }
 
     private static int normalizeDays(int days) {
-        if (days == 30) days = 31;
         if (days < 31 || days > 200) {
             throw new ExamDomainException("Lộ trình từ 31 đến 200 ngày.");
         }

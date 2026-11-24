@@ -168,17 +168,37 @@ public class ExamImportService {
         return new MediaUploadReport(stored, rejected);
     }
 
+    /** Giới hạn khi giải nén: không file nào vượt mức file lớn nhất được nhận, tổng và số file có trần. */
+    static final long MAX_UNZIPPED_ENTRY_BYTES = Math.max(MediaStorageService.MAX_AUDIO_BYTES, MediaStorageService.MAX_IMAGE_BYTES);
+    static final long MAX_UNZIPPED_TOTAL_BYTES = 600L * 1024 * 1024;
+    static final int MAX_ZIP_ENTRIES = 2000;
+
     private int unzip(ExamSource source, MultipartFile zip, List<String> rejected) throws IOException {
         int stored = 0;
+        int entries = 0;
+        long total = 0;
         try (ZipInputStream zin = new ZipInputStream(zip.getInputStream())) {
             ZipEntry e;
             while ((e = zin.getNextEntry()) != null) {
                 if (e.isDirectory()) continue;
                 String name = MediaStorageService.baseName(e.getName());
                 if (name.isEmpty() || name.startsWith(".") || e.getName().startsWith("__MACOSX")) continue;
+                if (++entries > MAX_ZIP_ENTRIES) {
+                    rejected.add("File zip có quá " + MAX_ZIP_ENTRIES + " file, phần còn lại bị bỏ qua");
+                    break;
+                }
                 Path tmp = Files.createTempFile("ht-zip", ".bin");
                 try {
-                    long size = Files.copy(zin, tmp, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    long size = copyAtMost(zin, tmp, MAX_UNZIPPED_ENTRY_BYTES);
+                    if (size < 0) {
+                        rejected.add(name + ": vượt 15 MB sau khi giải nén");
+                        continue;
+                    }
+                    total += size;
+                    if (total > MAX_UNZIPPED_TOTAL_BYTES) {
+                        rejected.add("Tổng dung lượng giải nén vượt 600 MB, phần còn lại bị bỏ qua");
+                        break;
+                    }
                     try (InputStream in = Files.newInputStream(tmp)) {
                         if (storeOne(source, name, size, in, rejected)) stored++;
                     }
@@ -188,6 +208,21 @@ public class ExamImportService {
             }
         }
         return stored;
+    }
+
+    /** Chép tối đa {@code limit} byte; trả -1 nếu nguồn còn dữ liệu vượt giới hạn (file trong zip bị nén bất thường). */
+    static long copyAtMost(InputStream in, Path target, long limit) throws IOException {
+        long written = 0;
+        byte[] buffer = new byte[64 * 1024];
+        try (var out = Files.newOutputStream(target)) {
+            int n;
+            while ((n = in.read(buffer)) != -1) {
+                written += n;
+                if (written > limit) return -1;
+                out.write(buffer, 0, n);
+            }
+        }
+        return written;
     }
 
     private boolean storeOne(ExamSource source, String name, long size, InputStream in, List<String> rejected) throws IOException {

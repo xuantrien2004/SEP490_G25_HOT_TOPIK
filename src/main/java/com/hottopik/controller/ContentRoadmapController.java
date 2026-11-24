@@ -27,6 +27,8 @@ import java.util.List;
 @RequestMapping("/content/roadmap")
 public class ContentRoadmapController {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ContentRoadmapController.class);
+
     private final ProgramRoadmapService programs;
 
     public ContentRoadmapController(ProgramRoadmapService programs) {
@@ -208,7 +210,8 @@ public class ContentRoadmapController {
         } catch (ExamDomainException e) {
             ra.addFlashAttribute("flashError", e.getMessage());
         } catch (Exception e) {
-            ra.addFlashAttribute("flashError", "Có lỗi xảy ra: " + e.getMessage());
+            log.error("Sửa lộ trình thất bại ({})", fallback, e);
+            ra.addFlashAttribute("flashError", "Chưa lưu được thay đổi. Hãy tải lại trang rồi thử lại.");
         }
         return "redirect:" + fallback;
     }

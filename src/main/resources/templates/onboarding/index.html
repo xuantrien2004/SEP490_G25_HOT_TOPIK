@@ -17,6 +17,7 @@
 </header>
 
 <main class="container my-auto py-5" style="max-width: 1080px;">
+    <div th:if="${placementError}" class="alert alert-warning rounded-4" role="alert" th:text="${placementError}"></div>
     <!-- Thanh 3 bước theo mục 4.1 -->
     <div class="d-flex justify-content-center align-items-center mb-5 gap-2 gap-sm-4 text-center">
         <div class="d-flex align-items-center gap-2 text-muted" style="font-size: 14px;">

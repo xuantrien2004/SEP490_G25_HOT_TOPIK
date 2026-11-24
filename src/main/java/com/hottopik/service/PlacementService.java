@@ -36,6 +36,10 @@ public class PlacementService {
                              int level, String levelLabel, String message) {
     }
 
+    /** Kết quả bấm Kiểm tra một câu. selected là đáp án đã khóa (lần kiểm tra đầu tiên). */
+    public record CheckResult(int answer, boolean correct, String explanation, String script, int selected) {
+    }
+
     public record ReviewItem(QuestionView question, Integer selected, boolean correct) {
     }
 
@@ -143,9 +147,33 @@ public class PlacementService {
         return views;
     }
 
+    /**
+     * Kiểm tra một câu ở server. Đáp án đầu tiên được khóa trong answersJson; bấm lại không đổi được
+     * và khi nộp bài, câu đã kiểm tra luôn tính theo đáp án đã khóa.
+     */
+    @Transactional
+    public CheckResult check(PlacementAttempt attempt, Long questionId, int selected) {
+        if (attempt.getCompletedAt() != null) throw new ExamDomainException("Bài đã nộp, không kiểm tra thêm được.");
+        if (questionId == null || !parseIds(attempt.getQuestionIds()).contains(questionId)) {
+            throw new ExamDomainException("Câu hỏi không thuộc bài kiểm tra này.");
+        }
+        if (selected < 1 || selected > 4) throw new ExamDomainException("Đáp án phải từ 1 đến 4.");
+        Map<String, Integer> locked = new LinkedHashMap<>(readAnswers(attempt.getAnswersJson()));
+        locked.putIfAbsent(String.valueOf(questionId), selected);
+        int chosen = locked.get(String.valueOf(questionId));
+        attempt.setAnswersJson(writeJson(locked));
+        attempts.save(attempt);
+        Question question = load(String.valueOf(questionId)).stream().findFirst()
+                .orElseThrow(() -> new ExamDomainException("Không tìm thấy câu hỏi."));
+        QuestionView view = view(question, 0);
+        return new CheckResult(view.answer(), view.answer() == chosen, view.explanation(), view.script(), chosen);
+    }
+
     @Transactional
     public PlacementAttempt submit(PlacementAttempt attempt, Map<String, String> submitted) {
         if (attempt.getCompletedAt() != null) return attempt;
+        if (submitted == null) submitted = Map.of();
+        Map<String, Integer> locked = readAnswers(attempt.getAnswersJson());
         Map<Long, Question> byId = load(attempt.getQuestionIds()).stream()
                 .collect(Collectors.toMap(Question::getId, q -> q));
         Map<String, Integer> answers = new LinkedHashMap<>();
@@ -153,7 +181,9 @@ public class PlacementService {
         int listenCorrect = 0;
         int readCorrect = 0;
         for (Long id : parseIds(attempt.getQuestionIds())) {
-            Integer selected = parseAnswer(submitted.get(String.valueOf(id)));
+            Integer selected = locked.containsKey(String.valueOf(id))
+                    ? locked.get(String.valueOf(id))
+                    : parseAnswer(submitted.get(String.valueOf(id)));
             if (selected != null) answers.put(id.toString(), selected);
             Question question = byId.get(id);
             if (question == null || selected == null || question.getAnswerIndex() != selected) continue;

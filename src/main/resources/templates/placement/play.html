@@ -27,7 +27,7 @@
                 <article class="q-card p-4 p-md-5 rounded-4 bg-white border shadow-sm"
                          th:each="q : ${questions}"
                          th:classappend="${q.no > 1} ? 'd-none'"
-                         th:attr="data-answer=${q.answer}">
+                         th:attr="data-qid=${q.id}">
                     <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
                         <span class="badge rounded-pill px-3 py-2" style="background: var(--ssak-primary);" th:text="${q.skill} + ' · Câu ' + ${q.no}">Nghe · Câu 1</span>
                         <span class="badge rounded-pill bg-light text-muted border" th:text="${q.typeName}">Dạng</span>
@@ -61,11 +61,10 @@
                     </div>
                     <div class="explain p-3 rounded-3 border mt-3 d-none" style="background: #FFFDF0; border-color: #FDE68A !important;">
                         <div class="fw-bold text-warning-emphasis mb-1" style="font-size: 13px;">LỜI GIẢI THÍCH CHI TIẾT</div>
-                        <div style="line-height: 1.6;"
-                             th:text="${q.explanation != null and !q.explanation.isBlank()} ? ${q.explanation} : ('Đáp án chính xác là phương án ' + ${q.answer} + '.')"></div>
-                        <div class="mt-3 pt-3 border-top" th:if="${q.script != null and !q.script.isBlank()}">
+                        <div class="explain-text" style="line-height: 1.6;"></div>
+                        <div class="explain-script mt-3 pt-3 border-top d-none">
                             <div class="small fw-bold text-muted mb-1">LỜI THOẠI BÀI NGHE</div>
-                            <div style="white-space: pre-line;" th:text="${q.script}"></div>
+                            <div class="explain-script-text" style="white-space: pre-line;"></div>
                         </div>
                     </div>
                     <div class="pt-4 mt-4 border-top">
@@ -153,10 +152,17 @@
     nav.forEach(button => button.addEventListener('click', () => showQuestion(Number(button.dataset.index))));
     form.addEventListener('change', event => {
         if (!event.target.matches('input[type=radio]')) return;
-        const card = event.target.closest('.q-card');
-        clearReview(card);
         paintNav();
     });
+    const checkUrl = form.getAttribute('action').replace('/submit/', '/check/');
+    function lockCard(card, chosen) {
+        card.dataset.locked = '1';
+        card.querySelectorAll('input[type=radio]').forEach(input => {
+            input.checked = Number(input.value) === chosen;
+            input.disabled = Number(input.value) !== chosen;
+        });
+        card.querySelector('.check-btn').disabled = true;
+    }
     document.querySelectorAll('.check-btn').forEach(button => {
         button.addEventListener('click', () => {
             const card = button.closest('.q-card');
@@ -165,8 +171,26 @@
                 alert('Chọn một đáp án rồi bấm Kiểm tra.');
                 return;
             }
-            const answer = Number(card.dataset.answer);
-            const chosen = Number(picked.value);
+            if (card.dataset.locked === '1') return;
+            button.disabled = true;
+            fetch(checkUrl + '/' + card.dataset.qid, {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'selected=' + picked.value})
+                .then(r => r.json().then(data => ({ok: r.ok, data})))
+                .then(({ok, data}) => {
+                    if (!ok) { button.disabled = false; alert(data.message || 'Không kiểm tra được câu này.'); return; }
+                    showReview(card, data);
+                })
+                .catch(() => { button.disabled = false; alert('Mất kết nối, thử lại.'); });
+        });
+    });
+    function showReview(card, data) {
+            const answer = Number(data.answer);
+            const chosen = Number(data.selected);
+            lockCard(card, chosen);
+            card.querySelector('.explain-text').textContent = data.explanation;
+            if (data.script) {
+                card.querySelector('.explain-script-text').textContent = data.script;
+                card.querySelector('.explain-script').classList.remove('d-none');
+            }
             card.classList.add('is-checked');
             card.querySelectorAll('.opt').forEach(item => {
                 item.classList.remove('is-right', 'is-wrong');
@@ -191,8 +215,8 @@
             mark.className = 'q-mark badge ' + (ok ? 'bg-success-subtle text-success-emphasis border border-success' : 'bg-danger-subtle text-danger-emphasis border border-danger');
             mark.textContent = ok ? 'Đúng' : 'Chưa đúng';
             card.querySelector('.explain').classList.remove('d-none');
-        });
-    });
+            paintNav();
+    }
     form.addEventListener('submit', event => {
         const answered = new Set([...form.querySelectorAll('input:checked')].map(input => input.name)).size;
         const missing = cards.length - answered;
@@ -202,7 +226,7 @@
         if (event.target.matches('input, textarea, button')) return;
         if (event.key >= '1' && event.key <= '4') {
             const radio = cards[index].querySelector('input[value="' + event.key + '"]');
-            if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change', {bubbles: true})); }
+            if (radio && cards[index].dataset.locked !== '1') { radio.checked = true; radio.dispatchEvent(new Event('change', {bubbles: true})); }
         }
         if (event.key === 'ArrowRight') showQuestion(index + 1);
         if (event.key === 'ArrowLeft') showQuestion(index - 1);

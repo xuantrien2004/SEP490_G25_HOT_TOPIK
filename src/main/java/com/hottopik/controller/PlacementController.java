@@ -2,7 +2,6 @@ package com.hottopik.controller;
 
 import com.hottopik.dto.UserDTO;
 import com.hottopik.entity.exam.ExamSource;
-import com.hottopik.entity.exam.MediaKind;
 import com.hottopik.entity.exam.PlacementAttempt;
 import com.hottopik.entity.exam.SourceStatus;
 import com.hottopik.entity.exam.Track;
@@ -13,16 +12,15 @@ import com.hottopik.service.UserService;
 import com.hottopik.service.exam.ExamDomainException;
 import com.hottopik.service.exam.ExamImportService;
 import com.hottopik.service.exam.LearnerRoadmapService;
+import com.hottopik.service.exam.MediaResponses;
 import com.hottopik.service.exam.PlacementRules;
 import com.hottopik.service.exam.PlacementRules.Paper;
 import com.hottopik.util.AuthHelper;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.dao.DataAccessException;
-import org.springframework.core.io.Resource;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -124,6 +122,27 @@ public class PlacementController {
         }
     }
 
+    /** Kiểm tra một câu: chấm ở server và khóa đáp án đầu tiên. Trang làm bài không còn chứa đáp án. */
+    @PostMapping("/placement/check/{id}/{questionId}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> check(@PathVariable Long id, @PathVariable Long questionId,
+                                                     @RequestParam int selected, HttpSession session) {
+        try {
+            PlacementAttempt attempt = owned(id, session);
+            PlacementService.CheckResult r = placement.check(attempt, questionId, selected);
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("answer", r.answer());
+            body.put("correct", r.correct());
+            body.put("selected", r.selected());
+            body.put("explanation", r.explanation() == null || r.explanation().isBlank()
+                    ? "Đáp án chính xác là phương án " + r.answer() + "." : r.explanation());
+            body.put("script", r.script() == null ? "" : r.script());
+            return ResponseEntity.ok(body);
+        } catch (ExamDomainException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     @PostMapping("/placement/submit/{id}")
     public String submit(@PathVariable Long id, @RequestParam MultiValueMap<String, String> form,
                          HttpSession session, RedirectAttributes flash) {
@@ -208,7 +227,7 @@ public class PlacementController {
             PlacementAttempt taken = owned(attempt, session);
             if (taken.getCompletedAt() == null) return "redirect:/placement/play/" + attempt;
             ResultView result = placement.result(taken);
-            Track chosen = Track.valueOf(track);
+            Track chosen = LearnerRoadmapService.trackOf(track);
             int chosenTarget = postedTarget(chosen, target, targetI, targetII);
             if (!PlacementRules.roadmapTargets(chosen).contains(chosenTarget)) {
                 throw new ExamDomainException("Mục tiêu không nằm trong lộ trình đã chọn.");
@@ -237,7 +256,13 @@ public class PlacementController {
         try {
             int goal = chosenTarget(track, target, targetI, targetII);
             back = attempt == null ? "/placement/khai"
-                    : "/placement/muc-tieu?attempt=" + attempt + "&track=" + track + "&target=" + goal;
+                    : "/placement/muc-tieu?attempt=" + attempt + "&track=" + url(track) + "&target=" + goal;
+            if (attempt != null) {
+                // Cấp hiện tại lấy từ bài đã chấm, không tin trường ẩn trên form.
+                PlacementAttempt taken = owned(attempt, session);
+                if (taken.getCompletedAt() == null) throw new ExamDomainException("Bạn chưa nộp bài kiểm tra này.");
+                current = placement.result(taken).level();
+            }
             Track chosen = resolveTrack(attempt, current, goal, track, session);
             List<Integer> allowed = attempt == null
                     ? PlacementRules.targets(current, chosen)
@@ -253,10 +278,11 @@ public class PlacementController {
                 throw new ExamDomainException("Chọn từ " + PlacementRules.MIN_DAYS + " đến " + PlacementRules.MAX_DAYS
                         + " ngày, hoặc một ngày trong khoảng đó.");
             }
+            // Tạo lịch trước; chỉ khi tạo được lịch mới lưu trình độ và mục tiêu vào hồ sơ.
+            roadmaps.open(user.getEmail().trim().toLowerCase(), chosen, (int) days, minutes);
             users.saveRoadmapSettings(user.getId(), String.valueOf(current), String.valueOf(goal), minutes, attempt == null ? "SELF" : "PLACEMENT");
             user.setCurrentLevel(current == 0 ? "TOPIK_0" : "TOPIK_" + current);
             user.setTargetLevel("TOPIK_" + goal);
-            roadmaps.open(user.getEmail().trim().toLowerCase(), chosen, (int) days, minutes);
             return "redirect:/lo-trinh";
         } catch (DateTimeParseException e) {
             flash.addFlashAttribute("placementError", "Chọn ngày đạt mục tiêu.");
@@ -267,19 +293,31 @@ public class PlacementController {
         }
     }
 
+    /** Audio/ảnh của ngân hàng đánh giá: chỉ học viên đã đăng nhập, có hỗ trợ Range để tua và phát trên Safari. */
     @GetMapping("/placement/media/{sourceId}/{filename:.+}")
-    public ResponseEntity<Resource> media(@PathVariable Long sourceId, @PathVariable String filename) throws IOException {
+    public void media(@PathVariable Long sourceId, @PathVariable String filename,
+                      @RequestHeader(value = "Range", required = false) String range,
+                      HttpSession session, HttpServletResponse response) throws IOException {
+        if (AuthHelper.getLoggedInUser(session) == null) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         ExamSource source = sources.findById(sourceId).orElse(null);
         if (source == null || !source.isAssessment() || source.getStatus() != SourceStatus.ACTIVE) {
-            return ResponseEntity.notFound().build();
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
         }
         Optional<com.hottopik.entity.exam.MediaAsset> asset = imports.findMedia(sourceId, filename);
-        if (asset.isEmpty()) return ResponseEntity.notFound().build();
+        if (asset.isEmpty()) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
         Path path = imports.mediaPath(asset.get());
-        if (!Files.exists(path)) return ResponseEntity.notFound().build();
-        String type = Optional.ofNullable(Files.probeContentType(path))
-                .orElse(asset.get().getKind() == MediaKind.AUDIO ? "audio/mpeg" : "application/octet-stream");
-        return ResponseEntity.ok().contentType(MediaType.parseMediaType(type)).body(new FileSystemResource(path));
+        if (!Files.exists(path)) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        MediaResponses.play(path, filename, asset.get().getKind(), range, response);
     }
 
     private void fillGoal(Model model, UserDTO user, int current, Track track, int target, Long attempt) {
@@ -352,7 +390,7 @@ public class PlacementController {
             }
             Track fromLevel = PlacementRules.trackForTarget(target);
             if (track == null || track.isBlank()) return fromLevel;
-            Track posted = Track.valueOf(track);
+            Track posted = LearnerRoadmapService.trackOf(track);
             if (posted != fromLevel) {
                 throw new ExamDomainException("Mục tiêu không nằm trong lộ trình đã chọn.");
             }
@@ -360,7 +398,11 @@ public class PlacementController {
         }
         owned(attempt, session);
         if (track == null) throw new ExamDomainException("Chưa chọn lộ trình.");
-        return Track.valueOf(track);
+        return LearnerRoadmapService.trackOf(track);
+    }
+
+    private static String url(String text) {
+        return text == null ? "" : java.net.URLEncoder.encode(text, java.nio.charset.StandardCharsets.UTF_8);
     }
 
     private PlacementAttempt owned(Long id, HttpSession session) {
