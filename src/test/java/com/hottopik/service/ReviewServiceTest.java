@@ -68,6 +68,30 @@ class ReviewServiceTest {
     }
 
     @Test
+    void ratingSummaryUsesAllReviewsIncludingHiddenOnes() {
+        // 3 review (5, 5, 1 sao), review 1 sao đã bị ẩn: AVG trên cả bảng = 3.666.. -> 3.7, tổng = 3
+        when(reviews.count()).thenReturn(3L);
+        when(reviews.averageRatingAll()).thenReturn(11.0 / 3);
+
+        ReviewService.RatingSummary summary = service.getRatingSummary();
+
+        assertEquals(3.7, summary.average());
+        assertEquals(3, summary.total());
+        verify(reviews, never()).findByStatusWithUser(any());
+    }
+
+    @Test
+    void ratingSummaryDefaultsToFiveWhenNoReview() {
+        when(reviews.count()).thenReturn(0L);
+        when(reviews.averageRatingAll()).thenReturn(null);
+
+        ReviewService.RatingSummary summary = service.getRatingSummary();
+
+        assertEquals(5.0, summary.average());
+        assertEquals(0, summary.total());
+    }
+
+    @Test
     void rejectsInvalidRatingOrEmptyOrTooLongComment() {
         assertThrows(IllegalArgumentException.class, () -> service.saveReview(7L, dto(0, "ok")));
         assertThrows(IllegalArgumentException.class, () -> service.saveReview(7L, dto(6, "ok")));

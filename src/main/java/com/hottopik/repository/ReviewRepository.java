@@ -35,6 +35,11 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     @Query("SELECT r FROM Review r JOIN FETCH r.user WHERE LOWER(r.status) = LOWER(:status) AND r.rating = :rating ORDER BY r.createdAt DESC")
     List<Review> findByStatusAndRatingWithUser(@Param("status") String status, @Param("rating") Short rating);
 
+    // Điểm trung bình trên TẤT CẢ review (kể cả review bị Operation Manager ẩn), null khi bảng rỗng.
+    // Ẩn review chỉ ẩn nội dung bình luận, không được làm thay đổi điểm trung bình.
+    @Query("SELECT AVG(r.rating) FROM Review r")
+    Double averageRatingAll();
+
     // Mỗi học viên chỉ có 1 đánh giá. Lấy bản mới nhất để vẫn chạy đúng nếu DB cũ còn sót bản trùng.
     Optional<Review> findFirstByUser_IdOrderByCreatedAtDescIdDesc(Long userId);
 }

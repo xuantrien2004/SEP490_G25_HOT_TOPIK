@@ -118,6 +118,36 @@ class GrammarExcelServiceTest {
     }
 
     @Test
+    void previewRejectsEmptyAndNonExcelFile() {
+        var empty = new MockMultipartFile("file", "ngu-phap.xlsx", "application/octet-stream", new byte[0]);
+        var txt = new MockMultipartFile("file", "ngu-phap.txt", "text/plain", "abc".getBytes());
+
+        assertEquals("Vui lòng chọn file Excel.",
+                assertThrows(IllegalArgumentException.class, () -> service.preview(empty, 7)).getMessage());
+        assertEquals("Chỉ hỗ trợ file Excel .xlsx hoặc .xls.",
+                assertThrows(IllegalArgumentException.class, () -> service.preview(txt, 7)).getMessage());
+    }
+
+    @Test
+    void templateRejectsMissingOrUnknownGroup() {
+        when(groups.findById(99)).thenReturn(Optional.empty());
+
+        assertEquals("Thiếu nhóm ngữ pháp cần nhập.",
+                assertThrows(IllegalArgumentException.class, () -> service.buildTemplate(null)).getMessage());
+        assertEquals("Không tìm thấy nhóm ngữ pháp.",
+                assertThrows(IllegalArgumentException.class, () -> service.buildTemplate(99)).getMessage());
+    }
+
+    @Test
+    void confirmRejectsEmptyRowsAndMissingGroup() {
+        assertEquals("Không có dòng hợp lệ nào để lưu.",
+                assertThrows(IllegalArgumentException.class, () -> service.confirmImport(7, List.of())).getMessage());
+        assertEquals("Thiếu nhóm ngữ pháp cần nhập.",
+                assertThrows(IllegalArgumentException.class, () -> service.confirmImport(null, List.of())).getMessage());
+        verifyNoInteractions(grammarService);
+    }
+
+    @Test
     void confirmForcesDraftGroupAndSkipsDuplicates() {
         var ok = new GrammarExcelService.ImportRow(2, "-(으)니까", "Vì", "", "", "", true, "비가 오니까", "Vì mưa", true, "Hợp lệ");
         var dup = new GrammarExcelService.ImportRow(3, "-고 싶다", "Muốn", "", "", "", false, "", "", true, "Hợp lệ");

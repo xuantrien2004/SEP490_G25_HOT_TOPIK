@@ -81,16 +81,19 @@ public class ReviewService {
         }).collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
-    public double getAverageRating() {
-        List<Review> approved = reviewRepository.findByStatusWithUser("APPROVED");
-        if (approved.isEmpty()) return 5.0; // Mặc định nếu chưa có đánh giá
-        double sum = approved.stream().mapToInt(Review::getRating).sum();
-        return Math.round((sum / approved.size()) * 10.0) / 10.0; // Làm tròn 1 chữ số thập phân
-    }
+    /** Điểm trung bình (làm tròn 1 chữ số) và tổng số đánh giá dùng cho khối tổng quan. */
+    public record RatingSummary(double average, long total) {}
 
+    /**
+     * Tính trên TẤT CẢ review, kể cả review bị Operation Manager ẩn: ẩn chỉ để giấu nội dung bình luận,
+     * không được dùng để "làm đẹp" điểm trung bình. Cũng không phụ thuộc bộ lọc số sao đang chọn.
+     * Chưa có review nào thì hiển thị mặc định 5.0 như trước.
+     */
     @Transactional(readOnly = true)
-    public long getTotalApprovedReviewsCount() {
-        return reviewRepository.findByStatusWithUser("APPROVED").size();
+    public RatingSummary getRatingSummary() {
+        long total = reviewRepository.count();
+        Double avg = reviewRepository.averageRatingAll();
+        if (total == 0 || avg == null) return new RatingSummary(5.0, 0);
+        return new RatingSummary(Math.round(avg * 10.0) / 10.0, total);
     }
 }

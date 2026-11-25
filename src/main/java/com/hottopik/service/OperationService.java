@@ -265,8 +265,10 @@ public class OperationService {
         return rec;
     }
 
+    // Ẩn/hiện review: APPROVED (đang hiển thị) <-> PENDING (đang ẩn). Review ẩn vẫn được tính vào điểm trung bình.
     public boolean toggleReviewApproval(Long reviewId) {
-        if (reviewRepository == null) return false;
+        // findById(null) của Spring Data ném exception -> chặn trước, trả false như trường hợp không tìm thấy
+        if (reviewRepository == null || reviewId == null) return false;
         Optional<Review> review = reviewRepository.findById(reviewId);
         if (review.isPresent()) {
             Review rev = review.get();
