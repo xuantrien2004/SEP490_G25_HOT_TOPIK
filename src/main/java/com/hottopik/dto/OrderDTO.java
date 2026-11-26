@@ -2,6 +2,9 @@ package com.hottopik.dto;
 
 import java.io.Serializable;
 
+/**
+ * DTO thông tin đơn hàng mua gói VIP và trạng thái xử lý/hoàn tiền (Admin & Operation).
+ */
 public class OrderDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 

@@ -8,6 +8,9 @@ public class AuthHelper {
 
     public static final String SESSION_KEY = "LOGGED_IN_USER";
 
+    /**
+     * Lấy thông tin người dùng đang đăng nhập từ HttpSession.
+     */
     public static UserDTO getLoggedInUser(HttpSession session) {
         if (session == null) return null;
         Object obj = session.getAttribute(SESSION_KEY);
@@ -17,6 +20,9 @@ public class AuthHelper {
         return null;
     }
 
+    /**
+     * Kiểm tra người dùng trong session có thuộc một trong các vai trò được phép hay không.
+     */
     public static boolean hasRole(HttpSession session, String... allowedRoles) {
         UserDTO user = getLoggedInUser(session);
         if (user == null || user.getRole() == null) {
@@ -31,6 +37,9 @@ public class AuthHelper {
         return false;
     }
 
+    /**
+     * Chuẩn hóa tên vai trò (bỏ tiền tố ROLE_, quy đổi TEACHER -> MENTOR và USER/VIP -> STUDENT).
+     */
     private static String normalizeRole(String role) {
         if (role == null) return "";
         String r = role.trim().toUpperCase();

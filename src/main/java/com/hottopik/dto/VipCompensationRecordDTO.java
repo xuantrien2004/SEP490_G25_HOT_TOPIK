@@ -2,6 +2,9 @@ package com.hottopik.dto;
 
 import java.io.Serializable;
 
+/**
+ * DTO ghi nhận lịch sử cấp bù ngày VIP và Xu thưởng cho học viên (Operation & Admin).
+ */
 public class VipCompensationRecordDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 

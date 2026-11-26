@@ -18,6 +18,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
         this.subscriptionSessionInterceptor = subscriptionSessionInterceptor;
     }
 
+    /**
+     * Đăng ký RoleSecurityInterceptor để kiểm soát quyền truy cập cho các khu vực quản trị, nội dung, vận hành và giảng viên.
+     */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(roleSecurityInterceptor)

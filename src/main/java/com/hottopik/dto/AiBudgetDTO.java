@@ -2,6 +2,9 @@ package com.hottopik.dto;
 
 import java.io.Serializable;
 
+/**
+ * DTO cấu hình hạn mức và mức sử dụng ngân sách các dịch vụ AI hàng tháng (Admin & Operation).
+ */
 public class AiBudgetDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -41,15 +44,24 @@ public class AiBudgetDTO implements Serializable {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
+    /**
+     * Tính phần trăm ngân sách AI đã sử dụng so với hạn mức hàng tháng.
+     */
     public double getUsagePercent() {
         if (monthlyLimitUsd <= 0) return 0;
         return (currentUsageUsd / monthlyLimitUsd) * 100.0;
     }
 
+    /**
+     * Alias lấy số tiền (USD) đã sử dụng trong tháng hiện tại.
+     */
     public double getUsedThisMonth() {
         return currentUsageUsd;
     }
 
+    /**
+     * Định dạng phần trăm đã sử dụng với 1 chữ số thập phân để hiển thị lên giao diện.
+     */
     public String getFormattedUsagePercent() {
         return String.format(java.util.Locale.US, "%.1f", getUsagePercent());
     }

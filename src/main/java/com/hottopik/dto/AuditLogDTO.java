@@ -2,6 +2,9 @@ package com.hottopik.dto;
 
 import java.io.Serializable;
 
+/**
+ * DTO lưu thông tin một bản ghi nhật ký thao tác hệ thống (Audit Log) hiển thị cho Admin và Operation Manager.
+ */
 public class AuditLogDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 

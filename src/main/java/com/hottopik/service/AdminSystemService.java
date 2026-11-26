@@ -22,6 +22,9 @@ public class AdminSystemService {
     private final AtomicLong logIdGen = new AtomicLong(10);
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    /**
+     * Khởi tạo dữ liệu mẫu cho cấu hình ngân sách AI và nhật ký kiểm toán hệ thống.
+     */
     @PostConstruct
     public void init() {
         // Seed AI Budgets matching SEP490.sql
@@ -36,16 +39,25 @@ public class AdminSystemService {
         auditLogs.add(new AuditLogDTO(4L, "Vũ Minh Quân", "ROLE_ADMIN", "UPDATE_CONFIG", "AI_BUDGET", "Điều chỉnh ngưỡng cảnh báo GPT-4o lên 80%", "192.168.1.10", "2026-10-07 09:10:05"));
     }
 
+    /**
+     * Lấy danh sách cấu hình ngân sách các dịch vụ AI.
+     */
     public List<AiBudgetDTO> getAiBudgets() {
         return new ArrayList<>(aiBudgets.values());
     }
 
+    /**
+     * Lấy toàn bộ nhật ký hoạt động hệ thống, sắp xếp mới nhất trước.
+     */
     public List<AuditLogDTO> getAuditLogs() {
         List<AuditLogDTO> list = new ArrayList<>(auditLogs);
         list.sort((a, b) -> Long.compare(b.getId(), a.getId()));
         return list;
     }
 
+    /**
+     * Lấy nhật ký hoạt động lọc theo vai trò (ROLE_ADMIN xem toàn bộ).
+     */
     public List<AuditLogDTO> getAuditLogsForRole(String role) {
         List<AuditLogDTO> list;
         if (role == null || role.equals("ROLE_ADMIN")) {
@@ -59,12 +71,18 @@ public class AdminSystemService {
         return list;
     }
 
+    /**
+     * Ghi nhận một bản ghi nhật ký thao tác mới vào đầu danh sách.
+     */
     public void logAction(String actorName, String actorRole, String action, String targetEntity, String details, String ip) {
         long id = logIdGen.incrementAndGet();
         AuditLogDTO entry = new AuditLogDTO(id, actorName, actorRole, action, targetEntity, details, ip != null ? ip : "127.0.0.1", LocalDateTime.now().format(FORMATTER));
         auditLogs.add(0, entry);
     }
 
+    /**
+     * Cập nhật hạn mức chi tiêu hàng tháng (USD) và ngưỡng cảnh báo (%) cho một dịch vụ AI.
+     */
     public boolean updateAiBudget(Long id, double limit, int threshold) {
         AiBudgetDTO budget = aiBudgets.get(id);
         if (budget != null) {
@@ -75,10 +93,16 @@ public class AdminSystemService {
         return false;
     }
 
+    /**
+     * Kiểm tra chế độ khẩn cấp Break-glass có đang kích hoạt hay không.
+     */
     public boolean isBreakGlassActive() {
         return breakGlassMode.get();
     }
 
+    /**
+     * Bật/tắt chế độ khẩn cấp Break-glass và ghi nhật ký bảo mật.
+     */
     public boolean toggleBreakGlass(String reason) {
         boolean current = breakGlassMode.get();
         breakGlassMode.set(!current);

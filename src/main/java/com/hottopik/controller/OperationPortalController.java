@@ -41,6 +41,9 @@ public class OperationPortalController {
         this.approvalService = approvalService;
     }
 
+    /**
+     * Hiển thị trang tổng quan Operation Manager (học viên, đơn hàng, giá gói, review, thông báo, ngân sách AI, tác vụ khẩn cấp).
+     */
     @GetMapping
     public String dashboard(HttpSession session, Model model) {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
@@ -150,6 +153,9 @@ public class OperationPortalController {
      *    - JavaScript tại operation.js nhận phản hồi, cập nhật nhãn trạng thái badge trên bảng danh sách,
      *      đóng Modal và hiển thị thông báo toast thành công.
      * ========================================================================================= */
+    /**
+     * Khóa vĩnh viễn hoặc tạm thời tài khoản học viên kèm lý do bắt buộc và ghi nhật ký vận hành.
+     */
     @PostMapping("/users/lock")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> lockLearner(
@@ -234,6 +240,9 @@ public class OperationPortalController {
         }
     }
 
+    /**
+     * Mở khóa tài khoản học viên đang bị khóa và ghi nhật ký vận hành.
+     */
     @PostMapping("/users/unlock")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> unlockLearner(
@@ -276,6 +285,9 @@ public class OperationPortalController {
         return ResponseEntity.ok(resp);
     }
 
+    /**
+     * Đảo trạng thái khóa/mở khóa học viên (mặc định tạm khóa 7 ngày nếu đang hoạt động).
+     */
     @PostMapping("/users/toggle-lock")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> toggleUserLock(
@@ -322,6 +334,9 @@ public class OperationPortalController {
      *    - Trả về JSON: {"success": true, "pendingApproval": true, "status": "REFUND_REQUESTED", "message": "..."}
      *    - UI cập nhật huy hiệu đơn hàng sang "Chờ Admin duyệt hoàn tiền" mà không reload lại toàn trang.
      * ========================================================================================= */
+    /**
+     * Operation Manager gửi đề nghị hoàn tiền đơn hàng lên Admin để phê duyệt.
+     */
     @PostMapping({"/orders/refund", "/orders/request-refund"})
     @ResponseBody
     public ResponseEntity<Map<String, Object>> refundOrder(
@@ -366,6 +381,9 @@ public class OperationPortalController {
         return ResponseEntity.ok(resp);
     }
 
+    /**
+     * Operation Manager cập nhật giá mới cho gói VIP và ghi nhật ký vận hành.
+     */
     @PostMapping({"/prices/update", "/prices/propose"})
     @ResponseBody
     public ResponseEntity<Map<String, Object>> updatePrice(
@@ -411,6 +429,9 @@ public class OperationPortalController {
         return ResponseEntity.ok(resp);
     }
 
+    /**
+     * Operation Manager gửi đề xuất cấp bù ngày VIP và Xu thưởng cho học viên lên Admin phê duyệt.
+     */
     @PostMapping({"/vip/compensate", "/vip/propose-compensation"})
     @ResponseBody
     public ResponseEntity<Map<String, Object>> compensateVip(
@@ -472,6 +493,9 @@ public class OperationPortalController {
         return ResponseEntity.ok(resp);
     }
 
+    /**
+     * Duyệt hiển thị hoặc ẩn đánh giá của học viên trên hệ thống.
+     */
     @PostMapping("/reviews/toggle-approve")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> toggleReview(
@@ -507,6 +531,9 @@ public class OperationPortalController {
         return ResponseEntity.ok(resp);
     }
 
+    /**
+     * Soạn và phát thông báo tới toàn bộ/nhóm người dùng hoặc đích danh một học viên.
+     */
     @PostMapping("/announcements/send")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> sendAnnouncement(
@@ -556,6 +583,9 @@ public class OperationPortalController {
         return ResponseEntity.ok(resp);
     }
 
+    /**
+     * Cập nhật hạn mức chi tiêu và ngưỡng cảnh báo (%) cho dịch vụ AI.
+     */
     @PostMapping("/ai-budget/update")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> updateAiBudget(
@@ -601,6 +631,9 @@ public class OperationPortalController {
     // OPERATION PROFILE ENDPOINTS
     // ==========================================
 
+    /**
+     * Hiển thị trang hồ sơ cá nhân của Operation Manager kèm 8 nhật ký thao tác gần nhất.
+     */
     @GetMapping("/profile")
     public String operationProfile(HttpSession session, Model model) {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
@@ -616,6 +649,9 @@ public class OperationPortalController {
         return "operation/profile";
     }
 
+    /**
+     * Cập nhật thông tin hồ sơ cá nhân của Operation Manager và đồng bộ session.
+     */
     @PostMapping("/profile/update")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> updateOperationProfile(
@@ -675,6 +711,9 @@ public class OperationPortalController {
         }
     }
 
+    /**
+     * Xóa số điện thoại hoặc khôi phục ảnh đại diện mặc định trong hồ sơ Operation Manager.
+     */
     @PostMapping("/profile/clear-field")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> clearOperationField(
@@ -709,6 +748,9 @@ public class OperationPortalController {
         return ResponseEntity.badRequest().body(resp);
     }
 
+    /**
+     * Đổi mật khẩu tài khoản Operation Manager hiện tại và ghi nhật ký bảo mật.
+     */
     @PostMapping("/profile/change-password")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> changeOperationPassword(

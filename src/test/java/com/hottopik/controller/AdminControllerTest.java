@@ -280,6 +280,57 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.success").value(true));
     }
 
+    @Test
+    @DisplayName("POST /admin/staff/create – chưa đăng nhập → chuyển hướng unauthorized")
+    void createStaff_noSession_redirectsToUnauthorized() throws Exception {
+        mvc.perform(post("/admin/staff/create")
+                        .param("fullName", "Trần Hữu Vinh")
+                        .param("email", "vinhth@fpt.edu.vn")
+                        .param("password", "123456")
+                        .param("role", "CONTENT_MANAGER"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login?unauthorized=1"));
+    }
+
+    @Test
+    @DisplayName("POST /admin/staff/create – họ tên dưới 2 ký tự → 400 Bad Request")
+    void createStaff_shortName_returns400() throws Exception {
+        mvc.perform(post("/admin/staff/create")
+                        .session(sessionWith(adminUser()))
+                        .param("fullName", "V")
+                        .param("email", "vinhth@fpt.edu.vn")
+                        .param("password", "123456")
+                        .param("role", "CONTENT_MANAGER"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    @DisplayName("POST /admin/staff/create – mật khẩu dưới 6 ký tự → 400 Bad Request")
+    void createStaff_shortPassword_returns400() throws Exception {
+        mvc.perform(post("/admin/staff/create")
+                        .session(sessionWith(adminUser()))
+                        .param("fullName", "Trần Hữu Vinh")
+                        .param("email", "vinhth@fpt.edu.vn")
+                        .param("password", "123")
+                        .param("role", "CONTENT_MANAGER"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    @DisplayName("POST /admin/staff/create – tạo nhân sự hợp lệ → success=true")
+    void createStaff_valid_returnsTrue() throws Exception {
+        mvc.perform(post("/admin/staff/create")
+                        .session(sessionWith(adminUser()))
+                        .param("fullName", "Trần Hữu Vinh")
+                        .param("email", "vinhth_" + System.currentTimeMillis() + "@fpt.edu.vn")
+                        .param("password", "123456")
+                        .param("role", "CONTENT_MANAGER"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
     // ══════════════════════════════════════════
     // 5. Phê duyệt yêu cầu (Approval Service)
     // ══════════════════════════════════════════
