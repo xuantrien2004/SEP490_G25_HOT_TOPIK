@@ -9,6 +9,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.imageio.ImageIO;
@@ -31,6 +32,7 @@ import java.util.List;
  * Chạy lại không tạo trùng.
  */
 @Component
+@Profile("local")
 @Order(30)
 public class SamplePaperSeeder implements ApplicationRunner {
 

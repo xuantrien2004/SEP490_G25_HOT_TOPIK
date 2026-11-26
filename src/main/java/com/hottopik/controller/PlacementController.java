@@ -124,6 +124,31 @@ public class PlacementController {
         }
     }
 
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: NỘP BÀI KIỂM TRA ĐẦU VÀO & TÍNH ĐIỂM (SUBMIT PLACEMENT - FUNC_PLACE_03)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Học viên làm xong 20 câu trắc nghiệm (10 Nghe + 10 Đọc) tại placement/play.html.
+     *    - Bấm nút "Nộp bài kiểm tra": <button type="submit" class="btn-ssak-primary">Nộp bài</button>.
+     *    - Form POST gửi danh sách các cặp answer_{questionId}.
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /placement/submit/{id}
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.PlacementController.submit()
+     *    - Triệu gọi Service: com.hottopik.service.PlacementService.submit(attempt, answers):
+     *      + Chấm điểm 20 câu (Mỗi câu đúng = 10 điểm, tổng 200 điểm).
+     *      + Áp dụng quy tắc com.hottopik.service.exam.PlacementRules.suggestedLevel():
+     *        * < 80 điểm: Cấp 0 (Chưa đạt Cấp 1).
+     *        * 80 - 139 điểm: Cấp 1 (Sơ cấp 1).
+     *        * >= 140 điểm: Cấp 2 (Sơ cấp 2).
+     *      + Gợi ý phân luồng: Cấp 0-1 gợi ý TOPIK I; Cấp 2 gợi ý TOPIK II.
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.placement_attempts (UPDATE total_score, suggested_level, suggested_track, completed_at).
+     *    - Bảng dbo.placement_lines (UPDATE selected_option, is_correct).
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
+     *    - Controller trả về: redirect:/placement/result/{id}
+     *    - Giao diện kết quả (placement/result.html) hiển thị: Cấp độ đạt được, điểm Nghe/Đọc và nút "Tạo lộ trình học".
+     * ========================================================================================= */
     @PostMapping("/placement/submit/{id}")
     public String submit(@PathVariable Long id, @RequestParam MultiValueMap<String, String> form,
                          HttpSession session, RedirectAttributes flash) {
@@ -221,6 +246,30 @@ public class PlacementController {
         }
     }
 
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: TẠO LỘ TRÌNH TỪ KẾT QUẢ ĐẦU VÀO (CREATE ROADMAP FROM PLACEMENT - FUNC_PLACE_04)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Học viên xem kết quả kiểm tra hoặc màn tự khai báo (placement/goal.html hoặc placement/declare.html).
+     *    - Chọn mục tiêu (TOPIK 1..6), chọn ngày thi / số ngày ôn (31 đến 200 ngày), chọn phút/ngày (10..60).
+     *    - Bấm nút "Bắt đầu lộ trình của tôi": <button type="submit" class="btn-ssak-primary">Bắt đầu học</button>.
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /placement/sinh (Form Data: current, target, date, minutes, track)
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.PlacementController.build()
+     *    - Triệu gọi Service:
+     *      + com.hottopik.service.UserService.saveRoadmapSettings(): Lưu cấu hình mục tiêu vào tài khoản.
+     *      + com.hottopik.service.exam.LearnerRoadmapService.open(email, track, days, minutes):
+     *        * Khởi tạo StudyPlan cho học viên với track và số ngày được chọn.
+     *        * Phân bổ bài học theo chương trình đào tạo đang phát hành của Content Manager.
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.users (UPDATE current_level, target_level).
+     *    - Bảng dbo.study_plans (INSERT/UPDATE track, total_days, items_per_day, minutes_per_day, start_date = now).
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
+     *    - Controller trả về: redirect:/lo-trinh
+     *    - Trình duyệt đưa học viên đến thẳng trang Lộ trình cá nhân hóa (src/main/resources/templates/roadmap/index.html)
+     *      để bắt đầu ngày học đầu tiên.
+     * ========================================================================================= */
     @PostMapping("/placement/sinh")
     public String build(@RequestParam(required = false) Long attempt,
                         @RequestParam int current,

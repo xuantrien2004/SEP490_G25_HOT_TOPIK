@@ -40,6 +40,7 @@ public class ParsedWorkbook {
         public int row;
         public Integer no;
         public String noRaw;
+        public String typeCode;
         public String promptKo;
         public String passageKo;
         public String keys1;

@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
     'use strict';
     document.querySelectorAll('.qp-player').forEach(root => {
         const cards = [...root.querySelectorAll('.qp-question')];
@@ -40,7 +40,9 @@
             hidden.value=selected;
         }
         const keys = new Set(cards.map(card => card.dataset.key));
-        const flagged = new Set((Array.isArray(state.flagged) ? state.flagged : []).filter(key => keys.has(key)));
+        let savedFlags = [];
+        try { savedFlags = JSON.parse(root.dataset.flagsJson || '[]'); } catch (_) {}
+        const flagged = new Set(((Array.isArray(state.flagged) && state.flagged.length) ? state.flagged : savedFlags).filter(key => keys.has(key)));
         function persist() {
             const answers = Object.fromEntries(cards.map(card => [card.dataset.key, card.querySelector('input[type=radio]:checked')?.value || '']));
             try { sessionStorage.setItem(storageKey, JSON.stringify({answers, flagged: [...flagged], current, checked: preview ? Object.fromEntries(cards.filter(c=>c.dataset.checked).map(c=>[c.dataset.key,c.dataset.checked])) : {}})); } catch (_) { /* Storage can be unavailable. */ }
@@ -61,11 +63,38 @@
                 card.querySelector('.qp-flag').setAttribute('aria-pressed', String(marked));
                 card.querySelector('.qp-flag').textContent = marked ? 'Bỏ “Chưa chắc”' : 'Chưa chắc';
                 card.querySelector('.qp-flag-note').hidden = !marked;
+                let flagInput = card.querySelector('.qp-flag-input');
+                if (marked) {
+                    if (!flagInput) {
+                        flagInput = document.createElement('input');
+                        flagInput.type = 'hidden';
+                        flagInput.className = 'qp-flag-input';
+                        flagInput.name = 'flag_' + card.dataset.key;
+                        flagInput.value = '1';
+                        card.append(flagInput);
+                    }
+                } else if (flagInput) {
+                    flagInput.remove();
+                }
+                let emptyInput = card.querySelector('.qp-empty-input');
+                if (!checked) {
+                    if (!emptyInput) {
+                        emptyInput = document.createElement('input');
+                        emptyInput.type = 'hidden';
+                        emptyInput.className = 'qp-empty-input';
+                        emptyInput.name = card.dataset.key;
+                        emptyInput.value = '';
+                        card.append(emptyInput);
+                    }
+                } else if (emptyInput) {
+                    emptyInput.remove();
+                }
                 card.querySelector('.qp-check').hidden = !checked || card.dataset.checked === checked.value;
                 numbers[i].classList.toggle('answered', !!checked);
                 numbers[i].classList.toggle('flagged', marked);
                 numbers[i].classList.toggle('current', i === current);
-                numbers[i].setAttribute('aria-label', `Câu ${i + 1}: ${checked ? 'Đã trả lời' : 'Chưa làm'}${marked ? ', chưa chắc' : ''}`);
+                const qNo = card.dataset.no || (i + 1);
+                numbers[i].setAttribute('aria-label', `Câu ${qNo}: ${checked ? 'Đã trả lời' : 'Chưa làm'}${marked ? ', chưa chắc' : ''}`);
                 if (i === current) numbers[i].setAttribute('aria-current', 'step'); else numbers[i].removeAttribute('aria-current');
             });
             const answered = cards.filter(c => c.querySelector('input:checked')).length;
@@ -73,6 +102,7 @@
             persist();
         }
         // Hien thi cau chi dinh va tat ca cau cung nhom (chia se audio/passage/image); cac input van trong form.
+        // Hien thi day du doan van/audio/hinh anh/huong dan tren tung the cau trong nhom (khong dung khung sticky).
         function show(index, scroll = true) {
             if (index < 0 || index >= cards.length) return;
             const targetGroup = cards[index].dataset.group;
@@ -85,58 +115,7 @@
             const lastInGroup = isGrouped ? groupCards[groupCards.length - 1] : null;
             root.classList.toggle('qp-group-mode', isGrouped);
 
-            if (isGrouped && groupSticky) {
-                groupSticky.hidden = false;
-                const firstCard = groupCards[0];
-                const firstNo = firstCard.querySelector('.qp-pill')?.textContent?.trim() || `Câu ${cards.indexOf(firstCard) + 1}`;
-                const lastNo = lastInGroup?.querySelector('.qp-pill')?.textContent?.trim() || `Câu ${cards.indexOf(lastInGroup) + 1}`;
-                if (groupRange) groupRange.textContent = firstNo === lastNo ? firstNo : `${firstNo} ~ ${lastNo}`;
-
-                if (activeGroup !== targetGroup) {
-                    activeGroup = targetGroup;
-                    // Huong dan chung cua nhom
-                    const instrText = firstCard.querySelector('.qp-instruction')?.textContent?.trim() || '';
-                    if (groupInstruction) {
-                        groupInstruction.textContent = instrText;
-                        groupInstruction.hidden = !instrText;
-                    }
-                    // Audio chung cua nhom: giu am thanh lien tuc
-                    const audioSrc = firstCard.querySelector('.qp-audio audio')?.getAttribute('src');
-                    if (groupAudio) {
-                        if (audioSrc) {
-                            groupAudio.innerHTML = `<div><audio controls preload="none" src="${audioSrc}" aria-label="Âm thanh câu hỏi"></audio><small>Bấm để nghe, nghe lại thoải mái</small></div>`;
-                            groupAudio.hidden = false;
-                        } else {
-                            groupAudio.innerHTML = '';
-                            groupAudio.hidden = true;
-                        }
-                    }
-                    // Doan van chung cua nhom
-                    const passageText = firstCard.querySelector('.qp-passage')?.textContent?.trim() || '';
-                    if (groupPassage) {
-                        if (passageText) {
-                            groupPassage.textContent = passageText;
-                            groupPassage.hidden = false;
-                        } else {
-                            groupPassage.textContent = '';
-                            groupPassage.hidden = true;
-                        }
-                    }
-                    // Hinh anh chung cua nhom
-                    const imgEl = firstCard.querySelector('.qp-question-image img');
-                    if (groupImage) {
-                        if (imgEl && imgEl.getAttribute('src')) {
-                            const src = imgEl.getAttribute('src');
-                            groupImage.innerHTML = `<a href="${src}" target="_blank" rel="noopener" title="Mở ảnh kích thước đầy đủ"><img src="${src}" alt="Hình câu hỏi"><small>Mở ảnh lớn ↗</small></a>`;
-                            groupImage.hidden = false;
-                        } else {
-                            groupImage.innerHTML = '';
-                            groupImage.hidden = true;
-                        }
-                    }
-                }
-            } else if (groupSticky) {
-                activeGroup = null;
+            if (groupSticky) {
                 groupSticky.hidden = true;
                 if (groupAudio) {
                     groupAudio.querySelectorAll('audio').forEach(a => a.pause());
@@ -147,40 +126,26 @@
             cards.forEach((card, i) => {
                 const inGroup = isGrouped && card.dataset.group === targetGroup;
                 card.hidden = !inGroup && i !== index;
-                if (inGroup) {
-                    // An noi dung dung chung tren tung the cau de khong bi lap lai
-                    const audioEl = card.querySelector('.qp-audio');
-                    if (audioEl) audioEl.hidden = true;
-                    const passageEl = card.querySelector('.qp-passage');
-                    if (passageEl) passageEl.hidden = true;
-                    const imgEl = card.querySelector('.qp-question-image');
-                    if (imgEl) imgEl.hidden = true;
-                    const instrEl = card.querySelector('.qp-instruction');
-                    if (instrEl) instrEl.hidden = true;
-                    // Chi an nav (qp-actions), giu nguyen qp-per-card-actions (flag/report/check)
-                    const navEl = card.querySelector('.qp-actions');
-                    if (navEl) navEl.hidden = (card !== lastInGroup);
-                } else {
-                    const audioEl = card.querySelector('.qp-audio');
-                    if (audioEl) audioEl.hidden = false;
-                    const passageEl = card.querySelector('.qp-passage');
-                    if (passageEl) passageEl.hidden = false;
-                    const imgEl = card.querySelector('.qp-question-image');
-                    if (imgEl) imgEl.hidden = false;
-                    const instrEl = card.querySelector('.qp-instruction');
-                    if (instrEl) instrEl.hidden = false;
-                    const navEl = card.querySelector('.qp-actions');
-                    if (navEl) navEl.hidden = false;
-                }
+                // Hien thi lai doan van, audio, anh, huong dan cho tung the cau trong nhom
+                const audioEl = card.querySelector('.qp-audio');
+                if (audioEl) audioEl.hidden = false;
+                const passageEl = card.querySelector('.qp-passage');
+                if (passageEl) passageEl.hidden = false;
+                const imgEl = card.querySelector('.qp-question-image');
+                if (imgEl) imgEl.hidden = false;
+                const instrEl = card.querySelector('.qp-instruction');
+                if (instrEl) instrEl.hidden = false;
+                // Chi an nav (qp-actions), giu nguyen qp-per-card-actions (flag/report/check)
+                const navEl = card.querySelector('.qp-actions');
+                if (navEl) navEl.hidden = inGroup ? (card !== lastInGroup) : false;
+
                 if (card.hidden) card.querySelectorAll('audio').forEach(a => a.pause());
             });
             current = index;
             update();
             if (scroll) {
-                const scrollTarget = (isGrouped && index !== cards.indexOf(groupCards[0]))
-                    ? cards[index]
-                    : (groupCards.length ? (groupSticky || groupCards[0]) : cards[index]);
-                scrollTarget.scrollIntoView({behavior: 'smooth', block: 'start'});
+                const scrollTarget = cards[index];
+                scrollTarget?.scrollIntoView({behavior: 'smooth', block: 'start'});
             }
         }
         cards.forEach((card, i) => {
@@ -197,6 +162,13 @@
             options.classList.toggle('qp-images', images);
             const longText = [...options.querySelectorAll('.qp-option-content')].some(o => o.textContent.trim().length > 38);
             options.classList.toggle('qp-stacked', !images && longText);
+            card.querySelectorAll('.qp-audio audio').forEach(audio => {
+                audio.addEventListener('play', () => {
+                    root.querySelectorAll('.qp-audio audio').forEach(other => {
+                        if (other !== audio && !other.paused) other.pause();
+                    });
+                });
+            });
             card.querySelector('.qp-prev').addEventListener('click', () => {
                 const myGroup = card.dataset.group;
                 const myMatching = (myGroup && !myGroup.startsWith('ng-')) ? cards.filter(c => c.dataset.group === myGroup) : [];
@@ -236,6 +208,7 @@
             card.querySelector('.qp-flag').addEventListener('click', () => {
                 if (flagged.has(card.dataset.key)) flagged.delete(card.dataset.key); else flagged.add(card.dataset.key);
                 update();
+                form?.dispatchEvent(new Event('change', {bubbles: true}));
             });
             card.addEventListener('change', () => {
                 if(card.dataset.checked) {lock(card,card.dataset.checked);update();return;}
@@ -247,6 +220,25 @@
                     o.querySelector('.qp-verdict').textContent = '';
                 });
                 update();
+            });
+            // Cho phép bỏ chọn: click lại vào option đang được chọn thì deselect — chỉ khi chưa lock (chưa Kiểm tra)
+            // Dùng pointerdown để ghi nhận trạng thái TRƯỚC khi browser thay đổi radio,
+            // vì sự kiện click fired SAU khi browser đã tick radio => không phân biệt được chọn hay bỏ chọn.
+            card.querySelectorAll('.qp-option').forEach(option => {
+                let wasCheckedBeforeClick = false;
+                option.addEventListener('pointerdown', () => {
+                    const radio = option.querySelector('input[type=radio]');
+                    wasCheckedBeforeClick = !!(radio && radio.checked);
+                });
+                option.addEventListener('click', () => {
+                    if (card.dataset.checked) return; // đã lock, không cho bỏ
+                    if (!wasCheckedBeforeClick) return; // đang chọn mới, không phải bỏ chọn
+                    const radio = option.querySelector('input[type=radio]');
+                    if (radio) {
+                        radio.checked = false;
+                        radio.dispatchEvent(new Event('change', {bubbles: true}));
+                    }
+                });
             });
             // Kiểm tra lấy lựa chọn hiện tại: preview dùng đáp án nhúng, người học POST checkUrl để server xác minh quyền/câu.
             // Phản hồi chỉ tô đáp án, hiện giải thích/phụ đề; không submit bài. Đáp án đổi khi đang fetch thì bỏ phản hồi cũ.

@@ -11,17 +11,37 @@ import java.util.Locale;
 public record QuestionPlayerItem(String key, Long id, int no, String skill, String label,
         String instruction, String prompt, String passage, String audio, String image,
         List<LearnerExamService.Choice> options, String selected, String checkUrl,
-        Integer answer, String explanation, String script) {
+        Integer answer, String explanation, String script, String groupKey) {
+
+    public QuestionPlayerItem(String key, Long id, int no, String skill, String label,
+            String instruction, String prompt, String passage, String audio, String image,
+            List<LearnerExamService.Choice> options, String selected, String checkUrl,
+            Integer answer, String explanation, String script) {
+        this(key, id, no, skill, label, instruction, prompt, passage, audio, image, options, selected, checkUrl, answer, explanation, script, null);
+    }
+
+    public String resolveGroupKey() {
+        if (groupKey != null && !groupKey.isBlank()) return groupKey;
+        if (audio != null && !audio.isBlank()) return audio;
+        if (passage != null && !passage.isBlank()) return "p_" + Math.abs(passage.trim().replaceAll("\\s+", " ").hashCode());
+        if (image != null && !image.isBlank()) return image;
+        return "ng_" + key;
+    }
 
     /*
      * Adapter giao diện luyện dạng: giữ key answer_<questionId>, nhận diện phương án ảnh và cấp URL Kiểm tra; không nhúng đáp án ban đầu.
      */
     public static QuestionPlayerItem practice(PracticeService.QuestionView q, Skill skill,
-                                              String instruction, Long attemptId) {
+                                              String instruction, Long attemptId, String selected, String groupKey) {
         return new QuestionPlayerItem("answer_" + q.id(), q.id(), q.no(), skill.name(),
                 skill.getLabel(), instruction, q.prompt(), q.passage(), q.audio(), q.image(),
-                q.options().stream().map(o -> choice(o, q.mediaBase())).toList(), null,
-                "/practice/check/" + attemptId + "/" + q.id(), null, null, null);
+                q.options().stream().map(o -> choice(o, q.mediaBase())).toList(), selected,
+                "/practice/check/" + attemptId + "/" + q.id(), null, null, null, groupKey);
+    }
+
+    public static QuestionPlayerItem practice(PracticeService.QuestionView q, Skill skill,
+                                              String instruction, Long attemptId) {
+        return practice(q, skill, instruction, attemptId, null, null);
     }
 
     /*

@@ -38,30 +38,45 @@ Dự án áp dụng mô hình Spring MVC Controller. Phần lớn các endpoint 
 | HTTP Method | Đường Dẫn (Endpoint) | Mục Đích | Quyền Hạn |
 |:---|:---|:---|:---|
 | `GET` | `/exam` | Thư viện đề thi (lọc theo TOPIK I / II, Full / Mini) | Learner |
-| `GET` | `/exam/{id}/start` | Bắt đầu làm một đề thi mới | Learner |
-| `GET` | `/lam-bai/{attemptId}` | Màn hình làm bài thi (`question-player.html`) | Learner (chính chủ) |
-| `POST` | `/lam-bai/{attemptId}/save` | Tự động lưu đáp án trong khi làm bài (Autosave) | Learner (chính chủ) |
-| `POST` | `/lam-bai/{attemptId}/submit` | Nộp bài thi chính thức và tính điểm | Learner (chính chủ) |
-| `GET` | `/exam/result/{attemptId}` | Xem kết quả bài thi, bảng điểm và giải thích câu | Learner (chính chủ) |
+| `GET` / `POST` | `/exam/{id}/start` | Bắt đầu làm một đề thi mới (hoặc nối lượt đang dở) | Learner |
+| `GET` | `/exam/{id}/retry` | Bắt đầu lượt làm bài mới cho đề thi | Learner |
+| `GET` | `/lam-bai/{attemptId}` (alias `/exam/play/{attemptId}`) | Màn hình làm bài thi (`question-player.html`), hiển thị theo kỹ năng hiện tại | Learner (chính chủ) |
+| `POST` | `/exam/attempt/{id}/save` | Tự động lưu đáp án (Autosave qua AJAX, bóc tách qua `extractAnswers`) | Learner (chính chủ) |
+| `POST` | `/exam/attempt/{id}/check/{key}` | Kiểm tra tức thì đáp án của một câu hỏi | Learner (chính chủ) |
+| `POST` | `/exam/attempt/{id}/pause` | Lưu nháp & Tạm dừng bài thi (dọn dẹp attempt rỗng nếu chưa làm câu nào) | Learner (chính chủ) |
+| `POST` | `/exam/attempt/{id}/submit` | Nộp bài hoặc nộp kỹ năng hiện tại (tự động chuyển tiếp kỹ năng nếu là Full Mock, hoặc hoàn thành bài thi) | Learner (chính chủ) |
+| `POST` | `/exam/attempt/{id}/submit-teacher`, `/exam/attempt/{id}/send-teacher` | Nộp bài thi Viết và gửi chấm cho Giáo viên (VIP) | VIP Learner |
+| `POST` | `/exam/attempt/{id}/send-teacher-q` | Gửi chấm một câu Viết cụ thể cho Giáo viên (VIP) | VIP Learner |
+| `GET` | `/ket-qua/{attemptId}` (alias `/exam/result/{attemptId}`) | Xem kết quả bài thi, bảng điểm chuẩn TOPIK và xem lại câu hỏi kèm bộ lọc tab kỹ năng | Learner (chính chủ) |
 
 ### 1.4. Phân Hệ Luyện Tập Dạng Câu Hỏi (`PracticeController.java`)
 
 | HTTP Method | Đường Dẫn (Endpoint) | Mục Đích | Quyền Hạn |
 |:---|:---|:---|:---|
-| `GET` | `/practice` | Danh mục các dạng câu hỏi chuẩn đề thi | Learner |
-| `GET` | `/practice/{typeCode}` | Phòng luyện tập tập trung theo mã dạng câu | Learner |
-| `POST` | `/practice/check` | Kiểm tra tức thì đáp án của câu hỏi đang làm | Learner |
-| `GET` | `/practice/history` | Lịch sử các lần luyện dạng câu hỏi | Learner |
+| `GET` | `/practice` (alias `/luyen-tap`) | Danh mục các dạng câu hỏi chuẩn đề thi | Learner |
+| `GET` | `/practice/prepare` (alias `/luyen-tap/chuan-bi`) | Trang chuẩn bị luyện dạng, nhận diện bài làm dở (`pendingAttempt`) và lịch sử | Learner |
+| `POST` | `/practice/start` | Bắt đầu hoặc làm lại lượt luyện tập theo dạng (`typeCode`) | Learner |
+| `GET` | `/practice/play/{attemptId}` | Màn hình luyện tập câu hỏi (`practice/play.html`), đánh số thứ tự tuần tự từ 1 | Learner (chính chủ) |
+| `POST` | `/practice/save/{attemptId}` | Lưu nháp bài luyện tập (câu trả lời, cờ chưa chắc, số giây đã làm) qua AJAX | Learner (chính chủ) |
+| `POST` | `/practice/pause/{attemptId}` | Tạm dừng bài luyện tập và chuyển hướng về trang chuẩn bị | Learner (chính chủ) |
+| `POST` | `/practice/submit/{attemptId}` | Nộp bài luyện tập và tính điểm | Learner (chính chủ) |
+| `GET` | `/practice/result/{attemptId}` | Xem kết quả luyện tập, đối chiếu câu gốc (`originalNo`) và giải thích | Learner (chính chủ) |
+| `GET` | `/practice/media/{sourceId}/{filename}` | Phục vụ file audio/hình ảnh trong lúc luyện tập | Public / Session |
 
 ### 1.5. Phân Hệ Kỹ Năng Viết (`WritingController.java`)
 
 | HTTP Method | Đường Dẫn (Endpoint) | Mục Đích | Quyền Hạn |
 |:---|:---|:---|:---|
 | `GET` | `/writing` | Phòng luyện kỹ năng Viết (Câu 51, 52, 53, 54) | Learner |
-| `POST` | `/writing/evaluate-51-52` | Đánh giá & chấm điểm tự động câu 51 và câu 52 | Learner |
-| `POST` | `/writing/submit` | Nộp bài viết cho Giáo viên chấm | VIP Learner |
-| `GET` | `/writing/submissions` | Danh sách lịch sử bài viết đã nộp | Learner |
-| `GET` | `/writing/submissions/{id}` | Xem chi tiết bài viết, điểm và lời phê của giáo viên | Learner (chính chủ) / GV |
+| `POST` | `/writing/draft` | Tự động lưu nháp câu viết kèm thời gian làm bài (`durationSeconds`, hỗ trợ beacon/fetch) | Learner |
+| `POST` | `/writing/submit` (alias `/writing/submit-mentor`) | Nộp bài luyện viết hoặc gửi trực tiếp cho Giáo viên chấm (`teacher=true`) | Learner / VIP Learner |
+| `GET` | `/writing/history` | Chi tiết bài luyện Viết đã nộp chưa gửi GV (tự chuyển hướng `/writing/feedback` nếu đã gửi GV) | Learner (chính chủ) |
+| `GET` | `/writing/feedback` (alias `/mentor-reviews`, `/bai-cham`) | Danh sách & chi tiết bài viết gửi Giáo viên (`?id=&page=`), xem điểm, nhận xét, từ chối và lịch sử khiếu nại | Learner (chính chủ) |
+| `POST` | `/writing/send-teacher` | Gửi bài luyện viết đã nộp sang hàng chờ Giáo viên chấm | VIP Learner |
+| `POST` | `/writing/appeal` | Gửi yêu cầu khiếu nại điểm số (tối đa 1 lần/bài, lưu `appealedAt`) | Learner (chính chủ) |
+| `POST` | `/writing/ask` | Gửi câu hỏi trao đổi thêm tới Giáo viên chấm bài | Learner (chính chủ) |
+| `POST` | `/writing/rate` | Đánh giá mức độ hài lòng với phần chấm bài của Giáo viên | Learner (chính chủ) |
+| `GET` | `/writing/prompt/{id}/chart`, `/writing/submission/{id}/chart` | Phục vụ ảnh biểu đồ đề bài viết câu 53 | Đã đăng nhập |
 
 ### 1.6. Phân Hệ Lộ Trình Học Cá Nhân Hóa (`RoadmapController.java`)
 
@@ -78,15 +93,23 @@ Dự án áp dụng mô hình Spring MVC Controller. Phần lớn các endpoint 
 |:---|:---|:---|:---|
 | `GET` | `/theory/vocabulary` | Tra cứu kho từ vựng TOPIK 1 - 6 theo chủ đề | Learner |
 | `GET` | `/theory/grammar` | Tra cứu kho ngữ pháp tiếng Hàn theo nhóm ý nghĩa | Learner |
-| `GET` | `/hanja` | Tra cứu kho Hán tự Hanja và từ phái sinh âm Hán Việt | Learner |
+| `GET` | `/ly-thuyet/han-viet`, `/theory/hanja` | Giao diện Cầu nối Hán Việt (hỗ trợ `?tab=learn\|guess\|learned\|mistakes`) | Learner |
+| `GET` | `/api/learner/hanja/roots` | API nạp danh sách gốc Hán tự ACTIVE (hỗ trợ query tìm kiếm) | Learner |
+| `GET` | `/api/learner/hanja/roots/{id}` | API nạp chi tiết gốc Hán tự và danh sách từ vựng liên quan | Learner |
+| `GET` | `/api/learner/hanja/quiz` | API tạo ngẫu nhiên câu hỏi trắc nghiệm 4 đáp án cho quiz Hán tự | Learner |
+| `GET` | `/api/learner/hanja/stats` | Thống kê số lượng gốc Hán và từ vựng liên quan | Learner |
 
 ### 1.8. Cổng Giảng Viên (`TeacherPortalController.java`)
 
 | HTTP Method | Đường Dẫn (Endpoint) | Mục Đích | Quyền Hạn |
 |:---|:---|:---|:---|
-| `GET` | `/teacher` | Dashboard giảng viên, danh sách bài chờ chấm | Teacher / Admin |
-| `GET` | `/teacher/submissions/{id}` | Màn hình đọc bài và chấm điểm theo Rubric | Teacher / Admin |
-| `POST` | `/teacher/grade/{id}` | Lưu điểm chi tiết từng tiêu chí và nhận xét | Teacher / Admin |
+| `GET` / `POST` | `/teacher` (alias `/mentor`) | Dashboard giảng viên (`tab`: `queue`, `mine`, `done`, `appeal`, `calib`; `sel` mở bàn chấm) | Teacher / Admin |
+| `POST` | `/teacher/claim` | Tiếp nhận bài viết từ hàng chờ để chấm | Teacher / Admin |
+| `POST` | `/teacher/save-draft` | Lưu tạm điểm tiêu chí/tổng điểm và nhận xét đang chấm dở; giữ nguyên trạng thái `claimed`/`appeal` và không thông báo cho học viên | Teacher / Admin |
+| `POST` | `/teacher/reject` | Từ chối chấm bài kèm lý do bắt buộc (`reason`), trả trạng thái về `submitted` | Teacher / Admin |
+| `POST` | `/teacher/grade` | Lưu điểm chi tiết, nhận xét, đáp án mẫu hoặc xử lý khiếu nại (`revise` / `uphold` kèm lời nhắn) | Teacher / Admin |
+| `POST` | `/teacher/reply-ask` | Trả lời thắc mắc thêm của học viên sau khi chấm | Teacher / Admin |
+| `GET` / `POST` | `/teacher/profile`, `/teacher/profile/*` | Xem, cập nhật hồ sơ cá nhân và đổi mật khẩu Giảng viên | Teacher / Admin |
 
 ### 1.9. Cổng Quản Lý Nội Dung (`ContentExamController.java`, `ContentPortalController.java`...)
 
@@ -94,10 +117,21 @@ Dự án áp dụng mô hình Spring MVC Controller. Phần lớn các endpoint 
 |:---|:---|:---|:---|
 | `GET` | `/content/sources` | Danh sách các nguồn đề thi | Content / Admin |
 | `GET` | `/content/sources/{id}` | Chi tiết nguồn đề, soạn câu hỏi thủ công hoặc Excel | Content / Admin |
+| `GET` | `/content/sources/{id}/template-full` | Tải file Excel mẫu toàn bộ đề thi (đa sheet: `NGHE`, `DOC`, `VIET`, `DANG_CAU`) | Content / Admin |
+| `GET` | `/content/sources/{id}/template` | Tải file Excel mẫu theo từng kỹ năng lẻ (`?skill=...`) | Content / Admin |
 | `POST` | `/content/sources/{id}/cards` | Lưu câu hỏi thủ công (audio, passage, 4 options, ảnh) | Content / Admin |
-| `POST` | `/content/sources/{id}/excel` | Đổ nhanh câu hỏi từ file Excel mẫu `.xlsx` | Content / Admin |
-| `GET` | `/content/media/{sourceId}/{filename}` | Stream file audio MP3 hoặc tải hình ảnh câu hỏi | Public / Session |
-| `POST` | `/content/media/upload` | Tải lên file ảnh hoặc MP3 đơn lẻ qua AJAX | Content / Admin |
+| `POST` | `/content/sources/{id}/excel` | Đổ nhanh câu hỏi toàn bộ đề từ file Excel mẫu gộp `.xlsx` | Content / Admin |
+| `POST` | `/content/sources/{id}/excel/skill` | Import câu hỏi từ file Excel của từng kỹ năng lẻ | Content / Admin |
+| `GET` | `/content/media/{sourceId}/{filename}` | Stream file audio MP3 (hỗ trợ Byte-Range 206, Content-Type `audio/mpeg`) hoặc hiển thị hình ảnh | Public / Session |
+| `POST` | `/content/sources/{id}/media/inline` | Tải lên file ảnh hoặc MP3 đơn lẻ/inline cho câu hỏi qua AJAX | Content / Admin |
+| `POST` | `/content/sources/{id}/media` | Tải lên danh sách file media vào nguồn đề qua form multipart | Content / Admin |
+| `POST` | `/content/sources/{id}/media/{mediaId}/delete` | Xóa 1 file media khỏi nguồn đề, tự động gỡ liên kết khỏi câu hỏi | Content / Admin |
+| `POST` | `/content/sources/{id}/media/delete-batch` | Xóa danh sách file media được chọn theo checkbox (`mediaIds`) | Content / Admin |
+| `POST` | `/content/sources/{id}/media/delete-all` | Xóa toàn bộ file media của nguồn đề | Content / Admin |
+| `POST` | `/content/sources/{id}/media/clear-card-audio` | Gỡ file audio khỏi câu hỏi (`QuestionGroup`), tự động xóa `MediaAsset` nếu không còn câu nào khác dùng chung | Content / Admin |
+| `POST` | `/content/sources/{id}/listening/bulk-audio/pre-check` | Upload file `.zip` audio kỹ năng Nghe, giải nén tạm thời và trả về báo cáo đối soát khớp câu | Content / Admin |
+| `POST` | `/content/sources/{id}/listening/bulk-audio/confirm` | Xác nhận lưu các file audio hợp lệ từ token tạm vào đề và gán vào các câu hỏi | Content / Admin |
+| `POST` | `/content/sources/{id}/listening/bulk-audio/cancel` | Hủy phiên upload audio hàng loạt và dọn dẹp thư mục tạm | Content / Admin |
 
 ### 1.10. Cổng Quản Lý Vận Hành & Báo Lỗi (`OperationPortalController.java`, `QuestionReportController.java`)
 
@@ -117,6 +151,13 @@ Dự án áp dụng mô hình Spring MVC Controller. Phần lớn các endpoint 
 | `POST` | `/admin/users/{id}/lock` | Khóa tài khoản tạm thời hoặc vĩnh viễn | Admin |
 | `POST` | `/admin/users/{id}/role` | Phân quyền vai trò người dùng | Admin |
 
+### 1.12. Phân Hệ Tiến Độ Học Tập & Lịch Sử (`LearnerController.java`)
+
+| HTTP Method | Đường Dẫn (Endpoint) | Mục Đích | Quyền Hạn |
+|:---|:---|:---|:---|
+| `GET` | `/tien-do` (alias `/progress`) | Màn hình tiến độ học tập: nạp dữ liệu thống kê qua `ProgressService.load(userId)`, biểu đồ cột chồng Full Mock (Best Attempt), phân tích tỷ lệ đúng theo dạng câu hỏi | Learner |
+| `GET` | `/tien-do/lich-su` (alias `/progress/history`) | Lịch sử học tập chi tiết (các bài thi và bài luyện tập đã làm) | Learner |
+
 ---
 
 ## 2. Các Dịch Vụ Tích Hợp Bên Ngoài
@@ -133,9 +174,12 @@ Dự án áp dụng mô hình Spring MVC Controller. Phần lớn các endpoint 
 ### 2.3. Google Identity Services (OAuth2 Login)
 - **Cơ chế**: Người dùng đăng nhập bằng tài khoản Google trên giao diện, lấy `credential` (JWT Token) gửi về endpoint `/auth/google`. Server giải mã token và đồng bộ tài khoản vào bảng `users`.
 
-### 2.4. Apache POI (Excel Parser)
+### 2.4. Apache POI (Excel Parser & Generator)
 - **Thư viện**: `poi 5.2.5`, `poi-ooxml 5.2.5`.
-- **Mục đích**: Phân tích file bảng tính Excel `.xlsx` gồm 2 sheet chuẩn: `QUESTIONS` (câu trắc nghiệm Nghe/Đọc) và `WRITING` (câu tự luận Viết).
+- **Mục đích**:
+  - Sinh template Excel mẫu và phân tích nhập đề thi từ file `.xlsx`.
+  - Hỗ trợ định dạng file mẫu theo từng kỹ năng lẻ (`NGHE`, `DOC`, `VIET`) và file toàn bộ đề gộp đa sheet (`NGHE`, `DOC`, `VIET`, `DANG_CAU`).
+  - Duy trì khả năng tương thích ngược với định dạng 2 sheet truyền thống (`QUESTIONS` và `WRITING`).
 
 ### 2.5. Local Media Storage Service
 - **Lưu trữ**: Thư mục cục bộ `./data/storage`.

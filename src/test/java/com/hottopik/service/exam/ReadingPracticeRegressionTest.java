@@ -96,9 +96,9 @@ class ReadingPracticeRegressionTest {
             assertEquals(type.requiredCount(), summary.available(), type.code());
             PracticeAttempt attempt = practice.start(LEARNER, "reading@example.com", type.code());
             List<PracticeService.QuestionView> selected = practice.questions(attempt);
-            assertEquals(type.numbers(), selected.stream().map(PracticeService.QuestionView::no).toList());
+            assertEquals(java.util.stream.IntStream.rangeClosed(1, selected.size()).boxed().toList(), selected.stream().map(PracticeService.QuestionView::no).toList());
             for (PracticeService.QuestionView view : selected) {
-                Question original = expected.get(view.no());
+                Question original = expected.get(view.originalNo());
                 assertEquals(original.getId(), view.id());
                 assertEquals(original.getGroup().getPassageKo(), view.passage());
                 assertEquals(original.getPromptKo(), view.prompt());
@@ -123,7 +123,7 @@ class ReadingPracticeRegressionTest {
                                 .sessionAttr(AuthHelper.SESSION_KEY, learner).param("selected", "1"))
                         .andExpect(status().isOk()).andExpect(jsonPath("$.answer").value(2))
                         .andExpect(jsonPath("$.correct").value(false))
-                        .andExpect(jsonPath("$.explanation").value("Giải thích câu 31"))
+                        .andExpect(jsonPath("$.explanation").value("Giải thích câu " + selected.get(0).originalNo()))
                         .andExpect(jsonPath("$.script").isEmpty());
                 assertThrows(org.springframework.web.server.ResponseStatusException.class,
                         () -> practice.check(99999L, attempt.getId(), selected.get(0).id(), 1));
@@ -185,5 +185,39 @@ class ReadingPracticeRegressionTest {
         PracticeAttempt next = practice.start(LEARNER, "reading@example.com", "I-D8");
         assertTrue(practice.questions(next).stream().noneMatch(q -> selected.stream().anyMatch(old -> old.id().equals(q.id()))));
         assertEquals(first.getQuestionIds(), practice.retry(LEARNER, "reading@example.com", first.getId()).getQuestionIds());
+    }
+
+    @Test
+    void unfinishedPracticeIsDiscardedWhenNoActivityAndKeptWhenFlaggedOrAnswered() {
+        ExamSource source = source();
+        card(source, "TPL1-REA-09", List.of(59, 60));
+        imports.activate(source.getId(), CM);
+
+        // Lan 1: Khong lam cau nao va khong danh dau chua chac -> Khong luu (xoa bo)
+        PracticeAttempt emptyAttempt = practice.start(LEARNER, "reading@example.com", "I-D8");
+        Long emptyId = emptyAttempt.getId();
+        PracticeAttempt savedEmpty = practice.save(LEARNER, emptyId, Map.of(), List.of(), 10, true);
+        assertNull(savedEmpty, "Attempt with no answers and no flags should be discarded");
+        assertTrue(practice.findAttempt(LEARNER, emptyId).isEmpty(), "Discarded attempt should be removed from database");
+        assertTrue(practice.findPendingAttempt(LEARNER, "I-D8").isEmpty());
+
+        // Lan 2: Khong lam cau nao nhung co danh dau Chua chac -> Duoc luu lai
+        PracticeAttempt flaggedAttempt = practice.start(LEARNER, "reading@example.com", "I-D8");
+        Long flaggedId = flaggedAttempt.getId();
+        List<PracticeService.QuestionView> questions = practice.questions(flaggedAttempt);
+        String firstQId = questions.get(0).id().toString();
+
+        PracticeAttempt savedFlagged = practice.save(LEARNER, flaggedId, Map.of(), List.of(firstQId), 25);
+        assertNotNull(savedFlagged, "Attempt with flagged question should be kept");
+        assertTrue(practice.findPendingAttempt(LEARNER, "I-D8").isPresent());
+        assertEquals(flaggedId, practice.findPendingAttempt(LEARNER, "I-D8").get().getId());
+        assertEquals(25, savedFlagged.getElapsedSeconds());
+
+        // Lan 3: Lam it nhat 1 cau -> Duoc luu lai
+        PracticeAttempt answeredAttempt = practice.start(LEARNER, "reading@example.com", "I-D8");
+        Long answeredId = answeredAttempt.getId();
+        PracticeAttempt savedAnswered = practice.save(LEARNER, answeredId, Map.of("answer_" + firstQId, "2"), List.of(), 40);
+        assertNotNull(savedAnswered, "Attempt with at least one answer should be kept");
+        assertEquals(40, savedAnswered.getElapsedSeconds());
     }
 }

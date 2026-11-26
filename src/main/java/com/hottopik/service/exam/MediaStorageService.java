@@ -36,10 +36,14 @@ public class MediaStorageService {
     }
 
     public Path storeExcel(Long sourceId, MultipartFile file) throws IOException {
-        Path target = sourceDir(sourceId).resolve("excel").resolve(UUID.randomUUID() + ".xlsx");
         try (InputStream in = file.getInputStream()) {
-            Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+            return storeExcel(sourceId, in);
         }
+    }
+
+    public Path storeExcel(Long sourceId, InputStream in) throws IOException {
+        Path target = sourceDir(sourceId).resolve("excel").resolve(UUID.randomUUID() + ".xlsx");
+        Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
         return target;
     }
 
@@ -58,13 +62,29 @@ public class MediaStorageService {
     }
 
     public Path resolveStored(String stored) {
-        Path p = Paths.get(stored);
-        if (!p.isAbsolute()) return root.resolve(p).normalize();
-        if (Files.exists(p)) return p;
-        // Bản ghi cũ lưu đường dẫn tuyệt đối: thử lấy phần sau "sources/" dưới thư mục gốc hiện tại.
-        String s = stored.replace('\\', '/');
-        int i = s.lastIndexOf("/sources/");
-        return i >= 0 ? root.resolve(s.substring(i + 1)).normalize() : p;
+        if (stored == null || stored.isBlank()) return root;
+        try {
+            Path p = Paths.get(stored);
+            if (!p.isAbsolute()) return root.resolve(p).normalize();
+            if (Files.exists(p)) return p;
+            // Bản ghi cũ lưu đường dẫn tuyệt đối: thử lấy phần sau "sources/" dưới thư mục gốc hiện tại.
+            String s = stored.replace('\\', '/');
+            int i = s.lastIndexOf("/sources/");
+            return i >= 0 ? root.resolve(s.substring(i + 1)).normalize() : p;
+        } catch (Exception e) {
+            // Tránh lỗi ném InvalidPathException khi chuỗi chứa ký tự bất hợp pháp trên Windows (ví dụ: '?')
+            return root;
+        }
+    }
+
+    public void deleteStoredSafe(String stored) {
+        if (stored == null || stored.isBlank()) return;
+        try {
+            Path p = resolveStored(stored);
+            if (p != null && !p.equals(root) && Files.exists(p)) {
+                Files.deleteIfExists(p);
+            }
+        } catch (Exception ignored) {}
     }
 
     public Path resolveMedia(Long sourceId, String filename) throws IOException {
@@ -72,6 +92,27 @@ public class MediaStorageService {
         Path p = dir.resolve(filename).normalize();
         if (!p.startsWith(dir)) throw new IOException("Đường dẫn không hợp lệ");
         return p;
+    }
+
+    public Path resolveMediaUnchecked(Long sourceId, String filename) {
+        try {
+            Path dir = root.resolve("sources").resolve(String.valueOf(sourceId)).resolve("media");
+            return dir.resolve(filename != null ? filename : "").normalize();
+        } catch (Exception e) {
+            return root;
+        }
+    }
+
+    public void deleteMediaFolder(Long sourceId) {
+        Path dir = root.resolve("sources").resolve(String.valueOf(sourceId)).resolve("media");
+        if (!Files.exists(dir)) return;
+        try (var walk = Files.walk(dir)) {
+            walk.sorted(java.util.Comparator.reverseOrder()).forEach(f -> {
+                if (!f.equals(dir)) {
+                    try { Files.deleteIfExists(f); } catch (Exception ignored) {}
+                }
+            });
+        } catch (Exception ignored) {}
     }
 
     public void deleteSourceDir(Long sourceId) {
@@ -95,7 +136,8 @@ public class MediaStorageService {
         if (name == null) return null;
         String n = name.replace('\\', '/');
         int i = n.lastIndexOf('/');
-        return (i >= 0 ? n.substring(i + 1) : n).trim();
+        String base = (i >= 0 ? n.substring(i + 1) : n).trim();
+        return base.replaceAll("[?*:\"<>|]", "_").trim();
     }
 
     public static String extension(String name) {

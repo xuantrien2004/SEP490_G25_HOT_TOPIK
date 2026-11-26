@@ -7,10 +7,27 @@
         <h2 style="margin:0;font-size:17px;font-weight:800;color:#24363D;">Lịch sử khiếu nại điểm số</h2>
     </div>
 
+    <!-- 3 Mốc thời gian khiếu nại -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:10px;padding:12px 14px;border-radius:12px;background:#F8F6EF;border:1.5px solid #E6E1D3;margin-bottom:14px;font-size:12.5px;">
+        <div>
+            <span style="color:#5C6E72;font-weight:700;">📝 Gửi bài:</span>
+            <b style="color:#24363D;" th:text="${s.submittedAt}">16/10/2026</b>
+        </div>
+        <div>
+            <span style="color:#B45309;font-weight:700;">⚠️ Gửi khiếu nại:</span>
+            <b style="color:#B45309;" th:text="${s.appealedAt != null ? s.appealedAt : (s.originalGradedAt != null ? s.originalGradedAt : s.submittedAt)}">20/10/2026</b>
+        </div>
+        <div>
+            <span style="color:#1F6B56;font-weight:700;">👩‍🏫 Kết quả khiếu nại:</span>
+            <b th:if="${s.appealResolved}" style="color:#1F6B56;" th:text="${s.appealResolvedAt != null ? s.appealResolvedAt : s.gradedAt}">21/10/2026</b>
+            <span th:unless="${s.appealResolved}" style="color:#B45309;font-weight:700;">Đang chờ xử lý</span>
+        </div>
+    </div>
+
     <!-- Lý do khiếu nại -->
     <div style="padding:12px 14px;border-radius:12px;background:#FBF0D3;border:1.5px solid #E0A33A;margin-bottom:16px;">
         <span style="font-size:12px;font-weight:800;color:#7A5A12;text-transform:uppercase;letter-spacing:.4px;">⚠️ Lý do khiếu nại</span>
-        <p style="margin:6px 0 0;font-size:14px;color:#3D2B00;white-space:pre-wrap;" th:text="${s.appealReason}">Lý do khiếu nại...</p>
+        <p style="margin:6px 0 0;font-size:14px;color:#3D2B00;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;" th:text="${s.appealReason}">Lý do khiếu nại...</p>
     </div>
 
     <!-- So sánh điểm: Trước / Sau -->
@@ -23,7 +40,7 @@
                 <span style="font-size:36px;font-weight:800;color:#5C6E72;" th:text="${s.originalScore}">25</span>
                 <span style="font-size:16px;font-weight:700;color:#9BA8AB;" th:text="${'/ ' + s.maxScore + ' điểm'}">/ 30 điểm</span>
             </div>
-            <p style="margin:0;font-size:13px;color:#5C6E72;line-height:1.6;white-space:pre-wrap;" th:text="${s.originalFeedback}">Nhận xét cũ...</p>
+            <p style="margin:0;font-size:13px;color:#5C6E72;line-height:1.6;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;" th:text="${s.originalFeedback}">Nhận xét cũ...</p>
         </div>
 
         <!-- Mũi tên -->
@@ -63,7 +80,7 @@
             </div>
 
             <!-- Nhận xét mới -->
-            <p style="margin:0 0 8px;font-size:13px;line-height:1.6;white-space:pre-wrap;"
+            <p style="margin:0 0 8px;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;"
                th:style="${s.totalScore != null and s.originalScore != null and s.totalScore > s.originalScore} ? 'color:#1F6B56;' : 'color:#5C6E72;'"
                th:text="${s.overallFeedback}">Nhận xét sau khiếu nại...</p>
 

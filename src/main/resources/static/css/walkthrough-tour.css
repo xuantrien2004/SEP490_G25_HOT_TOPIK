@@ -1,0 +1,342 @@
+/* ==========================================================================
+   HOT TOPIK - Interactive Walkthrough Tour & Contextual Help Styles
+   Vanilla CSS (Zero External Dependencies)
+   ========================================================================== */
+
+:root {
+    --ht-tour-zindex-backdrop: 99990;
+    --ht-tour-zindex-spotlight: 99995;
+    --ht-tour-zindex-popover: 100000;
+    --ht-tour-primary: #2E7D67;
+    --ht-tour-primary-hover: #246352;
+    --ht-tour-primary-light: #E8F5E9;
+    --ht-tour-accent: #F4C45A;
+}
+
+/* Backdrop mờ nền nhẹ toàn màn hình (vừa phải, không làm mờ mịt nội dung để người dùng quan sát được toàn bộ trang) */
+.ht-tour-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.18);
+    z-index: var(--ht-tour-zindex-backdrop);
+    pointer-events: auto;
+    transition: opacity 0.3s ease;
+}
+
+/* Vùng chiếu sáng Spotlight: Viền xanh Bé Ssak nổi bật, hào quang nhẹ */
+.ht-tour-spotlight {
+    position: absolute;
+    box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.18), 0 0 24px rgba(46, 125, 103, 0.35);
+    border-radius: 16px;
+    z-index: var(--ht-tour-zindex-spotlight);
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    outline: 3.5px solid var(--ht-tour-primary);
+    outline-offset: 4px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.ht-tour-spotlight::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 20px;
+    border: 2px dashed rgba(244, 196, 90, 0.95);
+    animation: htSpotlightPulse 2s infinite ease-in-out;
+}
+
+@keyframes htSpotlightPulse {
+    0%, 100% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.015); opacity: 1; }
+}
+
+/* Thanh tiến trình bước trong Popover */
+.ht-tour-progress-bar {
+    width: 100%;
+    height: 5px;
+    background: #E2E8F0;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 14px;
+}
+
+.ht-tour-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2E7D67 0%, #6CC49F 50%, #F4C45A 100%);
+    border-radius: 3px;
+    transition: width 0.35s ease;
+}
+
+/* Popover Hộp thoại hướng dẫn: Gọn gàng, dễ quan sát, đủ rộng cho giải thích chi tiết */
+.ht-tour-popover {
+    position: absolute;
+    width: 420px;
+    max-width: calc(100vw - 32px);
+    background: #FFFFFF;
+    border-radius: 18px;
+    box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.22), 0 8px 18px -4px rgba(46, 125, 103, 0.15);
+    z-index: var(--ht-tour-zindex-popover);
+    padding: 22px 24px;
+    font-family: var(--font-body, 'Nunito', 'Segoe UI', sans-serif);
+    color: #1E293B;
+    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease;
+    border: 2px solid rgba(46, 125, 103, 0.35);
+    animation: htPopoverFadeIn 0.3s ease forwards;
+}
+
+@keyframes htPopoverFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Header Popover */
+.ht-tour-popover-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.ht-tour-badge-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #E8F5E9;
+    color: #2E7D67;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid #A8D8BC;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ht-tour-close-btn {
+    background: none;
+    border: none;
+    color: #94A3B8;
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.ht-tour-close-btn:hover {
+    color: #E11D48;
+    background: #FFE4E6;
+}
+
+/* Nội dung Popover */
+.ht-tour-popover-title {
+    font-family: var(--font-heading, 'Baloo 2', sans-serif);
+    font-size: 18px;
+    font-weight: 800;
+    color: #0F172A;
+    margin: 0 0 8px 0;
+    line-height: 1.35;
+}
+
+.ht-tour-popover-desc {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #475569;
+    margin: 0 0 16px 0;
+}
+
+/* Footer & Buttons */
+.ht-tour-popover-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #E2E8F0;
+}
+
+.ht-tour-skip-btn {
+    background: none;
+    border: none;
+    color: #64748B;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    text-decoration: underline;
+}
+
+.ht-tour-skip-btn:hover {
+    color: #0F172A;
+    background: #F1F5F9;
+}
+
+.ht-tour-actions-right {
+    display: flex;
+    gap: 8px;
+}
+
+.ht-tour-btn {
+    padding: 7px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.ht-tour-btn-prev {
+    background: #F1F5F9;
+    color: #334155;
+    border: 1px solid #CBD5E1;
+}
+
+.ht-tour-btn-prev:hover {
+    background: #E2E8F0;
+    color: #0F172A;
+}
+
+.ht-tour-btn-next {
+    background: var(--ht-tour-primary);
+    color: #FFFFFF;
+    box-shadow: 0 4px 10px rgba(46, 125, 103, 0.3);
+}
+
+.ht-tour-btn-next:hover {
+    background: var(--ht-tour-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(46, 125, 103, 0.4);
+}
+
+/* ==========================================================================
+   Nút Trợ giúp (?) cố định trên Navbar & Dropdown
+   ========================================================================== */
+.ht-help-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: 1.5px solid #A8D8BC;
+    color: var(--ht-tour-primary);
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.ht-help-btn:hover {
+    background: var(--ht-tour-primary-light);
+    color: var(--ht-tour-primary-hover);
+    border-color: var(--ht-tour-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(46, 125, 103, 0.15);
+}
+
+.ht-help-dropdown {
+    position: absolute;
+    top: 44px;
+    right: 0;
+    width: 290px;
+    background: #FFFFFF;
+    border-radius: 14px;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+    padding: 8px;
+    z-index: 1050;
+    display: none;
+    animation: htDropdownFade 0.2s ease;
+}
+
+.ht-help-dropdown.show {
+    display: block;
+}
+
+@keyframes htDropdownFade {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ht-help-dropdown-header {
+    padding: 8px 12px;
+    border-bottom: 1px solid #F1F5F9;
+    margin-bottom: 6px;
+    font-family: var(--font-heading, sans-serif);
+    font-size: 14px;
+    font-weight: 800;
+    color: #1E293B;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ht-help-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: #334155;
+    font-size: 13.5px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+}
+
+.ht-help-item:hover {
+    background: #F8FAFC;
+    color: var(--ht-tour-primary);
+}
+
+.ht-help-item i {
+    font-size: 16px;
+    color: var(--ht-tour-primary);
+}
+
+.ht-help-item-desc {
+    font-size: 11px;
+    color: #94A3B8;
+    margin-top: 2px;
+    display: block;
+    font-weight: 400;
+}
+
+/* ==========================================================================
+   Huy hiệu gợi ý nhẹ lần đầu (First-time Pulse Hint) cho tính năng phụ
+   ========================================================================== */
+.ht-pulse-hint {
+    position: relative;
+}
+
+.ht-pulse-hint::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 10px;
+    height: 10px;
+    background: #10B981;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px #FFFFFF;
+    animation: htPulseDot 1.6s infinite ease-in-out;
+    pointer-events: none;
+}
+
+@keyframes htPulseDot {
+    0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}

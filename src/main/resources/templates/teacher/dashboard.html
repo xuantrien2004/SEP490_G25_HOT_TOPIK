@@ -3,7 +3,23 @@
 <head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
 <body style="background: #F4F1E8; color: #24363D; font-family: 'Nunito','Be Vietnam Pro','Noto Sans KR',sans-serif; margin: 0; padding: 0;">
 
-<div style="width: 100%; min-width: 1280px; max-width: 1440px; min-height: 100vh; margin: 0 auto; display: flex; flex-direction: column;">
+<style>
+    @media (max-width: 1100px) {
+        .teacher-desk-grid {
+            grid-template-columns: 1fr !important;
+        }
+        .teacher-bottom-grid {
+            grid-template-columns: 1fr !important;
+        }
+    }
+    .teacher-essay-box {
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
+    }
+</style>
+
+<div style="width: 100%; max-width: 1440px; min-height: 100vh; margin: 0 auto; display: flex; flex-direction: column; overflow: hidden;">
 
     <!-- HEADER -->
     <header style="display: flex; align-items: center; gap: 20px; padding: 14px 32px; background: #24363D; color: #FFFFFF; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
@@ -198,8 +214,8 @@
                 <a class="btn btn-sm btn-outline-secondary" th:href="@{/teacher(tab='queue')}">Đóng</a>
             </div>
             <p class="small text-muted mb-2"><b th:text="${previewItem.learnerName}">Học viên</b> · Câu <span th:text="${previewItem.questionNo}">53</span> · Gửi lúc <span th:text="${previewItem.submittedAt}">29/10/2026 10:00</span></p>
-            <div class="border rounded-3 p-3 mb-3"><b>Đề bài</b><p class="mb-0 mt-2" style="white-space:pre-wrap" th:text="${previewItem.prompt}">Đề bài</p><img th:if="${previewItem.chartImage != null}" th:src="${previewItem.chartImage}" alt="Biểu đồ đề bài" style="max-width:100%;max-height:320px;margin-top:12px"></div>
-            <div class="border rounded-3 p-3 mb-3"><b>Bài làm của người học</b><p class="mb-0 mt-2" style="white-space:pre-wrap" th:text="${previewItem.studentAnswer}">Bài làm</p></div>
+            <div class="border rounded-3 p-3 mb-3"><b>Đề bài</b><p class="mb-0 mt-2" style="white-space:pre-wrap; word-break: break-word; overflow-wrap: anywhere;" th:text="${previewItem.prompt}">Đề bài</p><img th:if="${previewItem.chartImage != null}" th:src="${previewItem.chartImage}" alt="Biểu đồ đề bài" style="max-width:100%;max-height:320px;margin-top:12px;object-fit:contain;"></div>
+            <div class="border rounded-3 p-3 mb-3"><b>Bài làm của người học</b><p class="mb-0 mt-2" style="white-space:pre-wrap; word-break: break-word; overflow-wrap: anywhere;" th:text="${previewItem.studentAnswer}">Bài làm</p></div>
             <div class="d-flex gap-2">
                 <form th:action="@{/teacher/claim}" method="post"><input type="hidden" name="id" th:value="${previewItem.id}"><button class="btn btn-success" type="submit">Nhận chấm</button></form>
                 <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#rejectModal" th:attr="data-sid=${previewItem.id}">Từ chối chấm</button>
@@ -304,7 +320,7 @@
     </main>
 
     <!-- ==================== VIEW 2: GRADING DESK (showDesk == true) ==================== -->
-    <main th:if="${showDesk}" style="padding: 20px 32px 48px; display: flex; flex-direction: column; gap: 16px;">
+    <main th:if="${showDesk}" style="padding: 20px 32px 48px; display: flex; flex-direction: column; gap: 16px; overflow: hidden; min-width: 0;">
 
         <!-- Top Toolbar -->
         <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
@@ -312,6 +328,12 @@
                style="height: 40px; padding: 0 16px; border-radius: 12px; border: 2px solid #D8D1C2; background: #FFFFFF; font-weight: 800; font-size: 14px; cursor: pointer; text-decoration: none; color: #24363D; display: inline-flex; align-items: center;">
                 ‹ Quay lại danh sách
             </a>
+
+            <button th:if="${deskItem.status != 'graded' and isClaimedByMe}" type="button"
+                    onclick="saveGradingDraftAndExit()"
+                    style="height: 40px; padding: 0 16px; border-radius: 12px; border: 2px solid #2E7D67; background: #FFFFFF; font-weight: 800; font-size: 14px; cursor: pointer; color: #1F6B56; display: inline-flex; align-items: center; gap: 6px;">
+                💾 Lưu và thoát
+            </button>
 
             <div>
                 <span style="font-family: var(--font-heading); font-size: 24px; font-weight: 800;" th:text="${deskItem.title}">
@@ -330,6 +352,13 @@
             </div>
         </div>
 
+        <!-- Reminder notice when grading in progress -->
+        <div th:if="${deskItem.status != 'graded' and isClaimedByMe}"
+             style="padding: 10px 16px; border-radius: 12px; background: #FFFBEB; border: 1.5px solid #FDE68A; color: #92400E; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+            <span>💡</span>
+            <span>Nếu chưa chấm xong, vui lòng ấn <b>"Lưu và thoát"</b> để lưu lại điểm và nhận xét đang chấm dở. Nếu thoát ra hoặc tải lại trang khi chưa lưu, dữ liệu vừa nhập sẽ bị mất.</span>
+        </div>
+
         <!-- Appeal Alert if any -->
         <div th:if="${deskItem.appealUsed and !deskItem.appealResolved}"
              style="padding: 14px 18px; border-radius: 14px; background: #FBF0D3; border: 1.5px solid #E0A33A; color: #7A5A12; font-size: 14px;">
@@ -337,19 +366,20 @@
         </div>
 
         <!-- FORM WRAPPING THE GRADING DESK -->
-        <form th:action="@{/teacher/grade}" method="post" id="gradingForm" style="display: flex; flex-direction: column; gap: 16px;">
+        <form th:action="@{/teacher/grade}" method="post" id="gradingForm" style="display: flex; flex-direction: column; gap: 16px; min-width: 0; overflow: hidden;">
             <input type="hidden" name="id" th:value="${deskItem.id}">
+            <input type="hidden" name="tab" th:value="${currentTab}">
 <div th:replace="~{writing/grading-history :: history(${deskItem})}"></div>
 <div th:if="${deskItem.appealUsed and !deskItem.appealResolved}" class="alert alert-warning">
-<label for="appealDecision">Xử lý khiếu nại</label><select id="appealDecision" name="appealDecision" class="form-select"><option value="revise">Sửa điểm / nhận xét</option><option value="uphold">Giữ nguyên kết quả</option></select>
-<label for="appealMessage">Lời nhắn (bắt buộc khi giữ nguyên kết quả)</label><textarea id="appealMessage" name="appealMessage" maxlength="2000" class="form-control"></textarea></div>
+<label for="appealDecision">Xử lý khiếu nại</label><select id="appealDecision" name="appealDecision" class="form-select"><option value="revise" th:selected="${deskItem.appealDecision != 'uphold'}">Sửa điểm / nhận xét</option><option value="uphold" th:selected="${deskItem.appealDecision == 'uphold'}">Giữ nguyên kết quả</option></select>
+<label for="appealMessage">Lời nhắn (bắt buộc khi giữ nguyên kết quả)</label><textarea id="appealMessage" name="appealMessage" maxlength="2000" class="form-control" th:text="${deskItem.appealMessage}"></textarea></div>
 
             <fieldset th:disabled="${!isClaimedByMe}" style="border:0;padding:0;min-width:0">
             <!-- 3 COLUMNS WORKSPACE -->
-            <div style="display: grid; grid-template-columns: 1fr 1.25fr 1.15fr; gap: 16px; align-items: stretch;">
+            <div class="teacher-desk-grid" style="display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.4fr) minmax(0, 1.15fr); gap: 18px; align-items: stretch; min-width: 0;">
 
                 <!-- COL 1: ĐỀ BÀI -->
-                <div style="padding: 20px 22px; border-radius: 20px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 12px;">
+                <div style="min-width: 0; max-width: 100%; box-sizing: border-box; padding: 20px 22px; border-radius: 20px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 14px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-size: 12px; font-weight: 800; color: #5C6E72; letter-spacing: .5px; text-transform: uppercase;">
                             ĐỀ BÀI · CÂU <span th:text="${deskItem.questionNo}">53</span>
@@ -358,12 +388,16 @@
                     </div>
 
                     <!-- Prompt Korean -->
-                    <div lang="ko" style="padding: 14px 16px; border-radius: 14px; background: #F8F6EF; font-family: 'Noto Sans KR',sans-serif; font-size: 15px; line-height: 1.8; white-space: pre-line;"
+                    <div lang="ko" class="teacher-essay-box" style="padding: 14px 16px; border-radius: 14px; background: #F8F6EF; font-family: 'Noto Sans KR',sans-serif; font-size: 15px; line-height: 1.8; word-break: break-word; overflow-wrap: anywhere; white-space: pre-wrap; border: 1px solid #E6E1D3;"
                          th:text="${deskItem.prompt}">
                         다음은 '20대의 여가 활동'에 대한 조사 결과이다...
                     </div>
 
-                    <img th:if="${deskItem.chartImage != null}" th:src="${deskItem.chartImage}" alt="Biểu đồ đề bài" style="max-width:100%;max-height:400px">
+                    <!-- Chart Image (if present) -->
+                    <div th:if="${deskItem.chartImage != null}" style="text-align: center; background: #FAF9F5; border-radius: 14px; padding: 12px; border: 1.5px solid #E6E1D3;">
+                        <img th:src="${deskItem.chartImage}" alt="Biểu đồ đề bài" style="max-width: 100%; max-height: 380px; object-fit: contain; border-radius: 8px; display: block; margin: 0 auto;">
+                    </div>
+
                     <!-- Chart Visual (if hasChart) -->
                     <div th:if="${deskItem.hasChart}" style="padding: 12px 14px; border-radius: 14px; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 8px; background: #FAF9F5;">
                         <span style="font-size: 12px; font-weight: 800; color: #24363D;">📊 BIỂU ĐỒ SỐ LIỆU ĐỀ BÀI:</span>
@@ -383,7 +417,7 @@
                 </div>
 
                 <!-- COL 2: BÀI LÀM CỦA HỌC VIÊN -->
-                <div style="padding: 20px 22px; border-radius: 20px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 12px;">
+                <div style="min-width: 0; max-width: 100%; overflow: hidden; box-sizing: border-box; padding: 20px 22px; border-radius: 20px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 14px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-size: 12px; font-weight: 800; color: #5C6E72; letter-spacing: .5px; text-transform: uppercase;">
                             BÀI LÀM CỦA HỌC VIÊN
@@ -394,8 +428,8 @@
                     </div>
 
                     <!-- Student Korean Essay Box -->
-                    <div id="studentEssayText" lang="ko"
-                         style="flex-grow: 1; min-height: 220px; padding: 16px 18px; border-radius: 14px; background: #F8F6EF; font-family: 'Noto Sans KR',sans-serif; font-size: 16px; line-height: 1.9; white-space: pre-line; border: 1.5px solid #E6E1D3;"
+                    <div id="studentEssayText" lang="ko" class="teacher-essay-box"
+                         style="flex-grow: 1; min-height: 220px; padding: 16px 18px; border-radius: 14px; background: #F8F6EF; font-family: 'Noto Sans KR',sans-serif; font-size: 16px; line-height: 1.9; word-break: break-word; overflow-wrap: anywhere; white-space: pre-wrap; border: 1.5px solid #E6E1D3; box-sizing: border-box;"
                          th:text="${deskItem.studentAnswer}">
                         Bài làm của học viên tiếng Hàn...
                     </div>
@@ -414,7 +448,7 @@
                 </div>
 
                 <!-- COL 3: CHẤM ĐIỂM THEO TIÊU CHÍ & ĐÁP ÁN MẪU (OPTIONAL) -->
-                <div style="padding: 20px 22px; border-radius: 20px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 12px;">
+                <div style="min-width: 0; max-width: 100%; box-sizing: border-box; padding: 20px 22px; border-radius: 20px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 14px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-size: 12px; font-weight: 800; color: #5C6E72; letter-spacing: .5px; text-transform: uppercase;">
                             CHẤM ĐIỂM · TỐI ĐA <span th:text="${deskItem.maxScore}">30</span> ĐIỂM
@@ -422,7 +456,7 @@
 
                     </div>
 
-                    <!-- Criteria Scoring Inputs -->
+                    <!-- Criteria Scoring Inputs (Câu 51, 52) -->
                     <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 4px;">
                         <div th:each="crit, iterStat : ${deskItem.criteriaScores}" th:if="${deskItem.questionNo &lt;= 52}"
                              style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
@@ -433,7 +467,7 @@
                                 <input type="number"
                                        th:id="'criterionInput_' + ${iterStat.index}"
                                        th:name="'criterion_' + ${iterStat.index}"
-                                       th:value="${crit.score > 0 ? crit.score : (deskItem.status == 'graded' ? crit.score : '')}"
+                                       th:value="${crit.score > 0 || deskItem.status == 'graded' || deskItem.totalScore != null ? crit.score : ''}"
                                        th:max="${crit.max}" min="0" required
                                        oninput="calcRealtimeScore()"
                                        style="width: 60px; height: 38px; border-radius: 8px; border: 2px solid #D8D1C2; text-align: center; font-size: 16px; font-weight: 800; color: #1F6B56;">
@@ -442,9 +476,20 @@
                         </div>
                     </div>
 
-                    <label th:if="${deskItem.questionNo >= 53}">Điểm câu viết
-<input id="totalScoreInput" name="totalScore" type="number" min="0" th:max="${deskItem.maxScore}" th:value="${deskItem.totalScore}" required oninput="calcRealtimeScore()" class="form-control"></label>
-<!-- Realtime Sum Indicator -->
+                    <!-- Direct Score Input (Câu 53, 54) -->
+                    <div th:if="${deskItem.questionNo >= 53}" style="display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: 14px; background: #F8F6EF; border: 1.5px solid #E6E1D3;">
+                        <label for="totalScoreInput" style="font-size: 13px; font-weight: 800; color: #24363D;">
+                            Điểm câu viết (Tối đa <span th:text="${deskItem.maxScore}">30</span> điểm):
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input id="totalScoreInput" name="totalScore" type="number" min="0" th:max="${deskItem.maxScore}"
+                                   th:value="${deskItem.totalScore}" required oninput="calcRealtimeScore()"
+                                   style="width: 100px; height: 42px; border-radius: 10px; border: 2px solid #2E7D67; text-align: center; font-size: 18px; font-weight: 800; color: #1F6B56; background: #FFFFFF; box-sizing: border-box;">
+                            <span style="font-size: 14px; font-weight: 800; color: #5C6E72;">/ <span th:text="${deskItem.maxScore}">30</span> điểm</span>
+                        </div>
+                    </div>
+
+                    <!-- Realtime Sum Indicator -->
                     <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1.5px solid #EEE9DD; font-weight: 800;">
                         <span style="font-size: 14px;">Tổng điểm câu này:</span>
                         <span style="font-size: 20px; color: #1F6B56;" id="realtimeSumText">
@@ -476,10 +521,10 @@
             </div>
 
             <!-- BOTTOM SECTION: NHẬN XÉT CHUNG & GỬI KẾT QUẢ -->
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: start;">
+            <div class="teacher-bottom-grid" style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 18px; align-items: start; min-width: 0;">
 
                 <!-- NHẬN XÉT CHUNG -->
-                <div style="padding: 20px 22px; border-radius: 20px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 10px;">
+                <div style="min-width: 0; max-width: 100%; box-sizing: border-box; padding: 20px 22px; border-radius: 20px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 10px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <label for="overallFeedback" style="font-size: 12px; font-weight: 800; color: #5C6E72; letter-spacing: .5px; text-transform: uppercase;">
                             NHẬN XÉT CHUNG CỦA GIÁO VIÊN
@@ -493,7 +538,7 @@
                 </div>
 
                 <!-- SUBMISSION ACTIONS & STUDENT Q&A -->
-                <div style="padding: 20px 22px; border-radius: 20px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 14px;">
+                <div style="min-width: 0; max-width: 100%; box-sizing: border-box; padding: 20px 22px; border-radius: 20px; background: #FFFFFF; border: 2px solid #E6E1D3; display: flex; flex-direction: column; gap: 14px;">
 
                     <div style="display: flex; justify-content: space-between; align-items: baseline;">
                         <span style="font-weight: 800; font-size: 15px;">Tổng điểm bài nộp</span>
@@ -505,6 +550,13 @@
                     <div style="font-size: 12px; color: #5C6E72;">
                         Hệ thống sẽ lưu điểm số, nhận xét và gửi thông báo tức thì tới ứng dụng học viên.
                     </div>
+
+                    <!-- Save & Exit Button (lưu tạm bài đang chấm dở) -->
+                    <button th:if="${deskItem.status != 'graded' and isClaimedByMe}" type="button" id="btnSaveDraftAndExit"
+                            onclick="saveGradingDraftAndExit()"
+                            style="width: 100%; height: 44px; border-radius: 12px; border: 2px solid #2E7D67; background: #FFFFFF; color: #1F6B56; font-size: 14.5px; font-weight: 800; cursor: pointer; transition: all 0.2s;">
+                        💾 Lưu và thoát
+                    </button>
 
                     <!-- Submit Button -->
                     <button th:if="${deskItem.status != 'graded'}" type="submit" id="btnSubmitGrade"
@@ -564,12 +616,84 @@
     </div>
 </div>
 
+<!-- Unsaved Grading Warning Modal -->
+<div th:if="${showDesk == true && isClaimedByMe == true && deskItem != null && deskItem.status != 'graded'}" id="unsavedGradingModal" class="ssak-modal-overlay" style="z-index: 2300;">
+    <div class="ssak-modal" style="width: 500px; max-width: 92vw; padding: 26px 24px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+            <span style="font-size: 28px; line-height: 1;">⚠️</span>
+            <h3 style="margin: 0; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #B45309;">
+                Bài viết đang chấm dở
+            </h3>
+        </div>
+        <p style="margin: 0 0 18px; font-size: 14.5px; color: #374151; line-height: 1.6;">
+            Vui lòng ấn <b>"Lưu và thoát"</b> để lưu lại điểm và nhận xét đang chấm dở. Nếu không lưu lại, dữ liệu bài đang chấm dở sẽ bị mất!
+        </p>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap;">
+            <button type="button" class="btn-ssak-light" onclick="confirmExitWithoutSaving()"
+                    style="height: 40px; padding: 0 14px; font-size: 13.5px; color: #CF1322; border-color: #FCA5A5;">
+                Thoát không lưu
+            </button>
+            <button type="button" class="btn-ssak-light" onclick="closeUnsavedGradingModal()"
+                    style="height: 40px; padding: 0 16px; font-size: 13.5px;">
+                Tiếp tục chấm
+            </button>
+            <button type="button" class="btn-ssak-primary" onclick="saveGradingDraftAndExit()"
+                    style="height: 40px; padding: 0 18px; font-size: 13.5px; background: #2E7D67;">
+                💾 Lưu và thoát
+            </button>
+        </div>
+    </div>
+</div>
+
 <script th:inline="javascript">
-    document.getElementById('appealDecision')?.addEventListener('change', e=>{
-        const uphold=e.target.value==='uphold';
-        document.getElementById('appealMessage').required=uphold;
-        document.querySelectorAll('#gradingForm input[type=number],#overallFeedback').forEach(el=>{el.required=!uphold;});
-    });
+    const isGradingEditable = /*[[${showDesk == true && isClaimedByMe == true && deskItem != null && deskItem.status != 'graded'}]]*/ false;
+    const saveDraftUrl = /*[[@{/teacher/save-draft}]]*/ '/teacher/save-draft';
+    let isGradingDirty = false;
+    let isGradingSubmitting = false;
+    let pendingExitHref = null;
+
+    function syncAppealDecisionRequired() {
+        const appealSelect = document.getElementById('appealDecision');
+        if (!appealSelect) return;
+        const uphold = appealSelect.value === 'uphold';
+        const msg = document.getElementById('appealMessage');
+        if (msg) msg.required = uphold;
+        document.querySelectorAll('#gradingForm input[type=number],#overallFeedback').forEach(el => { el.required = !uphold; });
+    }
+    document.getElementById('appealDecision')?.addEventListener('change', syncAppealDecisionRequired);
+
+    function saveGradingDraftAndExit() {
+        const form = document.getElementById('gradingForm');
+        if (!form) return;
+        isGradingSubmitting = true;
+        isGradingDirty = false;
+        form.noValidate = true;
+        form.action = saveDraftUrl;
+        form.submit();
+    }
+
+    function openUnsavedGradingModal(href) {
+        pendingExitHref = href;
+        const m = document.getElementById('unsavedGradingModal');
+        if (m) m.classList.add('show');
+    }
+
+    function closeUnsavedGradingModal() {
+        pendingExitHref = null;
+        const m = document.getElementById('unsavedGradingModal');
+        if (m) m.classList.remove('show');
+    }
+
+    function confirmExitWithoutSaving() {
+        isGradingSubmitting = true;
+        isGradingDirty = false;
+        const target = pendingExitHref;
+        closeUnsavedGradingModal();
+        if (target) {
+            window.location.href = target;
+        }
+    }
+
     function calcRealtimeScore() {
         let sum = Number(document.getElementById("totalScoreInput")?.value || 0);
         let idx = 0;
@@ -605,6 +729,41 @@
     // Auto calculate on page load if desk is open
     document.addEventListener('DOMContentLoaded', function() {
         calcRealtimeScore();
+        syncAppealDecisionRequired();
+
+        if (isGradingEditable) {
+            const form = document.getElementById('gradingForm');
+            if (form) {
+                form.addEventListener('input', function() { isGradingDirty = true; });
+                form.addEventListener('change', function() { isGradingDirty = true; });
+                form.addEventListener('submit', function() {
+                    isGradingSubmitting = true;
+                    isGradingDirty = false;
+                });
+            }
+
+            // Intercept navigation links when grading draft has unsaved changes
+            document.querySelectorAll('a[href]').forEach(function(link) {
+                const href = link.getAttribute('href');
+                if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+                link.addEventListener('click', function(e) {
+                    if (isGradingDirty && !isGradingSubmitting) {
+                        e.preventDefault();
+                        openUnsavedGradingModal(link.href);
+                    }
+                });
+            });
+
+            // Warn on browser reload / close tab
+            window.addEventListener('beforeunload', function(e) {
+                if (isGradingDirty && !isGradingSubmitting) {
+                    const msg = 'Vui lòng ấn Lưu và thoát để lưu lại điểm và nhận xét đang chấm dở, nếu không lưu lại thì sẽ bị mất dữ liệu bài đang chấm dở.';
+                    e.preventDefault();
+                    e.returnValue = msg;
+                    return msg;
+                }
+            });
+        }
     });
 </script>
 

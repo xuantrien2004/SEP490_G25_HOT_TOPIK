@@ -34,6 +34,19 @@ public class ExamAttempt {
     @Column(name = "remaining_seconds", nullable = false)
     private int remainingSeconds;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "current_skill", length = 20)
+    private Skill currentSkill;
+
+    @Column(name = "listening_seconds")
+    private Integer listeningSeconds;
+
+    @Column(name = "reading_seconds")
+    private Integer readingSeconds;
+
+    @Column(name = "writing_seconds")
+    private Integer writingSeconds;
+
     @Column(name = "last_active_at")
     private LocalDateTime lastActiveAt;
 

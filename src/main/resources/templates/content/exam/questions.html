@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="vi">
 <head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
 <body>
@@ -267,7 +267,7 @@
                         ${q.causeHint ? `<div style="margin-top:8px" class="cm-muted">Gợi ý nguyên nhân sai: ${esc(q.causeHint)}</div>` : ''}
                         <div style="margin-top:10px"><b>Dùng trong đề</b><div>${usages}</div></div>
                     </div>
-                    <form method="post" action="${base}/questions/${q.id}" id="editForm">
+                    <form method="post" action="${base}/questions/${q.id}" id="editForm" enctype="multipart/form-data">
                         <input type="hidden" name="back" value="${esc(back)}">
                         ${reportId ? `<input type="hidden" name="reportId" value="${esc(reportId)}">
                         <div class="alert alert-warning py-2 px-3 small rounded-3 mb-2" style="background:#FFFBE6;border:1px solid #FFE58F;color:#D46B08;">
@@ -276,13 +276,13 @@
                         <details><summary>Đoạn văn, phụ đề, ảnh và audio dùng chung</summary><p class="small">Thay đổi ngữ liệu sẽ áp dụng cho các câu cùng bài. Dùng tên file đã tải trong nguồn đề.</p>
 <label>Đoạn văn</label><textarea name="passageKo" class="form-control" maxlength="4000">${esc(q.passageKo)}</textarea>
 <label>Phụ đề</label><textarea name="scriptKo" class="form-control" maxlength="4000">${esc(q.scriptKo)}</textarea>
-<label>File ảnh</label><input name="imageFile" class="form-control" value="${esc(q.imageFile)}">
-<label>File audio</label><input name="audioFile" class="form-control" value="${esc(q.audioFile)}"></details>
+<label>Ảnh đề bài (tên file hoặc upload mới)</label><input name="imageFile" class="form-control mb-1" value="${esc(q.imageFile)}" placeholder="Tên file ảnh hiện tại"><input type="file" name="uploadImageFile" class="form-control mb-1" accept="image/*" onchange="previewQImg(this)">${q.imageFile && q.sourceId ? `<img id="qImgPreview" src="${base}/media/${q.sourceId}/${encodeURIComponent(q.imageFile)}" style="max-width:200px;border-radius:8px;margin-top:4px" alt="Ảnh hiện tại">` : `<img id="qImgPreview" style="display:none;max-width:200px;border-radius:8px;margin-top:4px" alt="Preview">`}
+<label>Audio nghe (tên file hoặc upload mới)</label><input name="audioFile" class="form-control mb-1" value="${esc(q.audioFile)}" placeholder="Tên file audio hiện tại"><input type="file" name="uploadAudioFile" class="form-control mb-1" accept="audio/*">${q.audioFile && q.sourceId ? `<audio controls preload="none" style="width:100%;margin-top:4px" src="${base}/media/${q.sourceId}/${encodeURIComponent(q.audioFile)}"></audio>` : ""}</details>
 <label>Loại sửa lỗi</label><select name="correctionType" class="form-select"><option value="AUTO">Theo loại báo lỗi (nếu có)</option><option value="CONTENT">Nội dung câu hỏi</option><option value="ANSWER">Đáp án</option><option value="IMAGE">Hình ảnh</option><option value="AUDIO">Âm thanh</option><option value="SPELLING">Chỉ sửa chính tả</option></select>
 <label>Cập nhật kết quả bài đã nộp</label><select name="scorePolicy" class="form-select"><option value="RECALCULATE">Chấm lại theo đáp án chuẩn (tự áp dụng khi đổi đáp án)</option><option value="CREDIT_ANSWERED">Công nhận điểm câu này cho người đã trả lời do đề gây hiểu sai</option><option value="NO_SCORE_CHANGE">Không ảnh hưởng đáp án và điểm</option></select>
 <p class="small">Chính tả không ảnh hưởng điểm: chỉ thông báo người báo lỗi. Các lỗi khác: thông báo người đã trả lời câu này.</p>
 <label class="form-label" style="font-weight:800;font-size:13px" for="e-prompt">Câu hỏi (tiếng Hàn)</label>
-                        <textarea id="e-prompt" name="promptKo" class="form-control ssak-input ko" rows="3" required ${ro}>${esc(q.promptKo)}</textarea>
+                        <textarea id="e-prompt" name="promptKo" class="form-control ssak-input ko" rows="3" ${ro}>${esc(q.promptKo)}</textarea>
                         ${q.options.map((o, i) => `
                             <div class="cm-toolbar" style="margin-top:8px">
                                 <label class="cm-check" style="margin:0"><input type="radio" name="answer" value="${i + 1}" ${i + 1 === q.answer ? 'checked' : ''} ${ro} aria-label="Đáp án ${i + 1}"> ${'①②③④'[i]}</label>
@@ -364,6 +364,15 @@
             setTimeout(() => open(autoQId), 150);
         }
     })();
+    function previewQImg(input) {
+        const preview = document.getElementById('qImgPreview');
+        if (!preview) return;
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
 </script>
 </body>
 </html>

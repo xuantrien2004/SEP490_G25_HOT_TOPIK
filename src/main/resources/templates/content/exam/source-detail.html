@@ -53,6 +53,13 @@
                             <div class="cm-muted" th:text="${filledSlots + ' câu đã nhập' + (errorCount > 0 ? ' · còn ' + errorCount + ' lỗi' : ' · đủ để đưa vào ngân hàng và thư viện đề') + (warningCount > 0 ? ' · ' + warningCount + ' nhắc' : '')}">0 câu</div>
                         </div>
                         <a class="btn btn-ssak-outline btn-sm" th:href="@{/content/sources/{id}/preview(id=${source.id})}">Xem như học viên</a>
+                        <a class="btn btn-ssak-outline btn-sm" th:href="@{/content/sources/{id}/template-full(id=${source.id})}" title="Tải file Excel mẫu gồm đầy đủ các sheet kỹ năng của đề">📥 Tải mẫu toàn bộ đề</a>
+                        <form th:if="${editable}" method="post" enctype="multipart/form-data" style="display:inline-flex; align-items:center; margin:0;" onsubmit="return false;">
+                            <label class="btn btn-ssak-outline btn-sm" style="margin:0; cursor:pointer;" title="Nhập file Excel (.xlsx) chứa toàn bộ đề thi">
+                                📤 Import excel toàn bộ đề
+                                <input type="file" name="file" accept=".xlsx" style="display:none;" onchange="handleExcelImportSelected(this, null)" />
+                            </label>
+                        </form>
                         <form th:if="${editable}" th:action="@{/content/sources/{id}/activate(id=${source.id})}" method="post"
                               onsubmit="return confirm('Đưa các câu đã nhập vào ngân hàng và mở đề trong thư viện để gửi duyệt phát hành?');">
                             <button class="btn btn-ssak-primary btn-sm" type="submit" th:disabled="${!clean}"
@@ -78,6 +85,23 @@
                                th:href="${'/content/sources/' + source.id + '?skill=' + sec.skill.name() + '#paper'}"
                                th:classappend="${entrySkill == sec.skill} ? 'on' : ''"
                                th:text="${sec.skill.label}">Nghe</a>
+                        </div>
+                        <div class="skill-excel-box" style="margin: 8px 0 12px; padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+                            <div style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">Excel phần <span th:text="${entrySkill.label}">Nghe</span>:</div>
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                <a th:href="@{/content/sources/{id}/template(id=${source.id}, skill=${entrySkill.name()})}" class="btn btn-ssak-light btn-sm" style="font-size: 12px; padding: 4px 8px;" th:title="${'Tải file mẫu Excel kỹ năng ' + entrySkill.label}">📥 Tải mẫu<span th:text="${entrySkill.label}">Nghe</span></a>
+                                <form th:if="${editable}" method="post" enctype="multipart/form-data" style="margin:0; display:inline-block;" onsubmit="return false;">
+                                    <input type="hidden" name="skill" th:value="${entrySkill.name()}" />
+                                    <label class="btn btn-ssak-outline btn-sm" style="font-size: 12px; padding: 4px 8px; margin:0; cursor:pointer;" th:title="${'Nhập file Excel cho kỹ năng ' + entrySkill.label}">
+                                        📤 Import<span th:text="${entrySkill.label}">Nghe</span>
+                                        <input type="file" name="file" accept=".xlsx" style="display:none;" th:attr="data-skill=${entrySkill.name()}" onchange="handleExcelImportSelected(this, this.getAttribute('data-skill'))" />
+                                    </label>
+                                </form>
+                                <label th:if="${editable and entrySkill.name() == 'LISTENING'}" class="btn btn-ssak-light btn-sm" style="font-size: 12px; padding: 4px 8px; margin:0; cursor:pointer; color:#0f766e; border-color:#0f766e; background:#f0fdfa;" title="Tải file nén .zip chứa các file audio .mp3 theo số thứ tự câu">
+                                    🎵 Upload audio hàng loạt (.zip)
+                                    <input type="file" id="bulkAudioFileInput" accept=".zip,application/zip" style="display:none;" onchange="handleBulkAudioSelected(this)" />
+                                </label>
+                            </div>
                         </div>
                         <label for="typeCode">Dạng câu</label>
                         <select id="typeCode" class="form-select" th:disabled="${!editable}"
@@ -121,8 +145,11 @@
                                     <strong id="audioFileName" th:text="${editCard != null ? editCard.audio : ''}" style="color:#1F6B56"></strong>
                                     <button th:if="${editable}" type="button" onclick="clearAudioFile()" style="font-size:11px;padding:2px 8px;border-radius:6px;border:1px solid #E6E1D3;background:#fff;cursor:pointer">🗑 Xóa</button>
                                 </div>
-                                <audio id="audioPlayer" controls preload="none" style="width:100%"
-                                       th:src="${editCard != null and editCard.audio != null and editCard.audio != ''} ? @{/content/media/{s}/{f}(s=${source.id}, f=${editCard.audio})} : null"></audio>
+                                <audio id="audioPlayer" controls preload="metadata" style="width:100%"
+                                       th:src="${editCard != null and editCard.audio != null and editCard.audio != ''} ? @{/content/media/{s}/{f}(s=${source.id}, f=${editCard.audio})} : null">
+                                    <source th:if="${editCard != null and editCard.audio != null and editCard.audio != ''}"
+                                            th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${editCard.audio})}" type="audio/mpeg">
+                                </audio>
                             </div>
                             <p class="cm-muted" style="margin-top:6px">Một file MP3 dùng chung cho mọi câu trong bài. Học viên nghe lại được nhiều lần.</p>
                         </div>
@@ -131,6 +158,10 @@
                             <input id="image" name="image" class="form-control" list="media-names"
                                    th:value="${editCard != null ? editCard.image : ''}"
                                    th:disabled="${!editable or (entrySkill.name() == 'WRITING' and focusNo != null and focusNo >= 53)}">
+                            <div th:if="${editCard != null and !#strings.isEmpty(editCard.image) and !#strings.startsWith(editCard.image, '[')}" style="margin-top:8px;">
+                                <img th:src="@{/content/media/{s}/{f}(s=${source.id},f=${editCard.image})}"
+                                     alt="Ảnh hoặc biểu đồ dùng chung" style="max-width:100%;max-height:360px;object-fit:contain;border-radius:8px;border:1px solid #e2e8f0;">
+                            </div>
                         </div>
                         <div data-when="passage">
                             <label for="passage">Đoạn văn dùng chung</label>
@@ -157,10 +188,24 @@
                                      th:with="questionChart=${!#strings.isEmpty(ask.chart) ? ask.chart : (editCard != null ? editCard.image : '')}">
                                     <label>Ảnh đề bài câu này (không bắt buộc)</label>
                                     <input type="hidden" name="chart" th:value="${questionChart}">
-                                    <input type="file" name="questionImage" data-question-image accept="image/png,image/jpeg,image/webp,image/gif" class="form-control" th:disabled="${!editable}">
+                                    <div class="img-input-wrap" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
+                                        <input type="file" name="questionImage" data-question-image accept="image/png,image/jpeg,image/webp,image/gif" class="form-control" th:disabled="${!editable}" style="flex:1; min-width:180px;">
+                                        <button type="button" class="btn btn-ssak-light btn-sm paste-clip-btn" title="Dán ảnh từ Clipboard (hoặc nhấn Ctrl + V)" style="font-size:12px; padding:4px 8px; border-radius:6px; cursor:pointer; white-space:nowrap;">📋 Dán ảnh (Ctrl+V)</button>
+                                        <button type="button" class="btn btn-ssak-light btn-sm remove-img-btn" title="Xóa ảnh này" style="font-size:12px; padding:4px 8px; border-radius:6px; color:#e11d48; display:none; white-space:nowrap;">✕ Xóa ảnh</button>
+                                    </div>
                                     <img data-image-preview th:hidden="${#strings.isEmpty(questionChart) or #strings.startsWith(questionChart, '[')}"
                                          th:src="${!#strings.isEmpty(questionChart) and !#strings.startsWith(questionChart, '[')} ? @{/content/media/{s}/{f}(s=${source.id},f=${questionChart})} : null"
                                          alt="Ảnh của câu đang nhập" style="max-width:100%;max-height:480px;object-fit:contain;margin-top:12px">
+                                </div>
+                                <div th:unless="${editable}"
+                                     th:with="questionChart=${!#strings.isEmpty(ask.chart) ? ask.chart : (editCard != null ? editCard.image : '')}">
+                                    <div th:if="${!#strings.isEmpty(questionChart) and !#strings.startsWith(questionChart, '[')}" style="margin-top:8px; margin-bottom:12px;">
+                                        <label style="font-weight:600; color:#475569;">Ảnh đề bài</label>
+                                        <div>
+                                            <img th:src="@{/content/media/{s}/{f}(s=${source.id},f=${questionChart})}"
+                                                 alt="Ảnh đề bài câu này" style="max-width:100%;max-height:480px;object-fit:contain;margin-top:6px;border-radius:8px;border:1px solid #e2e8f0;">
+                                        </div>
+                                    </div>
                                 </div>
                                 <div data-when="choices">
                                     <label>Bốn phương án. Chọn đáp án đúng.</label>
@@ -174,10 +219,18 @@
                                             </div>
                                             <div th:if="${editable}" class="opt-img-row">
                                                 <label class="form-label small text-muted mb-1 d-block w-100">Ảnh phương án ① (không bắt buộc)</label>
-                                                <input type="file" name="opt1Image" data-question-image accept="image/png,image/jpeg,image/webp,image/gif" class="form-control form-control-sm" th:disabled="${!editable}">
+                                                <div class="img-input-wrap" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; width:100%;">
+                                                    <input type="file" name="opt1Image" data-question-image accept="image/png,image/jpeg,image/webp,image/gif" class="form-control form-control-sm" th:disabled="${!editable}" style="flex:1; min-width:140px;">
+                                                    <button type="button" class="btn btn-ssak-light btn-sm paste-clip-btn" title="Dán ảnh từ Clipboard (hoặc nhấn Ctrl + V)" style="font-size:11px; padding:2px 6px; border-radius:6px; cursor:pointer; white-space:nowrap;">📋 Dán (Ctrl+V)</button>
+                                                    <button type="button" class="btn btn-ssak-light btn-sm remove-img-btn" title="Xóa ảnh này" style="font-size:11px; padding:2px 6px; border-radius:6px; color:#e11d48; display:none; white-space:nowrap;">✕ Xóa</button>
+                                                </div>
                                                 <img data-image-preview th:hidden="${#strings.isEmpty(ask.opt1Img)}"
                                                      th:src="${!#strings.isEmpty(ask.opt1Img)} ? @{/content/media/{s}/{f}(s=${source.id},f=${ask.opt1Img})} : null"
                                                      alt="Ảnh phương án ①" style="max-height:160px;max-width:240px;object-fit:contain;margin-top:8px">
+                                            </div>
+                                            <div th:unless="${editable}" class="opt-img-row" th:if="${!#strings.isEmpty(ask.opt1Img)}">
+                                                <img th:src="@{/content/media/{s}/{f}(s=${source.id},f=${ask.opt1Img})}"
+                                                     alt="Ảnh phương án ①" style="max-height:160px;max-width:240px;object-fit:contain;margin-top:8px;border-radius:6px;border:1px solid #e2e8f0;">
                                             </div>
                                         </div>
                                         <div class="opt-card opt-line opt-with-img">
@@ -188,10 +241,18 @@
                                             </div>
                                             <div th:if="${editable}" class="opt-img-row">
                                                 <label class="form-label small text-muted mb-1 d-block w-100">Ảnh phương án ② (không bắt buộc)</label>
-                                                <input type="file" name="opt2Image" data-question-image accept="image/png,image/jpeg,image/webp,image/gif" class="form-control form-control-sm" th:disabled="${!editable}">
+                                                <div class="img-input-wrap" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; width:100%;">
+                                                    <input type="file" name="opt2Image" data-question-image accept="image/png,image/jpeg,image/webp,image/gif" class="form-control form-control-sm" th:disabled="${!editable}" style="flex:1; min-width:140px;">
+                                                    <button type="button" class="btn btn-ssak-light btn-sm paste-clip-btn" title="Dán ảnh từ Clipboard (hoặc nhấn Ctrl + V)" style="font-size:11px; padding:2px 6px; border-radius:6px; cursor:pointer; white-space:nowrap;">📋 Dán (Ctrl+V)</button>
+                                                    <button type="button" class="btn btn-ssak-light btn-sm remove-img-btn" title="Xóa ảnh này" style="font-size:11px; padding:2px 6px; border-radius:6px; color:#e11d48; display:none; white-space:nowrap;">✕ Xóa</button>
+                                                </div>
                                                 <img data-image-preview th:hidden="${#strings.isEmpty(ask.opt2Img)}"
                                                      th:src="${!#strings.isEmpty(ask.opt2Img)} ? @{/content/media/{s}/{f}(s=${source.id},f=${ask.opt2Img})} : null"
                                                      alt="Ảnh phương án ②" style="max-height:160px;max-width:240px;object-fit:contain;margin-top:8px">
+                                            </div>
+                                            <div th:unless="${editable}" class="opt-img-row" th:if="${!#strings.isEmpty(ask.opt2Img)}">
+                                                <img th:src="@{/content/media/{s}/{f}(s=${source.id},f=${ask.opt2Img})}"
+                                                     alt="Ảnh phương án ②" style="max-height:160px;max-width:240px;object-fit:contain;margin-top:8px;border-radius:6px;border:1px solid #e2e8f0;">
                                             </div>
                                         </div>
                                         <div class="opt-card opt-line opt-with-img">
@@ -202,10 +263,18 @@
                                             </div>
                                             <div th:if="${editable}" class="opt-img-row">
                                                 <label class="form-label small text-muted mb-1 d-block w-100">Ảnh phương án ③ (không bắt buộc)</label>
-                                                <input type="file" name="opt3Image" data-question-image accept="image/png,image/jpeg,image/webp,image/gif" class="form-control form-control-sm" th:disabled="${!editable}">
+                                                <div class="img-input-wrap" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; width:100%;">
+                                                    <input type="file" name="opt3Image" data-question-image accept="image/png,image/jpeg,image/webp,image/gif" class="form-control form-control-sm" th:disabled="${!editable}" style="flex:1; min-width:140px;">
+                                                    <button type="button" class="btn btn-ssak-light btn-sm paste-clip-btn" title="Dán ảnh từ Clipboard (hoặc nhấn Ctrl + V)" style="font-size:11px; padding:2px 6px; border-radius:6px; cursor:pointer; white-space:nowrap;">📋 Dán (Ctrl+V)</button>
+                                                    <button type="button" class="btn btn-ssak-light btn-sm remove-img-btn" title="Xóa ảnh này" style="font-size:11px; padding:2px 6px; border-radius:6px; color:#e11d48; display:none; white-space:nowrap;">✕ Xóa</button>
+                                                </div>
                                                 <img data-image-preview th:hidden="${#strings.isEmpty(ask.opt3Img)}"
                                                      th:src="${!#strings.isEmpty(ask.opt3Img)} ? @{/content/media/{s}/{f}(s=${source.id},f=${ask.opt3Img})} : null"
                                                      alt="Ảnh phương án ③" style="max-height:160px;max-width:240px;object-fit:contain;margin-top:8px">
+                                            </div>
+                                            <div th:unless="${editable}" class="opt-img-row" th:if="${!#strings.isEmpty(ask.opt3Img)}">
+                                                 <img th:src="@{/content/media/{s}/{f}(s=${source.id},f=${ask.opt3Img})}"
+                                                      alt="Ảnh phương án ③" style="max-height:160px;max-width:240px;object-fit:contain;margin-top:8px;border-radius:6px;border:1px solid #e2e8f0;">
                                             </div>
                                         </div>
                                         <div class="opt-card opt-line opt-with-img">
@@ -216,10 +285,18 @@
                                             </div>
                                             <div th:if="${editable}" class="opt-img-row">
                                                 <label class="form-label small text-muted mb-1 d-block w-100">Ảnh phương án ④ (không bắt buộc)</label>
-                                                <input type="file" name="opt4Image" data-question-image accept="image/png,image/jpeg,image/webp,image/gif" class="form-control form-control-sm" th:disabled="${!editable}">
+                                                <div class="img-input-wrap" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; width:100%;">
+                                                    <input type="file" name="opt4Image" data-question-image accept="image/png,image/jpeg,image/webp,image/gif" class="form-control form-control-sm" th:disabled="${!editable}" style="flex:1; min-width:140px;">
+                                                    <button type="button" class="btn btn-ssak-light btn-sm paste-clip-btn" title="Dán ảnh từ Clipboard (hoặc nhấn Ctrl + V)" style="font-size:11px; padding:2px 6px; border-radius:6px; cursor:pointer; white-space:nowrap;">📋 Dán (Ctrl+V)</button>
+                                                    <button type="button" class="btn btn-ssak-light btn-sm remove-img-btn" title="Xóa ảnh này" style="font-size:11px; padding:2px 6px; border-radius:6px; color:#e11d48; display:none; white-space:nowrap;">✕ Xóa</button>
+                                                </div>
                                                 <img data-image-preview th:hidden="${#strings.isEmpty(ask.opt4Img)}"
                                                      th:src="${!#strings.isEmpty(ask.opt4Img)} ? @{/content/media/{s}/{f}(s=${source.id},f=${ask.opt4Img})} : null"
                                                      alt="Ảnh phương án ④" style="max-height:160px;max-width:240px;object-fit:contain;margin-top:8px">
+                                            </div>
+                                            <div th:unless="${editable}" class="opt-img-row" th:if="${!#strings.isEmpty(ask.opt4Img)}">
+                                                 <img th:src="@{/content/media/{s}/{f}(s=${source.id},f=${ask.opt4Img})}"
+                                                      alt="Ảnh phương án ④" style="max-height:160px;max-width:240px;object-fit:contain;margin-top:8px;border-radius:6px;border:1px solid #e2e8f0;">
                                             </div>
                                         </div>
                                     </div>
@@ -232,19 +309,19 @@
                                         <option value="4" th:selected="${ask.answer == '4'}">④</option>
                                     </select>
                                 </div>
-                                <div data-when="keys" th:if="${entrySkill.name() == 'WRITING' and ask.no != null and ask.no <= 52}">
+                                <div data-when="keys" th:if="${entrySkill.name() == 'WRITING' and ask?.no != null and ask?.no <= 52}">
                                     <label>Đáp án chấp nhận chỗ ㉠, ngăn bằng dấu |</label>
                                     <input name="keys1" class="form-control ko" th:value="${ask.keys1}" th:disabled="${!editable}">
                                     <label>Đáp án chấp nhận chỗ ㉡</label>
                                     <input name="keys2" class="form-control ko" th:value="${ask.keys2}" th:disabled="${!editable}">
                                 </div>
-                                <div data-when="free" th:unless="${entrySkill.name() == 'WRITING' and ask.no != null and ask.no >= 53}">
+                                <div data-when="free" th:unless="${entrySkill.name() == 'WRITING' and ask?.no != null and ask?.no >= 53}">
                                     <label>Bài mẫu</label>
                                     <textarea name="modelAnswer" rows="4" class="form-control ko" th:disabled="${!editable}" th:text="${ask.modelAnswer}"></textarea>
                                     <label>Ghi chú chấm</label>
                                     <input name="rubric" class="form-control" th:value="${ask.rubric}" th:disabled="${!editable}">
                                 </div>
-                                <th:block th:unless="${entrySkill.name() == 'WRITING' and ask.no != null and ask.no >= 53}">
+                                <th:block th:unless="${entrySkill.name() == 'WRITING' and ask?.no != null and ask?.no >= 53}">
                                     <label>Giải thích tiếng Việt <span style="font-weight: 600;">(điền sau cũng được)</span></label>
                                     <textarea name="explanation" rows="2" class="form-control" th:disabled="${!editable}" th:text="${ask.explanation}"></textarea>
                                 </th:block>
@@ -282,6 +359,13 @@
                         <span th:style="'width:' + (${filledSlots * 100 / total}) + '%'"></span>
                     </div>
                     <a class="btn btn-ssak-outline btn-sm" th:href="@{/content/sources/{id}/preview(id=${source.id})}">Xem như học viên</a>
+                    <a class="btn btn-ssak-outline btn-sm" th:href="@{/content/sources/{id}/template-full(id=${source.id})}" title="Tải file Excel mẫu gồm đầy đủ các sheet kỹ năng của đề">📥 Tải mẫu toàn bộ đề</a>
+                    <form th:if="${editable}" method="post" enctype="multipart/form-data" style="display:inline-flex; align-items:center; margin:0;" onsubmit="return false;">
+                        <label class="btn btn-ssak-outline btn-sm" style="margin:0; cursor:pointer;" title="Nhập file Excel (.xlsx) chứa toàn bộ đề thi">
+                            📤 Import excel toàn bộ đề
+                            <input type="file" name="file" accept=".xlsx" style="display:none;" onchange="handleExcelImportSelected(this, null)" />
+                        </label>
+                    </form>
                     <form th:if="${editable}" th:action="@{/content/sources/{id}/activate(id=${source.id})}" method="post"
                           onsubmit="return confirm('Đưa các câu đã nhập vào ngân hàng? Học viên chưa thấy đề. Admin duyệt Full Mock thì đề mới được phát hành.');">
                         <button class="btn btn-ssak-primary btn-sm" type="submit" th:disabled="${!clean}"
@@ -322,8 +406,16 @@
                     <div class="cm-toolbar">
                         <div class="grow">
                             <h2 style="margin:0;" th:text="${editSlot.skill.label + ' ' + editSlot.no}">Nghe 1</h2>
-                            <div class="cm-muted" th:text="${editSlot.typeCode + ' ┬╖ ' + editSlot.typeName}">II-N1</div>
+                            <div class="cm-muted" th:text="${editSlot.typeCode + ' · ' + editSlot.typeName}">II-N1</div>
                         </div>
+                        <a th:href="@{/content/sources/{id}/template(id=${source.id}, skill=${editSlot.skill.name()})}" class="btn btn-ssak-light btn-sm" th:title="${'Tải file mẫu Excel kỹ năng ' + editSlot.skill.label}">📥 Tải mẫu<span th:text="${editSlot.skill.label}">Nghe</span></a>
+                        <form th:if="${editable}" method="post" enctype="multipart/form-data" style="margin:0; display:inline-block;" onsubmit="return false;">
+                            <input type="hidden" name="skill" th:value="${editSlot.skill.name()}" />
+                            <label class="btn btn-ssak-outline btn-sm" style="margin:0; cursor:pointer;" title="${'Nhập file Excel cho kỹ năng ' + editSlot.skill.label}">
+                                📤 Import<span th:text="${editSlot.skill.label}">Nghe</span>
+                                <input type="file" name="file" accept=".xlsx" style="display:none;" th:attr="data-skill=${editSlot.skill.name()}" onchange="handleExcelImportSelected(this, this.getAttribute('data-skill'))" />
+                            </label>
+                        </form>
                         <a class="btn btn-ssak-light btn-sm" th:if="${prevKey != null}" th:href="@{/content/sources/{id}#paper(id=${source.id}, slot=${prevKey})}">Câu trước</a>
                         <a class="btn btn-ssak-light btn-sm" th:if="${nextKey != null}" th:href="@{/content/sources/{id}#paper(id=${source.id}, slot=${nextKey})}">Câu sau</a>
                     </div>
@@ -344,7 +436,11 @@
                         <input type="hidden" name="chart" th:value="${editSlot.chart}">
                         <input type="hidden" name="modelAnswer" th:value="${editSlot.modelAnswer}">
                         <input type="hidden" name="rubric" th:value="${editSlot.rubric}">
-                        <input type="file" name="questionImage" data-question-image accept="image/png,image/jpeg,image/webp,image/gif" class="form-control" th:disabled="${!editable}">
+                        <div class="img-input-wrap" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
+                            <input type="file" name="questionImage" data-question-image accept="image/png,image/jpeg,image/webp,image/gif" class="form-control" th:disabled="${!editable}" style="flex:1; min-width:180px;">
+                            <button type="button" class="btn btn-ssak-light btn-sm paste-clip-btn" title="Dán ảnh từ Clipboard (hoặc nhấn Ctrl + V)" style="font-size:12px; padding:4px 8px; border-radius:6px; cursor:pointer; white-space:nowrap;">📋 Dán ảnh (Ctrl+V)</button>
+                            <button type="button" class="btn btn-ssak-light btn-sm remove-img-btn" title="Xóa ảnh này" style="font-size:12px; padding:4px 8px; border-radius:6px; color:#e11d48; display:none; white-space:nowrap;">✕ Xóa ảnh</button>
+                        </div>
                         <img data-image-preview th:hidden="${#strings.isEmpty(editSlot.chart) or #strings.startsWith(editSlot.chart, '[')}"
                              th:src="${!#strings.isEmpty(editSlot.chart) and !#strings.startsWith(editSlot.chart, '[')} ? @{/content/media/{s}/{f}(s=${source.id},f=${editSlot.chart})} : null"
                              alt="Ảnh của câu đang nhập" style="max-width:100%;max-height:480px;object-fit:contain;margin-top:12px">
@@ -356,25 +452,25 @@
                             <input type="radio" name="answer" value="1" th:checked="${editSlot.answer == '1' or #strings.toUpperCase(editSlot.answer) == 'A'}" th:disabled="${!editable}" aria-label="Đáp án 1">
                             <span class="mark">①</span>
                             <input name="opt1" class="form-control ko" th:value="${editSlot.opt1}" th:disabled="${!editable}" placeholder="Phương án ① (text, không bắt buộc)">
-                            <input type="hidden" name="opt1Img" th:value="${ask.opt1Img}">
+                            <input type="hidden" name="opt1Img" th:value="${ask?.opt1Img}">
                         </div>
                         <div class="opt-line">
                             <input type="radio" name="answer" value="2" th:checked="${editSlot.answer == '2' or #strings.toUpperCase(editSlot.answer) == 'B'}" th:disabled="${!editable}" aria-label="Đáp án 2">
                             <span class="mark">②</span>
                             <input name="opt2" class="form-control ko" th:value="${editSlot.opt2}" th:disabled="${!editable}" placeholder="Phương án ② (text, không bắt buộc)">
-                            <input type="hidden" name="opt2Img" th:value="${ask.opt2Img}">
+                            <input type="hidden" name="opt2Img" th:value="${ask?.opt2Img}">
                         </div>
                         <div class="opt-line">
                             <input type="radio" name="answer" value="3" th:checked="${editSlot.answer == '3' or #strings.toUpperCase(editSlot.answer) == 'C'}" th:disabled="${!editable}" aria-label="Đáp án 3">
                             <span class="mark">③</span>
                             <input name="opt3" class="form-control ko" th:value="${editSlot.opt3}" th:disabled="${!editable}" placeholder="Phương án ③ (text, không bắt buộc)">
-                            <input type="hidden" name="opt3Img" th:value="${ask.opt3Img}">
+                            <input type="hidden" name="opt3Img" th:value="${ask?.opt3Img}">
                         </div>
                         <div class="opt-line">
                             <input type="radio" name="answer" value="4" th:checked="${editSlot.answer == '4' or #strings.toUpperCase(editSlot.answer) == 'D'}" th:disabled="${!editable}" aria-label="Đáp án 4">
                             <span class="mark">④</span>
                             <input name="opt4" class="form-control ko" th:value="${editSlot.opt4}" th:disabled="${!editable}" placeholder="Phương án ④ (text, không bắt buộc)">
-                            <input type="hidden" name="opt4Img" th:value="${ask.opt4Img}">
+                            <input type="hidden" name="opt4Img" th:value="${ask?.opt4Img}">
                         </div>
                     </div>
 
@@ -403,8 +499,10 @@
                         <p class="cm-muted">Câu trong cùng một bài nhìn thấy chung file nghe và đoạn văn. Xóa trắng một ô rồi lưu sẽ không xóa nội dung cũ.</p>
                         <label for="audio">File nghe</label>
                         <input id="audio" name="audio" class="form-control" list="media-names" th:value="${editSlot.audio}" th:disabled="${!editable}" placeholder="vi-du-nghe.mp3">
-                        <audio th:if="${editSlot.audio != ''}" controls preload="none" style="width: 100%; margin-top: 8px;"
-                               th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${editSlot.audio})}"></audio>
+                        <audio th:if="${editSlot.audio != ''}" controls preload="metadata" style="width: 100%; margin-top: 8px;"
+                               th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${editSlot.audio})}">
+                            <source th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${editSlot.audio})}" type="audio/mpeg">
+                        </audio>
                         <label for="image">Ảnh</label>
                         <input id="image" name="image" class="form-control" list="media-names" th:value="${editSlot.image}" th:disabled="${!editable}">
                         <img th:if="${editSlot.image != ''}" alt="Ảnh của câu" style="max-width: 100%; margin-top: 8px; border-radius: 12px;"
@@ -426,41 +524,67 @@
                 </form>
             </div>
 
-            <details class="cm-card" id="tools" th:unless="${activated or manual}">
-                <summary style="font-weight: 800; cursor: pointer;" th:text="${writingEntry ? 'Đổ nhanh từ Excel' : 'Đổ nhanh từ Excel, hoặc thêm file nghe / ảnh'}">Đổ nhanh từ Excel, hoặc thêm file nghe / ảnh</summary>
-                <p class="cm-muted" style="margin-top: 10px;">Không bắt buộc. Dùng khi đề đã gõ sẵn: câu hỏi, bốn phương án, đáp án, tên file nghe, lời thoại, đoạn văn. Giải thích để trống. Tải Excel mới sẽ thay toàn bộ bản đang nhập trên trang này.</p>
-                <div class="cm-grid-2" style="margin-top: 14px;">
-                    <form th:if="${editable}" class="cm-drop" th:action="@{/content/sources/{id}/excel(id=${source.id})}" method="post" enctype="multipart/form-data">
-                        <label for="excel" style="font-weight: 800;">File Excel .xlsx, tối đa 10MB</label>
-                        <input id="excel" type="file" name="file" accept=".xlsx" required class="form-control">
-                        <div class="cm-toolbar">
-                            <button type="submit" class="btn btn-ssak-primary btn-sm">Đổ vào đề</button>
-                            <a th:href="@{/content/import-template}" class="btn btn-ssak-light btn-sm">Tải file mẫu</a>
-                        </div>
-                    </form>
+            <details class="cm-card" id="tools" th:if="${!activated and (entrySkill == null or entrySkill.name() == 'LISTENING')}" open>
+                <summary style="font-weight: 800; cursor: pointer; font-size: 15px;">📁 Tệp đính kèm đã tải lên (<span id="mediaFileCount" th:text="${#lists.size(media)}">0</span> file)</summary>
+                <p class="cm-muted" style="margin-top: 8px;">File âm thanh (.mp3) và hình ảnh đã tải lên phục vụ bài nghe hoặc câu đọc/viết có ảnh minh họa.</p>
+                
+                <!-- Thanh công cụ xóa nhanh hàng loạt / toàn bộ -->
+                <div style="display:flex; gap:8px; align-items:center; margin: 12px 0 8px;" th:if="${editable}">
+                    <button type="button" class="btn btn-ssak-light btn-sm" id="btnDeleteSelectedMedia"
+                            style="color:#e11d48; border-color:#fca5a5; display:none;"
+                            onclick="deleteSelectedMedia()">
+                        🗑 Xóa file đã chọn (<span id="selectedMediaCount">0</span>)
+                    </button>
+                    <button type="button" class="btn btn-ssak-light btn-sm" style="color:#e11d48; border-color:#fca5a5;"
+                            th:if="${not #lists.isEmpty(media)}"
+                            onclick="deleteAllMedia()">
+                        💥 Xóa toàn bộ file (<span th:text="${#lists.size(media)}">0</span> file)
+                    </button>
                 </div>
-                <div class="cm-table-wrap" th:if="${!writingEntry and !#lists.isEmpty(media)}" style="margin-top: 14px;">
-                    <table class="cm-table">
-                        <thead><tr><th>File</th><th>Loại</th><th>Dung lượng</th><th>Nghe / xem</th><th th:if="${editable}"></th></tr></thead>
-                        <tbody>
-                        <tr th:each="m : ${media}">
-                            <td class="code" th:text="${m.filename}">L01.mp3</td>
-                            <td><span class="pill" th:classappend="${m.kind.name() == 'AUDIO'} ? 'pill-sky' : 'pill-honey'" th:text="${m.kind.name() == 'AUDIO'} ? 'Âm thanh' : 'Ảnh'">Âm thanh</span></td>
-                            <td th:text="${m.sizeBytes >= 1048576} ? ${#numbers.formatDecimal(m.sizeBytes / 1048576.0, 1, 2) + ' MB'} : ${#numbers.formatDecimal(m.sizeBytes / 1024.0, 1, 1) + ' KB'}">1.2 MB</td>
-                            <td>
-                                <audio th:if="${m.kind.name() == 'AUDIO'}" controls preload="none" style="height: 32px; max-width: 260px;"
-                                       th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${m.filename})}"></audio>
-                                <a th:if="${m.kind.name() == 'IMAGE'}" target="_blank" th:href="@{/content/media/{s}/{f}(s=${source.id}, f=${m.filename})}">Mở ảnh</a>
-                            </td>
-                            <td th:if="${editable}">
-                                <form th:action="@{/content/sources/{id}/media/{mid}/delete(id=${source.id}, mid=${m.id})}" method="post"
-                                      onsubmit="return confirm('Xóa file này? Câu đang dùng file sẽ báo thiếu file.');">
-                                    <button class="btn btn-ssak-light btn-sm" type="submit">Xóa</button>
-                                </form>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
+
+                <div class="cm-table-wrap" style="margin-top: 8px;">
+                    <form id="bulkMediaDeleteForm" th:action="@{/content/sources/{id}/media/delete-batch(id=${source.id})}" method="post">
+                        <table class="cm-table">
+                            <thead>
+                                <tr>
+                                    <th th:if="${editable}" style="width:36px; text-align:center;">
+                                        <input type="checkbox" id="selectAllMediaCb" onchange="toggleSelectAllMedia(this)" title="Chọn tất cả" th:disabled="${#lists.isEmpty(media)}">
+                                    </th>
+                                    <th>File</th>
+                                    <th>Loại</th>
+                                    <th>Dung lượng</th>
+                                    <th>Nghe / xem</th>
+                                    <th th:if="${editable}"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="mediaTableBody">
+                            <tr th:if="${#lists.isEmpty(media)}" id="emptyMediaRow">
+                                <td th:colspan="${editable ? 6 : 5}" style="text-align:center; padding: 28px 16px; color:#64748b; font-style:italic;">
+                                    Chưa có tệp đính kèm nào được tải lên cho nguồn đề này.
+                                </td>
+                            </tr>
+                            <tr th:each="m : ${media}" th:attr="data-filename=${m.filename}, data-mid=${m.id}">
+                                <td th:if="${editable}" style="text-align:center;">
+                                    <input type="checkbox" name="mediaIds" th:value="${m.id}" class="media-row-cb" onchange="onMediaCbChange()">
+                                </td>
+                                <td class="code" th:text="${m.filename}">L01.mp3</td>
+                                <td><span class="pill" th:classappend="${m.kind.name() == 'AUDIO'} ? 'pill-sky' : 'pill-honey'" th:text="${m.kind.name() == 'AUDIO'} ? 'Âm thanh' : 'Ảnh'">Âm thanh</span></td>
+                                <td th:text="${m.sizeBytes >= 1048576} ? ${#numbers.formatDecimal(m.sizeBytes / 1048576.0, 1, 2) + ' MB'} : ${#numbers.formatDecimal(m.sizeBytes / 1024.0, 1, 1) + ' KB'}">1.2 MB</td>
+                                <td>
+                                    <audio th:if="${m.kind.name() == 'AUDIO'}" controls preload="metadata" style="height: 32px; max-width: 260px;"
+                                           th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${m.filename})}">
+                                        <source th:src="@{/content/media/{s}/{f}(s=${source.id}, f=${m.filename})}" type="audio/mpeg">
+                                    </audio>
+                                    <a th:if="${m.kind.name() == 'IMAGE'}" target="_blank" th:href="@{/content/media/{s}/{f}(s=${source.id}, f=${m.filename})}">Mở ảnh</a>
+                                </td>
+                                <td th:if="${editable}">
+                                    <button class="btn btn-ssak-light btn-sm" type="button"
+                                            th:data-sid="${source.id}" th:data-mid="${m.id}" th:data-filename="${m.filename}" onclick="deleteSingleMedia(this.dataset.sid, this.dataset.mid, this.dataset.filename)">Xóa</button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </form>
                 </div>
             </details>
 
@@ -552,23 +676,184 @@
         show('free', opt.dataset.answer === 'FREE_TEXT');
         if (help && opt.dataset.help) help.textContent = opt.dataset.help;
     })();
+    function findImagePreview(input) {
+        const wrap = input.closest('.img-input-wrap') || input.parentElement;
+        return wrap && wrap.parentElement ? wrap.parentElement.querySelector('[data-image-preview]') : null;
+    }
+    function findHiddenImageName(input) {
+        if (!input) return null;
+        const optCard = input.closest('.opt-card');
+        if (optCard) {
+            const optHidden = optCard.querySelector('input[type="hidden"][name$="Img"]');
+            if (optHidden) return optHidden;
+        }
+        const askBlock = input.closest('.ask-block');
+        if (askBlock) {
+            const chartInput = askBlock.querySelector('input[type="hidden"][name="chart"]');
+            if (chartInput) return chartInput;
+        }
+        const wrap = input.closest('.img-input-wrap') || input.parentElement;
+        return wrap && wrap.parentElement ? wrap.parentElement.querySelector('input[type="hidden"][name="chart"], input[type="hidden"][name$="Img"]') : null;
+    }
+    function findRemoveBtn(input) {
+        const wrap = input.closest('.img-input-wrap');
+        return wrap ? wrap.querySelector('.remove-img-btn') : null;
+    }
+    function updateRemoveBtnVisibility(input) {
+        const removeBtn = findRemoveBtn(input);
+        if (!removeBtn) return;
+        const preview = findImagePreview(input);
+        const hidden = findHiddenImageName(input);
+        const hasFile = input.files && input.files.length > 0;
+        const hasPreview = preview && !preview.hidden && preview.getAttribute('src');
+        const hasHidden = hidden && hidden.value && hidden.value.trim() !== '' && !hidden.value.startsWith('[');
+        removeBtn.style.display = (hasFile || hasPreview || hasHidden) ? 'inline-block' : 'none';
+    }
+
+    let lastTargetImageInput = null;
+
     document.querySelectorAll('[data-question-image]').forEach(input => {
         let previewUrl;
-        const image = input.parentElement.querySelector('[data-image-preview]');
-        const savedSrc = image.getAttribute('src');
-        const savedHidden = image.hidden;
+        const image = findImagePreview(input);
+        const savedSrc = image ? image.getAttribute('src') : null;
+        const savedHidden = image ? image.hidden : true;
+
+        updateRemoveBtnVisibility(input);
+
         input.addEventListener('change', () => {
             if (previewUrl) URL.revokeObjectURL(previewUrl);
             const file = input.files[0];
+            if (!image) return;
             if (!file) {
                 if (savedSrc) image.src = savedSrc; else image.removeAttribute('src');
                 image.hidden = savedHidden;
-                return;
+            } else {
+                previewUrl = URL.createObjectURL(file);
+                image.src = previewUrl;
+                image.hidden = false;
             }
-            previewUrl = URL.createObjectURL(file);
-            image.src = previewUrl;
-            image.hidden = false;
+            updateRemoveBtnVisibility(input);
         });
+
+        input.addEventListener('focus', () => {
+            lastTargetImageInput = input;
+        });
+    });
+
+    document.querySelectorAll('.remove-img-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const wrap = btn.closest('.img-input-wrap');
+            if (!wrap) return;
+            const input = wrap.querySelector('input[type="file"][data-question-image]');
+            if (input) {
+                input.value = '';
+                if (input.name === 'questionImage') {
+                    const cardImgInput = document.querySelector('input#image[name="image"]');
+                    if (cardImgInput) cardImgInput.value = '';
+                }
+            }
+            const hidden = findHiddenImageName(input);
+            if (hidden) {
+                hidden.value = '';
+            }
+            const preview = findImagePreview(input);
+            if (preview) {
+                preview.hidden = true;
+                preview.removeAttribute('src');
+            }
+            btn.style.display = 'none';
+            showToast('🗑️ Đã xóa ảnh.');
+        });
+    });
+
+    function applyBlobToInput(input, blob) {
+        if (!blob || !input) return;
+        const ext = blob.type === 'image/jpeg' ? '.jpg' : (blob.type === 'image/gif' ? '.gif' : '.png');
+        const filename = 'clipboard_' + Date.now() + ext;
+        const file = new File([blob], filename, { type: blob.type || 'image/png' });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        showToast('📋 Đã dán ảnh từ Clipboard thành công!');
+    }
+
+    document.querySelectorAll('.paste-clip-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const wrap = btn.closest('.img-input-wrap');
+            if (!wrap) return;
+            const input = wrap.querySelector('input[type="file"][data-question-image]');
+            if (!input) return;
+            lastTargetImageInput = input;
+
+            if (navigator.clipboard && navigator.clipboard.read) {
+                navigator.clipboard.read().then(items => {
+                    let found = false;
+                    for (const item of items) {
+                        const imgType = item.types.find(t => t.startsWith('image/'));
+                        if (imgType) {
+                            found = true;
+                            item.getType(imgType).then(blob => {
+                                applyBlobToInput(input, blob);
+                            });
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        showToast('⚠️ Chưa có ảnh trong Clipboard. Hãy sao chép ảnh rồi nhấn Ctrl+V.');
+                    }
+                }).catch(() => {
+                    input.focus();
+                    showToast('👉 Nhấn Ctrl + V để dán ảnh trực tiếp từ Clipboard.');
+                });
+            } else {
+                input.focus();
+                showToast('👉 Nhấn Ctrl + V để dán ảnh.');
+            }
+        });
+    });
+
+    document.addEventListener('focusin', function(e) {
+        const wrap = e.target.closest('.img-input-wrap, .opt-card, .opt-img-row');
+        if (wrap) {
+            const input = wrap.querySelector('input[type="file"][data-question-image]');
+            if (input) lastTargetImageInput = input;
+        }
+    });
+
+    document.addEventListener('paste', function(e) {
+        if (!e.clipboardData || !e.clipboardData.items) return;
+        let imgItem = null;
+        for (let i = 0; i < e.clipboardData.items.length; i++) {
+            if (e.clipboardData.items[i].type.indexOf('image') !== -1) {
+                imgItem = e.clipboardData.items[i];
+                break;
+            }
+        }
+        if (!imgItem) return;
+
+        let targetInput = null;
+        const active = document.activeElement;
+        if (active) {
+            const wrap = active.closest('.img-input-wrap, .opt-card, .opt-img-row');
+            if (wrap) {
+                targetInput = wrap.querySelector('input[type="file"][data-question-image]');
+            }
+        }
+        if (!targetInput && lastTargetImageInput && document.body.contains(lastTargetImageInput)) {
+            targetInput = lastTargetImageInput;
+        }
+        if (!targetInput) {
+            targetInput = document.querySelector('input[name="questionImage"]') || document.querySelector('input[data-question-image]');
+        }
+
+        if (targetInput) {
+            e.preventDefault();
+            const blob = imgItem.getAsFile();
+            applyBlobToInput(targetInput, blob);
+        }
     });
 </script>
 <style>
@@ -609,18 +894,49 @@
             return;
         }
         var formData = new FormData();
-        formData.append('file', file);
+        formData.append('files', file);
         if (progressEl) progressEl.style.display = '';
         var sourceId = getSourceId();
-        fetch('/content/media/upload?sourceId=' + sourceId, { method: 'POST', body: formData })
+        fetch('/content/sources/' + sourceId + '/media/inline', { method: 'POST', body: formData })
             .then(function(r){ return r.json(); })
             .then(function(data){
                 if (progressEl) progressEl.style.display = 'none';
-                var name = data.filename || data.name || file.name;
+                if (!data.ok) { if (errorEl) { errorEl.textContent = '❌ ' + (data.message || 'Lỗi upload.'); errorEl.style.display = ''; setTimeout(function(){ errorEl.style.display = 'none'; }, 4000); } return; }
+                var name = data.filename || file.name;
                 if (hiddenName) hiddenName.value = name;
                 if (audioFileName) audioFileName.textContent = name;
-                if (audioPlayer) { audioPlayer.src = '/content/media/' + sourceId + '/' + name; }
+                if (audioPlayer) {
+                    audioPlayer.src = '/content/media/' + sourceId + '/' + encodeURIComponent(name);
+                    audioPlayer.load();
+                }
                 if (previewWrap) previewWrap.style.display = '';
+                // Thêm row vào bảng Tệp đính kèm
+                var tbody = document.getElementById('mediaTableBody');
+                var toolsBlock = document.getElementById('tools');
+                if (tbody) {
+                    // Kiểm tra chưa có row này
+                    var exists = false;
+                    tbody.querySelectorAll('tr[data-filename]').forEach(function(r){ if(r.getAttribute('data-filename') === name) exists = true; });
+                    if (!exists) {
+                        var sizeKb = (file.size / 1024).toFixed(1) + ' KB';
+                        var newRow = document.createElement('tr');
+                        newRow.setAttribute('data-filename', name);
+                        newRow.setAttribute('data-mid', '');
+                        newRow.innerHTML =
+                            '<td style="text-align:center;"><input type="checkbox" name="mediaIds" class="media-row-cb" onchange="onMediaCbChange()"></td>' +
+                            '<td class="code">' + escapeHtml(name) + '</td>' +
+                            '<td><span class="pill pill-sky">Âm thanh</span></td>' +
+                            '<td>' + sizeKb + '</td>' +
+                            '<td><audio controls preload="metadata" style="height:32px;max-width:260px;" src="/content/media/' + sourceId + '/' + encodeURIComponent(name) + '"><source src="/content/media/' + sourceId + '/' + encodeURIComponent(name) + '" type="audio/mpeg"></audio></td>' +
+                            '<td></td>';
+                        tbody.appendChild(newRow);
+                        // Cập nhật số file trong summary
+                        var countEl = document.getElementById('mediaFileCount');
+                        if (countEl) countEl.textContent = tbody.querySelectorAll('tr[data-filename]').length;
+                        // Hiện block nếu đang ẩn
+                        if (toolsBlock) toolsBlock.open = true;
+                    }
+                }
             })
             .catch(function(){ if (progressEl) progressEl.style.display = 'none'; });
     }
@@ -634,14 +950,882 @@
     if (fileInput) fileInput.addEventListener('change', function(){ handleAudioFile(fileInput.files[0]); });
 
     window.clearAudioFile = function() {
+        var oldName = hiddenName ? hiddenName.value : '';
         if (hiddenName) hiddenName.value = '';
         if (audioFileName) audioFileName.textContent = '';
         if (audioPlayer) { audioPlayer.src = ''; audioPlayer.removeAttribute('src'); }
         if (previewWrap) previewWrap.style.display = 'none';
         if (fileInput) fileInput.value = '';
+
+        if (oldName) {
+            var sourceId = getSourceId();
+            var cardId = document.querySelector('input[name="cardId"]') ? document.querySelector('input[name="cardId"]').value : '';
+            var formData = new FormData();
+            formData.append('filename', oldName);
+            if (cardId) formData.append('cardId', cardId);
+            fetch('/content/sources/' + sourceId + '/media/clear-card-audio', {
+                method: 'POST',
+                body: formData
+            }).then(function(r){ return r.json(); })
+              .then(function(data){
+                  if (data && data.deletedMedia) {
+                      var rows = document.querySelectorAll('tr[data-filename]');
+                      rows.forEach(function(r) {
+                          if (r.getAttribute('data-filename') === oldName) r.remove();
+                      });
+                  }
+              }).catch(function(){});
+        }
+    };
+
+    window.toggleSelectAllMedia = function(masterCb) {
+        var cbs = document.querySelectorAll('.media-row-cb');
+        cbs.forEach(function(cb) { cb.checked = masterCb.checked; });
+        updateBulkDeleteBtn();
+    };
+
+    window.onMediaCbChange = function() {
+        updateBulkDeleteBtn();
+    };
+
+    function updateBulkDeleteBtn() {
+        var cbs = document.querySelectorAll('.media-row-cb:checked');
+        var btn = document.getElementById('btnDeleteSelectedMedia');
+        var countEl = document.getElementById('selectedMediaCount');
+        var masterCb = document.getElementById('selectAllMediaCb');
+        var allCbs = document.querySelectorAll('.media-row-cb');
+        if (countEl) countEl.textContent = cbs.length;
+        if (btn) btn.style.display = cbs.length > 0 ? '' : 'none';
+        if (masterCb) {
+            masterCb.disabled = (allCbs.length === 0);
+            if (allCbs.length > 0) {
+                masterCb.checked = (cbs.length === allCbs.length);
+            } else {
+                masterCb.checked = false;
+            }
+        }
+    }
+
+    var onMediaDeleteConfirmAction = null;
+
+    window.openMediaDeleteModal = function(title, message, onConfirm) {
+        var modal = document.getElementById('mediaDeleteConfirmModal');
+        if (!modal) {
+            if (confirm(message ? message.replace(/<[^>]+>/g, '') : 'Xác nhận xóa?')) onConfirm();
+            return;
+        }
+        var titleEl = document.getElementById('mediaDeleteTitle');
+        var msgEl = document.getElementById('mediaDeleteMessage');
+        if (titleEl) titleEl.textContent = title || 'Xác nhận xóa tệp đính kèm';
+        if (msgEl) msgEl.innerHTML = message || 'Bạn có chắc chắn muốn xóa tệp này?';
+        onMediaDeleteConfirmAction = onConfirm;
+        modal.style.display = 'flex';
+    };
+
+    window.closeMediaDeleteModal = function() {
+        var modal = document.getElementById('mediaDeleteConfirmModal');
+        if (modal) modal.style.display = 'none';
+        onMediaDeleteConfirmAction = null;
+    };
+
+    window.executeMediaDeleteConfirm = function() {
+        if (typeof onMediaDeleteConfirmAction === 'function') {
+            var action = onMediaDeleteConfirmAction;
+            closeMediaDeleteModal();
+            action();
+        }
+    };
+
+    window.deleteSelectedMedia = function() {
+        var cbs = document.querySelectorAll('.media-row-cb:checked');
+        if (!cbs.length) return;
+        openMediaDeleteModal(
+            'Xóa các file đã chọn',
+            'Bạn có chắc chắn muốn xóa <strong>' + cbs.length + ' file</strong> đã chọn khỏi đề thi này không?',
+            function() {
+                var form = document.getElementById('bulkMediaDeleteForm');
+                if (form) form.submit();
+            }
+        );
+    };
+
+    window.deleteAllMedia = function() {
+        var sourceId = getSourceId();
+        openMediaDeleteModal(
+            'Xóa toàn bộ tệp đính kèm',
+            'Bạn có chắc chắn muốn xóa <strong>TOÀN BỘ</strong> file âm thanh và hình ảnh đính kèm của nguồn đề này?',
+            function() {
+                var form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/content/sources/' + sourceId + '/media/delete-all';
+                document.body.appendChild(form);
+                form.submit();
+            }
+        );
+    };
+
+    window.deleteSingleMedia = function(sourceId, mid, filename) {
+        var nameDisplay = filename ? ('file <strong>' + escapeHtml(filename) + '</strong>') : 'file đính kèm này';
+        openMediaDeleteModal(
+            'Xóa tệp đính kèm',
+            'Bạn có chắc chắn muốn xóa ' + nameDisplay + ' khỏi nguồn đề?',
+            function() {
+                var form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/content/sources/' + sourceId + '/media/' + mid + '/delete';
+                document.body.appendChild(form);
+                form.submit();
+            }
+        );
     };
 
 
 })();
 </script>
+
+<!-- Toast thông báo dán ảnh -->
+<div id="clipToast"></div>
+
+<!-- Overlay loading -->
+<div id="excelLoadingOverlay">
+    <div class="excel-spinner"></div>
+    <div id="excelLoadingText" style="font-size:15px; font-weight:600; text-align:center; max-width:440px;">Đang xử lý...</div>
+</div>
+
+<!-- Modal báo cáo trước khi Import -->
+<div id="excelPreCheckModal">
+    <div class="precheck-dialog">
+        <div class="precheck-header">
+            <div>
+                <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">📋 Báo cáo kiểm tra trước khi Import Excel</h3>
+                <div style="font-size:13px; color:#64748b; margin-top:4px;">
+                    File: <span id="preCheckFileName" style="font-weight:600; color:#1e293b;"></span> · 
+                    <span id="preCheckSkill" style="font-weight:600; color:#1e293b;"></span>
+                </div>
+            </div>
+            <button type="button" onclick="closeExcelPreCheckModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#94a3b8; line-height:1;" title="Đóng">&times;</button>
+        </div>
+        <div class="precheck-body">
+            <!-- Thống kê 4 ô -->
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:16px;">
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; text-align:center;">
+                    <div style="font-size:12px; color:#64748b; font-weight:600;">Tổng số câu</div>
+                    <div id="preCheckTotal" style="font-size:24px; font-weight:800; color:#1e293b; margin-top:2px;">0</div>
+                </div>
+                <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; padding:12px; text-align:center;">
+                    <div style="font-size:12px; color:#047857; font-weight:600;">Hợp lệ (OK)</div>
+                    <div id="preCheckValid" style="font-size:24px; font-weight:800; color:#059669; margin-top:2px;">0</div>
+                </div>
+                <div style="background:#fff1f2; border:1px solid #fecdd3; border-radius:10px; padding:12px; text-align:center;">
+                    <div style="font-size:12px; color:#be123c; font-weight:600;">Lỗi / Thiếu tin</div>
+                    <div id="preCheckErrors" style="font-size:24px; font-weight:800; color:#e11d48; margin-top:2px;">0</div>
+                </div>
+                <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:12px; text-align:center;">
+                    <div style="font-size:12px; color:#b45309; font-weight:600;">Cảnh báo / Trùng</div>
+                    <div id="preCheckDuplicates" style="font-size:24px; font-weight:800; color:#d97706; margin-top:2px;">0</div>
+                </div>
+            </div>
+
+            <!-- Banner kết luận -->
+            <div id="preCheckBanner" class="precheck-alert" style="margin-bottom:16px;"></div>
+
+            <!-- Danh sách chi tiết vấn đề -->
+            <div style="border:1px solid #e2e8f0; border-radius:10px; overflow:hidden;">
+                <div style="padding:10px 14px; background:#f1f5f9; font-size:13px; font-weight:700; color:#334155; border-bottom:1px solid #e2e8f0;">
+                    Danh sách chi tiết các vấn đề cần lưu ý:
+                </div>
+                <div style="max-height:280px; overflow-y:auto;">
+                    <table class="cm-table" style="margin:0; width:100%;">
+                        <thead>
+                            <tr style="background:#f8fafc;">
+                                <th style="width:28%;">Vị trí / Câu</th>
+                                <th style="width:18%;">Phân loại</th>
+                                <th>Chi tiết & Bằng chứng</th>
+                            </tr>
+                        </thead>
+                        <tbody id="preCheckIssuesBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="precheck-footer">
+            <button type="button" class="btn btn-ssak-light btn-sm" onclick="closeExcelPreCheckModal()">Hủy bỏ (Không nhập)</button>
+            <button type="button" id="preCheckConfirmBtn" class="btn btn-ssak-primary btn-sm" onclick="confirmExcelImport()">Xác nhận Import vào hệ thống</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Kiểm tra file Audio hàng loạt (.zip) cho Kỹ năng Nghe -->
+<div id="bulkAudioPreCheckModal" class="precheck-modal-backdrop" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(3px); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px;">
+    <div class="precheck-modal-content" style="background: #ffffff; border-radius: 14px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); width: 100%; max-width: 780px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
+        <div class="precheck-header" style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+                <h3 style="margin: 0; font-size: 17px; font-weight: 700; color: #0f172a;">Kiểm tra Audio hàng loạt (.zip) - Kỹ năng Nghe</h3>
+                <p id="bulkAudioSubtitle" style="margin: 3px 0 0; font-size: 13px; color: #64748b;">File: <strong>audio.zip</strong></p>
+            </div>
+            <button type="button" onclick="closeBulkAudioPreCheckModal(false)" style="background: none; border: none; font-size: 20px; color: #94a3b8; cursor: pointer; padding: 4px;">✕</button>
+        </div>
+        <div class="precheck-body" style="padding: 18px 20px; overflow-y: auto; flex: 1;">
+            <!-- Thống kê nhanh 4 ô -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px;">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; text-align: center;">
+                    <div style="font-size: 11.5px; color: #64748b; font-weight: 600;">Tổng số câu đề</div>
+                    <div id="bulkAudioTotalExpected" style="font-size: 18px; font-weight: 800; color: #334155; margin-top: 4px;">50</div>
+                </div>
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px; text-align: center;">
+                    <div style="font-size: 11.5px; color: #166534; font-weight: 600;">Audio hợp lệ</div>
+                    <div id="bulkAudioValidCount" style="font-size: 18px; font-weight: 800; color: #16a34a; margin-top: 4px;">0</div>
+                </div>
+                <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 10px; text-align: center;">
+                    <div style="font-size: 11.5px; color: #92400e; font-weight: 600;">Câu chưa có audio</div>
+                    <div id="bulkAudioMissingCount" style="font-size: 18px; font-weight: 800; color: #d97706; margin-top: 4px;">0</div>
+                </div>
+                <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px; text-align: center;">
+                    <div style="font-size: 11.5px; color: #991b1b; font-weight: 600;">File bị lỗi / sai tên</div>
+                    <div id="bulkAudioErrorCount" style="font-size: 18px; font-weight: 800; color: #dc2626; margin-top: 4px;">0</div>
+                </div>
+            </div>
+
+            <!-- Cảnh báo câu còn thiếu audio -->
+            <div id="bulkAudioMissingAlert" style="display: none; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;">
+                <div style="font-weight: 700; color: #92400e; font-size: 13.5px; margin-bottom: 6px;">
+                    ⚠️ Đề thi còn <span id="bulkAudioMissingNum">0</span> câu chưa có file audio trong file .zip:
+                </div>
+                <div id="bulkAudioMissingBadges" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 90px; overflow-y: auto;">
+                </div>
+                <div style="font-size: 12px; color: #a16207; margin-top: 6px;">
+                    💡 Những câu này sẽ giữ nguyên file audio hiện tại (hoặc chưa có audio). Bạn có thể bổ sung sau bằng cách tải trực tiếp vào từng câu.
+                </div>
+            </div>
+
+            <!-- Báo cáo lỗi / sai tên file -->
+            <div id="bulkAudioErrorAlert" style="display: none; background: #fff1f2; border: 1px solid #fda4af; border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;">
+                <div style="font-weight: 700; color: #9f1239; font-size: 13.5px; margin-bottom: 6px;">
+                    ❌ Có <span id="bulkAudioErrorNum">0</span> file bị lỗi hoặc sai quy tắc đặt tên:
+                </div>
+                <div id="bulkAudioErrorList" style="display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: #881337; max-height: 140px; overflow-y: auto;">
+                </div>
+                <div style="font-size: 12px; color: #9f1239; margin-top: 6px;">
+                    📌 <strong>Quy tắc đặt tên chuẩn:</strong> Tên file cần chứa số thứ tự câu hỏi (ví dụ: <code>01.mp3</code>, <code>02.mp3</code>, <code>cau_14.mp3</code>, <code>21-22.mp3</code>).
+                </div>
+            </div>
+
+            <!-- Danh sách câu hợp lệ sẽ được gán -->
+            <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                <div style="background: #f8fafc; padding: 8px 12px; font-weight: 700; font-size: 13px; color: #334155; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                    <span>📋 Danh sách audio hợp lệ (<span id="bulkAudioMatchesNum">0</span> câu)</span>
+                    <span style="font-size: 11.5px; color: #64748b; font-weight: normal;">Sẽ được phân bổ chính xác vào từng câu</span>
+                </div>
+                <div style="max-height: 200px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                        <thead>
+                            <tr style="background: #f1f5f9; text-align: left; color: #475569; font-size: 12px;">
+                                <th style="padding: 6px 12px; width: 90px;">Câu hỏi</th>
+                                <th style="padding: 6px 12px;">Tên file audio (.mp3)</th>
+                                <th style="padding: 6px 12px; width: 110px; text-align: right;">Dung lượng</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bulkAudioMatchesTable">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="precheck-footer" style="padding: 12px 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; background: #f8fafc;">
+            <button type="button" class="btn btn-ssak-light btn-sm" onclick="closeBulkAudioPreCheckModal(false)">Hủy bỏ (Không tải lên)</button>
+            <button type="button" id="bulkAudioConfirmBtn" class="btn btn-ssak-primary btn-sm" onclick="confirmBulkAudioImport()">Xác nhận Upload vào đề</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal thông báo Nhập đề thành công của hệ thống (thay thế browser alert) -->
+<div id="excelSuccessModal" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(3px); z-index: 99999; display: none; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: #ffffff; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); width: 100%; max-width: 500px; padding: 32px 28px; text-align: center;">
+        <div style="width: 72px; height: 72px; border-radius: 50%; background: #dcfce7; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+        </div>
+        <h3 style="margin: 0 0 8px; font-size: 22px; font-weight: 800; color: #0f172a;">Nhập đề thành công!</h3>
+        <p id="excelSuccessMsg" style="margin: 0 0 20px; font-size: 14.5px; color: #475569; line-height: 1.6;">
+            Dữ liệu từ file Excel đã được nạp thành công vào hệ thống.
+        </p>
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; margin-bottom: 24px; text-align: left; font-size: 13.5px; color: #334155; line-height: 1.6;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span style="color: #64748b;">Phần thi / Kỹ năng:</span>
+                <strong id="excelSuccessSkill" style="color: #0f172a;">Kỹ năng Đọc</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span style="color: #64748b;">Số câu đã phân giải vào lưới:</span>
+                <strong id="excelSuccessCount" style="color: #16a34a;">50 câu</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: #64748b;">Trạng thái:</span>
+                <span class="pill pill-mint" style="font-weight: 700;">Sẵn sàng chỉnh sửa & dán ảnh</span>
+            </div>
+        </div>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button type="button" id="excelSuccessBtn" onclick="onExcelSuccessClose()" class="btn btn-ssak-primary" style="padding: 10px 24px; font-weight: 700; font-size: 14px; border-radius: 8px; cursor: pointer;">
+                Vào xem danh sách câu đã nhập (<span id="excelSuccessCountdown">3</span>s)
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+.precheck-alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    line-height: 1.5;
+}
+.precheck-alert-error {
+    background: #fff1f2;
+    border: 1px solid #fda4af;
+    color: #9f1239;
+}
+.precheck-alert-warning {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    color: #92400e;
+}
+.precheck-alert-success {
+    background: #ecfdf5;
+    border: 1px solid #6ee7b7;
+    color: #065f46;
+}
+#clipToast {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    background: #0f172a;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+    z-index: 99999;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+}
+#excelLoadingOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(2px);
+    z-index: 99998;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    gap: 16px;
+}
+.excel-spinner {
+    width: 44px;
+    height: 44px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+#excelPreCheckModal {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(2px);
+    z-index: 99990;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+.precheck-dialog {
+    background: #fff;
+    width: 100%;
+    max-width: 920px;
+    max-height: 88vh;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+}
+.precheck-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f8fafc;
+}
+.precheck-body {
+    padding: 18px 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+.precheck-footer {
+    padding: 14px 20px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    background: #f8fafc;
+}
+</style>
+
+<script>
+function showToast(msg) {
+    const toast = document.getElementById('clipToast');
+    if (!toast) return;
+    toast.textContent = msg;
+    toast.style.display = 'flex';
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => {
+        toast.style.display = 'none';
+    }, 3200);
+}
+
+function getSourceId() {
+    const m = window.location.pathname.match(/sources\/([0-9]+)/);
+    return m ? m[1] : '';
+}
+
+function showExcelLoading(text) {
+    const overlay = document.getElementById('excelLoadingOverlay');
+    const label = document.getElementById('excelLoadingText');
+    if (label && text) label.textContent = text;
+    if (overlay) overlay.style.display = 'flex';
+}
+
+function hideExcelLoading() {
+    const overlay = document.getElementById('excelLoadingOverlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/[&<>"']/g, function(m) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m];
+    });
+}
+
+let currentImportToken = null;
+
+function handleExcelImportSelected(fileInput, skill) {
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) return;
+    const file = fileInput.files[0];
+    const sourceId = getSourceId();
+    if (!sourceId) {
+        alert('Không tìm thấy mã nguồn đề.');
+        return;
+    }
+
+    showExcelLoading('Đang tải và kiểm tra file Excel: ' + file.name + '...');
+
+    const formData = new FormData();
+    formData.append('file', file);
+    if (skill) {
+        formData.append('skill', skill);
+    }
+
+    fetch('/content/sources/' + sourceId + '/excel/pre-check', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => {
+        if (!res.ok) {
+            return res.json().then(data => {
+                throw new Error(data.message || 'Lỗi khi kiểm tra file Excel.');
+            }).catch(err => {
+                if (err instanceof Error) throw err;
+                throw new Error('Lỗi server (' + res.status + ') khi kiểm tra file Excel.');
+            });
+        }
+        return res.json();
+    })
+    .then(report => {
+        hideExcelLoading();
+        fileInput.value = '';
+        currentImportToken = report.token;
+        renderPreCheckModal(report);
+    })
+    .catch(err => {
+        hideExcelLoading();
+        fileInput.value = '';
+        alert('❌ Không thể kiểm tra file Excel:\n' + err.message);
+    });
+}
+
+function renderPreCheckModal(report) {
+    const modal = document.getElementById('excelPreCheckModal');
+    if (!modal) return;
+
+    document.getElementById('preCheckFileName').textContent = report.fileName || '';
+    const skillMap = { 'LISTENING': 'Kỹ năng Nghe', 'READING': 'Kỹ năng Đọc', 'WRITING': 'Kỹ năng Viết' };
+    document.getElementById('preCheckSkill').textContent = report.skill ? (skillMap[report.skill] || report.skill) : 'Toàn bộ đề';
+
+    document.getElementById('preCheckTotal').textContent = report.totalRows;
+    document.getElementById('preCheckValid').textContent = report.validRows;
+    document.getElementById('preCheckErrors').textContent = report.errorRows;
+    document.getElementById('preCheckDuplicates').textContent = report.duplicateRows;
+
+    const banner = document.getElementById('preCheckBanner');
+    const confirmBtn = document.getElementById('preCheckConfirmBtn');
+
+    if (report.errorRows > 0 && report.duplicateRows > 0) {
+        banner.className = 'precheck-alert precheck-alert-error';
+        if (report.validRows > 0) {
+            banner.innerHTML = '<strong>⚠️ Phát hiện ' + report.errorRows + ' câu có lỗi/thiếu thông tin và ' + report.duplicateRows + ' câu trùng lặp/cảnh báo.</strong><br/>Hệ thống chỉ cho phép import ' + report.validRows + ' câu hợp lệ. Các câu bị lỗi hoặc trùng lặp sẽ không được nhập.';
+        } else {
+            banner.innerHTML = '<strong>⚠️ Toàn bộ ' + report.totalRows + ' câu đều bị lỗi hoặc trùng lặp với hệ thống.</strong><br/>Không có câu nào hợp lệ để nhập vào hệ thống. Vui lòng kiểm tra lại file Excel.';
+        }
+    } else if (report.errorRows > 0) {
+        banner.className = 'precheck-alert precheck-alert-error';
+        if (report.validRows > 0) {
+            banner.innerHTML = '<strong>⚠️ Phát hiện ' + report.errorRows + ' câu có lỗi hoặc thiếu thông tin bắt buộc.</strong><br/>Hệ thống chỉ cho phép import ' + report.validRows + ' câu hợp lệ. Các câu có lỗi sẽ không được nhập.';
+        } else {
+            banner.innerHTML = '<strong>⚠️ Toàn bộ ' + report.totalRows + ' câu đều có lỗi hoặc thiếu thông tin bắt buộc.</strong><br/>Không có câu nào hợp lệ để nhập vào hệ thống. Vui lòng sửa lại file Excel.';
+        }
+    } else if (report.duplicateRows > 0) {
+        banner.className = 'precheck-alert precheck-alert-warning';
+        if (report.validRows > 0) {
+            banner.innerHTML = '<strong>⚠️ Phát hiện ' + report.duplicateRows + ' câu trùng lặp hoặc đã tồn tại trên hệ thống.</strong><br/>Hệ thống chỉ cho phép import ' + report.validRows + ' câu mới hợp lệ. Các câu trùng lặp sẽ không được nhập để tránh ghi đè dữ liệu cũ.';
+        } else {
+            banner.innerHTML = '<strong>⚠️ Toàn bộ ' + report.totalRows + ' câu đều trùng lặp hoặc đã tồn tại trên hệ thống.</strong><br/>Không có câu mới hợp lệ nào để nhập vào hệ thống. Hệ thống không cho phép nhập trùng lặp.';
+        }
+    } else {
+        banner.className = 'precheck-alert precheck-alert-success';
+        banner.innerHTML = '<strong>✅ Dữ liệu hoàn toàn hợp lệ!</strong> Toàn bộ ' + report.validRows + ' câu đều sẵn sàng đưa vào hệ thống.';
+    }
+
+    if (report.validRows === 0) {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Không có câu hợp lệ để Import';
+        confirmBtn.style.opacity = '0.5';
+        confirmBtn.style.cursor = 'not-allowed';
+    } else {
+        confirmBtn.disabled = false;
+        confirmBtn.style.opacity = '1';
+        confirmBtn.style.cursor = 'pointer';
+        confirmBtn.textContent = (report.duplicateRows > 0 || report.errorRows > 0 ? 'Xác nhận Import ' + report.validRows + ' câu hợp lệ vào hệ thống' : 'Xác nhận Import ' + report.validRows + ' câu vào hệ thống');
+    }
+
+    const issuesWrap = document.getElementById('preCheckIssuesBody');
+    issuesWrap.innerHTML = '';
+
+    if (!report.issues || report.issues.length === 0) {
+        issuesWrap.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:24px 16px; color:#059669; font-weight:600;">🎉 File không có cảnh báo hay lỗi nào! Sẵn sàng nhập vào đề thi.</td></tr>';
+    } else {
+        report.issues.forEach(issue => {
+            const tr = document.createElement('tr');
+            let badgeClass = 'pill-sky';
+            let typeLabel = issue.issueType || 'LƯU Ý';
+            if (issue.severity === 'ERROR') {
+                badgeClass = 'pill-peach';
+                if (issue.issueType === 'MISSING_FIELD') typeLabel = 'Thiếu thông tin';
+                else typeLabel = 'Lỗi dữ liệu';
+            } else if (issue.issueType === 'DUPLICATE') {
+                badgeClass = 'pill-honey';
+                typeLabel = issue.message && (issue.message.includes('ghi đè') || issue.message.includes('hệ thống')) ? 'Trùng / Ghi đè' : 'Trùng nội dung';
+            } else if (issue.severity === 'WARNING') {
+                badgeClass = 'pill-honey';
+                typeLabel = 'Cảnh báo';
+            }
+
+            const locationStr = (issue.sheet ? 'Sheet: <strong>' + escapeHtml(issue.sheet) + '</strong> · ' : '') +
+                                (issue.no ? 'Câu <strong>' + issue.no + '</strong> · ' : '') +
+                                (issue.row ? 'Dòng: <strong>' + issue.row + '</strong>' : '');
+
+            tr.innerHTML = `
+                <td style="font-size:13px; color:#475569; white-space:nowrap;">${locationStr}</td>
+                <td style="white-space:nowrap;"><span class="pill ${badgeClass}">${typeLabel}</span></td>
+                <td style="font-size:13px; color:#1e293b; line-height:1.5;">${escapeHtml(issue.message)}</td>
+            `;
+            issuesWrap.appendChild(tr);
+        });
+    }
+
+    modal.style.display = 'flex';
+}
+
+let successRedirectUrl = null;
+let successTimer = null;
+
+function showExcelSuccessModal(data) {
+    const modal = document.getElementById('excelSuccessModal');
+    if (!modal) {
+        if (data && data.redirectUrl) window.location.href = data.redirectUrl;
+        else window.location.reload();
+        return;
+    }
+    successRedirectUrl = (data && data.redirectUrl) ? data.redirectUrl : window.location.href;
+    const msgEl = document.getElementById('excelSuccessMsg');
+    if (msgEl) msgEl.textContent = (data && data.message) ? data.message : 'Đã nhập thành công toàn bộ câu hỏi vào hệ thống.';
+    const skillEl = document.getElementById('excelSuccessSkill');
+    if (skillEl) {
+        const skillName = data ? data.skill : '';
+        const skillMap = { 'LISTENING': 'Kỹ năng Nghe', 'READING': 'Kỹ năng Đọc', 'WRITING': 'Kỹ năng Viết' };
+        skillEl.textContent = skillMap[skillName] || (skillName ? skillName : 'Toàn bộ đề');
+    }
+    const countEl = document.getElementById('excelSuccessCount');
+    if (countEl) {
+        if (data && data.count) {
+            countEl.textContent = data.count + ' câu';
+        } else if (data && data.message) {
+            const num = data.message.replace(/[^0-9]/g, '');
+            countEl.textContent = (num ? num + ' câu' : 'Đầy đủ');
+        }
+    }
+
+    modal.style.display = 'flex';
+
+    let seconds = 3;
+    const cdEl = document.getElementById('excelSuccessCountdown');
+    if (cdEl) cdEl.textContent = seconds;
+    if (successTimer) clearInterval(successTimer);
+    successTimer = setInterval(() => {
+        seconds--;
+        if (cdEl) cdEl.textContent = seconds;
+        if (seconds <= 0) {
+            clearInterval(successTimer);
+            onExcelSuccessClose();
+        }
+    }, 1000);
+}
+
+function onExcelSuccessClose() {
+    if (successTimer) clearInterval(successTimer);
+    const modal = document.getElementById('excelSuccessModal');
+    if (modal) modal.style.display = 'none';
+    if (successRedirectUrl) {
+        window.location.href = successRedirectUrl;
+    } else {
+        window.location.reload();
+    }
+}
+
+function confirmExcelImport() {
+    if (!currentImportToken) return;
+    const sourceId = getSourceId();
+    showExcelLoading('Đang nhập dữ liệu vào đề thi... Vui lòng không đóng trình duyệt.');
+
+    const formData = new FormData();
+    formData.append('token', currentImportToken);
+
+    fetch('/content/sources/' + sourceId + '/excel/confirm', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => {
+        if (!res.ok) {
+            return res.json().then(data => {
+                throw new Error(data.message || 'Lỗi khi nhập đề.');
+            });
+        }
+        return res.json();
+    })
+    .then(data => {
+        hideExcelLoading();
+        closeExcelPreCheckModal(true);
+        // Hiển thị màn hình thông báo hệ thống thay vì alert trình duyệt
+        showExcelSuccessModal(data);
+    })
+    .catch(err => {
+        hideExcelLoading();
+        alert('❌ Không thể nhập đề:\n' + err.message);
+    });
+}
+
+function closeExcelPreCheckModal(alreadyConfirmed) {
+    const modal = document.getElementById('excelPreCheckModal');
+    if (modal) modal.style.display = 'none';
+    if (!alreadyConfirmed && currentImportToken) {
+        const sourceId = getSourceId();
+        const tokenToCancel = currentImportToken;
+        currentImportToken = null;
+        fetch('/content/sources/' + sourceId + '/excel/cancel?token=' + encodeURIComponent(tokenToCancel), {
+            method: 'POST'
+        }).catch(() => {});
+    } else {
+        currentImportToken = null;
+    }
+}
+
+let currentBulkAudioToken = null;
+
+function handleBulkAudioSelected(input) {
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const name = file.name.toLowerCase();
+    if (!name.endsWith('.zip')) {
+        alert('❌ Vui lòng chọn file nén .zip!');
+        input.value = '';
+        return;
+    }
+    const sourceId = getSourceId();
+    showExcelLoading('Đang giải nén và phân tích các file audio trong file .zip...');
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    fetch('/content/sources/' + sourceId + '/listening/bulk-audio/pre-check', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => {
+        if (!res.ok) {
+            return res.json().then(data => {
+                throw new Error(data.message || 'Lỗi khi kiểm tra file audio.');
+            });
+        }
+        return res.json();
+    })
+    .then(report => {
+        hideExcelLoading();
+        showBulkAudioPreCheckModal(report);
+    })
+    .catch(err => {
+        hideExcelLoading();
+        alert('❌ ' + err.message);
+    })
+    .finally(() => {
+        input.value = '';
+    });
+}
+
+function showBulkAudioPreCheckModal(report) {
+    currentBulkAudioToken = report.token;
+    const modal = document.getElementById('bulkAudioPreCheckModal');
+    if (!modal) return;
+
+    document.getElementById('bulkAudioSubtitle').innerHTML = 'File: <strong>' + escapeHtml(report.zipFileName) + '</strong> (' + report.track + ')';
+    document.getElementById('bulkAudioTotalExpected').textContent = report.totalExpected;
+    document.getElementById('bulkAudioValidCount').textContent = report.validCount;
+    document.getElementById('bulkAudioMissingCount').textContent = report.missingCount;
+    document.getElementById('bulkAudioErrorCount').textContent = report.errorCount;
+
+    // Missing questions
+    const missingAlert = document.getElementById('bulkAudioMissingAlert');
+    const missingBadges = document.getElementById('bulkAudioMissingBadges');
+    if (report.missingQuestions && report.missingQuestions.length > 0) {
+        document.getElementById('bulkAudioMissingNum').textContent = report.missingQuestions.length;
+        missingBadges.innerHTML = report.missingQuestions.map(n =>
+            '<span class="pill pill-amber" style="font-size:12px; font-weight:700; padding:2px 8px; border-radius:4px; background:#fef3c7; color:#92400e; border:1px solid #fde68a;">Câu ' + n + '</span>'
+        ).join('');
+        missingAlert.style.display = 'block';
+    } else {
+        missingAlert.style.display = 'none';
+    }
+
+    // Errors
+    const errorAlert = document.getElementById('bulkAudioErrorAlert');
+    const errorList = document.getElementById('bulkAudioErrorList');
+    const errorIssues = (report.issues || []).filter(i => i.severity === 'ERROR');
+    if (errorIssues.length > 0) {
+        document.getElementById('bulkAudioErrorNum').textContent = errorIssues.length;
+        errorList.innerHTML = errorIssues.map(i =>
+            '<div style="padding:4px 8px; background:#ffe4e6; border-radius:4px;"><strong>' + escapeHtml(i.filename || '') + '</strong>: ' + escapeHtml(i.message) + '</div>'
+        ).join('');
+        errorAlert.style.display = 'block';
+    } else {
+        errorAlert.style.display = 'none';
+    }
+
+    // Matches
+    document.getElementById('bulkAudioMatchesNum').textContent = report.matches ? report.matches.length : 0;
+    const tableBody = document.getElementById('bulkAudioMatchesTable');
+    if (report.matches && report.matches.length > 0) {
+        tableBody.innerHTML = report.matches.map(m =>
+            '<tr style="border-bottom: 1px solid #f1f5f9;">' +
+            '<td style="padding: 6px 12px;"><span class="pill pill-mint" style="font-weight:700;">' + escapeHtml(m.questionLabel || ('Câu ' + (m.questionNos ? m.questionNos.join(', ') : m.questionNo))) + '</span></td>' +
+            '<td style="padding: 6px 12px; font-family: monospace; color:#0f766e; font-weight:600;">' + escapeHtml(m.filename) + '</td>' +
+            '<td style="padding: 6px 12px; text-align: right; color:#64748b;">' + escapeHtml(m.sizeFormatted) + '</td>' +
+            '</tr>'
+        ).join('');
+    } else {
+        tableBody.innerHTML = '<tr><td colspan="3" style="padding:16px; text-align:center; color:#94a3b8;">Không có file audio hợp lệ nào.</td></tr>';
+    }
+
+    const confirmBtn = document.getElementById('bulkAudioConfirmBtn');
+    if (report.validCount > 0) {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Xác nhận Upload ' + report.validCount + ' file audio vào đề';
+    } else {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Không có audio hợp lệ để nạp';
+    }
+
+    modal.style.display = 'flex';
+}
+
+function confirmBulkAudioImport() {
+    if (!currentBulkAudioToken) return;
+    const sourceId = getSourceId();
+    showExcelLoading('Đang lưu trữ audio và phân bổ vào các câu hỏi... Vui lòng không đóng trình duyệt.');
+
+    const formData = new FormData();
+    formData.append('token', currentBulkAudioToken);
+
+    fetch('/content/sources/' + sourceId + '/listening/bulk-audio/confirm', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => {
+        if (!res.ok) {
+            return res.json().then(data => {
+                throw new Error(data.message || 'Lỗi khi lưu audio.');
+            });
+        }
+        return res.json();
+    })
+    .then(data => {
+        hideExcelLoading();
+        closeBulkAudioPreCheckModal(true);
+        // Hiển thị modal thông báo thành công của hệ thống
+        showExcelSuccessModal({
+            ok: true,
+            message: data.message,
+            count: data.updatedQuestions,
+            skill: 'LISTENING',
+            redirectUrl: data.redirectUrl
+        });
+    })
+    .catch(err => {
+        hideExcelLoading();
+        alert('❌ Không thể lưu audio:\n' + err.message);
+    });
+}
+
+function closeBulkAudioPreCheckModal(alreadyConfirmed) {
+    const modal = document.getElementById('bulkAudioPreCheckModal');
+    if (modal) modal.style.display = 'none';
+    if (!alreadyConfirmed && currentBulkAudioToken) {
+        const sourceId = getSourceId();
+        const tokenToCancel = currentBulkAudioToken;
+        currentBulkAudioToken = null;
+        fetch('/content/sources/' + sourceId + '/listening/bulk-audio/cancel?token=' + encodeURIComponent(tokenToCancel), {
+            method: 'POST'
+        }).catch(() => {});
+    } else {
+        currentBulkAudioToken = null;
+    }
+}
+</script>
+
+<!-- Modal xác nhận xóa tệp đính kèm -->
+<div id="mediaDeleteConfirmModal" style="position:fixed;inset:0;background:rgba(15,23,42,0.65);backdrop-filter:blur(3px);z-index:99998;display:none;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:#fff;border-radius:16px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.1),0 8px 10px -6px rgba(0,0,0,0.08);width:100%;max-width:440px;padding:28px 24px;">
+        <h3 id="mediaDeleteTitle" style="margin:0 0 12px;font-size:17px;font-weight:800;color:#0f172a;">Xác nhận xóa</h3>
+        <p id="mediaDeleteMessage" style="color:#475569;margin:0 0 20px;line-height:1.6;">Bạn có chắc chắn muốn xóa?</p>
+        <div style="display:flex;gap:12px;justify-content:flex-end;">
+            <button type="button" onclick="closeMediaDeleteModal()" class="btn btn-ssak-light btn-sm" style="padding:8px 18px;">Hủy bỏ</button>
+            <button type="button" onclick="executeMediaDeleteConfirm()" class="btn btn-sm" style="padding:8px 18px;background:#e11d48;border-color:#e11d48;color:#fff;border-radius:8px;font-weight:600;">Xóa tệp</button>
+        </div>
+    </div>
+</div>
 </body>

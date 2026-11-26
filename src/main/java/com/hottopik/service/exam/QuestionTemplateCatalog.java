@@ -9,7 +9,7 @@ import java.util.*;
  * Nhiều dạng câu chuẩn (I-N6, II-N6…) có thể trỏ cùng một khuôn khi cách hiển thị giống nhau.
  * Khoảng số câu nằm ở QuestionTypeCatalog, không phải ràng buộc của khuôn.
  */
-public final class QuestionTemplateCatalog {
+public final class  QuestionTemplateCatalog {
 
     public record Seed(String code, Track track, Skill skill, String name, String description,
                        int zoneMin, int zoneMax, String tags,
@@ -62,48 +62,48 @@ public final class QuestionTemplateCatalog {
         rea("TPL1-REA-09", "Chèn câu vào đoạn văn", "Chọn vị trí thích hợp để chèn câu cho sẵn. Tách riêng vì cách chọn khác dạng đọc nhiều câu.",
                 2, 2, DisplayMode.INSERT, 2, 2, "I-D8");
 
-        lis("TPL2-LIS-01", "Nghe và chọn tranh hoặc biểu đồ", "Nghe và chọn tranh hoặc biểu đồ đúng.",
+        lis("TPL2-LIS-01", "Chọn tranh hoặc biểu đồ đúng", "Nghe và chọn tranh hoặc biểu đồ đúng.",
                 3, 3, DisplayMode.IMAGE_CHOICE, "II-N1");
-        lis("TPL2-LIS-02", "Nghe và chọn lời nói tiếp theo", "Nghe hội thoại và chọn câu nói tiếp.",
+        lis("TPL2-LIS-02", "Chọn câu nói nối tiếp", "Nghe hội thoại và nắm bắt câu nói tiếp nối sau đó.",
                 3, 3, DisplayMode.SINGLE_CHOICE, "II-N2");
-        lis("TPL2-LIS-03", "Nghe và chọn hành động tiếp theo", "Chọn việc người nói sẽ làm tiếp.",
+        lis("TPL2-LIS-03", "Chọn hành động tiếp theo", "Nghe hội thoại và suy luận hành động tiếp theo của người tham gia hội thoại.",
                 3, 3, DisplayMode.SINGLE_CHOICE, "II-N3");
-        lis("TPL2-LIS-04", "Nghe và chọn nội dung đúng", "Chọn câu khớp nội dung đã nghe.",
+        lis("TPL2-LIS-04", "Chọn nội dung trùng khớp (đúng với bài nghe)", "Nghe hội thoại/hướng dẫn/thông báo/bản tin/thời sự/phỏng vấn và nắm bắt nội dung chi tiết.",
                 3, 3, DisplayMode.SINGLE_CHOICE, "II-N4");
-        lis("TPL2-LIS-05", "Nghe và xác định ý chính", "Chọn ý chính của người nói.",
+        lis("TPL2-LIS-05", "Chọn suy nghĩ trọng tâm", "Nghe hội thoại/phỏng vấn và chọn suy luận suy nghĩ trọng tâm.",
                 3, 4, DisplayMode.SINGLE_CHOICE, "II-N5");
         lisGroup("TPL2-LIS-06", "Nghe đoạn dài và trả lời nhiều câu",
                 "Một file nghe cho cả bài. Hội thoại đời sống, phỏng vấn và bài giảng dùng chung khuôn này vì cách hiển thị giống nhau.",
                 4, 6, 2, 2, "II-N6", "II-N7", "II-N8");
 
-        rea("TPL2-REA-01", "Điền từ hoặc ngữ pháp vào chỗ trống", "Chọn ngữ pháp hoặc từ điền vào chỗ trống.",
+        rea("TPL2-REA-01", "Điền từ/ngữ pháp thích hợp vào chỗ trống", "Chọn ngữ pháp hoặc từ điền vào chỗ trống.",
                 3, 3, DisplayMode.FILL_BLANK, 1, 1, "II-D1");
-        rea("TPL2-REA-02", "Chọn từ hoặc cụm từ đồng nghĩa", "Chọn cụm có nghĩa gần với phần gạch chân.",
+        rea("TPL2-REA-02", "Chọn từ/ ngữ pháp có nghĩa tương đồng (đồng nghĩa)", "Chọn từ/ngữ pháp có nghĩa gần với phần gạch chân.",
                 3, 3, DisplayMode.SINGLE_CHOICE, 1, 1, "II-D2");
-        rea("TPL2-REA-03", "Xác định chủ đề văn bản ngắn", "Biển báo, quảng cáo: chọn bài viết nói về việc gì.",
+        rea("TPL2-REA-03", "Xác định chủ đề", "Biển báo, quảng cáo: chọn bài viết nói về việc gì.",
                 3, 3, DisplayMode.SINGLE_CHOICE, 1, 1, "II-D3");
-        reaChart("TPL2-REA-04", "Chọn nội dung phù hợp với văn bản hoặc biểu đồ",
+        reaChart("TPL2-REA-04", "Chọn nội dung trùng khớp với văn bản hoặc biểu đồ",
                 "Biểu đồ hoặc bảng, nếu có, nằm ở nhóm câu. Không phải bài nào cũng có ảnh.",
                 3, 3, "II-D4");
-        rea("TPL2-REA-05", "Sắp xếp câu hoặc đoạn", "Chọn một trong bốn thứ tự sắp sẵn.",
+        rea("TPL2-REA-05", "Sắp xếp các câu theo thứ tự đúng", "Đọc đoạn văn đơn giản và suy luận mối quan hệ giữa các đơn vị câu/văn bản.",
                 3, 4, DisplayMode.ORDERING, 1, 1, "II-D5");
-        rea("TPL2-REA-06", "Điền từ vào đoạn văn",
+        rea("TPL2-REA-06", "Chọn từ/ngữ pháp thích hợp vào đoạn văn",
                 "Đề chuẩn gộp câu 16–18 và 28–31 vào cùng một dạng vì cùng cách điền. Khuôn TPL2-REA-09 để dành khi muốn tách bộ ôn.",
                 4, 5, DisplayMode.FILL_BLANK, 1, 1, "II-D6");
-        rea("TPL2-REA-07", "Đọc đoạn văn và trả lời nhiều câu", "Một đoạn văn, nhiều câu con.",
+        rea("TPL2-REA-07", "Đọc đoạn văn và trả lời nhiều câu", "Đọc một đoạn văn ngắn và trả lời nhiều câu hỏi.",
                 4, 4, DisplayMode.SINGLE_CHOICE, 2, 2, "II-D7");
-        rea("TPL2-REA-08", "Giải thích tiêu đề bài báo", "Đọc tiêu đề báo và chọn câu giải thích đúng.",
+        rea("TPL2-REA-08", "Chọn nội dung chính của tiêu đề bài báo", "Đọc tiêu đề bài báo và suy luận nội dung chính.",
                 4, 4, DisplayMode.SINGLE_CHOICE, 1, 1, "II-D8");
-        bare("TPL2-REA-09", Track.TOPIK_II, Skill.READING, "Điền từ vào đoạn văn theo ngữ cảnh",
+        bare("TPL2-REA-09", Track.TOPIK_II, Skill.READING, "Điền từ/ngữ pháp thích hợp vào đoạn văn theo ngữ cảnh",
                 "Cùng cách hiển thị với TPL2-REA-06. Chưa gán số câu chuẩn, vì đề TOPIK II đang dùng một dạng cho cả hai cụm câu.",
                 4, 5, "điền,ngữ cảnh", DisplayMode.FILL_BLANK, AnswerType.CHOICE_INDEX,
                 ResourceScope.NONE, false, ResourceScope.NONE, false, ResourceScope.GROUP, true, ResourceScope.NONE,
                 4, 1, 1, GradingMode.AUTO, null, null, null);
         rea("TPL2-REA-10", "Chọn nội dung đúng", "Đọc đoạn học thuật và chọn ý trùng nội dung.",
                 5, 5, DisplayMode.SINGLE_CHOICE, 1, 1, "II-D9");
-        rea("TPL2-REA-11", "Xác định chủ đề hoặc ý chính", "Chọn chủ đề của đoạn văn.",
+        rea("TPL2-REA-11", "Chọn nội dung chính", "Đọc đoạn văn và suy luận nội dung chính.",
                 5, 5, DisplayMode.SINGLE_CHOICE, 1, 1, "II-D10");
-        rea("TPL2-REA-12", "Chọn vị trí chèn câu", "Chọn chỗ thích hợp để đặt câu cho sẵn.",
+        rea("TPL2-REA-12", "Chọn vị trí thích hợp để chèn câu cho trước", "Chọn chỗ thích hợp để đặt câu cho sẵn.",
                 5, 5, DisplayMode.INSERT, 1, 1, "II-D11");
         rea("TPL2-REA-13", "Đọc bài dài và trả lời nhiều câu", "Bài dài dùng chung. Có bài 2 câu và bài 3 câu, số câu con không cố định một kiểu.",
                 5, 6, DisplayMode.SINGLE_CHOICE, 2, 3, "II-D12");

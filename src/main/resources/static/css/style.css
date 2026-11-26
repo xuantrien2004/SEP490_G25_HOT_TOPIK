@@ -316,7 +316,7 @@ a:hover {
 .ssak-topbar-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
   white-space: nowrap;
 }
@@ -324,15 +324,23 @@ a:hover {
 .ssak-stat-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  height: 34px;
-  padding: 0 10px;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
   border-radius: var(--radius-pill);
   font-weight: 800;
-  font-size: 12.5px;
+  font-size: 13px;
   text-decoration: none;
   white-space: nowrap;
   flex-shrink: 0;
+  border: 1.5px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.ssak-stat-pill:hover {
+  filter: brightness(0.97);
+  transform: translateY(-1px);
 }
 
 .ssak-icon-btn {
@@ -347,11 +355,12 @@ a:hover {
   justify-content: center;
   position: relative;
   flex-shrink: 0;
-  transition: background-color 0.15s ease;
+  transition: all 0.15s ease;
 }
 
 .ssak-icon-btn:hover {
   background-color: #E6E1D3;
+  transform: translateY(-1px);
 }
 
 .ssak-bell-badge {
@@ -395,6 +404,7 @@ a:hover {
   background-color: #D6EFE3;
   border-color: #96D3B6;
   color: #154A3A;
+  transform: translateY(-1px);
 }
 
 .ssak-user-name {

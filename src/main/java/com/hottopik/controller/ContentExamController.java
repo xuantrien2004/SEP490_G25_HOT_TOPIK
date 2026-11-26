@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -204,6 +205,31 @@ public class ContentExamController {
         return "content/exam/source-new";
     }
 
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: TẠO NGUỒN ĐỀ THI MỚI (EXAM SOURCE CREATION - FUNC_EXAM_01)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Content Manager vào "Quản lý nguồn đề" (/content/sources), nhấn nút "Tạo nguồn đề mới".
+     *    - Giao diện src/main/resources/templates/content/exam/source-new.html hiển thị Form.
+     *    - Người dùng nhập Tên đề, Khung (TOPIK I / TOPIK II), Năm, Kỳ thi, Bản quyền... rồi nhấn "Lưu nguồn đề".
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /content/sources
+     *    - Headers: Content-Type: application/x-www-form-urlencoded
+     *    - Params: name, track, year, round, expectedCount, assessment, copyrightNote, note
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.ContentExamController.createSource()
+     *    - Kiểm tra quyền Content Manager qua helper mutate() và viewer().
+     *    - Triệu gọi Service:
+     *      + com.hottopik.service.exam.ExamImportService.createSource(form, actor):
+     *        * Khởi tạo Entity ExamSource với trạng thái DRAFT.
+     *        * Ghi vết audit log hành động tạo nguồn đề.
+     * 4. TRUY VẤN CSDL:
+     *    - INSERT INTO dbo.exam_sources (name, track, year, round, status, created_by, created_at...)
+     * 5. HIỂN THỊ KẾT QUẢ CHO QUẢN LÝ:
+     *    - Redirect: 302 đến /content/sources/{id} (Chi tiết nguồn đề vừa tạo).
+     *    - Giao diện src/main/resources/templates/content/exam/source-detail.html hiển thị thông báo flashOk:
+     *      "Đã tạo bộ đề. Chọn dạng câu rồi điền câu hỏi."
+     * ========================================================================================= */
     @PostMapping("/sources")
     public String createSource(@RequestParam String name, @RequestParam Track track,
                                @RequestParam(required = false) Integer year, @RequestParam(required = false) Integer round,
@@ -469,6 +495,33 @@ public class ContentExamController {
         return "content/exam/preview";
     }
 
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: NẠP ĐỀ TỪ EXCEL VÀ VALIDATE CẤU TRÚC (EXAM EXCEL IMPORT - FUNC_EXAM_02)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Content Manager ở màn hình chi tiết nguồn đề (/content/sources/{id}#paper).
+     *    - Kéo thả file Excel (.xlsx) chứa câu hỏi vào form Upload hoặc chọn file từ máy tính.
+     *    - Nhấn nút "Tải lên & Kiểm tra cú pháp".
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /content/sources/{id}/excel
+     *    - Headers: Content-Type: multipart/form-data
+     *    - Payload: MultipartFile file
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.ContentExamController.uploadExcel()
+     *    - Triệu gọi Service:
+     *      + com.hottopik.service.exam.ExamImportService.uploadExcel(id, file, actor):
+     *        * com.hottopik.service.exam.ExamWorkbookParser.parse(): Phân tích các sheet MCQ, Writing, Group, Audio.
+     *        * com.hottopik.service.exam.ExamImportValidator.validate(): Kiểm tra định dạng số câu, đáp án hợp lệ,
+     *          mã dạng TOPIK, liên kết đoạn văn, file audio đính kèm.
+     *        * Lưu trạng thái công việc nạp đề (ImportJob) cùng chi tiết cảnh báo/lỗi (nếu có).
+     * 4. TRUY VẤN CSDL:
+     *    - INSERT INTO dbo.import_jobs (source_id, status, mcq_rows, writing_rows, error_count, warning_count...)
+     *    - INSERT/UPDATE dbo.staging_questions hoặc cập nhật nháp cho exam_sources.
+     * 5. HIỂN THỊ KẾT QUẢ CHO QUẢN LÝ:
+     *    - Redirect: 302 về /content/sources/{id}#paper
+     *    - Flash Message hiển thị số lượng câu trắc nghiệm, câu Viết đã đọc thành công và danh sách lỗi (nếu có)
+     *      để Content Manager chỉnh sửa trực tiếp trên giao diện hoặc re-upload.
+     * ========================================================================================= */
     @PostMapping("/sources/{id}/excel")
     public String uploadExcel(@PathVariable Long id, @RequestParam("file") MultipartFile file,
                               HttpSession session, RedirectAttributes ra) {
@@ -482,8 +535,142 @@ public class ContentExamController {
                 ra.addFlashAttribute("flashOk", "Đã đọc " + job.getMcqRows() + " câu trắc nghiệm, " + job.getWritingRows()
                         + " câu Viết: không có lỗi chặn" + (job.getWarningCount() > 0 ? ", " + job.getWarningCount() + " cảnh báo." : "."));
             }
-            return "redirect:" + back + "#check";
+            return "redirect:" + back + "#paper";
         });
+    }
+
+    @PostMapping("/sources/{id}/excel/skill")
+    public String uploadSkillExcel(@PathVariable Long id, @RequestParam Skill skill,
+                                   @RequestParam("file") MultipartFile file,
+                                   HttpSession session, RedirectAttributes ra) {
+        String back = "/content/sources/" + id;
+        return mutate(session, ra, back, actor -> {
+            ImportJob job = importService.uploadSkillExcel(id, skill, file, actor);
+            if (job.getErrorCount() > 0) {
+                ra.addFlashAttribute("flashInfo", "Đã nạp file kỹ năng " + skill.getLabel() + ": hiện có "
+                        + job.getMcqRows() + " câu trắc nghiệm, " + job.getWritingRows()
+                        + " câu Viết (còn " + job.getErrorCount() + " lỗi cần sửa).");
+            } else {
+                ra.addFlashAttribute("flashOk", "Đã nạp file kỹ năng " + skill.getLabel() + ": hiện có "
+                        + job.getMcqRows() + " câu trắc nghiệm, " + job.getWritingRows()
+                        + " câu Viết (không có lỗi chặn" + (job.getWarningCount() > 0 ? ", " + job.getWarningCount() + " cảnh báo." : ")."));
+            }
+            return "redirect:" + back + "?skill=" + skill.name() + "#paper";
+        });
+    }
+
+    @PostMapping(value = "/sources/{id}/excel/pre-check", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<?> preCheckExcel(@PathVariable Long id,
+                                           @RequestParam("file") MultipartFile file,
+                                           @RequestParam(value = "skill", required = false) Skill skill,
+                                           HttpSession session) {
+        UserDTO u = AuthHelper.getLoggedInUser(session);
+        if (u == null || !Actor.ROLE_CONTENT.equalsIgnoreCase(u.getRole())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("ok", false, "message", "Bạn không có quyền quản lý nội dung."));
+        }
+        try {
+            ExamImportService.ImportPreCheckReport report = importService.preCheckExcel(id, skill, file, Actor.of(u));
+            return ResponseEntity.ok(report);
+        } catch (ExamDomainException e) {
+            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("ok", false, "message", "Lỗi đọc file: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/sources/{id}/excel/confirm", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<?> confirmImportExcel(@PathVariable Long id,
+                                                @RequestParam("token") String token,
+                                                HttpSession session) {
+        UserDTO u = AuthHelper.getLoggedInUser(session);
+        if (u == null || !Actor.ROLE_CONTENT.equalsIgnoreCase(u.getRole())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("ok", false, "message", "Bạn không có quyền quản lý nội dung."));
+        }
+        try {
+            ExamImportService.ConfirmResult result = importService.confirmImport(id, token, Actor.of(u));
+            Skill skill = result.skill();
+            int total = result.totalRows();
+            String skillLabel = skill != null ? skill.getLabel() : "toàn bộ đề";
+            String msg = "Đã nhập thành công " + total + " câu (" + skillLabel + ") vào hệ thống.";
+            String redirectUrl = "/content/sources/" + id + (skill != null ? ("?skill=" + skill.name()) : "") + "#paper";
+            return ResponseEntity.ok(Map.of(
+                    "ok", true,
+                    "message", msg,
+                    "count", total,
+                    "skill", skill != null ? skill.name() : "",
+                    "redirectUrl", redirectUrl
+            ));
+        } catch (ExamDomainException e) {
+            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("ok", false, "message", "Lỗi khi nhập đề: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/sources/{id}/excel/cancel", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<?> cancelImportExcel(@PathVariable Long id,
+                                               @RequestParam("token") String token,
+                                               HttpSession session) {
+        importService.cancelTempImport(token);
+        return ResponseEntity.ok(Map.of("ok", true));
+    }
+
+    @PostMapping(value = "/sources/{id}/listening/bulk-audio/pre-check", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<?> preCheckBulkAudio(@PathVariable Long id,
+                                               @RequestParam("file") MultipartFile file,
+                                               HttpSession session) {
+        UserDTO u = AuthHelper.getLoggedInUser(session);
+        if (u == null || !Actor.ROLE_CONTENT.equalsIgnoreCase(u.getRole())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("ok", false, "message", "Bạn không có quyền quản lý nội dung."));
+        }
+        try {
+            ExamImportService.BulkAudioPreCheckReport report = importService.preCheckBulkAudio(id, file, Actor.of(u));
+            return ResponseEntity.ok(report);
+        } catch (ExamDomainException e) {
+            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("ok", false, "message", "Lỗi kiểm tra file audio: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/sources/{id}/listening/bulk-audio/confirm", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<?> confirmBulkAudio(@PathVariable Long id,
+                                              @RequestParam("token") String token,
+                                              HttpSession session) {
+        UserDTO u = AuthHelper.getLoggedInUser(session);
+        if (u == null || !Actor.ROLE_CONTENT.equalsIgnoreCase(u.getRole())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("ok", false, "message", "Bạn không có quyền quản lý nội dung."));
+        }
+        try {
+            ExamImportService.BulkAudioConfirmResult result = importService.confirmBulkAudio(id, token, Actor.of(u));
+            return ResponseEntity.ok(result);
+        } catch (ExamDomainException e) {
+            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("ok", false, "message", "Lỗi khi lưu audio: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/sources/{id}/listening/bulk-audio/cancel", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<?> cancelBulkAudio(@PathVariable Long id,
+                                             @RequestParam("token") String token,
+                                             HttpSession session) {
+        UserDTO u = AuthHelper.getLoggedInUser(session);
+        if (u == null || !Actor.ROLE_CONTENT.equalsIgnoreCase(u.getRole())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("ok", false, "message", "Bạn không có quyền quản lý nội dung."));
+        }
+        try {
+            importService.cancelBulkAudio(token);
+            return ResponseEntity.ok(Map.of("ok", true));
+        } catch (Exception e) {
+            return ResponseEntity.ok(Map.of("ok", false, "message", e.getMessage()));
+        }
     }
 
     @PostMapping(value = "/sources/{id}/media/inline", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -524,8 +711,46 @@ public class ContentExamController {
         return mutate(session, ra, back, actor -> {
             importService.deleteMedia(id, mediaId, actor);
             ra.addFlashAttribute("flashOk", "Đã xoá file.");
-            return "redirect:" + back + "#media";
+            return "redirect:" + back + "#tools";
         });
+    }
+
+    @PostMapping("/sources/{id}/media/delete-batch")
+    public String deleteMediaBatch(@PathVariable Long id,
+                                   @RequestParam(value = "mediaIds", required = false) List<Long> mediaIds,
+                                   HttpSession session, RedirectAttributes ra) {
+        String back = "/content/sources/" + id;
+        return mutate(session, ra, back, actor -> {
+            int count = importService.deleteMediaBatch(id, mediaIds, actor);
+            ra.addFlashAttribute("flashOk", "Đã xoá " + count + " file đính kèm.");
+            return "redirect:" + back + "#tools";
+        });
+    }
+
+    @PostMapping("/sources/{id}/media/delete-all")
+    public String deleteAllMedia(@PathVariable Long id, HttpSession session, RedirectAttributes ra) {
+        String back = "/content/sources/" + id;
+        return mutate(session, ra, back, actor -> {
+            int count = importService.deleteAllMedia(id, actor);
+            ra.addFlashAttribute("flashOk", "Đã xoá toàn bộ " + count + " file đính kèm.");
+            return "redirect:" + back + "#tools";
+        });
+    }
+
+    @PostMapping(value = "/sources/{id}/media/clear-card-audio", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<?> clearCardAudio(@PathVariable Long id,
+                                            @RequestParam String filename,
+                                            @RequestParam(required = false) String cardId,
+                                            HttpSession session) {
+        UserDTO u = viewer(session);
+        if (u == null) return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("ok", false));
+        try {
+            boolean deleted = importService.clearCardAudio(id, cardId, filename, Actor.of(u));
+            return ResponseEntity.ok(Map.of("ok", true, "deletedMedia", deleted));
+        } catch (Exception e) {
+            return ResponseEntity.ok(Map.of("ok", false, "message", e.getMessage()));
+        }
     }
 
     @PostMapping("/sources/{id}/validate")
@@ -539,6 +764,31 @@ public class ContentExamController {
         });
     }
 
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: KÍCH HOẠT NGUỒN ĐỀ VÀO NGÂN HÀNG CÂU HỎI (EXAM ACTIVATION - FUNC_EXAM_03)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Sau khi hoàn thành sửa lỗi và kiểm tra đạt 0 lỗi chặn, Content Manager nhấn nút "Kích hoạt vào ngân hàng".
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /content/sources/{id}/activate
+     *    - Headers: Content-Type: application/x-www-form-urlencoded
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.ContentExamController.activate()
+     *    - Triệu gọi Service:
+     *      + com.hottopik.service.exam.ExamImportService.activate(id, actor):
+     *        * Chuyển các câu trắc nghiệm từ nguồn đề vào bảng chính thức dbo.questions (trạng thái ACTIVE).
+     *        * Chuyển các đề bài viết vào bảng dbo.writing_prompts (trạng thái ACTIVE).
+     *        * Tạo bản ghi bài thi hoàn chỉnh trong thư viện đề thi dbo.exams (nếu đủ số câu chuẩn).
+     * 4. TRUY VẤN CSDL:
+     *    - INSERT INTO dbo.questions (group_id, no, prompt, options_json, answer_index, explanation_vi, status...)
+     *    - INSERT INTO dbo.writing_prompts (...)
+     *    - UPDATE dbo.exam_sources SET status = 'ACTIVE' WHERE id = :id
+     *    - INSERT INTO dbo.exams (...)
+     * 5. HIỂN THỊ KẾT QUẢ CHO QUẢN LÝ:
+     *    - Nếu tạo bài thi: Redirect sang /content/exams/{examId} để xem trước và gửi duyệt phát hành.
+     *    - Nếu nạp câu lẻ vào ngân hàng: Redirect về /content/sources/{id} với thông báo thành công:
+     *      "Đã đưa X câu và Y đề Viết vào ngân hàng."
+     * ========================================================================================= */
     @PostMapping("/sources/{id}/activate")
     public String activate(@PathVariable Long id, HttpSession session, RedirectAttributes ra) {
         String back = "/content/sources/" + id;
@@ -577,22 +827,81 @@ public class ContentExamController {
     }
 
     @GetMapping("/import-template")
-    public ResponseEntity<byte[]> template(HttpSession session) throws IOException {
+    public ResponseEntity<byte[]> template(@RequestParam(required = false) Track track,
+                                           @RequestParam(required = false) Skill skill,
+                                           HttpSession session) throws IOException {
         if (viewer(session) == null) return ResponseEntity.status(403).build();
+        if (track != null && skill != null) {
+            String skillTag = switch (skill) {
+                case LISTENING -> "Nghe";
+                case READING -> "Doc";
+                case WRITING -> "Viet";
+            };
+            String filename = "HotTopik_Mau_" + track.name() + "_" + skillTag + ".xlsx";
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                            .filename(filename, StandardCharsets.UTF_8).build().toString())
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(ExamTemplateBuilder.buildSkillTemplate(track, skill));
+        }
+        Track t = track != null ? track : Track.TOPIK_II;
+        String filename = "HotTopik_Mau_Toan_Bo_" + t.name() + ".xlsx";
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
-                        .filename("HotTopik_Mau_Nhap_De.xlsx", StandardCharsets.UTF_8).build().toString())
+                        .filename(filename, StandardCharsets.UTF_8).build().toString())
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
-                .body(ExamTemplateBuilder.build());
+                .body(ExamTemplateBuilder.buildFullTemplate(t));
     }
 
-    @GetMapping("/media/{sourceId}/{filename:.+}")
-    public void media(@PathVariable Long sourceId, @PathVariable String filename,
+    @GetMapping("/sources/{id}/template")
+    public ResponseEntity<byte[]> sourceTemplate(@PathVariable Long id,
+                                                 @RequestParam Skill skill,
+                                                 HttpSession session) throws IOException {
+        if (viewer(session) == null) return ResponseEntity.status(403).build();
+        ExamSource source = importService.getSource(id);
+        String skillTag = switch (skill) {
+            case LISTENING -> "Nghe";
+            case READING -> "Doc";
+            case WRITING -> "Viet";
+        };
+        String filename = "HotTopik_Mau_" + source.getTrack().name() + "_" + skillTag + ".xlsx";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(filename, StandardCharsets.UTF_8).build().toString())
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(ExamTemplateBuilder.buildSkillTemplate(source.getTrack(), skill));
+    }
+
+    @GetMapping("/sources/{id}/template-full")
+    public ResponseEntity<byte[]> sourceFullTemplate(@PathVariable Long id,
+                                                     HttpSession session) throws IOException {
+        if (viewer(session) == null) return ResponseEntity.status(403).build();
+        ExamSource source = importService.getSource(id);
+        String filename = "HotTopik_Mau_Toan_Bo_" + source.getTrack().name() + ".xlsx";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(filename, StandardCharsets.UTF_8).build().toString())
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(ExamTemplateBuilder.buildFullTemplate(source.getTrack()));
+    }
+
+    @GetMapping({"/media/{sourceId}/{filename:.+}", "/media/{sourceId}/**"})
+    public void media(@PathVariable Long sourceId,
+                      @PathVariable(required = false) String filename,
                       @RequestHeader(value = "Range", required = false) String range,
+                      jakarta.servlet.http.HttpServletRequest request,
                       HttpSession session, HttpServletResponse response) throws IOException {
         if (viewer(session) == null) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
+        }
+        if (filename == null || filename.isBlank()) {
+            String uri = request.getRequestURI();
+            String prefix = "/content/media/" + sourceId + "/";
+            int idx = uri.indexOf(prefix);
+            if (idx >= 0) {
+                filename = uri.substring(idx + prefix.length());
+            }
         }
         Optional<MediaAsset> a = importService.findMedia(sourceId, filename);
         if (a.isEmpty()) {
@@ -874,9 +1183,28 @@ public class ContentExamController {
                                  @RequestParam(defaultValue = "RECALCULATE") String scorePolicy,
                                  @RequestParam(required=false) String passageKo, @RequestParam(required=false) String scriptKo,
                                  @RequestParam(required=false) String imageFile, @RequestParam(required=false) String audioFile,
+                                 @RequestParam(required=false) MultipartFile uploadImageFile,
+                                 @RequestParam(required=false) MultipartFile uploadAudioFile,
                                  HttpSession session, RedirectAttributes ra) {
         String target = safeBack(back);
         return mutate(session, ra, target, actor -> {
+            // Xử lý upload ảnh nếu có file được chọn
+            String resolvedImage = imageFile;
+            String resolvedAudio = audioFile;
+            try {
+                var questionDetail = bank.detail(id);
+                Long sourceId = questionDetail != null ? (Long) questionDetail.get("sourceId") : null;
+                if (sourceId != null) {
+                    if (uploadImageFile != null && !uploadImageFile.isEmpty()) {
+                        resolvedImage = importService.uploadMediaForBankEdit(sourceId, uploadImageFile, actor, true);
+                    }
+                    if (uploadAudioFile != null && !uploadAudioFile.isEmpty()) {
+                        resolvedAudio = importService.uploadMediaForBankEdit(sourceId, uploadAudioFile, actor, false);
+                    }
+                }
+            } catch (java.io.IOException e) {
+                throw new ExamDomainException("Không thể upload file: " + e.getMessage());
+            }
             if (reportId != null) {
                 var report = reportService.getReportById(reportId).orElseThrow(() -> new ExamDomainException("Không tìm thấy báo lỗi."));
                 if (reportService.isWriting(report) || !id.equals(report.getQuestionId())
@@ -884,10 +1212,10 @@ public class ContentExamController {
                     throw new ExamDomainException("Báo lỗi không thuộc câu hỏi đang sửa.");
                 }
             }
-            if(reportId==null) bank.update(id, promptKo, List.of(opt1,opt2,opt3,opt4), answer, explanationVi, reason, actor, null, (correctionType==null||"AUTO".equals(correctionType))?"CONTENT":correctionType, scorePolicy,new QuestionBankService.GroupChange(passageKo,scriptKo,imageFile,audioFile));
+            if(reportId==null) bank.update(id, promptKo, List.of(opt1,opt2,opt3,opt4), answer, explanationVi, reason, actor, null, (correctionType==null||"AUTO".equals(correctionType))?"CONTENT":correctionType, scorePolicy,new QuestionBankService.GroupChange(passageKo,scriptKo,resolvedImage,resolvedAudio));
             if (reportId != null) {
                 String note = (resolutionNote != null && !resolutionNote.isBlank()) ? resolutionNote : ("Đã chỉnh sửa nội dung câu hỏi: " + (reason != null ? reason : "Cập nhật đáp án"));
-                reportService.updateMcAndResolve(id,promptKo,List.of(opt1,opt2,opt3,opt4),answer,explanationVi,reason,actor,reportId,correctionType,scorePolicy,note,new QuestionBankService.GroupChange(passageKo,scriptKo,imageFile,audioFile));
+                reportService.updateMcAndResolve(id,promptKo,List.of(opt1,opt2,opt3,opt4),answer,explanationVi,reason,actor,reportId,correctionType,scorePolicy,note,new QuestionBankService.GroupChange(passageKo,scriptKo,resolvedImage,resolvedAudio));
                 ra.addFlashAttribute("flashOk", "Đã cập nhật câu hỏi, giải quyết báo lỗi #" + reportId + " và thưởng +5 Xu cho học viên!");
                 return "redirect:/content?tab=reports";
             }

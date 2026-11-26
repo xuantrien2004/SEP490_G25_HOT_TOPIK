@@ -20,7 +20,13 @@ public class PracticeService {
 
     public record QuestionView(Long id, int no, String prompt, List<String> options, int answer,
                                String explanation, String passage, String script, String audio, String image,
-                               String mediaBase) {}
+                               String mediaBase, int originalNo) {
+        public QuestionView(Long id, int no, String prompt, List<String> options, int answer,
+                            String explanation, String passage, String script, String audio, String image,
+                            String mediaBase) {
+            this(id, no, prompt, options, answer, explanation, passage, script, audio, image, mediaBase, no);
+        }
+    }
     public record AnswerView(QuestionView question, Integer selected, boolean correct) {}
     public record ResultView(PracticeAttempt attempt, QuestionTypeDef type, List<AnswerView> answers,
                              String duration, List<PracticeAttempt> history) {}
@@ -105,11 +111,25 @@ public class PracticeService {
         return start(userId, email, typeCode, 0);
     }
 
-    /**
-     * Khoi tao bai luyen voi so cau tuy chon.
-     * questionCount <= defaultCount (hoac = 0) -> dung so cau mac dinh cua dang.
-     * questionCount > defaultCount -> random them block tu ngan hang (cung dang).
-     */
+    /* =========================================================================================
+     * LUỒNG NGHIỆP VỤ SERVICE: KHỞI TẠO LƯỢT LUYỆN DẠNG CÂU HỎI (PRACTICE SESSION INITIALIZATION)
+     * -----------------------------------------------------------------------------------------
+     * 1. XUẤT PHÁT:
+     *    - Controller gọi: com.hottopik.controller.PracticeController.startPractice()
+     * 2. LOGIC NGHIỆP VỤ SERVICE:
+     *    - Kiểm tra loại dạng: không áp dụng cho Dạng Viết (ném IllegalArgumentException).
+     *    - Lấy pool câu hỏi ACTIVE của dạng từ com.hottopik.repository.exam.QuestionRepository.
+     *    - Loại trừ các câu hỏi đang nằm trong các lượt làm dở (pending attempts có hoạt động).
+     *    - Nhóm câu hỏi theo Group ID để bảo toàn tính trọn vẹn ngữ cảnh (bài đọc chung / file nghe chung).
+     *    - Ưu tiên chọn các nhóm câu chưa từng làm (unseen groups), nếu thiếu mới lấy nhóm đã làm.
+     *    - Đóng gói danh sách Question IDs thành chuỗi phân cách dấu phẩy (vd: "101,102,103...").
+     * 3. TRUY VẤN CSDL:
+     *    - SELECT câu hỏi từ dbo.questions WHERE type_code = :typeCode AND status = 'ACTIVE'
+     *    - SELECT các lượt dở từ dbo.practice_attempts WHERE user_id = :userId AND completed_at IS NULL
+     *    - INSERT INTO dbo.practice_attempts (user_id, type_code, question_ids, started_at...)
+     * 4. TRẢ KẾT QUẢ VỀ CONTROLLER:
+     *    - Trả về đối tượng Entity PracticeAttempt mới được lưu, có attemptId sinh từ sequence.
+     * ========================================================================================= */
     @Transactional
     public PracticeAttempt start(Long userId, String email, String typeCode, int questionCount) {
         if (userId == null) {
@@ -126,10 +146,23 @@ public class PracticeService {
         int blockSize = type.blocks().isEmpty() ? 1 : type.blocks().get(0).size();
         int blocksNeeded = (int) Math.ceil((double) targetCount / blockSize);
 
+        // Khong lay cac cau o lan dang lam do (completedAt is null va co hoat dong)
+        List<PracticeAttempt> pendingAttempts = attempts.findByUserIdAndTypeCodeAndCompletedAtIsNullOrderByIdDesc(userId, typeCode);
+        Set<Long> pendingQuestionIds = pendingAttempts.stream()
+                .filter(this::hasActivity)
+                .flatMap(a -> parseIds(a.getQuestionIds()).stream()).collect(Collectors.toSet());
+
+        List<Question> candidatePool = available.stream()
+                .filter(q -> !pendingQuestionIds.contains(q.getId()))
+                .toList();
+        if (candidatePool.isEmpty()) {
+            candidatePool = available;
+        }
+
         Set<Long> seen = attempts.findByUserIdAndTypeCodeAndCompletedAtIsNotNullOrderByCompletedAtDesc(userId, typeCode)
                 .stream().flatMap(a -> parseIds(a.getQuestionIds()).stream()).collect(Collectors.toSet());
-        Map<Long, List<Question>> byGroup = available.stream().collect(Collectors.groupingBy(q -> q.getGroup().getId()));
-        Map<Long, List<Question>> bySource = available.stream().collect(Collectors.groupingBy(q -> q.getSource().getId()));
+        Map<Long, List<Question>> byGroup = candidatePool.stream().collect(Collectors.groupingBy(q -> q.getGroup().getId()));
+        Map<Long, List<Question>> bySource = candidatePool.stream().collect(Collectors.groupingBy(q -> q.getSource().getId()));
 
         List<List<Question>> allMatchingGroups = new ArrayList<>();
         for (List<Integer> block : type.blocks()) {
@@ -158,23 +191,37 @@ public class PracticeService {
         List<List<Question>> unseenGroups = allMatchingGroups.stream()
                 .filter(group -> group.stream().noneMatch(q -> seen.contains(q.getId())))
                 .collect(Collectors.toCollection(ArrayList::new));
+        List<List<Question>> seenGroups = allMatchingGroups.stream()
+                .filter(group -> group.stream().anyMatch(q -> seen.contains(q.getId())))
+                .collect(Collectors.toCollection(ArrayList::new));
         Collections.shuffle(unseenGroups);
-        Collections.shuffle(allMatchingGroups);
+        Collections.shuffle(seenGroups);
 
-        List<Question> selected = new ArrayList<>();
+        List<List<Question>> chosenGroups = new ArrayList<>();
         Set<Long> usedGroupIds = new HashSet<>();
         for (List<Question> grp : unseenGroups) {
-            if (selected.size() >= blocksNeeded * blockSize) break;
+            if (chosenGroups.size() >= blocksNeeded) break;
             long gid = grp.get(0).getGroup().getId();
             if (usedGroupIds.contains(gid)) continue;
             usedGroupIds.add(gid);
-            selected.addAll(grp);
+            chosenGroups.add(grp);
         }
-        for (List<Question> grp : allMatchingGroups) {
-            if (selected.size() >= blocksNeeded * blockSize) break;
-            long gid = grp.get(0).getGroup().getId();
-            if (usedGroupIds.contains(gid)) continue;
-            usedGroupIds.add(gid);
+        // Neu da het cau chua lam trong ngan hang, lay cac nhom tu cac lan da lam khac nhau va tron ngau nhien
+        if (chosenGroups.size() < blocksNeeded) {
+            for (List<Question> grp : seenGroups) {
+                if (chosenGroups.size() >= blocksNeeded) break;
+                long gid = grp.get(0).getGroup().getId();
+                if (usedGroupIds.contains(gid)) continue;
+                usedGroupIds.add(gid);
+                chosenGroups.add(grp);
+            }
+        }
+        // Xao tron thu tu cac nhom de khong bi trung lap nguyen de/thu tu cu
+        Collections.shuffle(chosenGroups);
+
+        List<Question> selected = new ArrayList<>();
+        for (List<Question> grp : chosenGroups) {
+            if (selected.size() >= targetCount) break;
             selected.addAll(grp);
         }
         if (targetCount == defaultCount && selected.size() != defaultCount) {
@@ -229,12 +276,66 @@ public class PracticeService {
     }
 
     @Transactional
+    public PracticeAttempt save(Long userId, Long attemptId, Map<String, String> submitted, int elapsedSeconds) {
+        return save(userId, attemptId, submitted, List.of(), elapsedSeconds, false);
+    }
+
+    @Transactional
+    public PracticeAttempt save(Long userId, Long attemptId, Map<String, String> submitted, List<String> flags, int elapsedSeconds) {
+        return save(userId, attemptId, submitted, flags, elapsedSeconds, false);
+    }
+
+    @Transactional
+    public PracticeAttempt save(Long userId, Long attemptId, Map<String, String> submitted, List<String> flags, int elapsedSeconds, boolean pause) {
+        if (userId == null) userId = 1L;
+        PracticeAttempt attempt = attempts.findOwnedForUpdate(attemptId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy lượt luyện tập."));
+        if (attempt.getCompletedAt() != null) return attempt;
+
+        List<Long> ids = parseIds(attempt.getQuestionIds());
+        Map<String, Integer> answers = new LinkedHashMap<>();
+        Map<String, String> checked = com.hottopik.service.exam.CheckedAnswers.read(attempt.getCheckedAnswersJson());
+        for (Long id : ids) {
+            String raw = checked.getOrDefault(String.valueOf(id), submitted.get(String.valueOf(id)));
+            if (raw == null) raw = submitted.get("answer_" + id);
+            Integer selected = null;
+            try { if (raw != null) selected = Integer.parseInt(raw); } catch (NumberFormatException ignored) { }
+            if (selected != null && selected >= 1 && selected <= 4) answers.put(id.toString(), selected);
+        }
+
+        List<String> validFlags = flags != null ? flags.stream()
+                .filter(f -> f != null && !f.isBlank())
+                .filter(f -> {
+                    try { return ids.contains(Long.parseLong(f.trim())); } catch (Exception ex) { return false; }
+                })
+                .distinct().toList() : List.of();
+
+        // CHỈ khi người dùng THOÁT / TẠM DỪNG (pause == true) mà chưa làm câu nào và không có cờ Chưa chắc thì mới xóa lượt
+        if (pause && answers.isEmpty() && validFlags.isEmpty()) {
+            attempts.delete(attempt);
+            return null;
+        }
+
+        attempt.setAnswersJson(writeJson(answers));
+        attempt.setFlagsJson(writeJson(validFlags));
+        if (elapsedSeconds > 0) {
+            attempt.setElapsedSeconds(elapsedSeconds);
+        }
+        return attempts.saveAndFlush(attempt);
+    }
+
+    @Transactional
     /*
      * Chấm ở server trên questionIds đã lưu, không tin danh sách câu/điểm client gửi lên.
      * Chỉ nhận lựa chọn 1..4; câu trống/giá trị sai coi như chưa trả lời. Mỗi câu đúng cộng 1.
      * answersJson lưu lựa chọn, score lưu số đúng, completedAt khóa trạng thái đã nộp; gọi nộp lại trả kết quả cũ.
      */
     public PracticeAttempt submit(Long userId, Long attemptId, Map<String, String> submitted) {
+        return submit(userId, attemptId, submitted, 0);
+    }
+
+    @Transactional
+    public PracticeAttempt submit(Long userId, Long attemptId, Map<String, String> submitted, int elapsedSeconds) {
         if (userId == null) userId = 1L;
         PracticeAttempt attempt = attempts.findOwnedForUpdate(attemptId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy lượt luyện tập."));
@@ -248,6 +349,7 @@ public class PracticeService {
         int score = 0;
         for (Long id : ids) {
             String raw = checked.getOrDefault(String.valueOf(id), submitted.get(String.valueOf(id)));
+            if (raw == null) raw = submitted.get("answer_" + id);
             Integer selected = null;
             try { if (raw != null) selected = Integer.parseInt(raw); } catch (NumberFormatException ignored) { }
             if (selected != null && (selected < 1 || selected > 4)) selected = null;
@@ -258,21 +360,44 @@ public class PracticeService {
         attempt.setAnswersJson(writeJson(answers));
         attempt.setScore(score);
         attempt.setCompletedAt(LocalDateTime.now());
-        return attempts.save(attempt);
+        if (elapsedSeconds > 0) {
+            attempt.setElapsedSeconds(elapsedSeconds);
+        }
+        return attempts.saveAndFlush(attempt);
     }
 
     @Transactional(readOnly = true)
     public List<QuestionView> questions(PracticeAttempt attempt) {
-        Map<Long, Question> byId = this.questions.findAllById(parseIds(attempt.getQuestionIds())).stream()
+        Map<Long, Question> byId = this.questions.findWithMediaByIdIn(parseIds(attempt.getQuestionIds())).stream()
                 .collect(Collectors.toMap(Question::getId, q -> q));
-        return parseIds(attempt.getQuestionIds()).stream().map(byId::get).filter(Objects::nonNull).map(this::view).toList();
+        List<Question> ordered = parseIds(attempt.getQuestionIds()).stream().map(byId::get).filter(Objects::nonNull).toList();
+        List<QuestionView> views = new ArrayList<>();
+        for (int i = 0; i < ordered.size(); i++) {
+            views.add(view(ordered.get(i), i + 1));
+        }
+        return views;
     }
 
+    /* =========================================================================================
+     * LUỒNG NGHIỆP VỤ SERVICE: CHECK ĐÁP ÁN & KHÓA LỰA CHỌN TỨC THÌ (INSTANT CHECK & LOCK)
+     * -----------------------------------------------------------------------------------------
+     * 1. XUẤT PHÁT:
+     *    - Controller gọi: com.hottopik.controller.PracticeController.check()
+     * 2. LOGIC NGHIỆP VỤ SERVICE:
+     *    - Khóa bi quan (Pessimistic Lock) lượt làm thông qua findOwnedForUpdate(attemptId, userId)
+     *      để ngăn chặn gian lận gửi đồng thời nhiều đáp án từ các tab trình duyệt khác nhau.
+     *    - Kiểm tra: lựa chọn hợp lệ (1..4), câu hỏi thuộc lượt làm này, bài chưa nộp (completedAt == null).
+     *    - Đọc checked_answers_json hiện tại, khóa vĩnh viễn lựa chọn lần đầu (putIfAbsent).
+     *    - Lưu lại chuỗi JSON đã cập nhật vào PracticeAttempt.
+     *    - Truy vấn Question để lấy answerIndex, explanationVi và scriptKo (cho bài Nghe).
+     * 3. TRUY VẤN CSDL:
+     *    - SELECT ... FROM dbo.practice_attempts WITH (UPDLOCK, ROWLOCK) WHERE id = :attemptId AND user_id = :userId
+     *    - UPDATE dbo.practice_attempts SET checked_answers_json = :json WHERE id = :attemptId
+     *    - SELECT * FROM dbo.questions WHERE id = :questionId
+     * 4. TRẢ KẾT QUẢ VỀ CONTROLLER:
+     *    - Trả về com.hottopik.dto.QuestionFeedback(answerIndex, isCorrect, explanationVi, scriptKo, audio, selected).
+     * ========================================================================================= */
     @Transactional
-    /*
-     * Xác minh chủ lượt làm, câu nằm trong lượt và lựa chọn 1..4 trước khi trả đáp án/giải thích.
-     * Lưu lựa chọn đã khóa trước khi trả lời giải; submit giữ lựa chọn đó. Phụ đề chỉ trả cho Nghe.
-     */
     public com.hottopik.dto.QuestionFeedback check(Long userId, Long attemptId, Long questionId, int selected) {
         if (userId == null) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED);
         PracticeAttempt attempt = attempts.findOwnedForUpdate(attemptId, userId)
@@ -302,21 +427,77 @@ public class PracticeService {
         PracticeAttempt attempt = attempts.findByIdAndUserId(attemptId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy kết quả."));
         Map<String, Integer> selected = readAnswers(attempt.getAnswersJson());
-        Map<Long, Question> byId = questions.findAllById(parseIds(attempt.getQuestionIds())).stream()
+        Map<Long, Question> byId = questions.findWithMediaByIdIn(parseIds(attempt.getQuestionIds())).stream()
                 .collect(Collectors.toMap(Question::getId, q -> q));
-        List<AnswerView> answerViews = parseIds(attempt.getQuestionIds()).stream().map(byId::get).filter(Objects::nonNull)
-                .map(q -> new AnswerView(view(q), selected.get(q.getId().toString()), selected.get(q.getId().toString()) != null
-                        && (selected.get(q.getId().toString()) == q.getAnswerIndex() || com.hottopik.service.exam.CheckedAnswers.read(attempt.getCreditedAnswersJson()).containsKey(q.getId().toString())))).toList();
-        String duration = attempt.getStartedAt() == null || attempt.getCompletedAt() == null ? "00:00"
-                : formatDuration(Duration.between(attempt.getStartedAt(), attempt.getCompletedAt()).toSeconds());
+        List<Question> ordered = parseIds(attempt.getQuestionIds()).stream().map(byId::get).filter(Objects::nonNull).toList();
+        List<AnswerView> answerViews = new ArrayList<>();
+        for (int i = 0; i < ordered.size(); i++) {
+            Question q = ordered.get(i);
+            int no = i + 1;
+            Integer sel = selected.get(q.getId().toString());
+            boolean correct = sel != null
+                    && (sel == q.getAnswerIndex() || com.hottopik.service.exam.CheckedAnswers.read(attempt.getCreditedAnswersJson()).containsKey(q.getId().toString()));
+            answerViews.add(new AnswerView(view(q, no), sel, correct));
+        }
+        long dur = attempt.getElapsedSeconds() != null && attempt.getElapsedSeconds() > 0 ? attempt.getElapsedSeconds()
+                : (attempt.getStartedAt() == null || attempt.getCompletedAt() == null ? 0
+                : Duration.between(attempt.getStartedAt(), attempt.getCompletedAt()).toSeconds());
+        String duration = formatDuration(dur);
         return new ResultView(attempt, type(attempt.getTypeCode()), answerViews,
                 duration, attempts.findByUserIdAndTypeCodeAndCompletedAtIsNotNullOrderByCompletedAtDesc(userId, attempt.getTypeCode()));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<PracticeAttempt> findAttempt(Long userId, Long attemptId) {
+        if (userId == null) userId = 1L;
+        return attempts.findByIdAndUserId(attemptId, userId);
+    }
+
+    @Transactional
+    public Optional<PracticeAttempt> findPendingAttempt(Long userId, String typeCode) {
+        if (userId == null) userId = 1L;
+        List<PracticeAttempt> pendings = attempts.findByUserIdAndTypeCodeAndCompletedAtIsNullOrderByIdDesc(userId, typeCode);
+        for (PracticeAttempt p : pendings) {
+            if (hasActivity(p)) {
+                return Optional.of(p);
+            } else {
+                attempts.delete(p);
+            }
+        }
+        return Optional.empty();
+    }
+
+    @Transactional
+    public List<PracticeAttempt> allHistoryOfType(Long userId, String typeCode) {
+        if (userId == null) userId = 1L;
+        List<PracticeAttempt> list = attempts.findByUserIdAndTypeCodeOrderByStartedAtDescIdDesc(userId, typeCode);
+        List<PracticeAttempt> result = new ArrayList<>();
+        for (PracticeAttempt a : list) {
+            if (a.getCompletedAt() != null || hasActivity(a)) {
+                result.add(a);
+            } else {
+                attempts.delete(a);
+            }
+        }
+        return result;
     }
 
     @Transactional(readOnly = true)
     public List<PracticeAttempt> historyOfType(Long userId, String typeCode) {
         if (userId == null) userId = 1L;
         return attempts.findByUserIdAndTypeCodeAndCompletedAtIsNotNullOrderByCompletedAtDesc(userId, typeCode);
+    }
+
+    public static List<String> readFlags(String raw) {
+        if (raw == null || raw.isBlank()) return List.of();
+        try { return JSON.readValue(raw, new TypeReference<>() {}); } catch (Exception e) { return List.of(); }
+    }
+
+    public boolean hasActivity(PracticeAttempt attempt) {
+        if (attempt == null) return false;
+        Map<String, Integer> ans = readAnswers(attempt.getAnswersJson());
+        List<String> flg = readFlags(attempt.getFlagsJson());
+        return !ans.isEmpty() || !flg.isEmpty();
     }
 
     /**
@@ -332,15 +513,26 @@ public class PracticeService {
                 .toList();
     }
 
-    private QuestionView view(Question q) {
+    private QuestionView view(Question q, int no) {
         QuestionGroup g = q.getGroup();
         String audio = g != null ? g.getAudioFile() : null;
         String image = g != null ? g.getImageFile() : null;
-        String mediaBase = (g != null && g.getSource() != null) ? "/content/media/" + g.getSource().getId() + "/" : null;
-        return new QuestionView(q.getId(), q.getOriginalNo(), q.getPromptKo(), q.options(), q.getAnswerIndex(),
+        ExamSource source = (g != null && g.getSource() != null) ? g.getSource() : q.getSource();
+        Long sourceId = source != null ? source.getId() : null;
+        String mediaBase = sourceId != null ? "/practice/media/" + sourceId + "/" : null;
+        String audioUrl = (audio != null && !audio.isBlank() && mediaBase != null)
+                ? mediaBase + org.springframework.web.util.UriUtils.encodePathSegment(audio, java.nio.charset.StandardCharsets.UTF_8)
+                : null;
+        String imageUrl = (image != null && !image.isBlank() && mediaBase != null)
+                ? mediaBase + org.springframework.web.util.UriUtils.encodePathSegment(image, java.nio.charset.StandardCharsets.UTF_8)
+                : null;
+        return new QuestionView(q.getId(), no, q.getPromptKo(), q.options(), q.getAnswerIndex(),
                 q.getExplanationVi(), g != null ? g.getPassageKo() : null, g != null ? g.getScriptKo() : null,
-                audio == null || mediaBase == null ? null : mediaBase + audio,
-                image == null || mediaBase == null ? null : mediaBase + image, mediaBase);
+                audioUrl, imageUrl, mediaBase, q.getOriginalNo());
+    }
+
+    private QuestionView view(Question q) {
+        return view(q, q.getOriginalNo());
     }
 
     private QuestionTypeDef type(String code) {
@@ -355,7 +547,7 @@ public class PracticeService {
     private static String writeJson(Object value) {
         try { return JSON.writeValueAsString(value); } catch (Exception e) { return "{}"; }
     }
-    private static Map<String, Integer> readAnswers(String raw) {
+    public static Map<String, Integer> readAnswers(String raw) {
         try { return JSON.readValue(raw, new TypeReference<>() {}); } catch (Exception e) { return Map.of(); }
     }
     private static String formatDuration(long seconds) {

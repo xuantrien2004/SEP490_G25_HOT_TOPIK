@@ -115,7 +115,7 @@
                            th:attr="data-target=${'question-' + a.question.id}, data-state=${a.correct ? 'correct' : (a.selected == null ? 'skip' : 'wrong')}"
                            th:text="${nav.count}">1</a>
                     </div>
-                    <div th:replace="~{fragments/result-review :: legend(false)}"></div>
+                    <div th:replace="~{fragments/result-review :: legend(false, true)}"></div>
                 </aside>
                 <div class="rv-main">
                 <!--
@@ -140,10 +140,10 @@
                             <span th:unless="${a.correct}" class="badge bg-danger-subtle text-danger-emphasis border border-danger">✕ Chưa đúng</span>
                         </div>
                         <div class="d-flex align-items-center gap-2">
-                            <span class="badge bg-light text-muted border" th:text="'Câu gốc #' + ${a.question.no}">Câu gốc #1</span>
+                            <span class="badge bg-light text-muted border" th:if="${a.question.originalNo > 0}" th:text="'Câu gốc #' + ${a.question.originalNo}">Câu gốc #1</span>
                             <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 rounded-3 px-2 py-1"
                                     style="font-size: 12px; font-weight: 600; border-color: #FFA39E; color: #CF1322;"
-                                    th:attr="data-qid=${a.question.id}, data-code=${result.type.code + ' - Câu ' + iter.count}, data-prompt=${a.question.prompt}, data-examtitle=${'Luyện tập: ' + result.type.name}, data-no=${a.question.no}"
+                                    th:attr="data-qid=${a.question.id}, data-code=${result.type.code + ' - Câu ' + iter.count}, data-prompt=${a.question.prompt}, data-examtitle=${'Luyện tập: ' + result.type.name}, data-no=${a.question.originalNo > 0 ? a.question.originalNo : a.question.no}"
                                     onclick="openReportModalFromBtn(this)"
                                     title="Báo lỗi nội dung câu hỏi này cho Content Manager">
                                 <span>🚩</span>
@@ -287,16 +287,16 @@
                     </table>
                 </div>
                 <!-- Phân trang Lịch sử lần luyện -->
-                <div id="pracHistPager" class="d-flex align-items-center justify-content-between mt-3 pt-3 border-top" style="display:none!important"></div>
+                <div id="pracHistPager" class="d-flex align-items-center justify-content-between mt-3 pt-3 border-top" style="display:none"></div>
                 <script>
                 (function(){
-                    var PAGE=5, rows=Array.from(document.querySelectorAll('.prac-hist-row')), page=1;
+                    var PAGE=10, rows=Array.from(document.querySelectorAll('.prac-hist-row')), page=1;
                     var pager=document.getElementById('pracHistPager');
                     function total(){return Math.ceil(rows.length/PAGE)||1;}
                     function render(){
-                        rows.forEach(function(r,i){r.style.display=(i>=(page-1)*PAGE && i<page*PAGE)?'':'none';});
+                        rows.forEach(function(r,i){r.style.setProperty('display', (i>=(page-1)*PAGE && i<page*PAGE)?'':'none', 'important');});
                         var t=total();
-                        pager.style.display = t>1 ? 'flex' : 'none';
+                        pager.style.setProperty('display', t>1 ? 'flex' : 'none', 'important');
                         pager.innerHTML='<span class="small text-muted">Trang <strong>'+page+'</strong> / '+t+' · '+rows.length+' lần</span>'
                             +'<div class="d-flex gap-2">'
                             +(page>1?'<button class="btn btn-sm btn-outline-secondary rounded-3" onclick="pracHistPage(-1)">← Trước</button>':'')

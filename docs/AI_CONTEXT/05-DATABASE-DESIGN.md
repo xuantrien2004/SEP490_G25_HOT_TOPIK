@@ -63,7 +63,7 @@ erDiagram
 |:---|:---|:---|:---|
 | `exam_sources` | `ExamSource.java` | `id (BIGINT)` | Nguồn đề nhập vào: tên nguồn, track (TOPIK I / II), năm thi, đợt thi, trạng thái nguồn (`SourceStatus`: DRAFT, ACTIVE) |
 | `import_jobs` | `ImportJob.java` | `id (BIGINT)` | Tiến trình bóc tách đề: FK `source_id`, trạng thái (`ImportJobStatus`: DRAFT, PARSED, ACTIVATED), file Excel đính kèm, nhật ký cảnh báo |
-| `media_assets` | `MediaAsset.java` | `id (BIGINT)` | Tệp âm thanh/hình ảnh dùng trong đề: FK `source_id`, tên file, loại (`MediaKind`: AUDIO, IMAGE), dung lượng byte |
+| `media_assets` | `MediaAsset.java` | `id (BIGINT)` | Tệp âm thanh/hình ảnh dùng trong đề: FK `source_id`, tên file (`filename`: NVARCHAR(255), `@Nationalized` lưu chuẩn tiếng Hàn), đường dẫn lưu trữ (`storage_path`: VARCHAR(500), đường dẫn tương đối dạng ASCII), loại (`MediaKind`: AUDIO, IMAGE), dung lượng byte (`size_bytes`), ràng buộc duy nhất `uq_media_source_file (source_id, filename)` |
 | `question_groups` | `QuestionGroup.java` | `id (BIGINT)` | Nhóm ngữ cảnh dùng chung: mã nhóm, file audio dùng chung, đoạn văn dùng chung (`passage_ko`), phụ đề (`script_ko`), hình ảnh |
 | `questions` | `Question.java` | `id (BIGINT)` | **Câu hỏi trắc nghiệm**: Đề bài (`prompt_ko`), 4 phương án (`opt1..opt4`), 4 ảnh phương án (`opt1_img..opt4_img`), đáp án đúng (`answer`: 1-4), giải thích tiếng Việt (`explanation_vi`), ảnh đề bài (`chart`), mã dạng (`type_code`), mục đích (`QuestionPurpose`: PRACTICE, EXAM, PLACEMENT), FK `group_id` |
 | `writing_prompts` | `WritingPrompt.java` | `id (BIGINT)` | **Câu hỏi tự luận Viết**: Số câu (`no`: 51, 52, 53, 54), đề bài, ảnh đề bài (`chart`), đáp án chấp nhận câu 51-52 (`keys1`, `keys2`), bài văn mẫu (`model_answer`), tiêu chí chấm (`rubric`) |
@@ -76,9 +76,9 @@ erDiagram
 
 | Tên Bảng (Table Name) | Entity Java | Khóa Chính (PK) | Các Trường Quan Trọng & Ý Nghĩa |
 |:---|:---|:---|:---|
-| `exam_attempts` | `ExamAttempt.java` | `id (BIGINT)` | Lượt làm bài thi: FK `user_id`, FK `exam_id`, số giây còn lại (`remaining_seconds`), ngày hoàn thành (`completed_at`), số câu đúng, tổng điểm, chuỗi JSON câu trả lời (`checked_answers_json`), chuỗi JSON điểm cộng bù (`credited_answers_json`) |
-| `practice_attempts` | `PracticeAttempt.java` | `id (BIGINT)` | Lượt luyện tập theo dạng: FK `user_id`, mã dạng (`type_code`), số câu đúng/tổng câu, ngày làm |
-| `writing_submissions` | `WritingSubmission.java` | `id (BIGINT)` | **Bài nộp kỹ năng Viết**: FK `user_id` (học viên), FK `prompt_id` (câu viết), FK `mentor_id` (giáo viên chấm), chế độ nộp (`PRACTICE` hoặc `EXAM`), trạng thái (`pending`, `reviewed`), **cột `payload` (JSON)** lưu chi tiết bài viết, điểm từng tiêu chí và lời nhận xét |
+| `exam_attempts` | `ExamAttempt.java` | `id (BIGINT)` | Lượt làm bài thi: FK `user_id`, FK `exam_id`, kỹ năng đang thi (`current_skill`), số giây còn lại từng kỹ năng (`listening_seconds`, `reading_seconds`, `writing_seconds`), số giây còn lại (`remaining_seconds`), ngày bắt đầu (`started_at`), thời điểm hoạt động cuối (`last_active_at`), ngày hoàn thành (`completed_at`), số câu đúng, tổng điểm, chuỗi JSON lưu đáp án bài thi (`answers_json`), chuỗi JSON câu trả lời đã khóa (`checked_answers_json`), chuỗi JSON điểm cộng bù (`credited_answers_json`) |
+| `practice_attempts` | `PracticeAttempt.java` | `id (BIGINT)` | Lượt luyện tập theo dạng: FK `user_id`, mã dạng (`type_code`), danh sách câu hỏi (`question_ids`), đáp án học viên chọn (`answers_json`), đáp án đã kiểm tra tức thì (`checked_answers_json`), danh sách câu đánh dấu chưa chắc (`flags_json`), số giây đã làm bài (`elapsed_seconds`), điểm số (`score`), ngày bắt đầu (`started_at`), ngày hoàn thành (`completed_at`). Nếu `completed_at` null thì là lượt đang làm dở (pending). |
+| `writing_submissions` | `WritingSubmission.java` | `id (BIGINT)` | **Bài nộp kỹ năng Viết**: FK `user_id` / `learner_id` (học viên), FK `prompt_id` (câu viết), FK `mentor_id` (giáo viên chấm), chế độ nộp (`mode`: `PRACTICE` / `EXAM`), trạng thái DB (`status`: `DRAFT`, `WAITING_MENTOR`, `GRADING`, `GRADED`), **cột `payload` (`nvarchar(max)` JSON)** lưu toàn bộ `WritingSubmissionDTO` (nội dung bài viết, trạng thái chi tiết, điểm, nhận xét, lịch sử và mốc thời gian khiếu nại) |
 
 ### 2.5. Phân Vùng Đánh Giá Đầu Vào & Lộ Trình (Placement & Roadmap)
 
@@ -104,26 +104,42 @@ erDiagram
 
 Hệ thống tận dụng định dạng JSON lưu trữ linh hoạt trong SQL Server / H2 cho các đối tượng có cấu trúc biến đổi:
 
-1. **`writing_submissions.payload`**:
+1. **`writing_submissions.payload`** *(serialize từ `WritingSubmissionDTO` — không thay đổi cột vật lý của bảng `writing_submissions`)*:
    ```json
    {
-     "answer": "Nội dung bài viết tiếng Hàn của học viên...",
-     "charCount": 245,
-     "scores": {
-       "taskContent": 2.5,
-       "structure": 2.0,
-       "language": 2.5
-     },
-     "totalScore": 7.0,
-     "feedback": "Học viên nắm tốt cấu trúc biểu đồ câu 53, cần chú ý chia đuôi câu khách quan hơn...",
-     "attemptId": 142,
-     "examTitle": "TOPIK II 36 - Mini Viết"
+     "id": "68",
+     "questionNo": 53,
+     "status": "graded",
+     "studentAnswer": "Nội dung bài viết tiếng Hàn của học viên...",
+     "wordCount": 245,
+     "submittedAt": "23/11/2026 12:25",
+     "gradedAt": "23/11/2026 13:13",
+     "totalScore": 25,
+     "overallFeedback": "Cần chỉnh chu hơn ở khâu chính tả...",
+     "rejectReason": null,
+     "appealUsed": true,
+     "appealResolved": true,
+     "appealReason": "Lý do khiếu nại...",
+     "appealedAt": "23/11/2026 14:00",
+     "appealResolvedAt": "24/11/2026 09:30",
+     "appealDecision": "uphold",
+     "appealMessage": "Lời nhắn giải thích từ Giáo viên...",
+     "originalScore": 25,
+     "originalFeedback": "Nhận xét ban đầu...",
+     "originalGradedAt": "23/11/2026 13:13",
+     "examAttemptId": 142,
+     "durationSeconds": 420
    }
    ```
-2. **`exam_attempts.checked_answers_json`**:
-   - Lưu trữ danh sách các câu đã làm và đáp án học viên chọn dưới dạng Map key-value: `{"answer_101": "2", "answer_102": "4", "writing_51": "..."}`.
+2. **`exam_attempts.answers_json` & `checked_answers_json`**:
+   - `answers_json`: Lưu trữ toàn bộ câu trả lời đang làm của bài thi (cả trắc nghiệm và tự luận) dưới dạng chuỗi JSON key-value: `{"q101": "2", "q102": "4", "w51": "..."}`.
+   - `checked_answers_json`: Lưu trữ danh sách các câu đã làm và đáp án học viên chọn khi kiểm tra tức thì: `{"q101": "2", "q102": "4"}`.
 3. **`exam_attempts.credited_answers_json`**:
    - Lưu trữ lịch sử cộng điểm bồi hoàn khi câu hỏi có sự điều chỉnh đáp án từ ban quản trị: `{"101": {"oldAnswer": "2", "newAnswer": "3", "creditedPoints": 2.5}}`.
+4. **`practice_attempts.answers_json` & `practice_attempts.flags_json`**:
+   - `answers_json`: Lưu trữ đáp án học viên đã chọn cho các câu hỏi luyện tập: `{"105": 2, "106": 4}`.
+   - `flags_json`: Lưu trữ danh sách ID các câu hỏi được học viên đánh dấu "Chưa chắc": `["105", "108"]`.
+   - `checked_answers_json`: Lưu trữ kết quả kiểm tra tức thì (đúng/sai) trong phiên luyện tập: `{"105": 1, "106": 0}`.
 
 ---
 

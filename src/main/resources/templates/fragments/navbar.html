@@ -42,16 +42,6 @@
 
     <!-- Quick Stats & Actions -->
     <div class="ssak-topbar-actions">
-        <!-- Số ngày đã học -->
-        <span class="ssak-stat-pill badge-mint d-none d-xl-inline-flex" title="Số ngày bạn đã học thật cùng Bé Ssak">
-            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 21V11" stroke="#2E7D67" stroke-width="2.2" stroke-linecap="round"/>
-                <path d="M12 12C12 7 8 4 3.5 4.5C3.5 9 7 12.5 12 12Z" fill="#6CC49F"/>
-                <path d="M12 10C12 6 15.5 3 20.5 3.5C20.5 8 17 11 12 10Z" fill="#2E7D67"/>
-            </svg>
-            <span>Đã học <strong id="topbar-learned" th:text="${session.LOGGED_IN_USER != null && session.LOGGED_IN_USER.studiedDays != null ? session.LOGGED_IN_USER.studiedDays : 0}">0</strong> ngày</span>
-        </span>
-
         <!-- Xu của bạn: mở /xu -->
         <a th:href="@{/xu}" class="ssak-stat-pill badge-honey" title="Xu thưởng tích lũy · Bấm để đổi quà">
             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
@@ -83,12 +73,55 @@
             </div>
         </div>
 
+        <!-- Nút Trợ giúp & Hướng dẫn: (?) -->
+        <div style="position: relative;" data-help="1">
+            <button id="htHelpToggleBtn" class="ssak-icon-btn ht-help-btn" type="button" aria-label="Trung tâm Trợ giúp & Hướng dẫn" title="Hướng dẫn sử dụng & Trợ giúp (?)" onclick="toggleHelpDropdown(event)">
+                <span style="font-size: 16px; font-weight: 800; font-family: var(--font-heading, sans-serif); color: var(--ssak-primary, #2E7D67);">?</span>
+            </button>
+
+            <!-- Dropdown Menu Trợ giúp -->
+            <div id="htHelpDropdown" class="ht-help-dropdown">
+                <div class="ht-help-dropdown-header">
+                    <span>💡</span>
+                    <span>Trung tâm Trợ giúp</span>
+                </div>
+                <button type="button" class="ht-help-item" onclick="startFullTour(); toggleHelpDropdown(event);">
+                    <i class="bi bi-compass"></i>
+                    <div>
+                        <strong>Xem lại Tour toàn bộ hệ thống</strong>
+                        <span class="ht-help-item-desc">Trải nghiệm 11 trạm tính năng chính</span>
+                    </div>
+                </button>
+                <button type="button" class="ht-help-item" onclick="spotlightCurrentPage(); toggleHelpDropdown(event);">
+                    <i class="bi bi-lightbulb"></i>
+                    <div>
+                        <strong>Hướng dẫn nhanh trang này</strong>
+                        <span class="ht-help-item-desc">Chiếu sáng và giải thích tính năng</span>
+                    </div>
+                </button>
+                <button type="button" class="ht-help-item" onclick="openHelpGuideModal(); toggleHelpDropdown(event);">
+                    <i class="bi bi-bookmark-star"></i>
+                    <div>
+                        <strong>Cẩm nang tính năng hữu ích</strong>
+                        <span class="ht-help-item-desc">Báo lỗi câu hỏi, Khiếu nại, Lưu nháp...</span>
+                    </div>
+                </button>
+                <button type="button" class="ht-help-item" onclick="openSystemFeedbackModal(); toggleHelpDropdown(event);">
+                    <i class="bi bi-chat-heart"></i>
+                    <div>
+                        <strong>Đánh giá hệ thống</strong>
+                        <span class="ht-help-item-desc">Góp ý và đánh giá trải nghiệm học</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+
         <!-- VIP Status -->
         <th:block th:if="${session.LOGGED_IN_USER != null && session.LOGGED_IN_USER.vip}">
-            <a th:href="@{/goi-cua-toi}" class="ssak-badge badge-honey text-decoration-none" style="font-weight: 800; padding: 4px 12px; font-size: 12.5px; height: 34px;" title="Thành viên VIP">👑 VIP</a>
+            <a th:href="@{/goi-cua-toi}" class="ssak-stat-pill badge-honey text-decoration-none" title="Thành viên VIP">👑 VIP</a>
         </th:block>
         <th:block th:if="${session.LOGGED_IN_USER == null || !session.LOGGED_IN_USER.vip}">
-            <a th:href="@{/vip}" class="ssak-badge badge-honey text-decoration-none" style="font-weight: 800; padding: 4px 12px; font-size: 12.5px; height: 34px;">Nâng cấp VIP</a>
+            <a th:href="@{/vip}" class="ssak-stat-pill badge-honey text-decoration-none" title="Nâng cấp gói VIP để mở khóa đặc quyền">👑 VIP</a>
         </th:block>
 
         <!-- User Profile & Auth Status -->
@@ -147,6 +180,9 @@
             </div>
         </th:block>
     </div>
+
+    <!-- Modal Cẩm nang Tính năng Hữu ích (Báo lỗi, Khiếu nại, Tự động lưu, Đổi Xu) -->
+    <div th:replace="~{fragments/help-modal :: helpModal}"></div>
 </nav>
 
 <!-- Mobile Bottom Navigation -->

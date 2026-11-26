@@ -6,15 +6,38 @@
 <th:block th:replace="~{fragments/question-player :: assets}"></th:block>
 <main class="container-fluid py-4" style="max-width:1440px">
     <p th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></p>
+    <div th:if="${examMessage}" class="alert alert-info alert-dismissible fade show" role="alert">
+        <span th:text="${examMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
     <form id="examForm" data-exam-form data-report-attempt-kind="EXAM" th:attr="data-report-attempt-id=${paper.attempt.id},data-writing-submit=${!#lists.isEmpty(paper.writing)}" method="post" th:action="@{/exam/attempt/{id}/submit(id=${paper.attempt.id})}">
+        <input type="hidden" name="remainingSeconds" id="remainingSecondsInput" th:value="${paper.remainingSeconds}">
         <header class="sticky-top bg-white border rounded-4 p-3 mb-4 shadow-sm" style="top:12px">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-                <div><span class="badge text-bg-success" th:text="${paper.track.label}"></span>
-                    <h1 class="h5 mt-2 mb-0" th:text="${paper.title}"></h1></div>
+                <div>
+                    <span class="badge text-bg-success" th:text="${paper.track.label}"></span>
+                    <span th:if="${paper.attempt.currentSkill != null}"
+                          class="badge text-bg-primary ms-1"
+                          th:text="${paper.attempt.currentSkill.label + (isMultiSkill and availableSkills != null and availableSkills.contains(paper.attempt.currentSkill) ? ' · Phần ' + (availableSkills.indexOf(paper.attempt.currentSkill) + 1) : '')}">
+                    </span>
+                    <h1 class="h5 mt-2 mb-0" th:text="${paper.title}"></h1>
+                </div>
                 <div class="d-flex align-items-center gap-3">
                     <strong id="timer" class="font-monospace"></strong>
                     <button class="btn btn-outline-secondary" type="submit" th:formaction="@{/exam/attempt/{id}/pause(id=${paper.attempt.id})}">Lưu và thoát</button>
                 </div>
+            </div>
+            <!-- Thanh tiến trình kỹ năng cho Full Mock -->
+            <div th:if="${paper.kind.name() == 'FULL' and isMultiSkill}" class="d-flex align-items-center gap-2 mt-3 pt-2 border-top flex-wrap" style="font-size: 13px;">
+                <span class="text-muted fw-bold">Tiến trình thi:</span>
+                <th:block th:each="s, iterStat : ${availableSkills}">
+                    <span class="badge" th:classappend="${paper.attempt.currentSkill != null and paper.attempt.currentSkill == s ? 'bg-primary text-white' : 'bg-light text-secondary border'}">
+                        <span th:text="${(iterStat.index + 1) + '. ' + s.label}">1. Nghe</span>
+                        <span th:if="${paper.attempt.currentSkill != null and paper.attempt.currentSkill == s}">● Đang làm</span>
+                    </span>
+                    <span>→</span>
+                </th:block>
+                <span class="badge bg-light text-secondary border">Kết quả</span>
             </div>
             <div id="saveStatus" class="small text-muted mt-2" role="status">Câu trả lời được lưu tự động. Bạn có thể lưu và làm tiếp trong 7 ngày.</div>
         </header>
@@ -49,11 +72,30 @@
         <h3 id="examSubmitTitle">Nộp bài và gửi Giáo viên chấm?</h3>
         <p id="examSubmitSummary" style="white-space:pre-line"></p>
         <p>Gửi Giáo viên chấm sẽ gửi toàn bộ 4 câu Viết, kể cả câu chưa làm hoặc chưa hoàn thành. Hủy gửi sẽ chỉ lưu bài đã nộp; bạn có thể gửi chấm sau từ trang kết quả.</p>
-        <p th:unless="${currentUser.vip}" class="small">Muốn Giáo viên chấm bài, hãy <a th:href="@{/vip}">đăng ký VIP</a>.</p>
         <div class="d-flex justify-content-end flex-wrap gap-2">
             <button type="button" class="btn btn-outline-secondary" id="examContinue">Quay lại làm tiếp</button>
             <button type="button" class="btn btn-outline-primary" id="examCancelSubmit">Hủy (chỉ nộp bài)</button>
             <button th:if="${currentUser.vip}" type="button" class="btn btn-success" id="examConfirmSubmit">Gửi Giáo viên chấm</button>
+            <span th:unless="${currentUser.vip}" onclick="showVipTeacherNotice()" style="display: inline-block; cursor: pointer;" title="Đặc quyền dành riêng cho học viên VIP">
+                <button type="button" class="btn btn-secondary disabled" disabled style="pointer-events: none; opacity: 0.7; font-weight: 700;">
+                    👑 Gửi Giáo viên chấm <span class="badge bg-warning text-dark ms-1">VIP</span>
+                </button>
+            </span>
+        </div>
+    </div>
+</div>
+<div id="vipTeacherNoticeModal" class="ssak-modal-overlay" style="z-index: 2200;">
+    <div class="ssak-modal" style="width: 480px; text-align: center; padding: 28px 24px;">
+        <div style="font-size: 40px; margin-bottom: 8px;">👑</div>
+        <h3 style="margin-top: 0; margin-bottom: 12px; color: #B45309; font-size: 20px;">Đặc quyền Học viên VIP</h3>
+        <p style="font-size: 14.5px; color: #374151; line-height: 1.6; margin-bottom: 22px;">
+            Gửi Giáo viên chấm là đặc quyền dành riêng cho học viên VIP. Vui lòng nâng cấp tài khoản để sử dụng tính năng này!
+        </p>
+        <div style="display: flex; justify-content: center; gap: 12px;">
+            <button type="button" class="btn-ssak-light" onclick="closeVipTeacherNotice()" style="height: 42px; padding: 0 20px;">Đóng</button>
+            <a th:href="@{/vip}" class="btn-ssak-primary" style="background: #F59E0B; color: #FFFFFF; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 22px; border-radius: 12px; font-weight: 800; border: none;">
+                👑 Nâng cấp VIP ngay
+            </a>
         </div>
     </div>
 </div>
@@ -104,21 +146,29 @@ const submitUrl = /*[[@{/exam/attempt/{id}/submit(id=${paper.attempt.id})}]]*/ '
 const teacherUrl = /*[[@{/exam/attempt/{id}/submit-teacher(id=${paper.attempt.id})}]]*/ '';
 let seconds = /*[[${paper.remainingSeconds}]]*/ 0;
 let leaving = false, saving = Promise.resolve(), queued = false;
+function syncRemainingSeconds() {
+    const el = document.getElementById('remainingSecondsInput');
+    if (el) el.value = Math.max(0, seconds);
+}
 // Autosave nối các yêu cầu bằng Promise, tránh ghi đè do response về khác thứ tự; gửi FormData của cả form.
 // Server trả remainingSeconds/completed; trình duyệt cập nhật giờ hoặc chuyển kết quả khi lượt đã kết thúc.
-function saveAnswers() {
-    if (leaving) return saving;
-    if (queued) return saving;
+function saveAnswers(isPause = false) {
+    syncRemainingSeconds();
+    if (leaving && !isPause) return saving;
+    if (queued && !isPause) return saving;
     queued = true;
     saving = saving.catch(() => {}).then(async () => {
         queued = false;
-        if (leaving) return;
+        if (leaving && !isPause) return;
         try {
-            const response = await fetch(saveUrl, {method:'POST', body:new URLSearchParams(new FormData(form))});
+            const body = new URLSearchParams(new FormData(form));
+            if (isPause) body.set('pause', 'true');
+            const response = await fetch(saveUrl + (isPause ? '?pause=true' : ''), {method:'POST', body});
             if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) throw new Error('save');
             const data = await response.json();
             if (data.completed) { leaving = true; window.location.href = resultUrl; return; }
-            seconds = Math.min(seconds, data.remainingSeconds);
+            if (!isPause && data.remainingSeconds !== undefined) seconds = Math.min(seconds, data.remainingSeconds);
+            syncRemainingSeconds();
             document.getElementById('saveStatus').textContent = 'Đã lưu câu trả lời.';
         } catch (error) {
             document.getElementById('saveStatus').textContent = 'Chưa lưu được. Kiểm tra kết nối và bấm Lưu và thoát để lưu lại.';
@@ -128,10 +178,10 @@ function saveAnswers() {
 }
 // Chọn đáp án lưu ngay; gõ bài Viết debounce 1 giây và có lưu định kỳ 15 giây.
 // Trước khi nộp/dừng chờ yêu cầu đang lưu xong; pagehide gửi beacon để lưu/dừng nếu rời trang ngoài luồng chuẩn.
-form.addEventListener('change', saveAnswers);
+form.addEventListener('change', () => saveAnswers(false));
 let typing;
-form.addEventListener('input', () => { clearTimeout(typing); typing = setTimeout(saveAnswers, 1000); });
-setInterval(saveAnswers, 15000);
+form.addEventListener('input', () => { clearTimeout(typing); typing = setTimeout(() => saveAnswers(false), 1000); });
+setInterval(() => saveAnswers(false), 15000);
 form.addEventListener('submit', async event => {
     event.preventDefault();
     if (leaving) return;
@@ -156,9 +206,16 @@ function closeSubmitNotice() {
     const box = document.getElementById('examSubmitNotice');
     box.classList.remove('show'); box.setAttribute('aria-hidden', 'true');
 }
+function showVipTeacherNotice() {
+    document.getElementById('vipTeacherNoticeModal').classList.add('show');
+}
+function closeVipTeacherNotice() {
+    document.getElementById('vipTeacherNoticeModal').classList.remove('show');
+}
 async function finishExam(action) {
     if (leaving) return;
     leaving = true; clearTimeout(typing); closeSubmitNotice();
+    syncRemainingSeconds();
     if (form.dataset.timedOut !== 'true') await saving.catch(() => {});
     form.action = action;
     HTMLFormElement.prototype.submit.call(form);
@@ -169,12 +226,20 @@ document.getElementById('examConfirmSubmit')?.addEventListener('click', () => fi
 // Đồng hồ hiển thị giảm mỗi giây; hết giờ gắn timedOut để bỏ modal và nộp ngay. Server vẫn là nơi quyết định thời gian thật.
 function tick() {
     document.getElementById('timer').textContent = Math.floor(seconds / 60).toString().padStart(2, '0') + ':' + (seconds % 60).toString().padStart(2, '0');
+    syncRemainingSeconds();
     if (seconds <= 0 && !leaving) { form.dataset.timedOut = 'true'; form.requestSubmit(); }
     seconds = Math.max(0, seconds - 1);
 }
 tick(); setInterval(tick, 1000);
 window.addEventListener('pagehide', () => {
+    syncRemainingSeconds();
     if (!leaving) navigator.sendBeacon(saveUrl + '?pause=true', new URLSearchParams(new FormData(form)));
+});
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && !leaving) {
+        syncRemainingSeconds();
+        navigator.sendBeacon(saveUrl + '?pause=true', new URLSearchParams(new FormData(form)));
+    }
 });
 </script>
 <!-- Modal và Script Báo lỗi câu hỏi -->

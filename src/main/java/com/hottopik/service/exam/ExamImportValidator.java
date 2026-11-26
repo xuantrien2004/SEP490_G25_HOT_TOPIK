@@ -22,7 +22,14 @@ public final class ExamImportValidator {
 
     public record Context(Track track, boolean fullExam, boolean assessment,
                           Map<String, Long> mediaSizes,
-                          Function<Set<String>, Map<String, String>> existingHashLookup) {
+                          Function<Set<String>, Map<String, String>> existingHashLookup,
+                          ParsedWorkbook existingSystemWb) {
+
+        public Context(Track track, boolean fullExam, boolean assessment,
+                       Map<String, Long> mediaSizes,
+                       Function<Set<String>, Map<String, String>> existingHashLookup) {
+            this(track, fullExam, assessment, mediaSizes, existingHashLookup, null);
+        }
     }
 
     public record Result(List<ImportIssue> issues) {
@@ -94,14 +101,33 @@ public final class ExamImportValidator {
                 continue;
             }
 
-            QuestionTypeDef type = QuestionTypeCatalog.resolve(ctx.track(), q.skill, q.no).orElseThrow();
-            q.resolvedType = type.code();
-            if (q.typeCode != null && !q.typeCode.equals(type.code())) {
-                issues.add(ImportIssue.error(S, q.row, skillName, q.no,
-                        "type_code \"" + q.typeCode + "\" không khớp mã tự gán " + type.code() + " (" + type.name() + ")."));
+            QuestionTypeDef defaultType = QuestionTypeCatalog.resolve(ctx.track(), q.skill, q.no).orElse(null);
+            QuestionTypeDef appliedType = defaultType;
+
+            if (!blank(q.typeCode)) {
+                Optional<QuestionTypeDef> customType = QuestionTypeCatalog.byCode(q.typeCode);
+                if (customType.isPresent() && customType.get().track() == ctx.track() && customType.get().skill() == q.skill) {
+                    q.resolvedType = customType.get().code();
+                    appliedType = customType.get();
+                } else {
+                    issues.add(ImportIssue.error(S, q.row, skillName, q.no,
+                            "Mã dạng câu \"" + q.typeCode + "\" không hợp lệ cho " + ctx.track().getLabel()
+                                    + " phần " + q.skill.getLabel() + ". Hãy tra cứu tại sheet DANG_CAU."));
+                    q.resolvedType = defaultType != null ? defaultType.code() : null;
+                }
+            } else {
+                // Để trống: tự động lấy dạng mặc định theo vị trí câu
+                if (defaultType != null) {
+                    q.resolvedType = defaultType.code();
+                } else {
+                    issues.add(ImportIssue.error(S, q.row, skillName, q.no,
+                            "Không xác định được dạng câu mặc định cho câu " + q.no + "."));
+                }
             }
 
-            validateRowContent(q, type, ctx, issues);
+            if (appliedType != null) {
+                validateRowContent(q, appliedType, ctx, issues);
+            }
         }
 
         validateGroups(wb, ctx, issues);
@@ -216,8 +242,15 @@ public final class ExamImportValidator {
                 if (type.skill() == Skill.LISTENING) {
                     Set<String> audios = present.stream().map(q -> q.audioFile).filter(a -> !blank(a))
                             .map(String::trim).collect(Collectors.toCollection(LinkedHashSet::new));
+                    if (audios.isEmpty() && ctx.mediaSizes() != null) {
+                        String matched = findMatchingAudio(ctx.mediaSizes().keySet(), block.get(0));
+                        if (matched != null) {
+                            audios.add(matched);
+                            for (QuestionRow q : present) q.audioFile = matched;
+                        }
+                    }
                     if (audios.isEmpty()) {
-                        issues.add(ImportIssue.error(S, head.row, sk, head.no, "Câu Nghe bắt buộc có audio_file."));
+                        issues.add(ImportIssue.warning(S, head.row, sk, head.no, "Câu Nghe chưa có file âm thanh. Bạn có thể tải file mp3 ở mục tệp đính kèm."));
                     } else {
                         if (audios.size() > 1) {
                             issues.add(ImportIssue.error(S, head.row, sk, head.no,
@@ -226,7 +259,7 @@ public final class ExamImportValidator {
                         for (String a : audios) {
                             Long size = ctx.mediaSizes().get(key(a));
                             if (size == null) {
-                                issues.add(ImportIssue.error(S, head.row, sk, head.no, "Thiếu file âm thanh " + a + "."));
+                                issues.add(ImportIssue.warning(S, head.row, sk, head.no, "Chưa tìm thấy file âm thanh " + a + " trong danh sách tệp đã tải."));
                             } else if (size > LARGE_AUDIO_BYTES) {
                                 issues.add(ImportIssue.warning(S, head.row, sk, head.no,
                                         "File âm thanh " + a + " lớn bất thường (" + (size / 1024 / 1024) + " MB, có thể dài hơn 4 phút)."));
@@ -249,29 +282,210 @@ public final class ExamImportValidator {
     }
 
     private static void warnDuplicateContent(ParsedWorkbook wb, Context ctx, List<ImportIssue> issues) {
-        final String S = ParsedWorkbook.SHEET_QUESTIONS;
-        Map<String, QuestionRow> hashToRow = new LinkedHashMap<>();
+        // 1. Kiểm tra trùng lặp giữa các câu trong file Excel (MCQ: trùng đoạn văn/lời thoại và 4 phương án, hoặc trùng đề bài và 4 phương án)
+        for (int i = 0; i < wb.questions.size(); i++) {
+            QuestionRow q1 = wb.questions.get(i);
+            if (q1.skill == null || q1.no == null) continue;
+            for (int j = i + 1; j < wb.questions.size(); j++) {
+                QuestionRow q2 = wb.questions.get(j);
+                if (q2.skill == null || q2.no == null || q1.skill != q2.skill) continue;
+
+                String sname = q2.skill == Skill.LISTENING ? "NGHE" : "DOC";
+                String p1 = normalize(q1.passageKo != null ? q1.passageKo : q1.scriptKo);
+                String p2 = normalize(q2.passageKo != null ? q2.passageKo : q2.scriptKo);
+                boolean hasPassage = !p1.isEmpty();
+                boolean samePassage = hasPassage && p1.equals(p2);
+
+                boolean optBlank1 = isAllOptionsBlank(q1.options);
+                boolean optBlank2 = isAllOptionsBlank(q2.options);
+                boolean sameOptions = !optBlank1 && !optBlank2 && areOptionsEqual(q1.options, q2.options);
+
+                boolean sameAnswer = q1.answer != null && q1.answer.equals(q2.answer);
+                String pr1 = normalize(q1.promptKo);
+                String pr2 = normalize(q2.promptKo);
+                boolean hasPrompt = !pr1.isEmpty();
+                boolean samePrompt = hasPrompt && pr1.equals(pr2);
+
+                if (samePassage && sameOptions) {
+                    String reason = "Trùng đoạn văn/ngữ liệu và 4 phương án" + (sameAnswer ? " (cùng đáp án đúng " + q1.answer + ")" : "");
+                    issues.add(ImportIssue.warning(sname, q2.row, q2.skill.name(), q2.no,
+                            "Trùng câu với Câu " + q1.no + " (dòng " + q1.row + "): " + reason + "."));
+                } else if (!hasPassage && samePrompt && sameOptions) {
+                    String reason = "Trùng câu hỏi/đề bài và 4 phương án" + (sameAnswer ? " (cùng đáp án đúng " + q1.answer + ")" : "");
+                    issues.add(ImportIssue.warning(sname, q2.row, q2.skill.name(), q2.no,
+                            "Trùng câu với Câu " + q1.no + " (dòng " + q1.row + "): " + reason + "."));
+                }
+            }
+        }
+
+        // 2. Kiểm tra trùng lặp câu Viết trong file Excel
+        for (int i = 0; i < wb.writings.size(); i++) {
+            WritingRow w1 = wb.writings.get(i);
+            if (w1.no == null) continue;
+            for (int j = i + 1; j < wb.writings.size(); j++) {
+                WritingRow w2 = wb.writings.get(j);
+                if (w2.no == null) continue;
+                String pr1 = normalize(w1.promptKo);
+                String pr2 = normalize(w2.promptKo);
+                String pass1 = normalize(w1.passageKo);
+                String pass2 = normalize(w2.passageKo);
+                if (!pr1.isEmpty() && pr1.equals(pr2) && pass1.equals(pass2)) {
+                    issues.add(ImportIssue.warning(ParsedWorkbook.SHEET_WRITING, w2.row, "WRITING", w2.no,
+                            "Trùng câu với Câu " + w1.no + " (dòng " + w1.row + "): Trùng đề bài và đoạn văn."));
+                }
+            }
+        }
+
+        // 3. Kiểm tra đối chiếu với dữ liệu hiện có trên hệ thống của nguồn đề này
+        if (ctx.existingSystemWb() != null) {
+            checkDuplicateWithExistingSystem(wb, ctx.existingSystemWb(), issues);
+        }
+
+        // 4. Kiểm tra trùng nội dung với câu đã có trong ngân hàng
         Map<QuestionRow, String> rowHash = new HashMap<>();
         for (QuestionRow q : wb.questions) {
-            if (q.resolvedType == null || blank(q.promptKo)) continue;
-            String h = contentHash(q);
-            rowHash.put(q, h);
-            QuestionRow prev = hashToRow.putIfAbsent(h, q);
-            if (prev != null) {
-                issues.add(ImportIssue.warning(S, q.row, q.skill.name(), q.no,
-                        "Nội dung trùng với dòng " + prev.row + " trong cùng file."));
+            if (q.resolvedType == null || (blank(q.promptKo) && blank(q.passageKo))) continue;
+            rowHash.put(q, contentHash(q));
+        }
+        if (!rowHash.isEmpty() && ctx.existingHashLookup() != null) {
+            Map<String, String> existing = ctx.existingHashLookup().apply(new HashSet<>(rowHash.values()));
+            for (Map.Entry<QuestionRow, String> e : rowHash.entrySet()) {
+                String code = existing.get(e.getValue());
+                if (code != null) {
+                    QuestionRow q = e.getKey();
+                    String sname = q.skill == Skill.LISTENING ? "NGHE" : (q.skill == Skill.READING ? "DOC" : ParsedWorkbook.SHEET_QUESTIONS);
+                    issues.add(ImportIssue.warning(sname, q.row, q.skill.name(), q.no,
+                            "Câu trùng nội dung với câu " + code + " đã có trong ngân hàng."));
+                }
             }
         }
-        if (rowHash.isEmpty() || ctx.existingHashLookup() == null) return;
-        Map<String, String> existing = ctx.existingHashLookup().apply(new HashSet<>(rowHash.values()));
-        for (Map.Entry<QuestionRow, String> e : rowHash.entrySet()) {
-            String code = existing.get(e.getValue());
-            if (code != null) {
-                QuestionRow q = e.getKey();
-                issues.add(ImportIssue.warning(S, q.row, q.skill.name(), q.no,
-                        "Câu trùng nội dung với câu " + code + " đã có trong ngân hàng."));
+    }
+
+    private static void checkDuplicateWithExistingSystem(ParsedWorkbook wb, ParsedWorkbook existingWb, List<ImportIssue> issues) {
+        if (existingWb == null) return;
+
+        // 1. Kiểm tra trắc nghiệm (MCQ)
+        if (wb.questions != null && existingWb.questions != null && !existingWb.questions.isEmpty()) {
+            Map<String, QuestionRow> existingBySlot = new HashMap<>();
+            for (QuestionRow eq : existingWb.questions) {
+                if (eq.skill != null && eq.no != null) {
+                    existingBySlot.put(eq.skill.name() + "#" + eq.no, eq);
+                }
+            }
+
+            for (QuestionRow q : wb.questions) {
+                if (q.skill == null || q.no == null) continue;
+                String sname = q.skill == Skill.LISTENING ? "NGHE" : (q.skill == Skill.READING ? "DOC" : ParsedWorkbook.SHEET_QUESTIONS);
+                String slotKey = q.skill.name() + "#" + q.no;
+
+                QuestionRow sameSlot = existingBySlot.get(slotKey);
+                if (sameSlot != null) {
+                    boolean existHasContent = !blank(sameSlot.promptKo) || !blank(sameSlot.passageKo)
+                            || !blank(sameSlot.scriptKo) || !isAllOptionsBlank(sameSlot.options);
+                    boolean incomingHasContent = !blank(q.promptKo) || !blank(q.passageKo)
+                            || !blank(q.scriptKo) || !isAllOptionsBlank(q.options);
+
+                    if (existHasContent && incomingHasContent) {
+                        String h1 = contentHash(q);
+                        String h2 = contentHash(sameSlot);
+                        boolean sameContent = h1.equals(h2);
+                        boolean sameAnswer = Objects.equals(q.answer, sameSlot.answer);
+
+                        if (sameContent && sameAnswer) {
+                            String ansStr = q.answer != null ? ("đáp án " + q.answer) : "";
+                            issues.add(ImportIssue.warning(sname, q.row, q.skill.name(), q.no,
+                                    "Trùng câu với Câu " + q.no + " đã có trên hệ thống (nội dung và " + ansStr + " trùng khớp hoàn toàn, nếu nhập sẽ ghi đè dữ liệu cũ)."));
+                        } else if (sameContent) {
+                            issues.add(ImportIssue.warning(sname, q.row, q.skill.name(), q.no,
+                                    "Trùng câu với Câu " + q.no + " đã có trên hệ thống (nội dung trùng khớp nhưng khác đáp án: file là " + q.answer + ", hệ thống là " + sameSlot.answer + ", nếu nhập sẽ ghi đè dữ liệu cũ)."));
+                        } else {
+                            issues.add(ImportIssue.warning(sname, q.row, q.skill.name(), q.no,
+                                    "Trùng số câu: Câu " + q.no + " đã có nội dung trên hệ thống (nội dung khác, nếu xác nhận nhập sẽ ghi đè lên câu hiện có)."));
+                        }
+                    }
+                } else {
+                    boolean incomingHasContent = !blank(q.promptKo) || !blank(q.passageKo)
+                            || !blank(q.scriptKo) || !isAllOptionsBlank(q.options);
+                    if (incomingHasContent) {
+                        String h1 = contentHash(q);
+                        for (QuestionRow eq : existingWb.questions) {
+                            if (eq.skill != q.skill || eq.no == null) continue;
+                            boolean eqHasContent = !blank(eq.promptKo) || !blank(eq.passageKo)
+                                    || !blank(eq.scriptKo) || !isAllOptionsBlank(eq.options);
+                            if (eqHasContent && h1.equals(contentHash(eq))) {
+                                issues.add(ImportIssue.warning(sname, q.row, q.skill.name(), q.no,
+                                        "Trùng nội dung với Câu " + eq.no + " đã có trên hệ thống (trùng ngữ liệu và các phương án)."));
+                                break;
+                            }
+                        }
+                    }
+                }
             }
         }
+
+        // 2. Kiểm tra câu tự luận Viết
+        if (wb.writings != null && existingWb.writings != null && !existingWb.writings.isEmpty()) {
+            Map<Integer, WritingRow> existingWByNo = new HashMap<>();
+            for (WritingRow ew : existingWb.writings) {
+                if (ew.no != null) existingWByNo.put(ew.no, ew);
+            }
+
+            for (WritingRow w : wb.writings) {
+                if (w.no == null) continue;
+                WritingRow sameNo = existingWByNo.get(w.no);
+                if (sameNo != null) {
+                    boolean existWHasContent = !blank(sameNo.promptKo) || !blank(sameNo.passageKo) || !blank(sameNo.modelAnswer);
+                    boolean incomingWHasContent = !blank(w.promptKo) || !blank(w.passageKo) || !blank(w.modelAnswer);
+
+                    if (existWHasContent && incomingWHasContent) {
+                        String pr1 = normalize(w.promptKo);
+                        String pr2 = normalize(sameNo.promptKo);
+                        String pass1 = normalize(w.passageKo);
+                        String pass2 = normalize(sameNo.passageKo);
+                        if (pr1.equals(pr2) && pass1.equals(pass2)) {
+                            issues.add(ImportIssue.warning(ParsedWorkbook.SHEET_WRITING, w.row, "WRITING", w.no,
+                                    "Trùng câu với Câu " + w.no + " đã có trên hệ thống (đề bài và đoạn văn trùng khớp, nếu nhập sẽ ghi đè dữ liệu cũ)."));
+                        } else {
+                            issues.add(ImportIssue.warning(ParsedWorkbook.SHEET_WRITING, w.row, "WRITING", w.no,
+                                    "Trùng số câu: Câu " + w.no + " đã có nội dung trên hệ thống (nội dung khác, nếu xác nhận nhập sẽ ghi đè lên câu hiện có)."));
+                        }
+                    }
+                } else {
+                    boolean incomingWHasContent = !blank(w.promptKo) || !blank(w.passageKo) || !blank(w.modelAnswer);
+                    if (incomingWHasContent) {
+                        String pr1 = normalize(w.promptKo);
+                        String pass1 = normalize(w.passageKo);
+                        for (WritingRow ew : existingWb.writings) {
+                            if (ew.no == null) continue;
+                            boolean ewHasContent = !blank(ew.promptKo) || !blank(ew.passageKo) || !blank(ew.modelAnswer);
+                            String pr2 = normalize(ew.promptKo);
+                            String pass2 = normalize(ew.passageKo);
+                            if (ewHasContent && !pr1.isEmpty() && pr1.equals(pr2) && pass1.equals(pass2)) {
+                                issues.add(ImportIssue.warning(ParsedWorkbook.SHEET_WRITING, w.row, "WRITING", w.no,
+                                        "Trùng nội dung với Câu " + ew.no + " đã có trên hệ thống (trùng đề bài và đoạn văn)."));
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean isAllOptionsBlank(String[] opts) {
+        if (opts == null) return true;
+        for (String o : opts) {
+            if (!blank(o)) return false;
+        }
+        return true;
+    }
+
+    private static boolean areOptionsEqual(String[] o1, String[] o2) {
+        if (o1 == null || o2 == null || o1.length != 4 || o2.length != 4) return false;
+        for (int k = 0; k < 4; k++) {
+            if (!normalize(o1[k]).equals(normalize(o2[k]))) return false;
+        }
+        return true;
     }
 
     /** Nguồn khai là đề đầy đủ: mọi dạng phải đủ số câu theo cấu trúc TOPIK. */
@@ -313,12 +527,18 @@ public final class ExamImportValidator {
                 issues.add(ImportIssue.error(S, w.row, "WRITING", w.no, "Trùng câu " + w.no + " với dòng " + prev.row + "."));
                 continue;
             }
+            if ((w.no == 51 || w.no == 52) && blank(w.modelAnswer) && (!blank(w.keys1) || !blank(w.keys2))) {
+                String k1 = w.keys1 != null ? w.keys1.split("\\|")[0].trim() : "";
+                String k2 = w.keys2 != null ? w.keys2.split("\\|")[0].trim() : "";
+                w.modelAnswer = "㉠ " + k1 + " ㉡ " + k2;
+            }
             if (w.no <= 52 && blank(w.modelAnswer)) issues.add(ImportIssue.error(S, w.row, "WRITING", w.no, "Thiếu bài mẫu / đáp án chuẩn (model_answer)."));
             if (w.no == 51 || w.no == 52) {
                 if (blank(w.keys1) || blank(w.keys2)) {
                     issues.add(ImportIssue.error(S, w.row, "WRITING", w.no, "Câu " + w.no + " cần đáp án chấp nhận cho cả ㉠ (keys_1) và ㉡ (keys_2)."));
                 }
-                if (!blank(w.promptKo) && (!w.promptKo.contains("㉠") || !w.promptKo.contains("㉡"))) {
+                String combined = (w.promptKo == null ? "" : w.promptKo) + " " + (w.passageKo == null ? "" : w.passageKo);
+                if (!combined.contains("㉠") || !combined.contains("㉡")) {
                     issues.add(ImportIssue.warning(S, w.row, "WRITING", w.no, "Đề câu " + w.no + " nên có hai chỗ trống ( ㉠ ) và ( ㉡ )."));
                 }
             }
@@ -394,13 +614,40 @@ public final class ExamImportValidator {
     public static String contentHash(String prompt, String passage, String script, String[] options) {
         StringBuilder sb = new StringBuilder(normalize(prompt)).append('|').append(normalize(passage))
                 .append('|').append(normalize(script));
-        for (String o : options) sb.append('|').append(normalize(o));
+        if (options != null) {
+            for (String o : options) sb.append('|').append(normalize(o));
+        }
         try {
             byte[] d = MessageDigest.getInstance("SHA-256").digest(sb.toString().getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(d);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    private static String findMatchingAudio(Set<String> mediaKeys, int no) {
+        if (mediaKeys == null || mediaKeys.isEmpty()) return null;
+        List<String> candidates = List.of(
+                "listening_" + no + ".mp3",
+                "listening_" + String.format("%02d", no) + ".mp3",
+                "l" + no + ".mp3",
+                "l" + String.format("%02d", no) + ".mp3",
+                no + ".mp3",
+                String.format("%02d", no) + ".mp3",
+                "cau_" + no + ".mp3",
+                "q" + no + ".mp3"
+        );
+        for (String cand : candidates) {
+            String k = key(cand);
+            if (mediaKeys.contains(k)) return cand;
+        }
+        for (String k : mediaKeys) {
+            if (k.endsWith(".mp3") || !k.contains(".")) {
+                List<Integer> extracted = ExamImportService.extractQuestionNumbers(k);
+                if (extracted.contains(no)) return k;
+            }
+        }
+        return null;
     }
 
     private static boolean blank(String s) {

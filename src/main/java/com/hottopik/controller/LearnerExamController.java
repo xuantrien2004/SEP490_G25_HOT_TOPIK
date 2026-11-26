@@ -19,6 +19,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -62,9 +63,27 @@ public class LearnerExamController {
         }
     }
 
-    /*
-     * Nạp bài và thời gian còn lại từ server, chuyển MC sang player chung; phần Viết trong paper vẫn dùng form riêng.
-     */
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: THI THỬ FULL MOCK TÁCH CA ĐỘC LẬP (PLAY FULL MOCK EXAM - FUNC_EXAM_02)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Học viên chọn đề thi trên Thư viện đề (exam/index.html) -> Bấm "Bắt đầu thi thử".
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: GET /lam-bai/{id}
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.LearnerExamController.play()
+     *    - Triệu gọi Service: com.hottopik.service.exam.LearnerExamService.play(userId, id):
+     *      + Nạp Attempt hiện tại, xác định kỹ năng ca thi hiện tại (currentSkill: LISTENING / READING / WRITING).
+     *      + Lấy số giây còn lại riêng của ca thi đó (listeningSeconds, readingSeconds, writingSeconds).
+     *      + Gom nhóm câu hỏi dùng chung đoạn văn / audio theo khối (Grouped Questions) và câu đơn (Single Questions).
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.exam_attempts (SELECT theo id và user_id).
+     *    - Bảng dbo.exam_items, dbo.questions, dbo.question_groups (SELECT nội dung câu hỏi ca hiện tại).
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
+     *    - Trả về View: "exam/play" (src/main/resources/templates/exam/play.html)
+     *    - Giao diện hiển thị: Đồng hồ đếm ngược của kỹ năng hiện tại, thẻ câu hỏi kèm audio/đoạn văn,
+     *      sidebar Phiếu câu hỏi highlight câu đang làm qua IntersectionObserver.
+     * ========================================================================================= */
     @GetMapping({"/lam-bai/{id}", "/exam/attempt/{id}"})
     public String play(@PathVariable Long id, HttpSession session, Model model) {
         UserDTO user = AuthHelper.getLoggedInUser(session);
@@ -84,9 +103,10 @@ public class LearnerExamController {
      */
     @PostMapping("/exam/attempt/{id}/save")
     @ResponseBody
-    public LearnerExamService.SaveResult save(@PathVariable Long id, @RequestParam Map<String, String> answers,
+    public LearnerExamService.SaveResult save(@PathVariable Long id,
+                                              jakarta.servlet.http.HttpServletRequest request,
                                               @RequestParam(defaultValue = "false") boolean pause, HttpSession session) {
-        return service.save(userId(session), id, answers, pause, false);
+        return service.save(userId(session), id, extractAnswers(request), pause, false);
     }
 
     @PostMapping("/exam/attempt/{id}/check/{key}")
@@ -96,33 +116,77 @@ public class LearnerExamController {
         return service.check(userId(session), id, key, selected);
     }
 
-    /*
-     * Phân biệt Lưu và thoát với Nộp bài qua URL; cùng service.save nhưng pause/submit khác nhau, nên dừng không đồng nghĩa đã nộp.
-     */
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: NỘP CA THI / CHUYỂN CA / LƯU VÀ THOÁT ĐỀ THI (FINISH / PAUSE CA - FUNC_EXAM_04)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Học viên làm bài tại exam/play.html, bấm nút:
+     *      + "Lưu và thoát": Form POST gửi đến /exam/attempt/{id}/pause.
+     *      + "Nộp phần thi hiện tại": Form POST gửi đến /exam/attempt/{id}/submit.
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /exam/attempt/{id}/pause hoặc POST /exam/attempt/{id}/submit
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.LearnerExamController.finish()
+     *    - Triệu gọi Service: com.hottopik.service.exam.LearnerExamService.save(userId, id, answers, pause, submit):
+     *      + Lưu các đáp án ca hiện tại vào answers_json.
+     *      + Nếu là submit: Xác định ca tiếp theo qua nextSkill().
+     *        * Nếu còn ca thi: Cập nhật currentSkill = nextSkill, remainingSeconds = thời gian ca mới, completed = false.
+     *        * Nếu là ca cuối cùng: completed = true, gọi finish(), tính điểm tổng toàn bài thi.
+     *      + Nếu là pause: Lưu thời gian thực tế còn lại (remainingSeconds), giữ nguyên ca đang làm.
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.exam_attempts (UPDATE current_skill, remaining_seconds, answers_json, completed_at).
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
+     *    - Nếu chuyển ca: Chuyển hướng đến /lam-bai/{id} với đồng hồ đếm ngược và câu hỏi của ca tiếp theo.
+     *    - Nếu nộp toàn bộ: redirect:/ket-qua/{id} (Xem bảng điểm kết quả tổng hợp).
+     * ========================================================================================= */
     @PostMapping({"/exam/attempt/{id}/pause", "/exam/attempt/{id}/submit"})
-    public String finish(@PathVariable Long id, @RequestParam Map<String, String> answers, HttpSession session,
-                         jakarta.servlet.http.HttpServletRequest request) {
+    public String finish(@PathVariable Long id,
+                         HttpSession session,
+                         jakarta.servlet.http.HttpServletRequest request, RedirectAttributes flash) {
         if (AuthHelper.getLoggedInUser(session) == null) return "redirect:/login";
         boolean submit = request.getRequestURI().endsWith("/submit");
-        LearnerExamService.SaveResult result = service.save(userId(session), id, answers, !submit, submit);
+        LearnerExamService.SaveResult result = service.save(userId(session), id, extractAnswers(request), !submit, submit);
         if (result.completed()) return "redirect:/ket-qua/" + id;
+        if (result.noProgress()) {
+            flash.addFlashAttribute("examMessage", "Bạn chưa làm câu nào nên tiến độ sẽ không được lưu.");
+        } else if (submit && !result.completed()) {
+            flash.addFlashAttribute("examMessage", "Đã hoàn thành phần thi! Đang chuyển sang kỹ năng tiếp theo.");
+        }
         return "redirect:" + result.backUrl();
     }
 
     @PostMapping({"/exam/attempt/{id}/submit-teacher", "/exam/attempt/{id}/send-teacher"})
-    public String sendTeacher(@PathVariable Long id, @RequestParam Map<String, String> answers, HttpSession session,
+    public String sendTeacher(@PathVariable Long id,
+                              HttpSession session,
                               jakarta.servlet.http.HttpServletRequest request, RedirectAttributes flash) {
         UserDTO user = AuthHelper.getLoggedInUser(session);
         if (user == null) return "redirect:/login";
         boolean submit = request.getRequestURI().endsWith("/submit-teacher");
         try {
-            service.sendWritingToTeacher(user, id, answers, submit);
+            service.sendWritingToTeacher(user, id, extractAnswers(request), submit);
             flash.addFlashAttribute("successMessage", "Đã gửi bài viết cho Giáo viên. Bạn sẽ nhận thông báo khi có kết quả.");
             return "redirect:/ket-qua/" + id;
         } catch (ExamDomainException | IllegalArgumentException ex) {
             flash.addFlashAttribute("errorMessage", ex.getMessage());
             return "redirect:" + (submit ? "/lam-bai/" : "/ket-qua/") + id;
         }
+    }
+
+    private static Map<String, String> extractAnswers(jakarta.servlet.http.HttpServletRequest request) {
+        Map<String, String> map = new LinkedHashMap<>();
+        request.getParameterMap().forEach((k, vals) -> {
+            if (vals != null && vals.length > 0) {
+                String chosen = "";
+                for (String v : vals) {
+                    if (v != null && !v.isBlank()) {
+                        chosen = v;
+                        break;
+                    }
+                }
+                map.put(k, chosen);
+            }
+        });
+        return map;
     }
 
     /*
@@ -144,7 +208,28 @@ public class LearnerExamController {
         }
         return "redirect:/ket-qua/" + id;
     }
-@GetMapping({"/ket-qua/{id}", "/exam/attempt/{id}/result"})
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: XEM KẾT QUẢ THI THỬ & BẢNG ĐIỂM CHUẨN TOPIK (EXAM RESULT - FUNC_EXAM_05)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Tự động chuyển hướng đến sau khi nộp ca thi cuối cùng hoặc học viên click từ Lịch sử thi (progress/history.html).
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: GET /ket-qua/{id}
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.LearnerExamController.result()
+     *    - Triệu gọi Service:
+     *      + com.hottopik.service.exam.LearnerExamService.result(userId, id): Nạp dữ liệu bài thi.
+     *      + com.hottopik.service.exam.ExamScoreCalculator.calculate(): Tính điểm chuẩn TOPIK I (200đ) / TOPIK II (300đ),
+     *        phân rã điểm thành phần từng kỹ năng (Nghe, Đọc, Viết) và xác định Cấp độ TOPIK đạt được.
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.exam_attempts (SELECT lượt thi đã hoàn thành).
+     *    - Bảng dbo.exams, dbo.exam_items, dbo.questions (SELECT nội dung câu hỏi và đáp án chuẩn).
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
+     *    - Trả về View: "exam/result" (src/main/resources/templates/exam/result.html)
+     *    - Giao diện hiển thị: Bảng điểm chuẩn, thanh tab lọc kỹ năng (.rv-skill-tabs: Nghe, Đọc, Viết, Tất cả),
+     *      xem lại giải thích chi tiết từng câu và nút "Gửi bài viết cho Giáo viên" (nếu là bài thi Viết).
+     * ========================================================================================= */
+    @GetMapping({"/ket-qua/{id}", "/exam/attempt/{id}/result"})
     public String result(@PathVariable Long id, HttpSession session, Model model) {
         UserDTO user = AuthHelper.getLoggedInUser(session);
         if (user == null) return "redirect:/login";
@@ -171,13 +256,23 @@ public class LearnerExamController {
         return "exam/result";
     }
 
-    @GetMapping("/exam/media/{sourceId}/{filename:.+}")
-    public void media(@PathVariable Long sourceId, @PathVariable String filename,
+    @GetMapping({"/exam/media/{sourceId}/{filename:.+}", "/exam/media/{sourceId}/**"})
+    public void media(@PathVariable Long sourceId,
+                      @PathVariable(required = false) String filename,
                       @RequestHeader(value = "Range", required = false) String range,
+                      jakarta.servlet.http.HttpServletRequest request,
                       HttpSession session, HttpServletResponse response) throws IOException {
         if (!service.canReadMedia(userId(session), sourceId)) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
+        }
+        if (filename == null || filename.isBlank()) {
+            String uri = request.getRequestURI();
+            String prefix = "/exam/media/" + sourceId + "/";
+            int idx = uri.indexOf(prefix);
+            if (idx >= 0) {
+                filename = uri.substring(idx + prefix.length());
+            }
         }
         Optional<MediaAsset> asset = imports.findMedia(sourceId, filename);
         if (asset.isEmpty()) {
@@ -219,6 +314,10 @@ public class LearnerExamController {
         model.addAttribute("activePage", "exam");
         model.addAttribute("sections", QuestionTypeCatalog.sections(paper.track()));
         model.addAttribute("backUrl", back(paper));
+        Exam exam = paper.attempt() != null ? paper.attempt().getExam() : null;
+        java.util.List<Skill> availableSkills = LearnerExamService.availableSkills(exam);
+        model.addAttribute("availableSkills", availableSkills);
+        model.addAttribute("isMultiSkill", availableSkills.size() > 1 && paper.kind() == ExamKind.FULL);
     }
 
     private static String back(LearnerExamService.Paper paper) {

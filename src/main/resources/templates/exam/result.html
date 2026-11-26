@@ -153,7 +153,14 @@
                 <button type="submit" class="btn btn-outline-success">Gửi Giáo viên chấm</button>
                 <span class="small text-muted ms-2">Chỉ gửi những câu Viết đã có nội dung. Giáo viên sẽ thông báo khi chấm xong.</span>
             </form>
-            <p th:unless="${currentUser.vip}" class="small mb-0">Muốn Giáo viên chấm bài, hãy <a th:href="@{/vip}">đăng ký VIP</a>.</p>
+            <div th:unless="${currentUser.vip}">
+                <span onclick="showVipTeacherNotice()" style="display: inline-block; cursor: pointer;" title="Đặc quyền dành riêng cho học viên VIP">
+                    <button type="button" class="btn btn-secondary disabled" disabled style="pointer-events: none; opacity: 0.75; font-weight: 700;">
+                        👑 Gửi Giáo viên chấm <span class="badge bg-warning text-dark ms-1">VIP</span>
+                    </button>
+                </span>
+                <span class="small text-muted ms-2">Đặc quyền dành riêng cho học viên VIP.</span>
+            </div>
         </div>
 
         <!-- Nút Hành động chuyển hướng -->
@@ -192,32 +199,72 @@
         <!-- ========================================== -->
         <div class="tab-pane fade show active" id="content-answers" role="tabpanel" aria-labelledby="tab-answers">
             <div class="rv-review">
+                <!-- Bộ chọn kỹ năng khi đề thi có nhiều kỹ năng (Full Mock hoặc kết hợp) -->
+                <div class="rv-skill-tabs mb-3 d-flex flex-wrap gap-2" th:if="${(scoreSummary.hasListening and scoreSummary.hasReading) or scoreSummary.hasWriting}">
+                    <button type="button" class="rv-skill-btn active" data-skill-filter="LISTENING" th:if="${scoreSummary.hasListening}">
+                        🎧 Kỹ năng Nghe (<span th:text="${scoreSummary.listenTotal}"></span> câu)
+                    </button>
+                    <button type="button" class="rv-skill-btn" th:classappend="${!scoreSummary.hasListening ? 'active' : ''}" data-skill-filter="READING" th:if="${scoreSummary.hasReading}">
+                        📖 Kỹ năng Đọc (<span th:text="${scoreSummary.readTotal}"></span> câu)
+                    </button>
+                    <button type="button" class="rv-skill-btn" th:classappend="${!scoreSummary.hasListening and !scoreSummary.hasReading ? 'active' : ''}" data-skill-filter="WRITING" th:if="${scoreSummary.hasWriting}">
+                        ✍️ Kỹ năng Viết (<span th:text="${#lists.size(paper.writing)}"></span> câu)
+                    </button>
+                    <button type="button" class="rv-skill-btn" data-skill-filter="ALL">
+                        📑 Tất cả các kỹ năng
+                    </button>
+                </div>
+
                 <!-- Bộ lọc câu đúng/sai: chỉ hiện khi có câu trắc nghiệm (không hiện cho đề thi kỹ năng Viết thuần) -->
                 <div th:if="${!#lists.isEmpty(paper.questions) and (paper.kind == null or paper.kind.name() != 'WRITING')}" th:replace="~{fragments/result-review :: toolbar}"></div>
                 <div class="rv-layout">
 
                     <!-- Sidebar điều hướng số câu: Đã lược bỏ bảng lịch sử để giao diện thoáng, dễ quan sát -->
                     <aside class="rv-side">
-                        <!-- Câu trắc nghiệm -->
-                        <div th:unless="${#lists.isEmpty(paper.questions)}" class="rv-group">
+                        <!-- Nhóm câu Nghe -->
+                        <div th:if="${scoreSummary.hasListening}" class="rv-group" data-skill-group="LISTENING">
+                            <div class="rv-side-title">🎧 Kỹ năng Nghe</div>
+                            <div class="rv-chips">
+                                <a th:each="q : ${paper.questions}" th:if="${q.skill.name() == 'LISTENING'}"
+                                   th:href="'#question-' + ${q.id}"
+                                   class="rv-chip"
+                                   th:attr="data-target=${'question-' + q.id}, data-state=${(q.selected == #strings.toString(q.answer) or creditedAnswers.containsKey(q.key)) ? 'correct' : (q.selected == null ? 'skip' : 'wrong')}, data-skill='LISTENING'"
+                                   th:text="${q.no}">1</a>
+                            </div>
+                        </div>
+
+                        <!-- Nhóm câu Đọc -->
+                        <div th:if="${scoreSummary.hasReading}" class="rv-group" data-skill-group="READING">
+                            <div class="rv-side-title">📖 Kỹ năng Đọc</div>
+                            <div class="rv-chips">
+                                <a th:each="q : ${paper.questions}" th:if="${q.skill.name() == 'READING'}"
+                                   th:href="'#question-' + ${q.id}"
+                                   class="rv-chip"
+                                   th:attr="data-target=${'question-' + q.id}, data-state=${(q.selected == #strings.toString(q.answer) or creditedAnswers.containsKey(q.key)) ? 'correct' : (q.selected == null ? 'skip' : 'wrong')}, data-skill='READING'"
+                                   th:text="${q.no}">31</a>
+                            </div>
+                        </div>
+
+                        <!-- Đề trắc nghiệm thuần khác (nếu không phân chia Nghe/Đọc) -->
+                        <div th:if="${!scoreSummary.hasListening and !scoreSummary.hasReading and !#lists.isEmpty(paper.questions)}" class="rv-group">
                             <div class="rv-side-title">Danh sách câu</div>
                             <div class="rv-chips">
                                 <a th:each="q : ${paper.questions}"
                                    th:href="'#question-' + ${q.id}"
                                    class="rv-chip"
-                                   th:attr="data-target=${'question-' + q.id}, data-state=${(q.selected == #strings.toString(q.answer) or creditedAnswers.containsKey(q.key)) ? 'correct' : (q.selected == null ? 'skip' : 'wrong')}"
+                                   th:attr="data-target=${'question-' + q.id}, data-state=${(q.selected == #strings.toString(q.answer) or creditedAnswers.containsKey(q.key)) ? 'correct' : (q.selected == null ? 'skip' : 'wrong')}, data-skill=${q.skill.name()}"
                                    th:text="${q.no}">1</a>
                             </div>
                         </div>
 
                         <!-- Câu Viết -->
-                        <div th:unless="${#lists.isEmpty(paper.writing)}" class="rv-group">
-                            <div class="rv-side-title">Câu Viết</div>
+                        <div th:unless="${#lists.isEmpty(paper.writing)}" class="rv-group" data-skill-group="WRITING">
+                            <div class="rv-side-title">✍️ Kỹ năng Viết</div>
                             <div class="rv-chips">
                                 <a th:each="q : ${paper.writing}"
                                    th:href="'#writing-' + ${q.id}"
                                    class="rv-chip"
-                                   th:attr="data-target=${'writing-' + q.id}, data-state='writing'"
+                                   th:attr="data-target=${'writing-' + q.id}, data-state='writing', data-skill='WRITING'"
                                    th:text="${q.no}">51</a>
                             </div>
                         </div>
@@ -230,7 +277,7 @@
                     <div class="rv-main">
                         <!-- Câu trắc nghiệm -->
                         <article th:each="q : ${paper.questions}" th:id="'question-' + ${q.id}" class="bg-white border rounded-4 p-4 shadow-sm rv-card"
-                                 th:attr="data-state=${(q.selected == #strings.toString(q.answer) or creditedAnswers.containsKey(q.key)) ? 'correct' : (q.selected == null ? 'skip' : 'wrong')}">
+                                 th:attr="data-state=${(q.selected == #strings.toString(q.answer) or creditedAnswers.containsKey(q.key)) ? 'correct' : (q.selected == null ? 'skip' : 'wrong')}, data-skill=${q.skill.name()}">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <div class="d-flex align-items-center gap-2">
                                     <strong th:text="${q.label}"></strong>
@@ -267,7 +314,7 @@
                         </article>
 
                         <!-- Câu Viết -->
-                        <article th:each="q : ${paper.writing}" th:id="'writing-' + ${q.id}" class="bg-white border rounded-4 p-4 shadow-sm rv-card" data-state="writing">
+                        <article th:each="q : ${paper.writing}" th:id="'writing-' + ${q.id}" class="bg-white border rounded-4 p-4 shadow-sm rv-card" data-state="writing" data-skill="WRITING">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <h3 class="h6 mb-0" th:text="${'Viết · Câu ' + q.no}"></h3>
                                 <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 rounded-3 px-2 py-1"
@@ -450,6 +497,31 @@
 
 <th:block th:replace="~{fragments/result-review :: styles}"></th:block>
 <th:block th:replace="~{fragments/result-review :: script}"></th:block>
+
+<!-- Modal Thông báo đặc quyền VIP khi nhấn nút Gửi Giáo viên chấm bị vô hiệu hóa -->
+<div id="vipTeacherNoticeModal" class="ssak-modal-overlay" style="z-index: 2200;">
+    <div class="ssak-modal" style="width: 480px; text-align: center; padding: 28px 24px;">
+        <div style="font-size: 40px; margin-bottom: 8px;">👑</div>
+        <h3 style="margin-top: 0; margin-bottom: 12px; color: #B45309; font-size: 20px;">Đặc quyền Học viên VIP</h3>
+        <p style="font-size: 14.5px; color: #374151; line-height: 1.6; margin-bottom: 22px;">
+            Gửi Giáo viên chấm là đặc quyền dành riêng cho học viên VIP. Vui lòng nâng cấp tài khoản để sử dụng tính năng này!
+        </p>
+        <div style="display: flex; justify-content: center; gap: 12px;">
+            <button type="button" class="btn-ssak-light" onclick="closeVipTeacherNotice()" style="height: 42px; padding: 0 20px;">Đóng</button>
+            <a th:href="@{/vip}" class="btn-ssak-primary" style="background: #F59E0B; color: #FFFFFF; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 22px; border-radius: 12px; font-weight: 800; border: none;">
+                👑 Nâng cấp VIP ngay
+            </a>
+        </div>
+    </div>
+</div>
+<script>
+    function showVipTeacherNotice() {
+        document.getElementById('vipTeacherNoticeModal').classList.add('show');
+    }
+    function closeVipTeacherNotice() {
+        document.getElementById('vipTeacherNoticeModal').classList.remove('show');
+    }
+</script>
 
 <!-- Modal và Script Báo lỗi câu hỏi -->
 <div th:replace="~{fragments/report-modal :: reportModal}"></div>

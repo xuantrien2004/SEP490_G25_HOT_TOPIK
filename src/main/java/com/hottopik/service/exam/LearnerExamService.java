@@ -40,7 +40,11 @@ public class LearnerExamService {
     public record Paper(ExamAttempt attempt, String title, Track track, ExamKind kind,
                         int remainingSeconds, List<QuestionView> questions, List<WritingView> writing,
                         List<ExamAttempt> history) {}
-    public record SaveResult(int remainingSeconds, boolean completed, String backUrl) {}
+    public record SaveResult(int remainingSeconds, boolean completed, String backUrl, boolean noProgress) {
+        public SaveResult(int remainingSeconds, boolean completed, String backUrl) {
+            this(remainingSeconds, completed, backUrl, false);
+        }
+    }
 
     private static final ObjectMapper JSON = new ObjectMapper();
     private final ExamRepository exams;
@@ -119,9 +123,33 @@ public class LearnerExamService {
         ExamAttempt attempt = new ExamAttempt();
         attempt.setExam(exam);
         attempt.setUserId(userId);
-        attempt.setRemainingSeconds(minutes(exam) * 60);
         attempt.setLastActiveAt(LocalDateTime.now());
         attempt.setTotal(exam.getItems().size());
+        if (exam.getKind() == ExamKind.FULL) {
+            List<Skill> avail = availableSkills(exam);
+            Skill firstSkill = avail.isEmpty() ? Skill.LISTENING : avail.get(0);
+            attempt.setCurrentSkill(firstSkill);
+            int listenSec = (exam.getListeningMinutes() > 0 ? exam.getListeningMinutes() : 60) * 60;
+            int readSec = (exam.getReadingMinutes() > 0 ? exam.getReadingMinutes() : 70) * 60;
+            int writeSec = (exam.getTrack() == Track.TOPIK_II) ? (exam.getWritingMinutes() > 0 ? exam.getWritingMinutes() : 50) * 60 : 0;
+            attempt.setListeningSeconds(listenSec);
+            attempt.setReadingSeconds(readSec);
+            attempt.setWritingSeconds(writeSec);
+            int firstSec = getSkillSeconds(attempt, firstSkill, exam);
+            attempt.setRemainingSeconds(firstSec > 0 ? firstSec : minutes(exam) * 60);
+        } else {
+            attempt.setCurrentSkill(switch (exam.getKind()) {
+                case LISTENING -> Skill.LISTENING;
+                case READING -> Skill.READING;
+                case WRITING -> Skill.WRITING;
+                default -> Skill.READING;
+            });
+            int sec = minutes(exam) * 60;
+            attempt.setRemainingSeconds(sec);
+            if (attempt.getCurrentSkill() == Skill.LISTENING) attempt.setListeningSeconds(sec);
+            else if (attempt.getCurrentSkill() == Skill.READING) attempt.setReadingSeconds(sec);
+            else if (attempt.getCurrentSkill() == Skill.WRITING) attempt.setWritingSeconds(sec);
+        }
         return attempts.save(attempt);
     }
 
@@ -131,10 +159,26 @@ public class LearnerExamService {
     public Paper play(Long userId, Long attemptId) {
         ExamAttempt attempt = owned(userId, attemptId);
         if (attempt.getCompletedAt() == null) {
-            if (!resumable(attempt)) finish(attempt);
-            else {
-                checkpoint(attempt);
+            checkpoint(attempt);
+            Exam ex = exam(attempt);
+            if (ex.getKind() == ExamKind.FULL) {
+                List<Skill> avail = availableSkills(ex);
+                if (!avail.isEmpty() && (attempt.getCurrentSkill() == null || !avail.contains(attempt.getCurrentSkill()))) {
+                    switchToSkill(attempt, avail.get(0));
+                }
+            }
+            if (attempt.getRemainingSeconds() <= 0 && ex.getKind() == ExamKind.FULL) {
+                Skill next = nextSkill(attempt);
+                if (next != null) {
+                    switchToSkill(attempt, next);
+                } else {
+                    finish(attempt);
+                }
+            } else if (!resumable(attempt)) {
+                finish(attempt);
+            } else {
                 attempt.setLastActiveAt(LocalDateTime.now());
+                attempts.saveAndFlush(attempt);
             }
         }
         return paper(attempt, false);
@@ -229,6 +273,15 @@ public class LearnerExamService {
         }
         boolean running = attempt.getLastActiveAt() != null;
         checkpoint(attempt);
+        if (submitted != null && submitted.containsKey("remainingSeconds")) {
+            try {
+                int clientSeconds = Integer.parseInt(submitted.get("remainingSeconds"));
+                if (clientSeconds >= 0 && clientSeconds <= attempt.getRemainingSeconds()) {
+                    attempt.setRemainingSeconds(clientSeconds);
+                    saveCurrentSkillSeconds(attempt);
+                }
+            } catch (Exception ignored) {}
+        }
         Map<String, String> answers = read(attempt);
         Exam exam = exam(attempt);
         Map<String,String> lockedAnswers = CheckedAnswers.read(attempt.getCheckedAnswersJson());
@@ -250,9 +303,93 @@ public class LearnerExamService {
         }
         try { attempt.setAnswersJson(JSON.writeValueAsString(answers)); }
         catch (Exception e) { throw new IllegalStateException("Không lưu được câu trả lời.", e); }
+        // Nếu Lưu và thoát mà chưa làm câu nào và chưa đánh cờ thì xóa lượt, không lưu "Đang làm dở"
+        if (pause && !submit) {
+            boolean hasAnswer = answers.values().stream().anyMatch(v -> v != null && !v.isBlank());
+            boolean hasFlag = submitted != null && submitted.keySet().stream().anyMatch(k -> k.startsWith("flag_"));
+            if (!hasAnswer && !hasFlag) {
+                Exam ex = exam(attempt);
+                String bUrl = "/exam?track=" + (ex.getTrack() == Track.TOPIK_I ? "I" : "II")
+                        + "&kind=" + ex.getKind().name().toLowerCase(Locale.ROOT);
+                attempts.delete(attempt);
+                return new SaveResult(0, false, bUrl, true);
+            }
+        }
         attempt.setLastActiveAt(!pause && running ? LocalDateTime.now() : null);
-        if (submit) finish(attempt);
+        if (submit) {
+            Exam ex = exam(attempt);
+            if (ex.getKind() == ExamKind.FULL) {
+                Skill next = nextSkill(attempt);
+                if (next != null) {
+                    switchToSkill(attempt, next);
+                    return new SaveResult(attempt.getRemainingSeconds(), false, "/lam-bai/" + attempt.getId(), false);
+                }
+            }
+            finish(attempt);
+            return saved(attempt);
+        } else {
+            Exam ex = exam(attempt);
+            if (!pause && attempt.getRemainingSeconds() <= 0 && ex.getKind() == ExamKind.FULL) {
+                Skill next = nextSkill(attempt);
+                if (next != null) {
+                    switchToSkill(attempt, next);
+                    return new SaveResult(attempt.getRemainingSeconds(), false, "/lam-bai/" + attempt.getId(), false);
+                } else {
+                    finish(attempt);
+                    return saved(attempt);
+                }
+            }
+            attempts.saveAndFlush(attempt);
+        }
         return saved(attempt);
+    }
+
+    public Skill nextSkill(ExamAttempt attempt) {
+        Exam exam = exam(attempt);
+        if (exam.getKind() != ExamKind.FULL) return null;
+        List<Skill> avail = availableSkills(exam);
+        if (avail.size() <= 1) return null;
+        Skill current = attempt.getCurrentSkill();
+        if (current == null) return avail.get(0);
+        int idx = avail.indexOf(current);
+        if (idx >= 0 && idx + 1 < avail.size()) {
+            return avail.get(idx + 1);
+        }
+        return null;
+    }
+
+    private void switchToSkill(ExamAttempt attempt, Skill next) {
+        Exam exam = exam(attempt);
+        saveCurrentSkillSeconds(attempt);
+        attempt.setCurrentSkill(next);
+        int nextSec = getSkillSeconds(attempt, next, exam);
+        attempt.setRemainingSeconds(nextSec);
+        saveCurrentSkillSeconds(attempt);
+        attempt.setLastActiveAt(LocalDateTime.now());
+        attempts.saveAndFlush(attempt);
+    }
+
+    private void saveCurrentSkillSeconds(ExamAttempt attempt) {
+        Skill cur = attempt.getCurrentSkill();
+        if (cur == null) return;
+        int sec = attempt.getRemainingSeconds();
+        if (cur == Skill.LISTENING) attempt.setListeningSeconds(sec);
+        else if (cur == Skill.READING) attempt.setReadingSeconds(sec);
+        else if (cur == Skill.WRITING) attempt.setWritingSeconds(sec);
+    }
+
+    private int getSkillSeconds(ExamAttempt attempt, Skill skill, Exam exam) {
+        if (skill == Skill.LISTENING) {
+            return attempt.getListeningSeconds() != null && attempt.getListeningSeconds() > 0
+                    ? attempt.getListeningSeconds() : (exam.getListeningMinutes() > 0 ? exam.getListeningMinutes() * 60 : 60 * 60);
+        } else if (skill == Skill.READING) {
+            return attempt.getReadingSeconds() != null && attempt.getReadingSeconds() > 0
+                    ? attempt.getReadingSeconds() : (exam.getReadingMinutes() > 0 ? exam.getReadingMinutes() * 60 : 70 * 60);
+        } else if (skill == Skill.WRITING) {
+            return attempt.getWritingSeconds() != null && attempt.getWritingSeconds() > 0
+                    ? attempt.getWritingSeconds() : (exam.getWritingMinutes() > 0 ? exam.getWritingMinutes() * 60 : 50 * 60);
+        }
+        return 0;
     }
 
     /*
@@ -291,7 +428,14 @@ public class LearnerExamService {
     private Paper paper(ExamAttempt attempt, boolean result) {
         Exam exam = exam(attempt);
         Map<String, String> answers = read(attempt);
+        Skill currentSkill = attempt.getCurrentSkill();
+        if (currentSkill == null && exam.getKind() == ExamKind.FULL) {
+            List<Skill> avail = availableSkills(exam);
+            currentSkill = avail.isEmpty() ? Skill.LISTENING : avail.get(0);
+        }
+        final Skill curSkill = currentSkill;
         List<QuestionView> questions = exam.getItems().stream()
+                .filter(i -> result || exam.getKind() != ExamKind.FULL || i.getSection() == curSkill)
                 .sorted(Comparator.comparingInt((ExamItem i) -> sectionOrder(exam, i.getSection())).thenComparingInt(ExamItem::getNo))
                 .map(i -> {
                     Question q = i.getQuestion();
@@ -309,15 +453,16 @@ public class LearnerExamService {
                 }).toList();
         var reviews = result ? writingSubmissions.examSubmissions(attempt.getUserId(), attempt.getId())
                 : Map.<Long, com.hottopik.dto.WritingSubmissionDTO>of();
-        List<WritingView> writing = exam.writingPrompts().stream().map(p -> {
-            var review = reviews.get(p.getId());
-            boolean graded = review != null && review.getTotalScore() != null;
-            String model = graded ? review.getModelAnswer()
-                    : (result && p.getNo() <= 52 ? (p.getKeys1() != null && p.getKeys2() != null ? "㉠ " + p.getKeys1() + "\n㉡ " + p.getKeys2() : p.getModelAnswer()) : null);
-            return new WritingView(p.getId(), "w" + p.getId(), p.getNo(), p.getPromptKo(),
-                    media(p.getSource(), p.getChartImage()), chart(p.getChartJson()), answers.get("w" + p.getId()),
-                    model, graded ? p.getRubricNote() : null, p.getKeys1(), p.getKeys2());
-        }).toList();
+        List<WritingView> writing = (result || exam.getKind() != ExamKind.FULL || curSkill == Skill.WRITING)
+                ? exam.writingPrompts().stream().map(p -> {
+                    var review = reviews.get(p.getId());
+                    boolean graded = review != null && review.getTotalScore() != null;
+                    String model = graded ? review.getModelAnswer()
+                            : (result && p.getNo() <= 52 ? (p.getKeys1() != null && p.getKeys2() != null ? "㉠ " + p.getKeys1() + "\n㉡ " + p.getKeys2() : p.getModelAnswer()) : null);
+                    return new WritingView(p.getId(), "w" + p.getId(), p.getNo(), p.getPromptKo(),
+                            media(p.getSource(), p.getChartImage()), chart(p.getChartJson()), answers.get("w" + p.getId()),
+                            model, graded ? p.getRubricNote() : null, p.getKeys1(), p.getKeys2());
+                }).toList() : List.of();
         // Do not expose the entity's question associations (or their answer keys) to the browser.
         List<ExamAttempt> history = result ? attempts.findByUserIdOrderByStartedAtDescIdDesc(attempt.getUserId()).stream()
                 .filter(a -> a.getExam().getId().equals(exam.getId()) && a.getCompletedAt() != null).toList() : List.of();
@@ -335,6 +480,7 @@ public class LearnerExamService {
                 .filter(i -> Integer.toString(i.getQuestion().getAnswerIndex()).equals(answers.get("q" + i.getId()))).count());
         attempt.setCompletedAt(LocalDateTime.now());
         attempt.setLastActiveAt(null);
+        attempts.saveAndFlush(attempt);
     }
 
     @Transactional(readOnly = true)
@@ -394,17 +540,45 @@ public class LearnerExamService {
                 && e.writingPrompts().stream().allMatch(p -> p.getStatus() == QuestionStatus.ACTIVE);
     }
 
+    public static List<Skill> availableSkills(Exam exam) {
+        if (exam == null) return List.of();
+        List<Skill> skills = new ArrayList<>();
+        if (exam.getKind() != ExamKind.FULL) {
+            skills.add(switch (exam.getKind()) {
+                case LISTENING -> Skill.LISTENING;
+                case READING -> Skill.READING;
+                case WRITING -> Skill.WRITING;
+                default -> Skill.READING;
+            });
+            return skills;
+        }
+        if (exam.getItems() != null && exam.getItems().stream().anyMatch(i -> i.getSection() == Skill.LISTENING)) {
+            skills.add(Skill.LISTENING);
+        }
+        if (exam.getItems() != null && exam.getItems().stream().anyMatch(i -> i.getSection() == Skill.READING)) {
+            skills.add(Skill.READING);
+        }
+        if (exam.getTrack() == Track.TOPIK_II && exam.writingPrompts() != null && !exam.writingPrompts().isEmpty()) {
+            skills.add(Skill.WRITING);
+        }
+        return skills;
+    }
+
     private static int minutes(Exam e) {
         if (e.getKind() != ExamKind.FULL) return Math.max(1, e.totalMinutes());
-        return Math.max(1, (e.getItems().stream().anyMatch(i -> i.getSection() == Skill.LISTENING) ? e.getListeningMinutes() : 0)
-                + (e.getItems().stream().anyMatch(i -> i.getSection() == Skill.READING) ? e.getReadingMinutes() : 0)
-                + (!e.writingPrompts().isEmpty() ? e.getWritingMinutes() : 0));
+        int listen = e.getItems().stream().anyMatch(i -> i.getSection() == Skill.LISTENING)
+                ? (e.getListeningMinutes() > 0 ? e.getListeningMinutes() : 60) : 0;
+        int read = e.getItems().stream().anyMatch(i -> i.getSection() == Skill.READING)
+                ? (e.getReadingMinutes() > 0 ? e.getReadingMinutes() : 70) : 0;
+        int write = (e.getTrack() == Track.TOPIK_II && !e.writingPrompts().isEmpty())
+                ? (e.getWritingMinutes() > 0 ? e.getWritingMinutes() : 50) : 0;
+        return Math.max(1, listen + read + write);
     }
 
     private static String sectionLabels(Exam e) {
-        return QuestionTypeCatalog.sections(e.getTrack()).stream().map(QuestionTypeCatalog.Section::skill)
-                .filter(s -> s == Skill.WRITING ? !e.writingPrompts().isEmpty() : e.getItems().stream().anyMatch(i -> i.getSection() == s))
-                .map(Skill::getLabel).collect(Collectors.joining(" · "));
+        List<Skill> skills = availableSkills(e);
+        if (skills.isEmpty()) return e.getKind().name();
+        return skills.stream().map(Skill::getLabel).collect(Collectors.joining(" · "));
     }
 
     private static int sectionOrder(Exam exam, Skill skill) {

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- MODAL CẨM NANG TÍNH NĂNG HỮU ÍCH (Báo lỗi, Khiếu nại, Tự động lưu, Đổi Xu) -->
+<div th:fragment="helpModal" class="modal fade" id="htHelpGuideModal" tabindex="-1" aria-labelledby="htHelpGuideModalTitle" aria-hidden="true" style="z-index: 100050;">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable" style="max-width: 780px;">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden" style="overflow-x: hidden;">
+            <!-- Modal Header -->
+            <div class="modal-header px-4 py-3" style="background: linear-gradient(135deg, #E8F5E9 0%, #F1F8E9 100%); border-bottom: 1.5px solid #C8E6C9;">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: #2E7D67; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 22px; box-shadow: 0 4px 10px rgba(46,125,103,0.25);">
+                        💡
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="htHelpGuideModalTitle" style="color: #1E3A2F; font-family: var(--font-heading, 'Baloo 2', sans-serif); font-size: 20px;">
+                            Cẩm nang tính năng hữu ích
+                        </h5>
+                        <p class="small text-muted mb-0" style="font-size: 13px;">
+                            Những công cụ phụ trợ đắc lực giúp bạn an tâm học tập tối đa cùng Bé Ssak
+                        </p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="closeHelpGuideModal()" aria-label="Đóng"></button>
+            </div>
+
+            <!-- Modal Body: 4 khối tính năng phụ -->
+            <div class="modal-body p-4" style="background: #FAFCFB; overflow-x: hidden;">
+                <div class="d-flex flex-column gap-3">
+
+                    <!-- Tính năng 1: Báo lỗi câu hỏi -->
+                    <div class="p-3 rounded-4 bg-white border shadow-sm" style="border-left: 5px solid #EF4444 !important;">
+                        <div class="d-flex align-items-start gap-3">
+                            <div style="width: 40px; height: 40px; border-radius: 10px; background: #FEE2E2; color: #DC2626; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
+                                🚩
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <h6 class="fw-bold mb-0" style="color: #991B1B; font-size: 15.5px;">Báo lỗi nội dung câu hỏi</h6>
+                                    <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 11px;">Kỹ năng Nghe · Đọc · Đề thi</span>
+                                </div>
+                                <p class="small text-muted mb-2" style="line-height: 1.55;">
+                                    Khi làm bài luyện tập hoặc đề thi, nếu phát hiện câu hỏi bị lỗi chính tả, file audio rè hoặc đáp án chưa chuẩn xác, bạn chỉ cần bấm nút <strong>"🚩 Báo lỗi"</strong> ở góc câu hỏi.
+                                </p>
+                                <div class="p-2 rounded-3 bg-light small text-secondary" style="font-size: 12px;">
+                                    <i class="bi bi-info-circle me-1 text-danger"></i>
+                                    Đội ngũ Quản lý Nội dung (Content Manager) sẽ tiếp nhận ngay và cập nhật sửa đổi trong thời gian sớm nhất.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tính năng 2: Khiếu nại bài viết (Phúc khảo) -->
+                    <div class="p-3 rounded-4 bg-white border shadow-sm" style="border-left: 5px solid #F59E0B !important;">
+                        <div class="d-flex align-items-start gap-3">
+                            <div style="width: 40px; height: 40px; border-radius: 10px; background: #FEF3C7; color: #D97706; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
+                                ⚖️
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <h6 class="fw-bold mb-0" style="color: #92400E; font-size: 15.5px;">Khiếu nại bài chấm Giáo viên (Phúc khảo)</h6>
+                                    <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle" style="font-size: 11px;">1 lần phúc khảo / bài</span>
+                                </div>
+                                <p class="small text-muted mb-2" style="line-height: 1.55;">
+                                    Sau khi Giáo viên hoàn thành chấm bài trong mục <strong>Bài viết gửi GV</strong>, nếu bạn thấy điểm số chưa thỏa đáng hoặc cần giải thích thêm lý do trừ điểm, bạn có thể gửi yêu cầu phúc khảo.
+                                </p>
+                                <div class="p-2 rounded-3 bg-light small text-secondary" style="font-size: 12px;">
+                                    <i class="bi bi-shield-check me-1 text-warning"></i>
+                                    Mỗi bài viết chỉ được khiếu nại <strong>1 lần duy nhất</strong>. Ban Quản trị và Tổ trưởng Giáo viên sẽ trực tiếp xem lại và cập nhật kết quả công tâm.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tính năng 3: Tự động lưu nháp -->
+                    <div class="p-3 rounded-4 bg-white border shadow-sm" style="border-left: 5px solid #10B981 !important;">
+                        <div class="d-flex align-items-start gap-3">
+                            <div style="width: 40px; height: 40px; border-radius: 10px; background: #D1FAE5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
+                                💾
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <h6 class="fw-bold mb-0" style="color: #065F46; font-size: 15.5px;">Tự động lưu nháp thông minh</h6>
+                                    <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle" style="font-size: 11px;">Thời gian thực</span>
+                                </div>
+                                <p class="small text-muted mb-2" style="line-height: 1.55;">
+                                    Khi luyện Viết câu 51–54 hoặc làm Đề thi, hệ thống sẽ tự động lưu nháp liên tục bài làm của bạn xuống máy chủ sau mỗi vài giây.
+                                </p>
+                                <div class="p-2 rounded-3 bg-light small text-secondary" style="font-size: 12px;">
+                                    <i class="bi bi-cloud-check me-1 text-success"></i>
+                                    Bạn có thể yên tâm: nếu lỡ tắt nhầm trình duyệt hoặc mất kết nối mạng, khi quay lại bạn vẫn có thể tiếp tục làm bài mà không mất nội dung!
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tính năng 4: Đổi Xu thưởng -->
+                    <div class="p-3 rounded-4 bg-white border shadow-sm" style="border-left: 5px solid #3B82F6 !important;">
+                        <div class="d-flex align-items-start gap-3">
+                            <div style="width: 40px; height: 40px; border-radius: 10px; background: #DBEAFE; color: #2563EB; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
+                                🪙
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <h6 class="fw-bold mb-0" style="color: #1E40AF; font-size: 15.5px;">Tích lũy & Đổi Xu thưởng học tập</h6>
+                                    <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 11px;">Kho Xu</span>
+                                </div>
+                                <p class="small text-muted mb-2" style="line-height: 1.55;">
+                                    Mỗi bài học hoàn thành trong mục <strong>Hôm nay</strong> và <strong>Lộ trình</strong> đều mang về cho bạn Xu thưởng tích lũy.
+                                </p>
+                                <div class="p-2 rounded-3 bg-light small text-secondary" style="font-size: 12px;">
+                                    <i class="bi bi-gift me-1 text-primary"></i>
+                                    Dùng Xu tại trang <strong>Kho Xu</strong> để đổi thêm lượt AI chấm Viết, lượt Giáo viên chấm hoặc mở khóa bài thi VIP mà không cần nạp tiền.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer px-4 py-3 bg-white border-top d-flex justify-content-between align-items-center">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-1 btn-sm" onclick="closeHelpGuideModal(); startFullTour();" data-bs-dismiss="modal">
+                    <i class="bi bi-compass me-1"></i>Xem lại Tour 11 trạm
+                </button>
+                <button type="button" class="btn btn-success rounded-pill px-4 py-2 fw-bold" onclick="closeHelpGuideModal();" data-bs-dismiss="modal" style="background: #2E7D67; border-color: #2E7D67;">
+                    Đã hiểu, cảm ơn Bé Ssak!
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

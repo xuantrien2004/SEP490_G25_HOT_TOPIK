@@ -132,6 +132,27 @@ public class TeacherPortalController {
         return "teacher/dashboard";
     }
 
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: GIÁO VIÊN NHẬN BÀI ĐỂ CHẤM (CLAIM SUBMISSION - FUNC_TEAC_02)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Giáo viên vào Bàn chấm (src/main/resources/templates/teacher/dashboard.html).
+     *    - Chọn tab "Chờ chấm" (tab=queue), xem preview bài viết học viên.
+     *    - Bấm nút "Nhận chấm bài này": <button type="submit" class="btn-ssak-primary">Nhận chấm</button>.
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /teacher/claim (Param: id)
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.TeacherPortalController.claim()
+     *    - Kiểm tra bảo mật: RoleSecurityInterceptor & currentUser.isMentor() || currentUser.isAdmin().
+     *    - Triệu gọi Service: com.hottopik.service.WritingSubmissionService.claimSubmission(id, user):
+     *      + Dùng findForUpdate khóa bản ghi, kiểm tra status == 'waiting'.
+     *      + Gán mentorId = user.getId(), mentorName, đổi status sang 'claimed'.
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.writing_submissions (UPDATE mentor_id = ?, status = 'claimed').
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
+     *    - Controller trả về: redirect:/teacher?tab=mine&sel={id}
+     *    - Giao diện chuyển ngay sang tab "Đang chấm" và mở thẳng Bàn chấm chi tiết để giáo viên chấm điểm.
+     * ========================================================================================= */
     @PostMapping("/teacher/claim")
     public String claim(@RequestParam("id") String id,
                         HttpSession session,
@@ -157,6 +178,28 @@ public class TeacherPortalController {
         return "redirect:/teacher?tab=queue";
     }
 
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: GIÁO VIÊN HOÀN TẤT CHẤM ĐIỂM HOẶC XỬ LÝ KHIẾU NẠI (GRADE SUBMISSION - FUNC_TEAC_04 & FUNC_TEAC_05)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Giáo viên nhập điểm thành phần các tiêu chí (criteriaScores), điểm tổng, lời nhận xét (overallFeedback),
+     *      bài văn mẫu (modelAnswer) và quyết định khiếu nại (appealDecision: uphold/revise nếu có).
+     *    - Bấm nút "Hoàn thành chấm điểm" trên Bàn chấm: <button type="submit" class="btn-ssak-primary">Nộp kết quả</button>.
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /teacher/grade (Form Data: id, overallFeedback, modelAnswer, criteriaScores, totalScore, appealDecision, appealMessage)
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.TeacherPortalController.grade()
+     *    - Triệu gọi Service: com.hottopik.service.WritingSubmissionService.gradeSubmission():
+     *      + Cập nhật score, feedback, modelAnswer, status = 'graded', gradedAt = now.
+     *      + Nếu là khiếu nại: cập nhật appealResolved = true, appealResolvedAt = now, appealMessage.
+     *      + Bắn thông báo UserNotification đến hộp thư học viên ("Bài viết đã được giáo viên chấm: X điểm 🎉").
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.writing_submissions (UPDATE status = 'graded', score, feedback, model_answer, graded_at).
+     *    - Bảng dbo.user_notifications (INSERT bản ghi thông báo mới cho học viên).
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG & QUẢN LÝ:
+     *    - Giáo viên: redirect:/teacher?tab=done&sel={id} (Hiển thị bài trong tab "Đã chấm").
+     *    - Học viên: Nhận thông báo trên thanh Navbar, bấm xem kết quả tại /writing/feedback?id={id}.
+     * ========================================================================================= */
     @PostMapping("/teacher/grade")
     public String grade(@RequestParam("id") String id,
                         @RequestParam("overallFeedback") String overallFeedback,
@@ -175,24 +218,12 @@ public class TeacherPortalController {
         }
 
         WritingSubmissionDTO sub = subOpt.get();
-        Map<String, Integer> criteriaScoresMap = new HashMap<>();
-
-        // Read criteria scores from request params rb-0, rb-1...
-        for (int i = 0; i < sub.getCriteriaScores().size(); i++) {
-            CriterionScore cs = sub.getCriteriaScores().get(i);
-            String valStr = request.getParameter("criterion_" + i);
-            if (valStr != null && !valStr.trim().isEmpty()) {
-                try {
-                    int sc = Integer.parseInt(valStr.trim());
-                    criteriaScoresMap.put(cs.getName(), sc);
-                } catch (NumberFormatException ignored) {}
-            }
-        }
+        Map<String, Integer> criteriaScoresMap = extractCriteriaScores(sub, request);
 
         // Model answer is optional as requested by user!
         try {
         boolean ok = writingSubmissionService.gradeSubmission(id, user, criteriaScoresMap,
-                request.getParameter("totalScore") == null || request.getParameter("totalScore").isBlank() ? null : Integer.valueOf(request.getParameter("totalScore")),
+                parseTotalScore(request),
                 overallFeedback, modelAnswer, request.getParameter("appealDecision"), request.getParameter("appealMessage"));
         if (ok) {
             redirectAttributes.addFlashAttribute("successMessage", "Đã gửi kết quả chấm bài thành công cho học viên " + sub.getLearnerName() + "!");
@@ -204,6 +235,88 @@ public class TeacherPortalController {
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
             return "redirect:/teacher?tab=mine&sel=" + id;
+        }
+    }
+
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: GIÁO VIÊN LƯU NHÁP BÀI ĐANG CHẤM DỞ (SAVE GRADING DRAFT - FUNC_TEAC_03)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Giáo viên đang nhập dở điểm hoặc nhận xét trên Bàn chấm (teacher/dashboard.html).
+     *    - Khi chuẩn bị rời trang hoặc muốn tạm dừng, bấm nút "💾 Lưu và thoát" trên thanh công cụ hoặc cạnh nút nộp.
+     *    - JavaScript gán form.noValidate = true để bypass kiểm tra required của HTML5 và submit đến /teacher/save-draft.
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /teacher/save-draft (Form Data: id, tab, overallFeedback, modelAnswer, criteriaScores, totalScore...)
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.TeacherPortalController.saveDraft()
+     *    - Triệu gọi Service: com.hottopik.service.WritingSubmissionService.saveGradingDraft():
+     *      + Lưu tạm thời điểm thành phần, điểm tổng, nhận xét dở dang vào bản ghi CSDL.
+     *      + QUY TẮC CỐT LÕI: Giữ nguyên trạng thái bài là 'claimed' hoặc 'appeal', KHÔNG đổi sang 'graded'.
+     *      + TUYỆT ĐỐI KHÔNG gửi thông báo đến học viên.
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.writing_submissions (UPDATE score, feedback, model_answer... giữ nguyên status).
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
+     *    - Controller trả về: redirect:/teacher?tab={tab}
+     *    - Flash message thông báo: "Đã lưu tạm điểm và nhận xét đang chấm dở. Bạn có thể quay lại chấm tiếp bất cứ lúc nào."
+     * ========================================================================================= */
+    @PostMapping("/teacher/save-draft")
+    public String saveDraft(@RequestParam("id") String id,
+                            @RequestParam(value = "tab", defaultValue = "mine") String tab,
+                            @RequestParam(value = "overallFeedback", required = false, defaultValue = "") String overallFeedback,
+                            @RequestParam(value = "modelAnswer", required = false) String modelAnswer,
+                            HttpServletRequest request,
+                            HttpSession session,
+                            RedirectAttributes redirectAttributes) {
+        UserDTO user = AuthHelper.getLoggedInUser(session);
+        if (user == null || (!user.isMentor() && !user.isAdmin())) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN);
+        }
+
+        Optional<WritingSubmissionDTO> subOpt = writingSubmissionService.getById(id);
+        if (subOpt.isEmpty()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Không tìm thấy bài nộp.");
+            return "redirect:/teacher?tab=" + tab;
+        }
+
+        WritingSubmissionDTO sub = subOpt.get();
+        try {
+            boolean ok = writingSubmissionService.saveGradingDraft(
+                    id, user, extractCriteriaScores(sub, request), parseTotalScore(request),
+                    overallFeedback, modelAnswer,
+                    request.getParameter("appealDecision"), request.getParameter("appealMessage"));
+            if (ok) {
+                redirectAttributes.addFlashAttribute("successMessage", "Đã lưu tạm điểm và nhận xét đang chấm dở. Bạn có thể quay lại chấm tiếp bất cứ lúc nào.");
+            } else {
+                redirectAttributes.addFlashAttribute("errorMessage", "Không thể lưu nháp bài viết này.");
+            }
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+            return "redirect:/teacher?tab=" + tab + "&sel=" + id;
+        }
+        return "redirect:/teacher?tab=" + tab;
+    }
+
+    private Map<String, Integer> extractCriteriaScores(WritingSubmissionDTO sub, HttpServletRequest request) {
+        Map<String, Integer> criteriaScoresMap = new HashMap<>();
+        for (int i = 0; i < sub.getCriteriaScores().size(); i++) {
+            CriterionScore cs = sub.getCriteriaScores().get(i);
+            String valStr = request.getParameter("criterion_" + i);
+            if (valStr != null && !valStr.trim().isEmpty()) {
+                try {
+                    criteriaScoresMap.put(cs.getName(), Integer.parseInt(valStr.trim()));
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        return criteriaScoresMap;
+    }
+
+    private Integer parseTotalScore(HttpServletRequest request) {
+        String raw = request.getParameter("totalScore");
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return Integer.valueOf(raw.trim());
+        } catch (NumberFormatException ex) {
+            return null;
         }
     }
 

@@ -1,213 +1,364 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+
 <head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
-<body style="background: #F8F6EF; color: #24363D; font-family: 'Nunito','Be Vietnam Pro','Noto Sans KR',sans-serif; margin: 0; padding: 0;">
 
-<div style="width: 100%; min-width: 1280px; max-width: 1440px; min-height: 100vh; margin: 0 auto; display: flex; flex-direction: column;">
-    
-    <!-- Topbar Navigation -->
-    <div th:replace="~{fragments/navbar :: navbar('writing')}"></div>
+<body
+    style="background: #F8F6EF; color: #24363D; font-family: 'Nunito','Be Vietnam Pro','Noto Sans KR',sans-serif; margin: 0; padding: 0;">
 
-    <main style="flex-grow: 1; padding: 24px 44px 48px; display: flex; flex-direction: column; gap: 16px;">
-        
-        <!-- Header & Action Links -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-            <div>
-                <a th:href="@{/practice(skill='writing',track='TOPIK_II')}" style="display: inline-flex; align-items: center; gap: 4px; color: #5C6E72; font-size: 14px; font-weight: 700; text-decoration: none; margin-bottom: 6px;">
-                    ‹ Luyện tập · Viết từng câu
-                </a>
-                <h1 style="margin: 0; font-family: var(--font-heading); font-size: 32px; font-weight: 800;">
-                    Luyện Viết TOPIK II · Giáo viên chấm ✍️
-                </h1>
-                <span style="font-size: 14px; color: #5C6E72;">
-                    Luyện viết theo 4 dạng đề chính thức của Viện Giáo dục Quốc tế Hàn Quốc (NIIED). Nộp bài để đối chiếu đáp án tham khảo hoặc gửi Giáo viên nhận xét chi tiết.
-                </span>
+    <div
+        style="width: 100%; max-width: 1440px; min-height: 100vh; margin: 0 auto; display: flex; flex-direction: column;">
+
+        <!-- Topbar Navigation -->
+        <div th:replace="~{fragments/navbar :: navbar('writing')}"></div>
+
+        <main style="flex-grow: 1; padding: 24px 44px 48px; display: flex; flex-direction: column; gap: 16px;">
+
+            <!-- Header & Action Links -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                <div>
+                    <a th:href="@{/practice(skill='writing',track='TOPIK_II')}"
+                        style="display: inline-flex; align-items: center; gap: 4px; color: #5C6E72; font-size: 14px; font-weight: 700; text-decoration: none; margin-bottom: 6px;">
+                        ‹ Luyện tập · Viết từng câu
+                    </a>
+                    <h1 style="margin: 0; font-family: var(--font-heading); font-size: 32px; font-weight: 800;">
+                        Luyện Viết TOPIK II ✍️
+                    </h1>
+                    <span style="font-size: 14px; color: #5C6E72;">
+                        Luyện viết theo 4 dạng đề chính thức của Viện Giáo dục Quốc tế Hàn Quốc (NIIED). Nộp bài để đối
+                        chiếu đáp án tham khảo hoặc gửi Giáo viên nhận xét chi tiết.
+                    </span>
+                </div>
+                <div th:if="${currentUser != null and currentPrompt != null}"
+                    style="display: flex; align-items: center; gap: 8px;">
+                    <span id="draftTimerBadge"
+                        style="font-size: 13px; font-weight: 700; color: #1F6B56; padding: 4px 10px; border: 1px solid #A7D7BE; border-radius: 20px; background: #E3F2EA; display: inline-flex; align-items: center; gap: 4px;">
+                        ⏱️ <span id="draftTimerText">00:00</span>
+                    </span>
+                    <span id="draftStatus"
+                        style="font-size: 12px; color: #5C6E72; padding: 4px 10px; border: 1px solid #E6E1D3; border-radius: 20px; background: #fff;"
+                        th:text="${draftAnswer != null and !#strings.isEmpty(draftAnswer)} ? '✓ Đang làm dở' : 'Bài chưa được lưu nháp'">Bài
+                        chưa được lưu nháp</span>
+                    <button type="button" onclick="saveDraftAndExit()"
+                        style="font-size: 12px; font-weight: 700; color: #1F6B56; background: #fff; border: 1px solid #A7D7BE; border-radius: 20px; padding: 4px 12px; cursor: pointer;">
+                        Lưu &amp; Thoát
+                    </button>
+                </div>
             </div>
-            <div th:if="${currentUser != null and currentPrompt != null}">
-                <span id="draftStatus" style="font-size: 12px; color: #5C6E72; padding: 4px 10px; border: 1px solid #E6E1D3; border-radius: 20px; background: #fff;"
-                      th:text="${draftAnswer != null and !#strings.isEmpty(draftAnswer)} ? '✓ Đã lưu nháp' : 'Bài chưa được lưu nháp'">Bài chưa được lưu nháp</span>
+
+
+
+            <div th:if="${errorMessage != null}" class="alert alert-danger" role="alert" th:text="${errorMessage}">
             </div>
-        </div>
+            <div th:if="${currentPrompt == null}" class="alert alert-warning" role="status">Dạng câu này hiện chưa có đề
+                luyện Viết. Bạn có thể chọn dạng câu khác hoặc quay lại sau.</div>
+            <!-- MAIN WRITING WORKSPACE GRID -->
+            <div th:if="${currentPrompt != null}" style="display: flex; gap: 20px; align-items: flex-start;">
 
+                <!-- LEFT SECTION: QUESTION PROMPT & EDITOR -->
+                <section style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
 
+                    <div
+                        th:replace="~{fragments/writing-form :: prompt(${currentQuestion}, ${currentPrompt.promptKo}, ${currentPrompt.id}, ${currentPrompt.chartImage != null and !#strings.isEmpty(currentPrompt.chartImage) ? '/writing/prompt/' + currentPrompt.id + '/chart' : null}, ${writingChart}, null, 'Luyện Viết TOPIK II', true, ${bankPrompts != null and bankPrompts.size() > 1})}">
+                    </div>
+                    <div
+                        th:replace="~{fragments/writing-form :: editor(${currentQuestion}, ${draftAnswer == null ? '' : draftAnswer}, 'answer', true, ~{::practiceWritingActions})}">
+                        <div th:fragment="practiceWritingActions"
+                            style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid #EEE9DD;">
+                            <span style="font-size: 12px; color: #5C6E72;">Bài làm được lưu vào lịch sử khi nộp.</span>
 
-        <div th:if="${errorMessage != null}" class="alert alert-danger" role="alert" th:text="${errorMessage}"></div>
-        <div th:if="${currentPrompt == null}" class="alert alert-warning" role="status">Dạng câu này hiện chưa có đề luyện Viết. Bạn có thể chọn dạng câu khác hoặc quay lại sau.</div>
-        <!-- MAIN WRITING WORKSPACE GRID -->
-        <div th:if="${currentPrompt != null}" style="display: flex; gap: 20px; align-items: flex-start;">
-            
-            <!-- LEFT SECTION: QUESTION PROMPT & EDITOR -->
-            <section style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
-                
-                <div th:replace="~{fragments/writing-form :: prompt(${currentQuestion}, ${currentPrompt.promptKo}, ${currentPrompt.id}, ${currentPrompt.chartImage != null and !#strings.isEmpty(currentPrompt.chartImage) ? '/writing/prompt/' + currentPrompt.id + '/chart' : null}, ${writingChart}, null, 'Luyện Viết TOPIK II', true, ${bankPrompts != null and bankPrompts.size() > 1})}"></div>
-                <div th:replace="~{fragments/writing-form :: editor(${currentQuestion}, ${draftAnswer == null ? '' : draftAnswer}, 'answer', true, ~{::practiceWritingActions})}">
-                    <div th:fragment="practiceWritingActions" style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid #EEE9DD;">
-                        <span style="font-size: 12px; color: #5C6E72;">Bài làm được lưu vào lịch sử khi nộp.</span>
-                        
-                        <div style="display: flex; gap: 10px;">
-                            <!-- Send to Mentor Button -->
-                            <button th:if="${currentQuestion &lt;= 52 and currentUser != null and currentUser.vip}" type="button" onclick="submitWriting(true)"
-                                    style="height: 46px; padding: 0 20px; border-radius: 14px; background: #FFFFFF; color: #1F6B56; font-weight: 800; font-size: 14px; border: 2px solid #2E7D67; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-                                <span>👩‍🏫 Gửi Giáo viên chấm</span>
-                            </button>
-
-                            <span th:unless="${currentUser != null and currentUser.vip}" class="small">Muốn Giáo viên chấm bài, hãy <a th:href="@{/vip}">đăng ký VIP</a>.</span>
-                            <!-- Nộp bài điền chỗ trống -->
-                            <button type="button" th:attr="data-send-teacher=${currentQuestion &gt;= 53}" onclick="submitWriting(this.dataset.sendTeacher === 'true')"
+                            <div style="display: flex; gap: 10px;">
+                                <!-- Nộp bài: câu 51-52 luôn chỉ nộp xem đáp án; câu 53-54 nếu VIP thì nộp+gửi GV, nếu không VIP thì chỉ nộp xem đáp án -->
+                                <button th:if="${currentQuestion &lt;= 52}" type="button" onclick="submitWriting(false)"
                                     style="height: 46px; padding: 0 24px; border-radius: 14px; background: #2E7D67; color: #FFFFFF; font-weight: 800; font-size: 15px; border: 0; cursor: pointer; box-shadow: 0 4px 10px rgba(46,125,103,0.3); display: inline-flex; align-items: center; gap: 6px;">
-                                <span th:text="${currentQuestion &lt;= 52 ? 'Nộp bài và xem đáp án' : 'Nộp bài &amp; Gửi Giáo viên chấm'}">Nộp bài</span>
-                            </button>
+                                    <span>Nộp bài</span>
+                                </button>
+                                <!-- Câu 53-54: VIP thấy nút đầy đủ, non-VIP thấy nút chỉ nộp xem đáp án -->
+                                <button th:if="${currentQuestion &gt;= 53 and currentUser != null and currentUser.vip}" type="button" onclick="submitWriting(true)"
+                                    style="height: 46px; padding: 0 24px; border-radius: 14px; background: #2E7D67; color: #FFFFFF; font-weight: 800; font-size: 15px; border: 0; cursor: pointer; box-shadow: 0 4px 10px rgba(46,125,103,0.3); display: inline-flex; align-items: center; gap: 6px;">
+                                    <span>Nộp bài</span>
+                                </button>
+                                <button th:if="${currentQuestion &gt;= 53 and (currentUser == null or !currentUser.vip)}" type="button" onclick="submitWriting(false)"
+                                    style="height: 46px; padding: 0 24px; border-radius: 14px; background: #2E7D67; color: #FFFFFF; font-weight: 800; font-size: 15px; border: 0; cursor: pointer; box-shadow: 0 4px 10px rgba(46,125,103,0.3); display: inline-flex; align-items: center; gap: 6px;">
+                                    <span>Nộp bài</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </section>
+                </section>
 
-            <!-- RIGHT SECTION: AI RESULT SIDEBAR & TIPS -->
-            <aside style="width: 400px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px;">
-                
-                <div class="alert alert-info">Bài đã nộp sẽ được khóa chỉnh sửa. Câu 51–52 có đáp án tham khảo sau khi nộp. Giáo viên sẽ gửi thông báo khi chấm xong.</div>
-                <!-- TIPS CARD -->
-                <div style="padding: 18px 20px; border-radius: 20px; background: #E4EEF5; display: flex; flex-direction: column; gap: 8px;">
-                    <span style="font-size: 14px; font-weight: 800; color: #2F5F7D;" id="tipHeader">💡 Mẹo viết câu 53:</span>
-                    <p id="tipContent" style="margin: 0; font-size: 13px; color: #24363D; line-height: 1.6;">
-                        Mở bài nêu chủ đề khảo sát, thân bài so sánh số liệu tăng/giảm, kết bài nêu nguyên nhân hoặc xu hướng. Tuyệt đối dùng đuôi câu <b>-ㄴ/는다</b>.
-                    </p>
-                </div>
+                <!-- RIGHT SECTION: AI RESULT SIDEBAR & TIPS -->
+                <aside style="width: 400px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px;">
 
-            </aside>
+                    <div class="alert alert-info">Bài đã nộp sẽ được khóa chỉnh sửa. Câu 51–52 có đáp án tham khảo sau
+                        khi nộp. Giáo viên sẽ gửi thông báo khi chấm xong.</div>
+                    <!-- TIPS CARD -->
+                    <div
+                        style="padding: 18px 20px; border-radius: 20px; background: #E4EEF5; display: flex; flex-direction: column; gap: 8px;">
+                        <span style="font-size: 14px; font-weight: 800; color: #2F5F7D;" id="tipHeader">💡 Mẹo viết câu
+                            53:</span>
+                        <p id="tipContent" style="margin: 0; font-size: 13px; color: #24363D; line-height: 1.6;">
+                            Mở bài nêu chủ đề khảo sát, thân bài so sánh số liệu tăng/giảm, kết bài nêu nguyên nhân hoặc
+                            xu hướng. Tuyệt đối dùng đuôi câu <b>-ㄴ/는다</b>.
+                        </p>
+                    </div>
 
-        </div>
+                </aside>
 
-    </main>
-
-    <div th:replace="~{fragments/footer :: footer}"></div>
-</div>
-
-<!-- Modal confirm Submit to Teacher / Mentor -->
-<div id="submitTeacherModal" class="ssak-modal-overlay">
-    <div class="ssak-modal" style="width: 520px;">
-        <h3>Xác nhận nộp bài viết</h3>
-        <p style="margin: 0; font-size: 14px; color: #5C6E72; line-height: 1.6;">
-            Bài nộp sẽ được khóa chỉnh sửa. Nếu gửi Giáo viên, vui lòng chờ thông báo khi chấm xong; nếu chỉ nộp câu 51–52, bạn sẽ xem được đáp án tham khảo.
-        </p>
-
-        <!-- Hidden Form to submit to POST /writing/submit-mentor -->
-        <form th:action="@{/writing/submit}" method="post" id="formSendTeacher">
-            <input type="hidden" name="promptId" th:value="${currentPrompt != null ? currentPrompt.id : null}">
-            <input type="hidden" name="teacher" id="sendTeacher" value="true">
-            <input type="hidden" name="answer" id="formAnswer" value="">
-            
-            <div style="padding: 12px 14px; border-radius: 12px; background: #F8F6EF; font-size: 13px; color: #24363D;">
-                <b>Câu nộp:</b> Câu <span id="modalQNum">53</span><br>
-                <b>Số chữ bài viết:</b> <span id="modalWordCount">235</span> chữ
             </div>
 
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px;">
-                <button type="button" class="btn-ssak-light" onclick="closeTeacherModal()">Hủy</button>
-                <button type="submit" class="btn-ssak-primary" style="height: 44px; padding: 0 20px;">
-                    Xác nhận nộp bài
-                </button>
-            </div>
-        </form>
+        </main>
+
+        <div th:replace="~{fragments/footer :: footer}"></div>
     </div>
-</div>
 
-<script th:src="@{/js/writing-form.js}"></script>
-<div id="writingNotice" class="ssak-modal-overlay" onclick="this.classList.remove('show')"><div class="ssak-modal" style="width:460px"><h3>Thông báo</h3><p id="writingNoticeText"></p><div class="text-end"><button type="button" class="btn btn-success" onclick="document.getElementById('writingNotice').classList.remove('show')">Đã hiểu</button></div></div></div>
-<script th:if="${currentPrompt != null}" th:inline="javascript">
-    const currentQ = /*[[${currentQuestion}]]*/ 53;
-    const currentPromptId = /*[[${currentPrompt != null ? currentPrompt.id : null}]]*/ null;
-    function updateCharCount() {
-        const n=document.getElementById('essayInput').value.trim().length;
-        document.getElementById('charCountLabel').textContent=n+' ký tự';
-    }
-    function updateBlankAnswer() {}
-    function submitWriting(teacher) {
-        let answer;
-        if(currentQ<=52) {
-            const a=document.getElementById('blankAnsA').value.trim(), b=document.getElementById('blankAnsB').value.trim();
-            answer=a || b ? '㉠ '+a+'\n㉡ '+b : '';
-        } else { answer=document.getElementById('essayInput').value.trim(); }
-        if(teacher && !answer) {showWritingNotice('Cần có nội dung bài làm để gửi Giáo viên chấm.');return;}
-        if(answer.length>6000) {showWritingNotice('Bài viết tối đa 6000 ký tự.');return;}
-        document.getElementById('formAnswer').value=answer;
-        document.getElementById('sendTeacher').value=teacher;
-        document.getElementById('modalQNum').textContent=currentQ;
-        document.getElementById('modalWordCount').textContent=answer.length;
-        document.getElementById('submitTeacherModal').classList.add('show');
-    }
-    function showWritingNotice(message) { document.getElementById('writingNoticeText').textContent=message; document.getElementById('writingNotice').classList.add('show'); }
-    function closeTeacherModal() {document.getElementById('submitTeacherModal').classList.remove('show');}
+    <!-- Modal confirm Submit to Teacher / Mentor -->
+    <div id="submitTeacherModal" class="ssak-modal-overlay">
+        <div class="ssak-modal" style="width: 520px;">
+            <h3>Xác nhận nộp bài viết</h3>
+            <p style="margin: 0; font-size: 14px; color: #5C6E72; line-height: 1.6;">
+                Bài nộp sẽ được khóa chỉnh sửa. Nếu gửi Giáo viên, vui lòng chờ thông báo khi chấm xong; nếu nộp để tự học, bạn sẽ xem được đáp án tham khảo.
+            </p>
 
-    // Auto-save draft mỗi 15 giây
-    let autoSaveTimer = null;
-    let lastSavedContent = '';
-    function getAnswerContent() {
-        if (currentQ <= 52) {
-            const a = (document.getElementById('blankAnsA') || {value:''}).value.trim();
-            const b = (document.getElementById('blankAnsB') || {value:''}).value.trim();
-            return a || b ? '㉠ ' + a + '\n㉡ ' + b : '';
-        }
-        return (document.getElementById('essayInput') || {value:''}).value.trim();
-    }
-    function saveDraft() {
-        if (!currentPromptId) return;
-        const answer = getAnswerContent();
-        if (answer === lastSavedContent) return;
-        const statusEl = document.getElementById('draftStatus');
-        if (statusEl) statusEl.textContent = 'Đang lưu nháp…';
-        fetch('/writing/draft', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: 'promptId=' + currentPromptId + '&answer=' + encodeURIComponent(answer)
-        }).then(r => {
-            if (r.ok) {
-                lastSavedContent = answer;
-                if (statusEl) statusEl.textContent = '✓ Đã lưu nháp ' + new Date().toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'});
+            <!-- Form to submit to POST /writing/submit -->
+            <form th:action="@{/writing/submit}" method="post" id="formSendTeacher">
+                <input type="hidden" name="promptId" th:value="${currentPrompt != null ? currentPrompt.id : null}">
+                <input type="hidden" name="teacher" id="sendTeacher" value="false">
+                <input type="hidden" name="answer" id="formAnswer" value="">
+
+                <div
+                    style="padding: 12px 14px; border-radius: 12px; background: #F8F6EF; font-size: 13px; color: #24363D;">
+                    <b>Câu nộp:</b> Câu <span id="modalQNum">53</span><br>
+                    <b>Số chữ bài viết:</b> <span id="modalWordCount">235</span> chữ
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
+                    <button type="button" class="btn-ssak-light" onclick="closeTeacherModal()">Hủy</button>
+                    <!-- Nộp bài và xem đáp án (cho phép mọi học viên nộp bài để xem đáp án tham khảo và lưu lịch sử) -->
+                    <button type="button" onclick="confirmSubmitWriting(false)"
+                        style="height: 44px; padding: 0 16px; border-radius: 12px; border: 1.5px solid #2E7D67; background: #FFFFFF; color: #2E7D67; font-weight: 700; cursor: pointer;">
+                        Nộp bài và xem đáp án
+                    </button>
+                    <!-- Gửi Giáo viên chấm (Dành cho VIP) -->
+                    <button th:if="${currentUser != null and currentUser.vip}" type="button" class="btn-ssak-primary" onclick="confirmSubmitWriting(true)"
+                        style="height: 44px; padding: 0 18px; border-radius: 12px; background: #2E7D67; color: #FFFFFF; font-weight: 800; border: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                        <span>👩‍🏫 Gửi Giáo viên chấm</span>
+                    </button>
+                    <!-- Nút Gửi Giáo viên chấm bị vô hiệu hóa và gắn huy hiệu vương miện VIP cho Người dùng thường -->
+                    <span th:unless="${currentUser != null and currentUser.vip}" onclick="showVipTeacherNotice()" style="display: inline-block; cursor: pointer;" title="Đặc quyền dành riêng cho học viên VIP">
+                        <button type="button" class="btn-ssak-disabled" disabled
+                            style="pointer-events: none; height: 44px; padding: 0 16px; border-radius: 12px; background: #F1F5F9; color: #94A3B8; border: 1.5px dashed #CBD5E1; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                            <span>👑 Gửi Giáo viên chấm</span>
+                            <span style="background: #F59E0B; color: #FFFFFF; font-size: 11px; padding: 2px 6px; border-radius: 6px; font-weight: 800;">VIP</span>
+                        </button>
+                    </span>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Thông báo đặc quyền VIP khi nhấn nút Gửi Giáo viên chấm bị vô hiệu hóa -->
+    <div id="vipTeacherNoticeModal" class="ssak-modal-overlay" style="z-index: 2200;">
+        <div class="ssak-modal" style="width: 480px; text-align: center; padding: 28px 24px;">
+            <div style="font-size: 40px; margin-bottom: 8px;">👑</div>
+            <h3 style="margin-top: 0; margin-bottom: 12px; color: #B45309; font-size: 20px;">Đặc quyền Học viên VIP</h3>
+            <p style="font-size: 14.5px; color: #374151; line-height: 1.6; margin-bottom: 22px;">
+                Gửi Giáo viên chấm là đặc quyền dành riêng cho học viên VIP. Vui lòng nâng cấp tài khoản để sử dụng tính năng này!
+            </p>
+            <div style="display: flex; justify-content: center; gap: 12px;">
+                <button type="button" class="btn-ssak-light" onclick="closeVipTeacherNotice()" style="height: 42px; padding: 0 20px;">Đóng</button>
+                <a th:href="@{/vip}" class="btn-ssak-primary" style="background: #F59E0B; color: #FFFFFF; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 22px; border-radius: 12px; font-weight: 800; border: none;">
+                    👑 Nâng cấp VIP ngay
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script th:src="@{/js/writing-form.js}"></script>
+    <div id="writingNotice" class="ssak-modal-overlay" onclick="this.classList.remove('show')">
+        <div class="ssak-modal" style="width:460px">
+            <h3>Thông báo</h3>
+            <p id="writingNoticeText"></p>
+            <div class="text-end"><button type="button" class="btn btn-success"
+                    onclick="document.getElementById('writingNotice').classList.remove('show')">Đã hiểu</button></div>
+        </div>
+    </div>
+    <script th:if="${currentPrompt != null}" th:inline="javascript">
+        const currentQ = /*[[${currentQuestion}]]*/ 53;
+        const currentPromptId = /*[[${currentPrompt != null ? currentPrompt.id : null}]]*/ null;
+        function updateCharCount() {
+            const ed = document.querySelector('[data-writing-editor]');
+            if (ed && window.updateWritingEditorCounter) {
+                window.updateWritingEditorCounter(ed);
             }
-        }).catch(() => { if (statusEl) statusEl.textContent = 'Lưu nháp thất bại'; });
-    }
-    function scheduleSave() {
-        clearTimeout(autoSaveTimer);
-        autoSaveTimer = setTimeout(saveDraft, 15000);
-    }
-
-    document.addEventListener('DOMContentLoaded',()=>{
-        document.getElementById('blankInputsArea').style.display=currentQ<=52?'flex':'none';
-        document.getElementById('longTextArea').style.display=currentQ>=53?'flex':'none';
-        document.getElementById('promptText').textContent=/*[[${currentPrompt.promptKo}]]*/ '';
-        document.getElementById('promptHeader').textContent='CÂU '+currentQ;
-        document.getElementById('promptPoints').textContent=(currentQ===54?50:currentQ===53?30:10)+' điểm';
-        document.getElementById('promptInstr').textContent=currentQ<=52?'Điền câu phù hợp vào hai chỗ trống.':'Viết bài theo yêu cầu đề.';
-        document.getElementById('tipHeader').textContent='Lưu ý khi nộp bài';
-        document.getElementById('tipContent').textContent='Kiểm tra bài trước khi nộp. Bài đã nộp được lưu nguyên vẹn và không sửa được.';
-        document.getElementById('formSendTeacher').addEventListener('submit',e=>{e.target.querySelector('button[type=submit]').disabled=true;});
-
-        // Gắn sự kiện auto-save
-        const essay = document.getElementById('essayInput');
-        if (essay) essay.addEventListener('input', () => { updateCharCount(); scheduleSave(); });
-        const blankA = document.getElementById('blankAnsA');
-        const blankB = document.getElementById('blankAnsB');
-        if (blankA) blankA.addEventListener('input', scheduleSave);
-        if (blankB) blankB.addEventListener('input', scheduleSave);
-
-        // Ghi nhận nội dung draft đã load (tránh lưu lại ngay)
-        // Với câu 51/52: parse draft "㉠ A\n㉡ B" vào hai ô trống
-        const draftLoaded = /*[[${draftAnswer}]]*/ null;
-        if (draftLoaded && currentQ <= 52) {
-            const parts = draftLoaded.split('\n');
-            const partA = parts.find(p => p.startsWith('㉠')) || '';
-            const partB = parts.find(p => p.startsWith('㉡')) || '';
-            if (blankA) blankA.value = partA.replace(/^㉠\s*/, '');
-            if (blankB) blankB.value = partB.replace(/^㉡\s*/, '');
         }
-        lastSavedContent = getAnswerContent();
-    });
-</script>
+        function updateBlankAnswer() { }
+        function submitWriting(teacher) {
+            let answer;
+            if (currentQ <= 52) {
+                const a = document.getElementById('blankAnsA').value.trim(), b = document.getElementById('blankAnsB').value.trim();
+                answer = a || b ? '㉠ ' + a + '\n㉡ ' + b : '';
+            } else { answer = document.getElementById('essayInput').value.trim(); }
+            // Câu 53, 54: bắt buộc phải có nội dung (cả nộp lẫn gửi GV)
+            if (currentQ >= 53 && !answer) {
+                showWritingNotice('Câu ' + currentQ + ' không được để trống. Vui lòng viết bài trước khi nộp.');
+                return;
+            }
+            if (answer.length > 6000) { showWritingNotice('Bài viết tối đa 6000 ký tự.'); return; }
+            document.getElementById('formAnswer').value = answer;
+            document.getElementById('sendTeacher').value = teacher ? 'true' : 'false';
+            document.getElementById('modalQNum').textContent = currentQ;
+            document.getElementById('modalWordCount').textContent = answer.length;
+            document.getElementById('submitTeacherModal').classList.add('show');
+        }
+        function confirmSubmitWriting(teacher) {
+            const answer = document.getElementById('formAnswer').value;
+            if (teacher && !answer.trim()) {
+                showWritingNotice('Cần có nội dung bài làm để gửi Giáo viên chấm.');
+                return;
+            }
+            document.getElementById('sendTeacher').value = teacher ? 'true' : 'false';
+            isSubmitting = true;
+            clearTimeout(autoSaveTimer);
+            window.removeEventListener('pagehide', sendBeaconSave);
+            document.getElementById('formSendTeacher').submit();
+        }
+        function showWritingNotice(message) { document.getElementById('writingNoticeText').textContent = message; document.getElementById('writingNotice').classList.add('show'); }
+        function closeTeacherModal() { document.getElementById('submitTeacherModal').classList.remove('show'); }
+        function showVipTeacherNotice() { document.getElementById('vipTeacherNoticeModal').classList.add('show'); }
+        function closeVipTeacherNotice() { document.getElementById('vipTeacherNoticeModal').classList.remove('show'); }
 
-<!-- Modal và Script Báo lỗi câu hỏi -->
-<div th:replace="~{fragments/report-modal :: reportModal}"></div>
-<div th:replace="~{fragments/report-modal :: reportScript}"></div>
+        // Auto-save draft mỗi 15 giây & theo dõi thời gian
+        let isSubmitting = false;
+        let autoSaveTimer = null;
+        let lastSavedContent = '';
+        let durationSeconds = /*[[${draftDuration != null ? draftDuration : 0}]]*/ 0;
+
+        function formatTime(sec) {
+            const m = Math.floor(sec / 60);
+            const s = sec % 60;
+            return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+        }
+
+        function updateTimerDisplay() {
+            const t = document.getElementById('draftTimerText');
+            if (t) t.textContent = formatTime(durationSeconds);
+        }
+
+        if (currentPromptId) {
+            setInterval(() => {
+                durationSeconds++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function getAnswerContent() {
+            if (currentQ <= 52) {
+                const a = (document.getElementById('blankAnsA') || { value: '' }).value.trim();
+                const b = (document.getElementById('blankAnsB') || { value: '' }).value.trim();
+                return a || b ? '㉠ ' + a + '\n㉡ ' + b : '';
+            }
+            return (document.getElementById('essayInput') || { value: '' }).value.trim();
+        }
+
+        function saveDraft(force, callback) {
+            if (isSubmitting || !currentPromptId) { if (typeof callback === 'function') callback(); return; }
+            const answer = getAnswerContent();
+            if (!force && answer === lastSavedContent) { if (typeof callback === 'function') callback(); return; }
+            if (!force && (!answer || answer.trim() === '')) { if (typeof callback === 'function') callback(); return; }
+            const statusEl = document.getElementById('draftStatus');
+            if (statusEl) statusEl.textContent = 'Đang lưu nháp…';
+            const params = new URLSearchParams();
+            params.append('promptId', currentPromptId);
+            params.append('answer', answer);
+            params.append('durationSeconds', durationSeconds);
+            fetch('/writing/draft', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params.toString()
+            }).then(r => {
+                if (r.ok) {
+                    lastSavedContent = answer;
+                    if (statusEl) statusEl.textContent = '✓ Đang làm dở ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                }
+                if (typeof callback === 'function') callback();
+            }).catch(() => {
+                if (statusEl) statusEl.textContent = 'Lưu nháp thất bại';
+                if (typeof callback === 'function') callback();
+            });
+        }
+
+        function saveDraftAndExit() {
+            saveDraft(true, () => {
+                const typeCode = (currentQ === 51 ? 'II-V1' : currentQ === 52 ? 'II-V2' : currentQ === 53 ? 'II-V3' : 'II-V4');
+                window.location.href = '/practice/prepare?typeCode=' + typeCode;
+            });
+        }
+
+        function sendBeaconSave() {
+            if (isSubmitting || !currentPromptId) return;
+            const answer = getAnswerContent();
+            if (!answer || answer.trim() === '') return;
+            const data = new FormData();
+            data.append('promptId', currentPromptId);
+            data.append('answer', answer);
+            data.append('durationSeconds', durationSeconds);
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon('/writing/draft', data);
+            }
+        }
+        window.addEventListener('pagehide', sendBeaconSave);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') sendBeaconSave();
+        });
+
+        function scheduleSave() {
+            if (isSubmitting) return;
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(saveDraft, 15000);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('blankInputsArea').style.display = currentQ <= 52 ? 'flex' : 'none';
+            document.getElementById('longTextArea').style.display = currentQ >= 53 ? 'flex' : 'none';
+            document.getElementById('promptText').textContent =/*[[${currentPrompt.promptKo}]]*/ '';
+            document.getElementById('promptHeader').textContent = 'CÂU ' + currentQ;
+            document.getElementById('promptPoints').textContent = (currentQ === 54 ? 50 : currentQ === 53 ? 30 : 10) + ' điểm';
+            document.getElementById('promptInstr').textContent = currentQ <= 52 ? 'Điền câu phù hợp vào hai chỗ trống.' : 'Viết bài theo yêu cầu đề.';
+            document.getElementById('tipHeader').textContent = 'Lưu ý khi nộp bài';
+            document.getElementById('tipContent').textContent = 'Kiểm tra bài trước khi nộp. Bài đã nộp được lưu nguyên vẹn và không sửa được.';
+            document.getElementById('formSendTeacher').addEventListener('submit', e => {
+                isSubmitting = true;
+                clearTimeout(autoSaveTimer);
+            });
+
+            // Gắn sự kiện auto-save
+            const essay = document.getElementById('essayInput');
+            if (essay) essay.addEventListener('input', () => { updateCharCount(); scheduleSave(); });
+            const blankA = document.getElementById('blankAnsA');
+            const blankB = document.getElementById('blankAnsB');
+            if (blankA) blankA.addEventListener('input', scheduleSave);
+            if (blankB) blankB.addEventListener('input', scheduleSave);
+
+            // Ghi nhận nội dung draft đã load (tránh lưu lại ngay)
+            // Với câu 51/52: parse draft "㉠ A\n㉡ B" vào hai ô trống
+            const draftLoaded = /*[[${draftAnswer}]]*/ null;
+            if (draftLoaded && currentQ <= 52) {
+                const parts = draftLoaded.split('\n');
+                const partA = parts.find(p => p.startsWith('㉠')) || '';
+                const partB = parts.find(p => p.startsWith('㉡')) || '';
+                if (blankA) blankA.value = partA.replace(/^㉠\s*/, '');
+                if (blankB) blankB.value = partB.replace(/^㉡\s*/, '');
+            }
+            lastSavedContent = getAnswerContent();
+            updateTimerDisplay();
+        });
+    </script>
+
+    <!-- Modal và Script Báo lỗi câu hỏi -->
+    <div th:replace="~{fragments/report-modal :: reportModal}"></div>
+    <div th:replace="~{fragments/report-modal :: reportScript}"></div>
 
 </body>
+
 </html>

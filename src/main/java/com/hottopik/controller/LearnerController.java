@@ -50,6 +50,29 @@ public class LearnerController {
         return "redirect:/hom-nay";
     }
 
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: BẢNG VIỆC HỌC HÔM NAY (TODAY DASHBOARD - FUNC_ROAD_01)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Học viên đăng nhập thành công hoặc click vào logo / mục "Hôm nay" trên thanh Navbar.
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: GET /hom-nay (hoẩn vị /today, /dashboard)
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.LearnerController.today()
+     *    - Triệu gọi Service:
+     *      + com.hottopik.service.exam.LearnerRoadmapService.ensure(owner, track): Lấy hoặc khởi tạo StudyPlan.
+     *      + com.hottopik.service.exam.LearnerRoadmapService.todayBoard(plan, learnerName):
+     *        * Xác định các bài học trong ngày hiện tại (doneToday, totalToday).
+     *        * Quét tìm bài quá hạn chưa làm để đưa vào danh mục "Làm bù" (makeup).
+     *        * Dựng thanh tiến độ tuần (weekCells, weekDone, weekTotal, weekLate, weekAhead).
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.study_plans (SELECT theo owner_email).
+     *    - Bảng dbo.program_versions (SELECT khung chương trình đang học).
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
+     *    - Trả về View: "learner/today" (src/main/resources/templates/learner/today.html)
+     *    - Giao diện hiển thị: Lời chào Bé Ssak theo tên học viên, danh sách thẻ bài học hôm nay,
+     *      thẻ bài làm bù (nếu có), thanh tuần N và nút "Vào học ngay".
+     * ========================================================================================= */
     @GetMapping({"/hom-nay", "/today", "/dashboard"})
     public String today(Model model, HttpSession session) {
         model.addAttribute("pageTitle", "Nhiệm vụ hôm nay · HOT TOPIK");
@@ -73,6 +96,26 @@ public class LearnerController {
         return "learner/today";
     }
 
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: XEM PHÂN TÍCH TIẾN ĐỘ HỌC TẬP (PROGRESS DASHBOARD - FUNC_ROAD_03)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Học viên nhấn vào mục "Tiến độ" trên thanh Navbar.
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: GET /tien-do (hoặc /progress)
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.LearnerController.progress()
+     *    - Lấy thông tin học viên đang đăng nhập qua AuthHelper.getLoggedInUser(session).
+     *    - Triệu gọi Service:
+     *      + com.hottopik.service.ProgressService.load(userId):
+     *        * Thống kê tổng số câu đã làm, tỉ lệ chính xác, chuỗi học tập (streak).
+     *        * Phân bổ kỹ năng (Nghe, Đọc, Viết) và radar chart năng lực.
+     * 4. TRUY VẤN CSDL:
+     *    - SELECT từ dbo.exam_attempts, dbo.practice_attempts, dbo.writing_submissions theo user_id.
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
+     *    - Trả về View: "progress/index" (src/main/resources/templates/progress/index.html)
+     *    - Render biểu đồ phân tích kỹ năng, điểm dự phóng TOPIK và lịch sử hoạt động.
+     * ========================================================================================= */
     @GetMapping({"/tien-do", "/progress"})
     public String progress(Model model, HttpSession session) {
         model.addAttribute("pageTitle", "Ph\u00e2n t\u00edch ti\u1ebfn \u0111\u1ed9 h\u1ecdc t\u1eadp");
@@ -105,6 +148,27 @@ public class LearnerController {
         return "learner/profile";
     }
 
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: CẬP NHẬT HỒ SƠ CÁ NHÂN & MỤC TIÊU HỌC TẬP (FUNC_USER_02)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Học viên vào trang Cá nhân (/ho-so), chỉnh sửa Tên hiển thị, Số điện thoại, Cấp độ mục tiêu,
+     *      Thời gian học mục tiêu hàng ngày (phút), rồi bấm nút "Lưu thay đổi".
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /api/user/update-profile
+     *    - Params: displayName, phone, avatar, currentLevel, targetLevel, dailyGoalMinutes
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.LearnerController.handleUpdateProfile()
+     *    - Validate định dạng tên hiển thị (2-40 ký tự), cập nhật session người dùng.
+     *    - Triệu gọi Service:
+     *      + com.hottopik.service.UserService.updateProfile(...)
+     * 4. TRUY VẤN CSDL:
+     *    - UPDATE dbo.users SET display_name = :name, phone = :phone, target_level = :target,
+     *      daily_goal_minutes = :minutes, updated_at = :now WHERE id = :userId
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
+     *    - Trả về JSON: {"success": true, "message": "Cập nhật hồ sơ thành công!"}
+     *    - Giao diện profile hiển thị thông báo thành công xanh lá và cập nhật avatar / tên trên thanh Header.
+     * ========================================================================================= */
     @PostMapping("/api/user/update-profile")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> handleUpdateProfile(

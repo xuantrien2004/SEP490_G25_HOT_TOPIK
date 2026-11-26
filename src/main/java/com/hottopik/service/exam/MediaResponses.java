@@ -68,6 +68,7 @@ public final class MediaResponses {
         // thành audio/mpeg;charset=UTF-8 và trình duyệt không phát.
         response.setCharacterEncoding(null);
         response.setContentType(type);
+        response.setHeader(HttpHeaders.CONTENT_TYPE, type);
         long length = size == 0 ? 0 : end - start + 1;
         if (partial) {
             response.setHeader(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + size);

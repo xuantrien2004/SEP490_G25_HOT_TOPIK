@@ -46,6 +46,8 @@ public class WritingController {
     public String writing(@RequestParam(value = "question", defaultValue = "53") int question,
                           @RequestParam(value = "promptId", required = false) Long promptId,
                           @RequestParam(value = "random", required = false, defaultValue = "false") boolean random,
+                          @RequestParam(value = "newAttempt", required = false, defaultValue = "false") boolean newAttempt,
+                          @RequestParam(value = "resume", required = false, defaultValue = "false") boolean resume,
                           Model model,
                           HttpSession session) {
 
@@ -90,31 +92,54 @@ public class WritingController {
         model.addAttribute("myGradedCount", gradedCount);
 
         // Load draft for this question (if any)
-        if (currentUser != null && currentPrompt != null) {
-            WritingSubmissionDTO draft = writingSubmissionService.getDraft(currentUser.getId(), question);
+        if (currentUser != null && currentPrompt != null && !newAttempt && !random) {
+            WritingSubmissionDTO draft = writingSubmissionService.getDraft(currentUser.getId(), question, currentPrompt.getId());
             if (draft != null) {
                 model.addAttribute("draftAnswer", draft.getStudentAnswer());
                 model.addAttribute("draftId", draft.getId());
+                model.addAttribute("draftDuration", draft.getDurationSeconds() != null ? draft.getDurationSeconds() : 0);
             }
         }
 
         return "writing/index";
     }
 
-    /**
-     * Auto-save draft: AJAX POST /writing/draft
-     */
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: TỰ ĐỘNG LƯU NHÁP BÀI VIẾT WONKWANJI (AUTO-SAVE DRAFT - FUNC_WRIT_04)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Học viên đang gõ bài viết trên giấy kẻ ô Wonkwanji (src/main/resources/templates/writing/index.html).
+     *    - JavaScript (src/main/resources/static/js/writing-form.js) tự động kích hoạt sau mỗi 15 giây
+     *      hoặc gửi qua navigator.sendBeacon khi học viên đóng tab / chuyển trang.
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /writing/draft (Form Data: promptId, answer, durationSeconds)
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.WritingController.saveDraft()
+     *    - Triệu gọi Service: com.hottopik.service.WritingSubmissionService.saveDraft(user, promptId, answer, durationSeconds):
+     *      + Tìm bản ghi nháp hiện tại của user cho promptId (hoặc tạo mới nếu chưa có).
+     *      + Lưu nội dung dạng chuỗi (với câu 51-52 phân cách ㉠ ... \n ㉡ ...).
+     *      + Cập nhật duration_seconds để học viên tiếp tục đếm giờ chính xác khi quay lại.
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.writing_submissions (INSERT/UPDATE content, status = 'draft', duration_seconds).
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
+     *    - Trả về JSON: {"id": "...", "status": "draft", "durationSeconds": ...}
+     *    - Client hiển thị nhãn "Đã lưu nháp lúc HH:mm:ss" màu xanh nhẹ ở góc trên ô viết.
+     * ========================================================================================= */
     @PostMapping("/writing/draft")
     @org.springframework.web.bind.annotation.ResponseBody
     public org.springframework.http.ResponseEntity<?> saveDraft(
             @RequestParam Long promptId,
             @RequestParam(defaultValue = "") String answer,
+            @RequestParam(required = false, defaultValue = "0") int durationSeconds,
             HttpSession session) {
         UserDTO user = AuthHelper.getLoggedInUser(session);
         if (user == null) return org.springframework.http.ResponseEntity.status(401).build();
         try {
-            WritingSubmissionDTO draft = writingSubmissionService.saveDraft(user, promptId, answer);
-            return org.springframework.http.ResponseEntity.ok(Map.of("id", draft.getId(), "status", "draft"));
+            WritingSubmissionDTO draft = writingSubmissionService.saveDraft(user, promptId, answer, durationSeconds);
+            if (draft == null) {
+                return org.springframework.http.ResponseEntity.ok(Map.of("status", "ignored"));
+            }
+            return org.springframework.http.ResponseEntity.ok(Map.of("id", draft.getId(), "status", "draft", "durationSeconds", durationSeconds));
         } catch (Exception ex) {
             return org.springframework.http.ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
         }
@@ -135,7 +160,7 @@ public class WritingController {
         }
         model.addAttribute("currentUser", user);
         model.addAttribute("pageTitle", "Chi tiết bài luyện Viết · HOT TOPIK");
-        model.addAttribute("activePage", "mentor-reviews");
+        model.addAttribute("activePage", "practice");
         model.addAttribute("sub", sub);
         model.addAttribute("canSendTeacher", WritingSubmissionService.hasAnswer(sub.getQuestionNo(), sub.getStudentAnswer()));
         return "writing/history";
@@ -147,7 +172,7 @@ public class WritingController {
 
     @GetMapping({"/writing/feedback", "/mentor-reviews", "/bai-cham"})
     public String feedback(@RequestParam(value = "id", required = false) String id,
-                           @RequestParam(value = "page", defaultValue = "0") int page,
+                           @RequestParam(value = "page", required = false) Integer page,
                            Model model,
                            HttpSession session) {
 
@@ -169,9 +194,6 @@ public class WritingController {
         // Phân trang: 10 group mỗi trang
         int pageSize = 10;
         int totalPages = Math.max(1, (int) Math.ceil((double) groups.size() / pageSize));
-        page = Math.max(0, Math.min(page, totalPages - 1));
-        List<java.util.Map.Entry<String, List<WritingSubmissionDTO>>> pageGroups =
-                groups.subList(page * pageSize, Math.min((page + 1) * pageSize, groups.size()));
 
         WritingSubmissionDTO currentSub = null;
         if (id != null && !id.trim().isEmpty()) {
@@ -179,8 +201,32 @@ public class WritingController {
             if (("submitted".equalsIgnoreCase(currentSub.getStatus()) && (currentSub.getRejectReason() == null || currentSub.getRejectReason().isBlank())) || "draft".equalsIgnoreCase(currentSub.getStatus())) {
                 return "redirect:/writing/history?id=" + id;
             }
-        } else if (!allSubs.isEmpty()) {
-            currentSub = allSubs.get(0);
+        }
+
+        // Tự động xác định trang hiển thị
+        int resolvedPage = 0;
+        if (page != null) {
+            resolvedPage = Math.max(0, Math.min(page, totalPages - 1));
+        } else if (currentSub != null) {
+            final String targetId = currentSub.getId();
+            for (int i = 0; i < groups.size(); i++) {
+                if (groups.get(i).getValue().stream().anyMatch(s -> s.getId().equals(targetId))) {
+                    resolvedPage = i / pageSize;
+                    break;
+                }
+            }
+        }
+
+        List<java.util.Map.Entry<String, List<WritingSubmissionDTO>>> pageGroups =
+                groups.subList(resolvedPage * pageSize, Math.min((resolvedPage + 1) * pageSize, groups.size()));
+
+        // Nếu chưa chọn bài (ví dụ click nút số trang phân trang), mặc định chọn bài đầu tiên của trang hiện tại
+        if (currentSub == null) {
+            if (!pageGroups.isEmpty() && !pageGroups.get(0).getValue().isEmpty()) {
+                currentSub = pageGroups.get(0).getValue().get(0);
+            } else if (!allSubs.isEmpty()) {
+                currentSub = allSubs.get(0);
+            }
         }
 
         model.addAttribute("currentUser", currentUser);
@@ -189,7 +235,7 @@ public class WritingController {
         model.addAttribute("mySubmissions", allSubs);
         model.addAttribute("groupedSubs", pageGroups);
         model.addAttribute("sub", currentSub);
-        model.addAttribute("currentPage", page);
+        model.addAttribute("currentPage", resolvedPage);
         model.addAttribute("totalPages", totalPages);
         model.addAttribute("canSendTeacher", currentSub != null && WritingSubmissionService.hasAnswer(currentSub.getQuestionNo(), currentSub.getStudentAnswer()));
 
@@ -219,6 +265,28 @@ public class WritingController {
         var type=java.nio.file.Files.probeContentType(file);
         return org.springframework.http.ResponseEntity.ok().contentType(org.springframework.http.MediaType.parseMediaType(type==null?"application/octet-stream":type)).body(new org.springframework.core.io.FileSystemResource(file));
     }
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: NỘP BÀI VIẾT / GỬI CHO GIÁO VIÊN CHẤM (SUBMIT WRITING - FUNC_WRIT_05)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Học viên hoàn thành bài viết trên giao diện Wonkwanji (writing/index.html).
+     *    - Bấm nút "Nộp bài tự chấm" hoặc "Gửi Giáo viên chấm (VIP)":
+     *      + Nút VIP: <button type="submit" name="teacher" value="true" class="btn-ssak-primary">Gửi Giáo viên chấm</button>.
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /writing/submit hoặc POST /writing/submit-mentor (Form Data: promptId, answer, teacher=true)
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.WritingController.submit()
+     *    - Triệu gọi Service: com.hottopik.service.WritingSubmissionService.submit(user, promptId, answer, toTeacher):
+     *      + Nếu toTeacher == true: Kiểm tra quyền VIP (user.isVip()). Nếu không phải VIP -> ném lỗi và yêu cầu nâng cấp.
+     *      + Nếu là câu 51 hoặc câu 52: Tự động chạy com.hottopik.service.exam.Writing5152Evaluator.evaluate()
+     *        chấm sơ bộ điểm nội dung & ngôn ngữ, trừ nặng 1.5đ nếu dùng sai thể văn/kính ngữ.
+     *      + Gán status = 'waiting' (nếu gửi GV) hoặc 'submitted' (nếu tự luyện).
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.writing_submissions (INSERT/UPDATE content, auto_score, status = 'waiting', submitted_at = now).
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG & GIÁO VIÊN:
+     *    - Nếu gửi GV: redirect:/writing/feedback?id={sub.getId()} (Màn hình chờ GV chấm bài).
+     *    - Phía Giáo viên: Bài viết lập tức xuất hiện trong tab "Chờ chấm" (queue) tại /teacher/dashboard.
+     * ========================================================================================= */
     @PostMapping({"/writing/submit", "/writing/submit-mentor"})
     public String submit(@RequestParam Long promptId, @RequestParam String answer,
                          @RequestParam(defaultValue="false") boolean teacher,
@@ -229,7 +297,9 @@ public class WritingController {
         try {
             WritingSubmissionDTO sub=writingSubmissionService.submit(user,promptId,answer,toTeacher);
             flash.addFlashAttribute("successMessage",toTeacher ? "Đã gửi bài cho Giáo viên. Bạn sẽ nhận thông báo khi có kết quả; bài đã khóa chỉnh sửa." : "Đã nộp bài. Bạn có thể đối chiếu đáp án tham khảo; bài đã khóa chỉnh sửa.");
-            return "redirect:/writing/feedback?id="+sub.getId();
+            // Nộp thường (không gửi GV) → trang chi tiết bài luyện; gửi GV → trang feedback GV
+            if (toTeacher) return "redirect:/writing/feedback?id="+sub.getId();
+            return "redirect:/writing/history?id="+sub.getId();
         } catch(IllegalArgumentException ex) {
             flash.addFlashAttribute("errorMessage",ex.getMessage());
             flash.addFlashAttribute("draftAnswer",answer);
@@ -260,6 +330,28 @@ public class WritingController {
         flash.addFlashAttribute(ok?"successMessage":"errorMessage",ok?"Đã gửi đánh giá.":"Không thể gửi đánh giá.");
         return "redirect:/writing/feedback?id="+id;
     }
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: HỌC VIÊN KHIẾU NẠI ĐIỂM SỐ BÀI VIẾT (APPEAL SCORE - FUNC_WRIT_06)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Học viên xem kết quả chấm tại trang /writing/feedback (src/main/resources/templates/writing/feedback.html).
+     *    - Nếu chưa hài lòng với điểm số, bấm nút "Khiếu nại điểm số" mở modal khiếu nại.
+     *    - Nhập lý do khiếu nại (10-2000 ký tự) & Bấm gửi: <button type="submit" class="btn-ssak-primary">Gửi khiếu nại</button>.
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /writing/appeal (Form Data: id, reason)
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.WritingController.appeal()
+     *    - Triệu gọi Service: com.hottopik.service.WritingSubmissionService.appealSubmission(id, userId, reason):
+     *      + Kiểm tra quyền sở hữu bài viết và trạng thái status == 'graded'.
+     *      + Kiểm tra cờ appealUsed == false (Mỗi bài chỉ được khiếu nại tối đa 1 lần duy nhất).
+     *      + Sao lưu điểm gốc sang originalScore, nhận xét sang originalFeedback, originalGradedAt.
+     *      + Chuyển trạng thái status = 'appeal', appealedAt = now, appealUsed = true.
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.writing_submissions (UPDATE status = 'appeal', appeal_used = 1, appealed_at = now...).
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG & GIÁO VIÊN:
+     *    - Học viên: redirect:/writing/feedback?id={id} (Hiển thị banner màu cam: "Đang chờ giáo viên phúc khảo").
+     *    - Giáo viên: Bài viết lập tức chuyển sang tab "Khiếu nại" (appeal) tại /teacher/dashboard.
+     * ========================================================================================= */
     @PostMapping("/writing/appeal")
     public String appeal(@RequestParam String id,@RequestParam String reason,HttpSession session,RedirectAttributes flash) {
         UserDTO user=AuthHelper.getLoggedInUser(session);if(user==null)return "redirect:/login";

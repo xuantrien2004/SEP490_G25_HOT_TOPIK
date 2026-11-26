@@ -39,11 +39,27 @@ public class QuestionReportController {
     private final com.hottopik.service.QuestionCorrectionService corrections;
     private final com.hottopik.service.ReportAttemptService reportAttempts;
 
-    /*
-     * Người gửi lấy từ session, không nhận userId tự khai. Kiểm tra mô tả 3..2000 ký tự.
-     * Nếu form có ngữ cảnh lượt làm, validate xác minh chủ lượt và câu thuộc lượt trước khi lưu báo lỗi OPEN.
-     * Trả JSON cho modal; chưa giải quyết báo lỗi hay phát thưởng tại bước gửi.
-     */
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: BÁO LỖI CÂU HỎI & NHẬN THƯỞNG +5 XU (QUESTION REPORT - FUNC_EXAM_06)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Học viên làm bài thi hoặc luyện tập phát hiện câu sai (đáp án sai, audio lỗi, dịch nhầm).
+     *    - Bấm nút "Báo lỗi" trên thẻ câu hỏi con (fragments/report-modal.html).
+     *    - Chọn loại lỗi (issueType), nhập mô tả chi tiết (3-2000 ký tự) & Bấm "Gửi báo lỗi".
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /api/question-reports (Form Data: questionId, issueType, details, attemptId...)
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.QuestionReportController.submitReport()
+     *    - Triệu gọi Service: com.hottopik.service.QuestionReportService.createReport():
+     *      + Lưu snapshot câu hỏi gốc vào bản ghi báo lỗi.
+     *      + Khởi tạo trạng thái status = 'OPEN', reward_coins = 5.
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.question_reports (INSERT báo lỗi mới, status = 'OPEN').
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG & VẬN HÀNH:
+     *    - Trả về JSON: {"success": true, "message": "Đã gửi báo lỗi thành công!"}.
+     *    - Client đóng modal và hiển thị Toast cảm ơn.
+     *    - Phía Cổng Vận hành: Báo cáo lập tức xuất hiện tại /operation/dashboard để chờ duyệt và cộng +5 Xu.
+     * ========================================================================================= */
     @PostMapping("/api/question-reports")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> submitReport(

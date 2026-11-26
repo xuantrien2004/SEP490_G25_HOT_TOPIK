@@ -196,6 +196,33 @@ public class AdminController {
         }
     }
 
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: ADMIN PHÊ DUYỆT CÁC YÊU CẦU ĐỀ NGHỊ TỪ BAN VẬN HÀNH (FUNC_ADMIN_01)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Admin truy cập trang Quản trị (/admin), tab "Yêu cầu cần phê duyệt".
+     *    - Xem danh sách yêu cầu (Khóa vĩnh viễn, Hoàn tiền đơn hàng, Đổi giá gói, Đền bù VIP...).
+     *    - Nhấn nút "Chấp thuận" (Approve) hoặc "Từ chối" (Reject) kèm lý do ghi chú (note).
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /admin/approval/decide
+     *    - Params: requestId, decision ("approve" / "reject"), note
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.AdminController.decideApproval()
+     *    - Kiểm tra quyền: Bắt buộc currentUser.isAdmin() == true.
+     *    - Triệu gọi Service:
+     *      + com.hottopik.service.ApprovalService.decideRequest(requestId, approve, note, approver):
+     *        * Thực hiện hành động nghiệp vụ tương ứng (khóa user vĩnh viễn, cập nhật trạng thái đơn hàng REFUNDED,
+     *          áp dụng giá gói mới, hoặc cộng thêm ngày VIP cho học viên).
+     *        * Đổi trạng thái đơn phê duyệt sang APPROVED hoặc REJECTED.
+     *      + com.hottopik.service.AdminSystemService.logAction(): Ghi nhận lịch sử kiểm toán của Admin.
+     * 4. TRUY VẤN CSDL:
+     *    - UPDATE dbo.approval_requests SET status = :status, approver = :admin, decided_at = :now, note = :note
+     *    - UPDATE bảng tương ứng: dbo.users (status='LOCKED'), dbo.orders (status='REFUNDED'), dbo.packages...
+     *    - INSERT INTO dbo.audit_logs (...)
+     * 5. HIỂN THỊ KẾT QUẢ CHO QUẢN TRỊ VIÊN:
+     *    - Trả về JSON: {"success": true, "message": "...", "action": "..."}
+     *    - Giao diện Admin loại bỏ thẻ yêu cầu khỏi danh sách chờ xử lý và chuyển sang tab "Lịch sử đã duyệt".
+     * ========================================================================================= */
     @PostMapping("/approval/decide")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> decideApproval(

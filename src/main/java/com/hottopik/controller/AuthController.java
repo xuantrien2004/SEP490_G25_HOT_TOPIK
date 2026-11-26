@@ -73,8 +73,30 @@ public class AuthController {
 
         return "auth/login";
     }
-// phân quyền
-    // ================= 2. XỬ LÝ ĐĂNG NHẬP PHÂN QUYỀN =================
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: ĐĂNG NHẬP HỆ THỐNG & ĐIỀU HƯỚNG PHÂN QUYỀN (LOGIN - FUNC_AUTH_04)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Người dùng vào trang đăng nhập (src/main/resources/templates/auth/login.html).
+     *    - Nhập Email và Mật khẩu -> Bấm nút submit: <button type="submit" class="btn-ssak-primary">Đăng nhập</button>.
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /login (Form Data: email, password)
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.AuthController.handleLogin()
+     *    - Triệu gọi Service: com.hottopik.service.UserService.authenticate(email, password):
+     *      + Truy vấn User từ UserRepository.findByEmail().
+     *      + Kiểm tra tài khoản: tồn tại, đã kích hoạt, không bị khóa (LOCKED).
+     *      + Đối soát mật khẩu qua passwordEncoder.matches(raw, hash).
+     *      + Lưu thông tin phiên: session.setAttribute("LOGGED_IN_USER", user).
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.users (SELECT theo email, UPDATE last_login_at nếu thành công).
+     * 5. ĐIỀU HƯỚNG THEO ROLE (PHÂN QUYỀN HIỂN THỊ):
+     *    - ADMIN: redirect:/admin (Cổng Quản trị viên).
+     *    - CONTENT_MANAGER: redirect:/content (Cổng Quản lý nội dung).
+     *    - OPERATION_MANAGER: redirect:/operation (Cổng Vận hành).
+     *    - MENTOR: redirect:/teacher (Bàn chấm Giáo viên).
+     *    - LEARNER: redirect:/today (Học viên vào thẳng bảng việc học Hôm nay hoặc /onboarding nếu chưa chọn lộ trình).
+     * ========================================================================================= */
     @PostMapping("/login")
     public String handleLogin(@RequestParam(value = "email", required = false) String email,
                               @RequestParam(value = "password", required = false) String password,
@@ -146,7 +168,29 @@ public class AuthController {
         return "auth/login";
     }
 
-    // ================= 4. XỬ LÝ ĐĂNG KÝ & GỬI MÃ OTP THẬT =================
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: ĐĂNG KÝ TÀI KHOẢN & GỬI OTP EMAIL (REGISTER - FUNC_AUTH_01)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Người học mở tab Đăng ký tại trang login.html (src/main/resources/templates/auth/login.html).
+     *    - Điền Tên hiển thị, Email, Mật khẩu, Xác nhận mật khẩu -> Bấm "Tạo tài khoản".
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /register (Form Data: displayName, email, password, confirmPassword)
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.AuthController.handleRegister()
+     *    - Triệu gọi Service: com.hottopik.service.UserService.registerStudent():
+     *      + Kiểm tra email chưa tồn tại hoặc chưa kích hoạt.
+     *      + Mã hóa mật khẩu bằng BCryptPasswordEncoder.
+     *      + Tạo bản ghi User (status = PENDING_VERIFY, role = LEARNER).
+     *      + Sinh ngẫu nhiên mã OTP 6 chữ số, lưu vào bảng dbo.auth_tokens (hạn 5 phút).
+     *      + Triệu gọi com.hottopik.service.EmailService.sendOtpEmail() gửi email qua SMTP Gmail.
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.users (INSERT/UPDATE email, password, role = 'LEARNER', status = 'PENDING_VERIFY').
+     *    - Bảng dbo.auth_tokens (INSERT email, otp, expired_at).
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
+     *    - Controller trả về: redirect:/verify-otp?email={encodedEmail}
+     *    - Giao diện chuyển hướng đến màn hình nhập OTP 6 ô số (src/main/resources/templates/auth/verify-otp.html).
+     * ========================================================================================= */
     @PostMapping("/register")
     public String handleRegister(@RequestParam("displayName") String displayName,
                                  @RequestParam("email") String email,
@@ -186,6 +230,28 @@ public class AuthController {
         return "auth/verify-otp";
     }
 
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: XÁC THỰC MÃ OTP & KÍCH HOẠT TÀI KHOẢN (VERIFY OTP - FUNC_AUTH_02)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Người học nhận mã OTP 6 số trong email, nhập vào 6 ô số trên màn hình auth/verify-otp.html.
+     *    - Bấm nút: <button type="submit" class="btn-ssak-primary">Xác nhận kích hoạt</button>.
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /verify-otp (Form Data: email, otpCode)
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.AuthController.handleVerifyOtp()
+     *    - Triệu gọi Service: com.hottopik.service.UserService.verifyRegistrationOtp(email, otpCode):
+     *      + Đối soát mã OTP trong bảng dbo.auth_tokens (chưa dùng is_used = 0, chưa hết hạn expired_at > now).
+     *      + Cập nhật status của User sang 'ACTIVE'.
+     *      + Đánh dấu token is_used = true.
+     *      + Tự động đăng nhập: session.setAttribute("LOGGED_IN_USER", activeUser).
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.auth_tokens (SELECT token, UPDATE is_used = 1).
+     *    - Bảng dbo.users (UPDATE status = 'ACTIVE').
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
+     *    - Controller trả về: redirect:/onboarding
+     *    - Học viên được đưa ngay vào màn hình Chào mừng & Hướng dẫn bắt đầu học (src/main/resources/templates/onboarding/index.html).
+     * ========================================================================================= */
     @PostMapping("/verify-otp")
     public String handleVerifyOtp(@RequestParam("email") String email,
                                   @RequestParam("otpCode") String otpCode,

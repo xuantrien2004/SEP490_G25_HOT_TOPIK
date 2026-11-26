@@ -116,7 +116,7 @@ public class WritingSubmissionService {
         return rejected != null && !normalizeAnswer(rejected.getStudentAnswer()).equals(normalizeAnswer(answer));
     }
     private static String normalizeAnswer(String answer) {
-        return Objects.toString(answer, "").replace("①", "").replace("②", "").trim();
+        return Objects.toString(answer, "").replace("\r\n", "\n").replace("\r", "\n").replace("①", "").replace("②", "").trim();
     }
     private WritingSubmissionDTO submit(UserDTO user, Long promptId, String answer, boolean teacher, Long attemptId, String title) {
         if (user.getId() == null || users.findById(user.getId())
@@ -150,6 +150,7 @@ public class WritingSubmissionService {
         s.setSource(attemptId == null ? "Luyện tập" : "Đề thi");
         s.setSubmittedAt(LocalDateTime.now().format(FMT)); s.setStatus(teacher ? "waiting" : "submitted");
         s.setDueDeadline(teacher ? "Đang chờ Giáo viên nhận chấm" : "Đã nộp");
+        deleteDraft(user.getId(), p.getNo());
         save(new WritingSubmission(), s);
         return s;
     }
@@ -217,11 +218,71 @@ public class WritingSubmissionService {
             if (model != null && !model.isBlank()) s.setModelAnswer(model.trim());
             s.setGradedAt(LocalDateTime.now().format(FMT));
         }
-        if (appeal) { s.setAppealResolved(true); s.setAppealDecision(decision); s.setAppealMessage(message); }
+        if (appeal) {
+            s.setAppealResolved(true);
+            s.setAppealDecision(decision);
+            s.setAppealMessage(message);
+            s.setAppealResolvedAt(LocalDateTime.now().format(FMT));
+            s.setGradedAt(LocalDateTime.now().format(FMT));
+        }
         s.setStatus("graded"); s.setDueDeadline("Đã chấm"); save(e,s);
         notify(s, appeal ? "Đã xử lý khiếu nại điểm bài Viết" : "Giáo viên đã chấm bài Viết", appeal
             ? "Kết quả: " + s.getOriginalScore() + " → " + s.getTotalScore() + "/" + s.getMaxScore() + ". Xem nhận xét và lời nhắn của Giáo viên."
             : "Bài viết câu " + s.getQuestionNo() + ": " + s.getTotalScore() + "/" + s.getMaxScore() + ".");
+        return true;
+    }
+
+    /** Lưu tạm điểm và nhận xét đang chấm dở của Giáo viên; giữ nguyên trạng thái claimed/appeal, không gửi thông báo cho học viên. */
+    public boolean saveGradingDraft(String id, UserDTO teacher, Map<String, Integer> criteria, Integer total,
+                                    String feedback, String model, String decision, String message) {
+        requireTeacher(teacher);
+        WritingSubmission e = locked(id);
+        WritingSubmissionDTO s = decode(e);
+        if (!Objects.equals(e.getMentorId(), teacher.getId()) || !("claimed".equals(s.getStatus()) || "appeal".equals(s.getStatus()))) {
+            return false;
+        }
+        if (feedback != null && feedback.length() > 6000) {
+            throw new IllegalArgumentException("Nhận xét tối đa 6000 ký tự.");
+        }
+        if (message != null && message.length() > 2000) {
+            throw new IllegalArgumentException("Lời nhắn tối đa 2000 ký tự.");
+        }
+        if (s.getQuestionNo() >= 53) {
+            if (total != null) {
+                if (total < 0 || total > s.getMaxScore()) {
+                    throw new IllegalArgumentException("Điểm phải từ 0 đến " + s.getMaxScore() + ".");
+                }
+                s.setTotalScore(total);
+            } else {
+                s.setTotalScore(null);
+            }
+        } else {
+            int score = 0;
+            boolean hasAnyCriterion = false;
+            for (CriterionScore c : s.getCriteriaScores()) {
+                Integer value = criteria != null ? criteria.get(c.getName()) : null;
+                if (value != null) {
+                    if (value < 0 || value > c.getMax()) {
+                        throw new IllegalArgumentException("Điểm mỗi chỗ trống phải từ 0 đến " + c.getMax());
+                    }
+                    c.setScore(value);
+                    score += value;
+                    hasAnyCriterion = true;
+                } else {
+                    c.setScore(0);
+                }
+            }
+            s.setTotalScore(hasAnyCriterion ? score : null);
+        }
+        s.setOverallFeedback(feedback != null && !feedback.isBlank() ? feedback.trim() : null);
+        s.setModelAnswer(model != null && !model.isBlank() ? model.trim() : null);
+        if (s.isAppealUsed() && !s.isAppealResolved()) {
+            if (decision != null && Set.of("revise", "uphold").contains(decision)) {
+                s.setAppealDecision(decision);
+            }
+            s.setAppealMessage(message != null && !message.isBlank() ? message.trim() : null);
+        }
+        save(e, s);
         return true;
     }
     public boolean appealSubmission(String id, Long learnerId, String reason) {
@@ -231,6 +292,7 @@ public class WritingSubmissionService {
         if (reason == null || reason.trim().length() < 10 || reason.length() > 2000) throw new IllegalArgumentException("Lý do cần từ 10 đến 2000 ký tự.");
         s.setAppealUsed(true); s.setOriginalScore(s.getTotalScore()); s.setOriginalFeedback(s.getOverallFeedback());
         s.setOriginalModelAnswer(s.getModelAnswer()); s.setOriginalGradedAt(s.getGradedAt());
+        s.setAppealedAt(LocalDateTime.now().format(FMT));
         s.setAppealReason(reason.trim()); s.setStatus("appeal"); save(e,s); return true;
     }
     public boolean askQuestion(String id, Long userId, String question) {
@@ -239,16 +301,66 @@ public class WritingSubmissionService {
         if(question==null || question.trim().length()<5 || question.length()>2000) return false;
         s.setStudentQuestion(question.trim());save(e,s);return true;
     }
-    /** Luu nhap bai viet (chua nop). Moi user+prompt chi giu 1 nhap moi nhat. */
+    /** Xoá bỏ nháp của user cho câu này (ví dụ khi đã nộp bài). */
+    @Transactional
+    public void deleteDraft(Long userId, int questionNo) {
+        deleteDraft(userId, questionNo, null);
+    }
+
+    @Transactional
+    public void deleteDraft(Long userId, int questionNo, Long promptId) {
+        if (userId == null) return;
+        List<WritingSubmission> drafts = submissions.findByLearnerId(userId).stream()
+                .filter(e -> {
+                    try {
+                        WritingSubmissionDTO s = json.readValue(e.getPayload(), WritingSubmissionDTO.class);
+                        boolean match = "draft".equalsIgnoreCase(s.getStatus()) && s.getQuestionNo() == questionNo;
+                        if (match && promptId != null) {
+                            match = Objects.equals(s.getPromptId(), promptId);
+                        }
+                        return match;
+                    } catch (Exception ex) { return false; }
+                }).toList();
+        if (!drafts.isEmpty()) {
+            submissions.deleteAll(drafts);
+            try { submissions.flush(); } catch (Exception ignored) {}
+        }
+    }
+
+    /** Luu nhap bai viet (dang lam do). Moi user+prompt chi giu 1 nhap moi nhat. */
     @Transactional
     public WritingSubmissionDTO saveDraft(UserDTO user, Long promptId, String answer) {
+        return saveDraft(user, promptId, answer, 0);
+    }
+
+    @Transactional
+    public WritingSubmissionDTO saveDraft(UserDTO user, Long promptId, String answer, int durationSeconds) {
         if (user == null || user.getId() == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         WritingPrompt p = prompts.findById(promptId).filter(w -> w.getStatus() == QuestionStatus.ACTIVE)
                 .orElseThrow(() -> new IllegalArgumentException("De viet khong con kha dung."));
+
+        String cleanAnswer = Objects.toString(answer, "").trim();
+        // Không lưu nháp nếu bài hoàn toàn trống hoặc câu 51/52 chưa có ký tự trả lời
+        if (cleanAnswer.isEmpty() || (p.getNo() <= 52 && !hasAnswer(p.getNo(), cleanAnswer))) {
+            return null;
+        }
+
+        // Tránh beacon gửi sau khi submit: nếu nội dung trùng với bài đã nộp của prompt này thì bỏ qua
+        String normalizedClean = normalizeAnswer(cleanAnswer);
+        boolean alreadySubmitted = submissions.findByLearnerId(user.getId()).stream()
+                .filter(e -> Objects.equals(e.getPromptId(), promptId))
+                .map(this::decodeSafe)
+                .filter(Objects::nonNull)
+                .filter(s -> !"draft".equalsIgnoreCase(s.getStatus()))
+                .anyMatch(s -> normalizedClean.equals(normalizeAnswer(s.getStudentAnswer())));
+        if (alreadySubmitted) {
+            return null;
+        }
+
         Optional<WritingSubmission> existing = submissions.findByLearnerId(user.getId()).stream()
                 .filter(e -> Objects.equals(e.getPromptId(), promptId))
                 .filter(e -> {
-                    try { return "draft".equals(json.readValue(e.getPayload(), WritingSubmissionDTO.class).getStatus()); }
+                    try { return "draft".equalsIgnoreCase(json.readValue(e.getPayload(), WritingSubmissionDTO.class).getStatus()); }
                     catch (Exception ex) { return false; }
                 }).findFirst();
         WritingSubmission entity = existing.orElse(new WritingSubmission());
@@ -262,28 +374,79 @@ public class WritingSubmissionService {
             s.setMaxScore(p.getNo() == 54 ? 50 : p.getNo() == 53 ? 30 : 10);
             s.setTitle("Nhap · Viet cau " + p.getNo()); s.setSource("Luyen tap");
         }
-        s.setStudentAnswer(Objects.toString(answer, "").trim());
-        s.setWordCount(s.getStudentAnswer().length());
+        s.setStudentAnswer(cleanAnswer);
+        s.setWordCount(cleanAnswer.length());
         s.setStatus("draft");
         s.setSubmittedAt(LocalDateTime.now().format(FMT));
-        s.setDueDeadline("Chua nop");
+        s.setDueDeadline("Đang làm dở");
+        if (durationSeconds > 0) {
+            s.setDurationSeconds(durationSeconds);
+        }
         save(entity, s);
         return s;
     }
 
-    /** Lay nhap moi nhat cua user cho cau nay (null neu khong co). */
-    @Transactional(readOnly = true)
+    /** Lay nhap moi nhat cua user cho cau nay (null neu khong co). Tu dong don dep neu draft trung voi bai da nop. */
+    @Transactional
     public WritingSubmissionDTO getDraft(Long userId, int questionNo) {
+        return getDraft(userId, questionNo, null);
+    }
+
+    @Transactional
+    public WritingSubmissionDTO getDraft(Long userId, int questionNo, Long promptId) {
         if (userId == null) return null;
-        return submissions.findByLearnerId(userId).stream()
+        List<WritingSubmission> userSubs = submissions.findByLearnerId(userId);
+        Optional<WritingSubmission> draftOpt = userSubs.stream()
                 .filter(e -> {
                     try {
                         WritingSubmissionDTO s = json.readValue(e.getPayload(), WritingSubmissionDTO.class);
-                        return "draft".equals(s.getStatus()) && s.getQuestionNo() == questionNo;
+                        boolean match = "draft".equalsIgnoreCase(s.getStatus()) && s.getQuestionNo() == questionNo;
+                        if (match && promptId != null) {
+                            match = Objects.equals(s.getPromptId(), promptId);
+                        }
+                        return match;
                     } catch (Exception ex) { return false; }
                 })
-                .max(Comparator.comparingLong(WritingSubmission::getId))
-                .map(this::decode).orElse(null);
+                .max(Comparator.comparingLong(WritingSubmission::getId));
+
+        if (draftOpt.isEmpty()) return null;
+
+        WritingSubmission draftEntity = draftOpt.get();
+        WritingSubmissionDTO draft = decode(draftEntity);
+        String draftAns = normalizeAnswer(draft.getStudentAnswer());
+
+        if (draftAns.isEmpty()) {
+            submissions.delete(draftEntity);
+            try { submissions.flush(); } catch (Exception ignored) {}
+            return null;
+        }
+
+        // Nếu nội dung bản nháp trùng khớp với một bài đã nộp trước đó thì đây là tàn dư cũ -> dọn dẹp và trả về null
+        Long targetPromptId = promptId != null ? promptId : draft.getPromptId();
+        boolean matchesSubmitted = userSubs.stream()
+                .map(this::decodeSafe)
+                .filter(Objects::nonNull)
+                .filter(s -> !"draft".equalsIgnoreCase(s.getStatus())
+                        && s.getQuestionNo() == questionNo
+                        && (targetPromptId == null || Objects.equals(s.getPromptId(), targetPromptId)))
+                .anyMatch(s -> draftAns.equals(normalizeAnswer(s.getStudentAnswer())));
+
+        if (matchesSubmitted) {
+            submissions.delete(draftEntity);
+            try { submissions.flush(); } catch (Exception ignored) {}
+            return null;
+        }
+
+        return draft;
+    }
+
+
+    private WritingSubmissionDTO decodeSafe(WritingSubmission e) {
+        try {
+            return json.readValue(e.getPayload(), WritingSubmissionDTO.class);
+        } catch (Exception ex) {
+            return null;
+        }
     }
     public boolean rateSubmission(String id, Long userId, int rating) {
         WritingSubmission e=locked(id); WritingSubmissionDTO s=decode(e);

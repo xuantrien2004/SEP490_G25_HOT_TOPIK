@@ -12,6 +12,10 @@
 <th:block th:fragment="styles">
 <style>
 .rv-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid var(--ssak-border,#E6E1D3);border-radius:16px;padding:12px 16px;margin-bottom:16px}
+.rv-skill-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.rv-skill-btn{border:1.5px solid var(--ssak-border,#E6E1D3);background:#fff;color:var(--ssak-text-muted,#5C6E72);border-radius:12px;padding:8px 16px;font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:all .15s ease}
+.rv-skill-btn:hover{background:var(--ssak-bg-muted,#F1EEE6);color:var(--ssak-text-main,#24363D)}
+.rv-skill-btn.active{background:var(--ssak-primary,#2E7D67);border-color:var(--ssak-primary,#2E7D67);color:#fff;box-shadow:0 2px 6px rgba(46,125,103,.2)}
 .rv-filters{display:flex;flex-wrap:wrap;gap:8px}
 .rv-filter{border:1.5px solid var(--ssak-border,#E6E1D3);background:#fff;color:var(--ssak-text-muted,#5C6E72);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
 .rv-filter .rv-count{background:var(--ssak-bg-muted,#F1EEE6);border-radius:999px;padding:1px 8px;font-size:12px}
@@ -83,27 +87,34 @@
         var chips = Array.prototype.slice.call(root.querySelectorAll('.rv-chip'));
         var cards = {};
         root.querySelectorAll('.rv-card').forEach(function (c) { cards[c.id] = c; });
+        var activeSkillBtn = root.querySelector('.rv-skill-btn.active');
+        var skillFilter = activeSkillBtn ? activeSkillBtn.dataset.skillFilter : 'ALL';
         var filter = 'ALL', visible = [], current = null;
 
-        // Câu sai gồm cả câu bỏ qua; câu Viết chỉ hiện ở Tất cả vì chưa có đúng/sai.
-        function matches(state) {
+        // Lọc theo skill (nếu có skillFilter) và theo trạng thái đúng/sai
+        function matches(chip) {
+            if (skillFilter && skillFilter !== 'ALL') {
+                if (chip.dataset.skill && chip.dataset.skill !== skillFilter) return false;
+            }
+            var state = chip.dataset.state;
             if (filter === 'CORRECT') return state === 'correct';
             if (filter === 'WRONG') return state === 'wrong' || state === 'skip';
             return true;
         }
         function counts() {
-            var n = { ALL: chips.length, WRONG: 0, CORRECT: 0 };
+            var n = { ALL: 0, WRONG: 0, CORRECT: 0 };
             chips.forEach(function (c) {
+                if (skillFilter && skillFilter !== 'ALL' && c.dataset.skill && c.dataset.skill !== skillFilter) return;
+                n.ALL++;
                 var s = c.dataset.state;
                 if (s === 'correct') n.CORRECT++;
                 else if (s === 'wrong' || s === 'skip') n.WRONG++;
             });
             root.querySelectorAll('[data-count]').forEach(function (el) { el.textContent = n[el.dataset.count]; });
-            if (n.CORRECT === 0 && n.WRONG === 0) {
-                root.querySelectorAll('.rv-filter[data-filter="WRONG"], .rv-filter[data-filter="CORRECT"]').forEach(function(b) {
-                    b.style.display = 'none';
-                });
-            }
+            var wrongBtn = root.querySelector('.rv-filter[data-filter="WRONG"]');
+            var correctBtn = root.querySelector('.rv-filter[data-filter="CORRECT"]');
+            if (wrongBtn) wrongBtn.style.display = (n.CORRECT === 0 && n.WRONG === 0) ? 'none' : '';
+            if (correctBtn) correctBtn.style.display = (n.CORRECT === 0 && n.WRONG === 0) ? 'none' : '';
         }
         function show(chip, updateHash) {
             current = chip;
@@ -124,7 +135,7 @@
         function apply(mode, keep) {
             filter = mode;
             root.querySelectorAll('.rv-filter').forEach(function (b) { b.classList.toggle('active', b.dataset.filter === mode); });
-            visible = chips.filter(function (c) { return matches(c.dataset.state); });
+            visible = chips.filter(matches);
             chips.forEach(function (c) { c.classList.toggle('rv-hidden', visible.indexOf(c) < 0); });
             root.querySelectorAll('.rv-group').forEach(function (g) {
                 g.classList.toggle('rv-hidden', !g.querySelector('.rv-chip:not(.rv-hidden)'));
@@ -133,6 +144,15 @@
         }
 
         root.addEventListener('click', function (e) {
+            var sb = e.target.closest('.rv-skill-btn');
+            if (sb && root.contains(sb)) {
+                e.preventDefault();
+                skillFilter = sb.dataset.skillFilter;
+                root.querySelectorAll('.rv-skill-btn').forEach(function (b) { b.classList.toggle('active', b === sb); });
+                counts();
+                apply(filter, null);
+                return;
+            }
             var chip = e.target.closest('.rv-chip');
             if (chip && root.contains(chip)) { e.preventDefault(); show(chip, true); return; }
             var f = e.target.closest('.rv-filter');
@@ -148,11 +168,17 @@
             }
         });
 
-        counts();
-        root.classList.add('rv-ready');
-        // Link từ trang báo lỗi (#question-<id>) mở thẳng câu đó.
+        // Link từ trang báo lỗi (#question-<id> hoặc #writing-<id>) mở thẳng câu đó.
         var hash = decodeURIComponent((location.hash || '').slice(1));
         var start = chips.filter(function (c) { return c.dataset.target === hash; })[0];
+        if (start && start.dataset.skill) {
+            skillFilter = start.dataset.skill;
+            root.querySelectorAll('.rv-skill-btn').forEach(function (b) {
+                b.classList.toggle('active', b.dataset.skillFilter === skillFilter);
+            });
+        }
+        counts();
+        root.classList.add('rv-ready');
         apply('ALL', start || null);
         if (start) root.scrollIntoView({ block: 'start' });
     });

@@ -67,6 +67,12 @@ public class WritingSubmissionDTO implements Serializable {
     private String originalGradedAt;
     public String getOriginalGradedAt() { return originalGradedAt; }
     public void setOriginalGradedAt(String value) { this.originalGradedAt = value; }
+    private String appealedAt;
+    public String getAppealedAt() { return appealedAt; }
+    public void setAppealedAt(String value) { this.appealedAt = value; }
+    private String appealResolvedAt;
+    public String getAppealResolvedAt() { return appealResolvedAt; }
+    public void setAppealResolvedAt(String value) { this.appealResolvedAt = value; }
     private String appealMessage;
     public String getAppealMessage() { return appealMessage; }
     public void setAppealMessage(String value) { this.appealMessage = value; }
@@ -82,6 +88,10 @@ public class WritingSubmissionDTO implements Serializable {
     private String chartImage;
     public String getChartImage() { return chartImage; }
     public void setChartImage(String value) { this.chartImage = value; }
+
+    private Integer durationSeconds;
+    public Integer getDurationSeconds() { return durationSeconds; }
+    public void setDurationSeconds(Integer durationSeconds) { this.durationSeconds = durationSeconds; }
 
     public WritingSubmissionDTO() {
     }

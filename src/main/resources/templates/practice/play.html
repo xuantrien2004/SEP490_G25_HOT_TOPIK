@@ -6,7 +6,7 @@
 <th:block th:replace="~{fragments/question-player :: assets}"></th:block>
 <main class="container-fluid py-4" style="max-width:1440px;min-height:85vh">
     <header class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-        <div><a th:href="@{/practice/prepare(typeCode=${type.code})}">← Tạm dừng</a>
+        <div><button type="button" class="btn btn-link text-decoration-none p-0 fw-bold text-secondary" onclick="pauseAndExit()">← Tạm dừng</button>
             <h1 class="h4 mt-2 mb-1" th:text="${type.name}"></h1>
             <span th:text="${type.track.label + ' · ' + type.skill.label}"></span>
         </div>
@@ -18,17 +18,58 @@
     -->
     <form id="practiceForm" method="post" th:action="@{/practice/submit/{id}(id=${attempt.id})}"
           data-report-attempt-kind="PRACTICE" th:attr="data-report-attempt-id=${attempt.id}">
+        <input type="hidden" name="elapsedSeconds" id="elapsedSecondsInput" th:value="${elapsedSeconds}">
         <div th:replace="~{fragments/question-player :: player(${playerQuestions}, false, ${null}, ${'Luyện tập: ' + type.name})}"></div>
     </form>
 </main>
 <div th:replace="~{fragments/report-modal :: reportModal}"></div>
 <div th:replace="~{fragments/report-modal :: reportScript}"></div>
 <div th:replace="~{fragments/footer :: footer}"></div>
-<script>
-    let seconds = 0;
+<script th:inline="javascript">
+    const saveUrl = /*[[@{/practice/save/{id}(id=${attempt.id})}]]*/ '';
+    const prepareUrl = /*[[@{/practice/prepare(typeCode=${type.code})}]]*/ '';
+    let seconds = /*[[${elapsedSeconds}]]*/ 0;
+    const form = document.getElementById('practiceForm');
+    function syncElapsed() {
+        const inp = document.getElementById('elapsedSecondsInput');
+        if (inp) inp.value = seconds;
+    }
+    function updateDisplay() {
+        document.getElementById('timerDisplay').textContent =
+            String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
+    }
+    updateDisplay();
     setInterval(() => {
         seconds++;
-        document.getElementById('timerDisplay').textContent = String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
+        syncElapsed();
+        updateDisplay();
     }, 1000);
+
+    function savePractice(isPause = false) {
+        syncElapsed();
+        const data = new URLSearchParams(new FormData(form));
+        if (isPause) data.set('pause', 'true');
+        const url = saveUrl + (isPause ? '?pause=true' : '');
+        if (navigator.sendBeacon && isPause) {
+            navigator.sendBeacon(url, data);
+        } else {
+            fetch(url, {method: 'POST', body: data}).catch(() => {});
+        }
+    }
+    form.addEventListener('change', () => savePractice(false));
+    setInterval(() => savePractice(false), 15000);
+    window.addEventListener('pagehide', () => savePractice(true));
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') savePractice(true);
+    });
+
+    function pauseAndExit() {
+        syncElapsed();
+        const data = new URLSearchParams(new FormData(form));
+        data.set('pause', 'true');
+        fetch(saveUrl + '?pause=true', {method: 'POST', body: data}).finally(() => {
+            window.location.href = prepareUrl;
+        });
+    }
 </script>
 </body></html>

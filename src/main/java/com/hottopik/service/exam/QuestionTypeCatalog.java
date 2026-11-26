@@ -67,15 +67,15 @@ public final class QuestionTypeCatalog {
                 "※ [61~70] 다음을 읽고 물음에 답하십시오.");
 
         // ---------- TOPIK II · Nghe (1–50) ----------
-        def("II-N1", Track.TOPIK_II, Skill.LISTENING, "Chọn tranh, biểu đồ", 3, 3, "1|2|3",
+        def("II-N1", Track.TOPIK_II, Skill.LISTENING, "Chọn tranh hoặc biểu đồ đúng", 3, 3, "1|2|3",
                 "※ [1~3] 다음을 듣고 알맞은 그림 또는 그래프를 고르십시오.", false, true);
-        single("II-N2", Track.TOPIK_II, Skill.LISTENING, "Chọn câu nói tiếp theo", 3, 3, "4-8",
+        single("II-N2", Track.TOPIK_II, Skill.LISTENING, "Chọn câu nói nối tiếp", 3, 3, "4-8",
                 "※ [4~8] 다음 대화를 잘 듣고 이어질 수 있는 말로 가장 알맞은 것을 고르십시오.");
-        single("II-N3", Track.TOPIK_II, Skill.LISTENING, "Hành động tiếp theo", 3, 3, "9-12",
+        single("II-N3", Track.TOPIK_II, Skill.LISTENING, "Chọn hành động tiếp theo", 3, 3, "9-12",
                 "※ [9~12] 다음 대화를 잘 듣고 여자가 이어서 할 행동으로 가장 알맞은 것을 고르십시오.");
-        single("II-N4", Track.TOPIK_II, Skill.LISTENING, "Chọn nội dung giống", 3, 3, "13-16",
+        single("II-N4", Track.TOPIK_II, Skill.LISTENING, "Chọn nội dung trùng khớp (đúng với bài nghe)", 3, 3, "13-16",
                 "※ [13~16] 다음을 듣고 들은 내용과 같은 것을 고르십시오.");
-        single("II-N5", Track.TOPIK_II, Skill.LISTENING, "Ý chính của người nói", 3, 4, "17-20",
+        single("II-N5", Track.TOPIK_II, Skill.LISTENING, "Chọn suy nghĩ trọng tâm", 3, 4, "17-20",
                 "※ [17~20] 다음을 듣고 남자의 중심 생각으로 가장 알맞은 것을 고르십시오.");
         grouped("II-N6", Track.TOPIK_II, Skill.LISTENING, "Hội thoại đời sống, công việc (2 câu/bài)", 4, 4,
                 "21-22|23-24|25-26|27-28|29-30", "※ [21~30] 다음을 듣고 물음에 답하십시오.");
@@ -95,29 +95,29 @@ public final class QuestionTypeCatalog {
                 "※ [54] 다음을 주제로 하여 자신의 생각을 600~700자로 글을 쓰십시오. 단, 문제를 그대로 옮겨 쓰지 마십시오.", false, false);
 
         // ---------- TOPIK II · Đọc (1–50) ----------
-        def("II-D1", Track.TOPIK_II, Skill.READING, "Điền ngữ pháp", 3, 3, "1|2",
+        def("II-D1", Track.TOPIK_II, Skill.READING, "Điền từ/ngữ pháp thích hợp vào chỗ trống", 3, 3, "1|2",
                 "※ [1~2] (    )에 들어갈 가장 알맞은 것을 고르십시오.", false, false);
-        def("II-D2", Track.TOPIK_II, Skill.READING, "Chọn ngữ pháp gần nghĩa", 3, 3, "3|4",
+        def("II-D2", Track.TOPIK_II, Skill.READING, "Chọn từ/ ngữ pháp có nghĩa tương đồng (đồng nghĩa)", 3, 3, "3|4",
                 "※ [3~4] 밑줄 친 부분과 의미가 가장 비슷한 것을 고르십시오.", false, false);
-        single("II-D3", Track.TOPIK_II, Skill.READING, "Quảng cáo, biển báo nói về gì", 3, 3, "5-8",
+        single("II-D3", Track.TOPIK_II, Skill.READING, "Xác định chủ đề", 3, 3, "5-8",
                 "※ [5~8] 다음은 무엇에 대한 글인지 고르십시오.");
-        single("II-D4", Track.TOPIK_II, Skill.READING, "Nội dung giống (thông báo, biểu đồ)", 3, 3, "9-12",
+        single("II-D4", Track.TOPIK_II, Skill.READING, "Chọn nội dung trùng khớp với văn bản hoặc biểu đồ", 3, 3, "9-12",
                 "※ [9~12] 다음 글 또는 도표의 내용과 같은 것을 고르십시오.");
-        single("II-D5", Track.TOPIK_II, Skill.READING, "Sắp xếp câu", 3, 4, "13-15",
+        single("II-D5", Track.TOPIK_II, Skill.READING, "Sắp xếp các câu theo thứ tự đúng", 3, 4, "13-15",
                 "※ [13~15] 다음을 순서대로 맞게 배열한 것을 고르십시오.");
-        single("II-D6", Track.TOPIK_II, Skill.READING, "Điền cụm từ vào đoạn văn", 4, 5, "16-18,28-31",
+        single("II-D6", Track.TOPIK_II, Skill.READING, "Chọn từ/ngữ pháp thích hợp vào đoạn văn", 4, 5, "16-18,28-31",
                 "※ 다음을 읽고 (    )에 들어갈 내용으로 가장 알맞은 것을 고르십시오.");
-        grouped("II-D7", Track.TOPIK_II, Skill.READING, "Đoạn văn 2 câu (từ nối, thành ngữ, cảm xúc)", 4, 4,
+        grouped("II-D7", Track.TOPIK_II, Skill.READING, "Đọc đoạn văn và trả lời nhiều câu", 4, 4,
                 "19-20|21-22|23-24", "※ [19~24] 다음을 읽고 물음에 답하십시오.");
-        single("II-D8", Track.TOPIK_II, Skill.READING, "Hiểu tiêu đề báo", 4, 4, "25-27",
+        single("II-D8", Track.TOPIK_II, Skill.READING, "Chọn nội dung chính của tiêu đề bài báo", 4, 4, "25-27",
                 "※ [25~27] 다음은 신문 기사의 제목입니다. 가장 잘 설명한 것을 고르십시오.");
-        single("II-D9", Track.TOPIK_II, Skill.READING, "Nội dung giống (đoạn học thuật)", 5, 5, "32-34",
+        single("II-D9", Track.TOPIK_II, Skill.READING, "Điền từ/ngữ pháp thích hợp vào đoạn văn theo ngữ cảnh", 5, 5, "32-34",
                 "※ [32~34] 다음을 읽고 내용이 같은 것을 고르십시오.");
-        single("II-D10", Track.TOPIK_II, Skill.READING, "Chủ đề chính", 5, 5, "35-38",
+        single("II-D10", Track.TOPIK_II, Skill.READING, "Chọn nội dung đúng", 5, 5, "35-38",
                 "※ [35~38] 다음 글의 주제로 가장 알맞은 것을 고르십시오.");
-        single("II-D11", Track.TOPIK_II, Skill.READING, "Chèn câu", 5, 5, "39-41",
+        single("II-D11", Track.TOPIK_II, Skill.READING, "Chọn vị trí thích hợp để chèn câu cho trước", 5, 5, "39-41",
                 "※ [39~41] 주어진 문장이 들어갈 곳으로 가장 알맞은 것을 고르십시오.");
-        grouped("II-D12", Track.TOPIK_II, Skill.READING, "Văn học và bài dài", 5, 6, "42-43|44-45|46-47|48-50",
+        grouped("II-D12", Track.TOPIK_II, Skill.READING, "Đọc bài dài và trả lời nhiều câu", 5, 6, "42-43|44-45|46-47|48-50",
                 "※ [42~50] 다음을 읽고 물음에 답하십시오.");
     }
 

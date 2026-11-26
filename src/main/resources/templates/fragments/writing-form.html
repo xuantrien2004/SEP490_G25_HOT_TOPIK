@@ -9,7 +9,7 @@
             <button type="button" class="btn btn-sm btn-outline-danger rounded-3"
                     th:attr="data-kind='WRITING',data-qid=${promptId},data-code=${'Viết · Câu ' + no},data-prompt=${text},data-examid=${examId},data-examtitle=${title},data-no=${no}"
                     onclick="openReportModalFromBtn(this)">🚩 Báo lỗi đề này</button>
-            <a th:if="${allowChange}" th:href="@{/writing(question=${no},random='true')}" class="btn btn-sm btn-outline-success">🎲 Đổi đề khác</a>
+            <a th:if="${allowChange}" th:href="@{/writing(question=${no},random='true',newAttempt='true')}" class="btn btn-sm btn-outline-success">🎲 Đổi đề khác</a>
             <span th:id="${standalone ? 'promptPoints' : null}" class="small fw-bold" th:text="${(no == 54 ? 50 : no == 53 ? 30 : 10) + ' điểm'}"></span>
         </div>
     </div>
@@ -39,7 +39,10 @@
         <textarea th:id="${standalone ? 'essayInput' : key}" th:name="${standalone ? null : key}" data-writing-answer class="ssak-input form-control" maxlength="6000"
                   placeholder="Nhập bài viết của bạn tại đây bằng tiếng Hàn..." th:text="${value}"
                   style="height:220px;font-family:'Noto Sans KR',sans-serif;font-size:16px;line-height:1.85;resize:vertical;padding:14px 16px"></textarea>
-        <div class="d-flex justify-content-between small fw-bold"><span th:id="${standalone ? 'charCountLabel' : null}" data-writing-count class="text-success">0 ký tự</span><span th:id="${standalone ? 'charCountNote' : null}"></span></div>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 small fw-bold mt-1">
+            <span th:id="${standalone ? 'charCountLabel' : null}" data-writing-count class="text-success">0 ký tự</span>
+            <span th:id="${standalone ? 'charCountNote' : null}" data-writing-note class="small fw-semibold"></span>
+        </div>
     </div>
     <th:block th:replace="${actions}"></th:block>
 </div>

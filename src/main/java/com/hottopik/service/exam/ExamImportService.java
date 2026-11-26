@@ -15,12 +15,16 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -37,6 +41,100 @@ public class ExamImportService {
     }
 
     public record ActivationResult(int questionCount, int writingCount, Long examId) {
+    }
+
+    public record ConfirmResult(ImportJob job, Skill skill, int totalRows) {
+    }
+
+    public record ImportPreCheckReport(
+            boolean ok,
+            String token,
+            String fileName,
+            String track,
+            String skill,
+            int totalRows,
+            int validRows,
+            int errorRows,
+            int duplicateRows,
+            int warningRows,
+            List<PreCheckIssue> issues
+    ) {
+    }
+
+    public record PreCheckIssue(
+            String sheet,
+            Integer row,
+            String skill,
+            Integer no,
+            String severity,
+            String issueType,
+            String message
+    ) {
+    }
+
+    public record TempImportEntry(
+            Path filePath,
+            String originalFilename,
+            Long sourceId,
+            Skill skill,
+            LocalDateTime createdAt,
+            Set<String> validQuestionKeys,
+            Set<Integer> validWritingNos
+    ) {
+        public TempImportEntry(Path filePath, String originalFilename, Long sourceId, Skill skill, LocalDateTime createdAt) {
+            this(filePath, originalFilename, sourceId, skill, createdAt, Set.of(), Set.of());
+        }
+    }
+
+    public record BulkAudioPreCheckReport(
+            boolean ok,
+            String token,
+            String zipFileName,
+            String track,
+            int totalExpected,
+            int validCount,
+            int missingCount,
+            int errorCount,
+            List<Integer> missingQuestions,
+            List<BulkAudioMatch> matches,
+            List<BulkAudioIssue> issues
+    ) {
+    }
+
+    public record BulkAudioMatch(
+            String filename,
+            List<Integer> questionNos,
+            String questionLabel,
+            long sizeBytes,
+            String sizeFormatted
+    ) {
+    }
+
+    public record BulkAudioIssue(
+            String filename,
+            List<Integer> questionNos,
+            String severity,
+            String message
+    ) {
+    }
+
+    public record BulkAudioConfirmResult(
+            int totalFiles,
+            int updatedQuestions,
+            String message,
+            String redirectUrl
+    ) {
+    }
+
+    public record TempBulkAudioEntry(
+            String token,
+            Path tempDir,
+            String originalFilename,
+            Long sourceId,
+            Track track,
+            Map<Integer, String> validFiles,
+            LocalDateTime createdAt
+    ) {
     }
 
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -123,20 +221,1690 @@ public class ExamImportService {
         if (file.getSize() > MediaStorageService.MAX_EXCEL_BYTES) {
             throw new ExamDomainException("File Excel tối đa 10 MB.");
         }
-        jobs.findFirstBySourceIdOrderByIdDesc(sourceId).ifPresent(prev -> {
+        Optional<ImportJob> prevJobOpt = jobs.findFirstBySourceIdOrderByIdDesc(sourceId);
+        ParsedWorkbook prevWb = prevJobOpt.map(this::workbookOf).orElse(null);
+        prevJobOpt.ifPresent(prev -> {
             if (prev.getStatus() != ImportJobStatus.ACTIVATED) prev.setStatus(ImportJobStatus.SUPERSEDED);
         });
         Path path = storage.storeExcel(sourceId, file);
+
+        ParsedWorkbook incoming;
+        try (InputStream in = Files.newInputStream(path)) {
+            incoming = ExamWorkbookParser.parse(in, source.getTrack());
+        }
+        preserveMediaFromPreviousDraft(prevWb, incoming);
+        autoMatchAudioFromMediaAssets(source, incoming);
+        autoMatchImagesFromMediaAssets(source, incoming);
+        syncManualCards(source, incoming, null);
+
         ImportJob job = new ImportJob();
         job.setSource(source);
         job.setFileName(name);
-        job.setFilePath(storage.toStored(path));
+        job.setFilePath(MANUAL_PATH); // Luôn giữ form nhập đề mặc định
         job.setCreatedBy(actor.name());
         jobs.save(job);
+        storeDraft(job, incoming);
         runValidation(job);
         log(actor, "UPLOAD_EXAM_EXCEL", "Tải file " + name + " cho nguồn đề #" + sourceId
                 + " → " + job.getErrorCount() + " lỗi, " + job.getWarningCount() + " cảnh báo");
         return job;
+    }
+
+    @Transactional
+    public ImportJob uploadSkillExcel(Long sourceId, Skill skill, MultipartFile file, Actor actor) throws IOException {
+        requireContent(actor);
+        ExamSource source = draftSource(sourceId);
+        if (file == null || file.isEmpty()) throw new ExamDomainException("Chọn file Excel (.xlsx).");
+        String name = MediaStorageService.baseName(file.getOriginalFilename());
+        if (!"xlsx".equals(MediaStorageService.extension(name))) {
+            throw new ExamDomainException("Chỉ nhận file .xlsx theo mẫu.");
+        }
+        if (file.getSize() > MediaStorageService.MAX_EXCEL_BYTES) {
+            throw new ExamDomainException("File Excel tối đa 10 MB.");
+        }
+        if (source.getTrack() == Track.TOPIK_I && skill == Skill.WRITING) {
+            throw new ExamDomainException("TOPIK I không có kỹ năng Viết.");
+        }
+
+        Optional<ImportJob> prevJobOpt = jobs.findFirstBySourceIdOrderByIdDesc(sourceId);
+        ParsedWorkbook currentWb;
+        if (prevJobOpt.isPresent()) {
+            currentWb = workbookOf(prevJobOpt.get());
+        } else {
+            currentWb = new ParsedWorkbook();
+        }
+
+        ParsedWorkbook incoming;
+        try (InputStream in = file.getInputStream()) {
+            incoming = ExamWorkbookParser.parseSkill(in, source.getTrack(), skill);
+        }
+
+        if (incoming.issues.stream().anyMatch(ImportIssue::isError)) {
+            ImportIssue firstErr = incoming.issues.stream().filter(ImportIssue::isError).findFirst().get();
+            throw new ExamDomainException("Lỗi đọc file: " + firstErr.message());
+        }
+
+        if (skill == Skill.WRITING) {
+            for (ParsedWorkbook.WritingRow inW : incoming.writings) {
+                ParsedWorkbook.WritingRow ex = currentWb.writings.stream()
+                        .filter(w -> Objects.equals(w.no, inW.no))
+                        .findFirst().orElse(null);
+                if (ex != null && blank(inW.chartJson) && !blank(ex.chartJson)) {
+                    inW.chartJson = ex.chartJson;
+                }
+            }
+            currentWb.writings.clear();
+            currentWb.writings.addAll(incoming.writings);
+            currentWb.hasWritingSheet = true;
+        } else {
+            for (ParsedWorkbook.QuestionRow inQ : incoming.questions) {
+                ParsedWorkbook.QuestionRow ex = currentWb.questions.stream()
+                        .filter(q -> q.skill == skill && Objects.equals(q.no, inQ.no))
+                        .findFirst().orElse(null);
+                if (ex != null) {
+                    if (blank(inQ.audioFile) && !blank(ex.audioFile)) inQ.audioFile = ex.audioFile;
+                    if (blank(inQ.imageFile) && !blank(ex.imageFile)) inQ.imageFile = ex.imageFile;
+                }
+            }
+            currentWb.questions.removeIf(q -> q.skill == skill);
+            currentWb.questions.addAll(incoming.questions);
+            currentWb.questions.sort(Comparator.comparingInt(q -> (q.no == null ? 0 : q.no)));
+        }
+        autoMatchAudioFromMediaAssets(source, currentWb);
+        autoMatchImagesFromMediaAssets(source, currentWb);
+        syncManualCards(source, currentWb, skill);
+
+        Path path = storage.storeExcel(sourceId, file);
+        prevJobOpt.ifPresent(prev -> {
+            if (prev.getStatus() != ImportJobStatus.ACTIVATED) prev.setStatus(ImportJobStatus.SUPERSEDED);
+        });
+
+        ImportJob job = new ImportJob();
+        job.setSource(source);
+        job.setFileName(name);
+        job.setFilePath(MANUAL_PATH); // Luôn giữ form nhập đề mặc định
+        job.setCreatedBy(actor.name());
+        jobs.save(job);
+
+        storeDraft(job, currentWb);
+        runValidation(job);
+
+        log(actor, "UPLOAD_SKILL_EXCEL", "Tải file " + name + " cho kỹ năng " + skill.getLabel() + " nguồn đề #" + sourceId
+                + " → " + job.getErrorCount() + " lỗi, " + job.getWarningCount() + " cảnh báo");
+        return job;
+    }
+
+    private final Map<String, TempImportEntry> tempImports = new ConcurrentHashMap<>();
+
+    private void cleanExpiredTempImports() {
+        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(30);
+        tempImports.entrySet().removeIf(entry -> {
+            if (entry.getValue().createdAt().isBefore(cutoff)) {
+                try {
+                    Files.deleteIfExists(entry.getValue().filePath());
+                } catch (Exception ignored) {
+                }
+                return true;
+            }
+            return false;
+        });
+    }
+
+    public ImportPreCheckReport preCheckExcel(Long sourceId, Skill skill, MultipartFile file, Actor actor) throws IOException {
+        requireContent(actor);
+        ExamSource source = draftSource(sourceId);
+        if (file == null || file.isEmpty()) throw new ExamDomainException("Chọn file Excel (.xlsx).");
+        String name = MediaStorageService.baseName(file.getOriginalFilename());
+        if (!"xlsx".equals(MediaStorageService.extension(name))) {
+            throw new ExamDomainException("Chỉ nhận file .xlsx theo mẫu.");
+        }
+        if (file.getSize() > MediaStorageService.MAX_EXCEL_BYTES) {
+            throw new ExamDomainException("File Excel tối đa 10 MB.");
+        }
+        if (source.getTrack() == Track.TOPIK_I && skill == Skill.WRITING) {
+            throw new ExamDomainException("TOPIK I không có kỹ năng Viết.");
+        }
+
+        cleanExpiredTempImports();
+
+        Path tempPath = Files.createTempFile("ht-precheck-" + sourceId + "-", ".xlsx");
+        try (InputStream in = file.getInputStream()) {
+            Files.copy(in, tempPath, StandardCopyOption.REPLACE_EXISTING);
+        }
+
+        ParsedWorkbook wb;
+        int totalRows;
+        if (skill != null) {
+            try (InputStream in = Files.newInputStream(tempPath)) {
+                wb = ExamWorkbookParser.parseSkill(in, source.getTrack(), skill);
+            }
+            totalRows = skill == Skill.WRITING ? wb.writings.size() : wb.questions.size();
+        } else {
+            try (InputStream in = Files.newInputStream(tempPath)) {
+                wb = ExamWorkbookParser.parse(in, source.getTrack());
+            }
+            totalRows = wb.questions.size() + wb.writings.size();
+        }
+
+        // Bảo tồn media từ bản nháp hiện tại và tự động khớp audio từ MediaAsset đã tải lên
+        Optional<ImportJob> existingJobOpt = jobs.findFirstBySourceIdOrderByIdDesc(sourceId);
+        if (existingJobOpt.isPresent()) {
+            preserveMediaFromPreviousDraft(workbookOf(existingJobOpt.get()), wb);
+        }
+        autoMatchAudioFromMediaAssets(source, wb);
+        autoMatchImagesFromMediaAssets(source, wb);
+
+        ParsedWorkbook existingSystemWb = getExistingSystemWorkbook(sourceId);
+        ExamImportValidator.Context ctx = new ExamImportValidator.Context(
+                source.getTrack(),
+                skill == null,
+                source.isAssessment(),
+                mediaSizes(sourceId),
+                hashes -> existingHashLookup(sourceId, hashes),
+                existingSystemWb
+        );
+
+        ExamImportValidator.Result validationResult = ExamImportValidator.validate(wb, ctx);
+
+        List<PreCheckIssue> preCheckIssues = new ArrayList<>();
+        Set<String> errorQuestions = new HashSet<>();
+        Set<String> duplicateQuestions = new HashSet<>();
+
+        for (ImportIssue issue : validationResult.issues()) {
+            String severity = issue.isError() ? "ERROR" : "WARNING";
+            String issueType;
+            String msg = issue.message() != null ? issue.message() : "";
+            String slot = (issue.skill() != null ? issue.skill() : issue.sheet()) + "#" + (issue.no() != null ? issue.no() : ("R" + issue.row()));
+
+            if (msg.contains("Trùng") || msg.contains("đã có trên hệ thống") || msg.contains("đã tồn tại")) {
+                issueType = "DUPLICATE";
+                duplicateQuestions.add(slot);
+            } else if (msg.contains("Thiếu") || msg.contains("bắt buộc") || msg.contains("chưa có") || msg.contains("cần")) {
+                issueType = "MISSING_INFO";
+            } else if (msg.contains("không hợp lệ") || msg.contains("ngoài phạm vi") || msg.contains("phải là") || msg.contains("không đúng")) {
+                issueType = "INVALID";
+            } else {
+                issueType = "OTHER";
+            }
+
+            if (issue.isError()) {
+                errorQuestions.add(slot);
+            }
+
+            preCheckIssues.add(new PreCheckIssue(
+                    issue.sheet(),
+                    issue.row(),
+                    issue.skill(),
+                    issue.no(),
+                    severity,
+                    issueType,
+                    msg
+            ));
+        }
+
+        Set<String> validQuestionKeys = new LinkedHashSet<>();
+        Set<Integer> validWritingNos = new LinkedHashSet<>();
+
+        for (ParsedWorkbook.QuestionRow q : wb.questions) {
+            boolean hasError = validationResult.issues().stream()
+                    .filter(ImportIssue::isError)
+                    .anyMatch(i -> issueMatchesQuestion(i, q));
+            boolean hasDup = validationResult.issues().stream()
+                    .filter(i -> {
+                        String m = i.message() != null ? i.message() : "";
+                        return m.contains("Trùng") || m.contains("đã có trên hệ thống") || m.contains("đã tồn tại");
+                    })
+                    .anyMatch(i -> issueMatchesQuestion(i, q));
+
+            if (!hasError && !hasDup && q.no != null && q.skill != null) {
+                validQuestionKeys.add(q.skill.name() + "#" + q.no);
+            }
+        }
+
+        for (ParsedWorkbook.WritingRow w : wb.writings) {
+            boolean hasError = validationResult.issues().stream()
+                    .filter(ImportIssue::isError)
+                    .anyMatch(i -> issueMatchesWriting(i, w));
+            boolean hasDup = validationResult.issues().stream()
+                    .filter(i -> {
+                        String m = i.message() != null ? i.message() : "";
+                        return m.contains("Trùng") || m.contains("đã có trên hệ thống") || m.contains("đã tồn tại");
+                    })
+                    .anyMatch(i -> issueMatchesWriting(i, w));
+
+            if (!hasError && !hasDup && w.no != null) {
+                validWritingNos.add(w.no);
+            }
+        }
+
+        int validRows = skill == Skill.WRITING ? validWritingNos.size()
+                : (skill != null ? validQuestionKeys.size() : (validQuestionKeys.size() + validWritingNos.size()));
+        int errorRows = errorQuestions.size();
+        int duplicateRows = duplicateQuestions.size();
+        int warningRows = (int) validationResult.warningCount();
+
+        String token = UUID.randomUUID().toString();
+        tempImports.put(token, new TempImportEntry(tempPath, file.getOriginalFilename(), sourceId, skill, LocalDateTime.now(), validQuestionKeys, validWritingNos));
+
+        return new ImportPreCheckReport(
+                true,
+                token,
+                file.getOriginalFilename(),
+                source.getTrack().getLabel(),
+                skill != null ? skill.getLabel() : "Toàn bộ đề",
+                totalRows,
+                validRows,
+                errorRows,
+                duplicateRows,
+                warningRows,
+                preCheckIssues
+        );
+    }
+
+    public ParsedWorkbook getExistingSystemWorkbook(Long sourceId) {
+        if (sourceId == null) return null;
+        Optional<ImportJob> jobOpt = jobs.findFirstBySourceIdOrderByIdDesc(sourceId);
+        ParsedWorkbook wb = null;
+        if (jobOpt.isPresent()) {
+            try {
+                wb = workbookOf(jobOpt.get());
+            } catch (Exception ignored) {}
+        }
+        if (wb == null) {
+            wb = new ParsedWorkbook();
+        }
+
+        // Nếu có manualCards (được đồng bộ từ lần import trước hoặc sửa qua giao diện web),
+        // đồng bộ dữ liệu sang questions/writings để đối chiếu chính xác
+        if (!wb.manualCards.isEmpty()) {
+            populateQuestionsFromCards(wb, sourceId);
+        }
+
+        // Dự phòng: nếu chưa có draft nhưng đã kích hoạt câu hỏi trong CSDL
+        if (wb.questions.isEmpty() && wb.writings.isEmpty()) {
+            List<Question> dbQuestions = questionsOf(sourceId);
+            if (dbQuestions != null && !dbQuestions.isEmpty()) {
+                for (Question q : dbQuestions) {
+                    ParsedWorkbook.QuestionRow qr = new ParsedWorkbook.QuestionRow();
+                    qr.skill = q.getSkill();
+                    qr.no = q.getOriginalNo();
+                    qr.typeCode = q.getTypeCode();
+                    qr.resolvedType = q.getTypeCode();
+                    qr.promptKo = q.getPromptKo();
+                    if (q.getGroup() != null) {
+                        qr.passageKo = q.getGroup().getPassageKo();
+                        qr.scriptKo = q.getGroup().getScriptKo();
+                        qr.audioFile = q.getGroup().getAudioFile();
+                        qr.imageFile = q.getGroup().getImageFile();
+                    }
+                    qr.options = new String[]{
+                            q.getOption1() != null ? q.getOption1() : "",
+                            q.getOption2() != null ? q.getOption2() : "",
+                            q.getOption3() != null ? q.getOption3() : "",
+                            q.getOption4() != null ? q.getOption4() : ""
+                    };
+                    qr.answer = q.getAnswerIndex();
+                    qr.explanationVi = q.getExplanationVi();
+                    wb.questions.add(qr);
+                }
+            }
+            List<WritingPrompt> dbWritings = writingOf(sourceId);
+            if (dbWritings != null && !dbWritings.isEmpty()) {
+                for (WritingPrompt wp : dbWritings) {
+                    ParsedWorkbook.WritingRow wr = new ParsedWorkbook.WritingRow();
+                    wr.no = wp.getNo();
+                    wr.promptKo = wp.getPromptKo();
+                    wr.keys1 = wp.getKeys1();
+                    wr.keys2 = wp.getKeys2();
+                    wr.modelAnswer = wp.getModelAnswer();
+                    wr.rubricNote = wp.getRubricNote();
+                    wb.writings.add(wr);
+                }
+            }
+        }
+
+        if (wb.questions.isEmpty() && wb.writings.isEmpty()) {
+            return null;
+        }
+        return wb;
+    }
+
+    private void populateQuestionsFromCards(ParsedWorkbook wb, Long sourceId) {
+        Map<String, ParsedWorkbook.QuestionRow> qMap = new HashMap<>();
+        for (ParsedWorkbook.QuestionRow q : wb.questions) {
+            if (q.skill != null && q.no != null) {
+                qMap.put(q.skill.name() + "#" + q.no, q);
+            }
+        }
+        Map<Integer, ParsedWorkbook.WritingRow> wMap = new HashMap<>();
+        for (ParsedWorkbook.WritingRow w : wb.writings) {
+            if (w.no != null) {
+                wMap.put(w.no, w);
+            }
+        }
+
+        for (ParsedWorkbook.ManualCard card : wb.manualCards) {
+            QuestionTemplate template = blank(card.templateCode) ? null : templateRepo.findByCode(card.templateCode).orElse(null);
+            Skill skill = template != null ? template.getSkill() : null;
+            if (skill == null && !blank(card.typeCode)) {
+                skill = QuestionTypeCatalog.byCode(card.typeCode).map(QuestionTypeDef::skill).orElse(null);
+            }
+
+            if (skill == Skill.WRITING) {
+                for (ParsedWorkbook.ManualAsk ask : card.asks) {
+                    if (ask.no == null) continue;
+                    ParsedWorkbook.WritingRow w = wMap.computeIfAbsent(ask.no, n -> {
+                        ParsedWorkbook.WritingRow newW = new ParsedWorkbook.WritingRow();
+                        newW.no = n;
+                        wb.writings.add(newW);
+                        return newW;
+                    });
+                    w.promptKo = ask.promptKo;
+                    w.passageKo = card.passageKo;
+                    w.keys1 = ask.keys1;
+                    w.keys2 = ask.keys2;
+                    w.modelAnswer = ask.modelAnswer;
+                    w.rubricNote = ask.rubricNote;
+                }
+            } else {
+                for (ParsedWorkbook.ManualAsk ask : card.asks) {
+                    if (ask.no == null) continue;
+                    Skill resolvedSkill = skill;
+                    if (resolvedSkill == null) {
+                        for (ParsedWorkbook.QuestionRow existingQ : wb.questions) {
+                            if (existingQ.no != null && existingQ.no.equals(ask.no)) {
+                                resolvedSkill = existingQ.skill;
+                                break;
+                            }
+                        }
+                    }
+                    if (resolvedSkill == null) resolvedSkill = Skill.READING;
+
+                    String key = resolvedSkill.name() + "#" + ask.no;
+                    final Skill fSkill = resolvedSkill;
+                    ParsedWorkbook.QuestionRow q = qMap.computeIfAbsent(key, k -> {
+                        ParsedWorkbook.QuestionRow newQ = new ParsedWorkbook.QuestionRow();
+                        newQ.skill = fSkill;
+                        newQ.no = ask.no;
+                        wb.questions.add(newQ);
+                        return newQ;
+                    });
+                    q.typeCode = card.typeCode;
+                    q.resolvedType = card.typeCode;
+                    q.promptKo = ask.promptKo;
+                    q.passageKo = card.passageKo;
+                    q.scriptKo = card.scriptKo;
+                    q.audioFile = card.audioFile;
+                    q.imageFile = card.imageFile;
+                    if (ask.options != null && ask.options.length == 4) {
+                        q.options = ask.options.clone();
+                    }
+                    q.answer = ask.answer;
+                    q.explanationVi = ask.explanationVi;
+                }
+            }
+        }
+    }
+
+    @Transactional
+    public ConfirmResult confirmImport(Long sourceId, String token, Actor actor) throws IOException {
+        requireContent(actor);
+        ExamSource source = draftSource(sourceId);
+        TempImportEntry entry = tempImports.remove(token);
+        if (entry == null || !entry.sourceId().equals(sourceId)) {
+            throw new ExamDomainException("Phiên nhập Excel đã hết hạn hoặc không hợp lệ. Vui lòng chọn lại file.");
+        }
+
+        Path tempPath = entry.filePath();
+        if (!Files.exists(tempPath)) {
+            throw new ExamDomainException("File tạm không tồn tại. Vui lòng tải lại file.");
+        }
+
+        try {
+            String name = MediaStorageService.baseName(entry.originalFilename());
+            Skill skill = entry.skill();
+
+            Optional<ImportJob> prevJobOpt = jobs.findFirstBySourceIdOrderByIdDesc(sourceId);
+            ParsedWorkbook currentWb;
+            if (prevJobOpt.isPresent()) {
+                currentWb = workbookOf(prevJobOpt.get());
+            } else {
+                currentWb = new ParsedWorkbook();
+            }
+
+            ParsedWorkbook incoming;
+            int importedCount = 0;
+            if (skill != null) {
+                try (InputStream in = Files.newInputStream(tempPath)) {
+                    incoming = ExamWorkbookParser.parseSkill(in, source.getTrack(), skill);
+                }
+
+                if (incoming.issues.stream().anyMatch(ImportIssue::isError)) {
+                    ImportIssue firstErr = incoming.issues.stream().filter(ImportIssue::isError).findFirst().get();
+                    throw new ExamDomainException("Lỗi đọc file: " + firstErr.message());
+                }
+
+                if (skill == Skill.WRITING) {
+                    if (entry.validWritingNos() != null) {
+                        incoming.writings.removeIf(w -> w.no == null || !entry.validWritingNos().contains(w.no));
+                    }
+                    if (incoming.writings.isEmpty()) {
+                        throw new ExamDomainException("Không có câu hỏi hợp lệ nào để nhập vào hệ thống.");
+                    }
+                    for (ParsedWorkbook.WritingRow w : incoming.writings) {
+                        ParsedWorkbook.WritingRow existing = currentWb.writings.stream()
+                                .filter(ex -> Objects.equals(ex.no, w.no))
+                                .findFirst().orElse(null);
+                        if (existing != null) {
+                            if (blank(w.chartJson) && !blank(existing.chartJson)) {
+                                w.chartJson = existing.chartJson;
+                            }
+                            currentWb.writings.remove(existing);
+                        }
+                        currentWb.writings.add(w);
+                    }
+                    currentWb.writings.sort(Comparator.comparingInt(w -> (w.no == null ? 0 : w.no)));
+                    currentWb.hasWritingSheet = true;
+                    importedCount = incoming.writings.size();
+                } else {
+                    if (entry.validQuestionKeys() != null) {
+                        incoming.questions.removeIf(q -> q.no == null || !entry.validQuestionKeys().contains((q.skill != null ? q.skill.name() : skill.name()) + "#" + q.no));
+                    }
+                    if (incoming.questions.isEmpty()) {
+                        throw new ExamDomainException("Không có câu hỏi hợp lệ nào để nhập vào hệ thống.");
+                    }
+                    for (ParsedWorkbook.QuestionRow q : incoming.questions) {
+                        ParsedWorkbook.QuestionRow existing = currentWb.questions.stream()
+                                .filter(ex -> ex.skill == skill && Objects.equals(ex.no, q.no))
+                                .findFirst().orElse(null);
+                        if (existing != null) {
+                            if (blank(q.audioFile) && !blank(existing.audioFile)) {
+                                q.audioFile = existing.audioFile;
+                            }
+                            if (blank(q.imageFile) && !blank(existing.imageFile)) {
+                                q.imageFile = existing.imageFile;
+                            }
+                            currentWb.questions.remove(existing);
+                        }
+                        currentWb.questions.add(q);
+                    }
+                    currentWb.questions.sort(Comparator.comparingInt(q -> (q.no == null ? 0 : q.no)));
+                    importedCount = incoming.questions.size();
+                }
+                autoMatchAudioFromMediaAssets(source, currentWb);
+                autoMatchImagesFromMediaAssets(source, currentWb);
+                syncManualCards(source, currentWb, skill);
+            } else {
+                try (InputStream in = Files.newInputStream(tempPath)) {
+                    incoming = ExamWorkbookParser.parse(in, source.getTrack());
+                }
+
+                if (incoming.issues.stream().anyMatch(ImportIssue::isError)) {
+                    ImportIssue firstErr = incoming.issues.stream().filter(ImportIssue::isError).findFirst().get();
+                    throw new ExamDomainException("Lỗi đọc file: " + firstErr.message());
+                }
+
+                if (entry.validQuestionKeys() != null) {
+                    incoming.questions.removeIf(q -> q.no == null || q.skill == null || !entry.validQuestionKeys().contains(q.skill.name() + "#" + q.no));
+                }
+                if (entry.validWritingNos() != null) {
+                    incoming.writings.removeIf(w -> w.no == null || !entry.validWritingNos().contains(w.no));
+                }
+                if (incoming.questions.isEmpty() && incoming.writings.isEmpty()) {
+                    throw new ExamDomainException("Không có câu hỏi hợp lệ nào để nhập vào hệ thống.");
+                }
+
+                for (ParsedWorkbook.QuestionRow q : incoming.questions) {
+                    ParsedWorkbook.QuestionRow existing = currentWb.questions.stream()
+                            .filter(ex -> ex.skill == q.skill && Objects.equals(ex.no, q.no))
+                            .findFirst().orElse(null);
+                    if (existing != null) {
+                        if ((blank(q.audioFile) || isImagePlaceholder(q.audioFile)) && !blank(existing.audioFile)) {
+                            q.audioFile = existing.audioFile;
+                        }
+                        if ((blank(q.imageFile) || isImagePlaceholder(q.imageFile)) && !blank(existing.imageFile) && !isImagePlaceholder(existing.imageFile)) {
+                            q.imageFile = existing.imageFile;
+                        }
+                        currentWb.questions.remove(existing);
+                    }
+                    currentWb.questions.add(q);
+                }
+                currentWb.questions.sort(Comparator.comparingInt(q -> (q.no == null ? 0 : q.no)));
+
+                for (ParsedWorkbook.WritingRow w : incoming.writings) {
+                    ParsedWorkbook.WritingRow existing = currentWb.writings.stream()
+                            .filter(ex -> Objects.equals(ex.no, w.no))
+                            .findFirst().orElse(null);
+                    if (existing != null) {
+                        if ((blank(w.chartJson) || isImagePlaceholder(w.chartJson)) && !blank(existing.chartJson)) {
+                            w.chartJson = existing.chartJson;
+                        }
+                        currentWb.writings.remove(existing);
+                    }
+                    currentWb.writings.add(w);
+                }
+                currentWb.writings.sort(Comparator.comparingInt(w -> (w.no == null ? 0 : w.no)));
+                if (!incoming.writings.isEmpty()) {
+                    currentWb.hasWritingSheet = true;
+                }
+                importedCount = incoming.questions.size() + incoming.writings.size();
+                autoMatchAudioFromMediaAssets(source, currentWb);
+                autoMatchImagesFromMediaAssets(source, currentWb);
+                syncManualCards(source, currentWb, null);
+            }
+
+            Path storedPath;
+            try (InputStream in = Files.newInputStream(tempPath)) {
+                storedPath = storage.storeExcel(sourceId, in);
+            }
+            prevJobOpt.ifPresent(prev -> {
+                if (prev.getStatus() != ImportJobStatus.ACTIVATED) prev.setStatus(ImportJobStatus.SUPERSEDED);
+            });
+
+            ImportJob job = new ImportJob();
+            job.setSource(source);
+            job.setFileName(name);
+            job.setFilePath(MANUAL_PATH); // Giữ nguyên form nhập đề mặc định
+            job.setCreatedBy(actor.name());
+            jobs.save(job);
+
+            storeDraft(job, currentWb);
+            runValidation(job);
+
+            int totalRows = job.getMcqRows() + job.getWritingRows();
+            String logSkill = skill != null ? (" kỹ năng " + skill.getLabel()) : " toàn bộ đề";
+            log(actor, "CONFIRM_EXCEL_IMPORT", "Xác nhận nạp file " + name + logSkill + " nguồn đề #" + sourceId
+                    + " → " + job.getErrorCount() + " lỗi, " + job.getWarningCount() + " cảnh báo (đã import " + importedCount + " câu hợp lệ)");
+            return new ConfirmResult(job, skill, importedCount > 0 ? importedCount : totalRows);
+        } finally {
+            try {
+                Files.deleteIfExists(tempPath);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    private static boolean issueMatchesQuestion(ImportIssue issue, ParsedWorkbook.QuestionRow q) {
+        if (issue == null || q == null) return false;
+        if ("MEDIA".equalsIgnoreCase(issue.sheet()) || "FILE".equalsIgnoreCase(issue.sheet())) return false;
+
+        // Nếu issue có kỹ năng mà khác kỹ năng của câu hỏi trắc nghiệm thì không khớp
+        if (issue.skill() != null && q.skill != null && !issue.skill().equalsIgnoreCase(q.skill.name())) {
+            return false;
+        }
+
+        // Nếu issue thuộc sheet câu hỏi khác (ví dụ: issue ở sheet NGHE mà câu ở sheet DOC, hoặc issue ở sheet VIET)
+        if (issue.sheet() != null) {
+            String sheet = issue.sheet().trim().toUpperCase(Locale.ROOT);
+            if ("VIET".equals(sheet) || "VIẾT".equals(sheet) || "WRITING".equals(sheet)) {
+                return false;
+            }
+            if (q.skill == Skill.LISTENING && ("DOC".equals(sheet) || "ĐỌC".equals(sheet) || "READING".equals(sheet))) {
+                return false;
+            }
+            if (q.skill == Skill.READING && ("NGHE".equals(sheet) || "LISTENING".equals(sheet))) {
+                return false;
+            }
+        }
+
+        // Khớp theo số thứ tự câu hỏi (ưu tiên chính xác nhất)
+        if (issue.no() != null && q.no != null && Objects.equals(issue.no(), q.no)) {
+            if (issue.skill() != null && q.skill != null) {
+                return issue.skill().equalsIgnoreCase(q.skill.name());
+            }
+            return true;
+        }
+
+        // Chỉ khớp theo số dòng nếu cùng kỹ năng/sheet và issue không ghi rõ số câu
+        if (issue.row() != null && issue.row() > 0 && q.row > 0 && issue.row() == q.row) {
+            if (issue.skill() != null && q.skill != null) {
+                return issue.skill().equalsIgnoreCase(q.skill.name());
+            }
+            return issue.no() == null;
+        }
+
+        return false;
+    }
+
+    private static boolean issueMatchesWriting(ImportIssue issue, ParsedWorkbook.WritingRow w) {
+        if (issue == null || w == null) return false;
+        if ("MEDIA".equalsIgnoreCase(issue.sheet()) || "FILE".equalsIgnoreCase(issue.sheet())) return false;
+
+        // Câu Viết chỉ khớp với issue thuộc WRITING
+        if (issue.skill() != null && !"WRITING".equalsIgnoreCase(issue.skill())) {
+            return false;
+        }
+
+        if (issue.sheet() != null) {
+            String sheet = issue.sheet().trim().toUpperCase(Locale.ROOT);
+            if (!"VIET".equals(sheet) && !"VIẾT".equals(sheet) && !"WRITING".equals(sheet)
+                    && !ParsedWorkbook.SHEET_QUESTIONS.equals(sheet)) {
+                return false;
+            }
+        }
+
+        // Khớp theo số thứ tự câu hỏi viết (51-54)
+        if (issue.no() != null && w.no != null && Objects.equals(issue.no(), w.no)) {
+            return true;
+        }
+
+        // Khớp theo số dòng nếu issue thuộc sheet Viết và không có số câu
+        if (issue.row() != null && issue.row() > 0 && w.row > 0 && issue.row() == w.row) {
+            if (issue.skill() != null) {
+                return "WRITING".equalsIgnoreCase(issue.skill());
+            }
+            if (issue.sheet() != null) {
+                String sheet = issue.sheet().trim().toUpperCase(Locale.ROOT);
+                return "VIET".equals(sheet) || "VIẾT".equals(sheet) || "WRITING".equals(sheet);
+            }
+            return issue.no() == null;
+        }
+
+        return false;
+    }
+
+    public static boolean isImagePlaceholder(String val) {
+        if (val == null) return false;
+        String clean = val.trim().toLowerCase(Locale.ROOT);
+        if (clean.isEmpty()) return false;
+        if (clean.startsWith("[") && clean.endsWith("]")) clean = clean.substring(1, clean.length() - 1).trim();
+        if (clean.startsWith("(") && clean.endsWith(")")) clean = clean.substring(1, clean.length() - 1).trim();
+        if (clean.endsWith(".png") || clean.endsWith(".jpg") || clean.endsWith(".jpeg")
+                || clean.endsWith(".gif") || clean.endsWith(".webp") || clean.endsWith(".mp3")) {
+            return false;
+        }
+        return clean.equals("có hình ảnh") || clean.equals("co hinh anh")
+                || clean.equals("có ảnh") || clean.equals("co anh")
+                || clean.equals("hình ảnh") || clean.equals("hinh anh")
+                || clean.equals("ảnh") || clean.equals("anh")
+                || clean.equals("có") || clean.equals("co")
+                || clean.equals("yes") || clean.equals("true")
+                || clean.equals("x") || clean.equals("v")
+                || clean.contains("hình ảnh") || clean.contains("hinh anh")
+                || clean.contains("có ảnh") || clean.contains("co anh");
+    }
+
+    public static String cleanImage(String val) {
+        if (val == null) return null;
+        String trimmed = val.trim();
+        if (trimmed.isEmpty() || isImagePlaceholder(trimmed)) {
+            return null;
+        }
+        String lower = trimmed.toLowerCase(Locale.ROOT);
+        boolean hasExt = lower.endsWith(".jpg") || lower.endsWith(".jpeg")
+                || lower.endsWith(".png") || lower.endsWith(".gif") || lower.endsWith(".webp");
+        if (!hasExt) {
+            return null;
+        }
+        return trimmed;
+    }
+
+    public static String cleanOptionText(String val) {
+        if (val == null) return "";
+        String trimmed = val.trim();
+        if (isImagePlaceholder(trimmed)) {
+            return "";
+        }
+        return trimmed;
+    }
+
+    public static String cleanPromptText(String val) {
+        if (val == null) return "";
+        String trimmed = val.trim();
+        if (isImagePlaceholder(trimmed)) {
+            return "";
+        }
+        return trimmed;
+    }
+
+    public void syncManualCards(ExamSource source, ParsedWorkbook wb, Skill targetSkill) {
+        if (wb == null) return;
+        Track track = source.getTrack();
+
+        List<Skill> skillsToUpdate = targetSkill != null
+                ? List.of(targetSkill)
+                : (track == Track.TOPIK_II ? List.of(Skill.LISTENING, Skill.READING, Skill.WRITING) : List.of(Skill.LISTENING, Skill.READING));
+
+        Map<Integer, String> audioAssetMap = (skillsToUpdate.contains(Skill.LISTENING))
+                ? buildAudioMapFromMediaAssets(source)
+                : Map.of();
+
+        // Trích xuất ảnh từ manualCards hiện có trước khi xóa để bảo tồn khi sync (phân tách theo skill#no)
+        Map<String, String> prevCardImages = new HashMap<>();
+        for (ParsedWorkbook.ManualCard c : wb.manualCards) {
+            QuestionTemplate t = blank(c.templateCode) ? null : templateRepo.findByCode(c.templateCode).orElse(null);
+            Skill cardSkill = t != null ? t.getSkill() : null;
+            if (cardSkill == null && !blank(c.typeCode)) {
+                QuestionTypeDef td = QuestionTypeCatalog.byCode(c.typeCode).orElse(null);
+                if (td != null) cardSkill = td.skill();
+            }
+            for (ParsedWorkbook.ManualAsk a : c.asks) {
+                if (a.no != null) {
+                    Skill s = cardSkill;
+                    if (s == null && a.no >= 51 && a.no <= 54) s = Skill.WRITING;
+                    String key = (s != null ? s.name() : "") + "#" + a.no;
+                    String img = !blank(a.chart) ? a.chart : c.imageFile;
+                    if (!blank(img) && !isImagePlaceholder(img) && !img.trim().startsWith("[")) {
+                        prevCardImages.put(key, img.trim());
+                    }
+                }
+            }
+        }
+
+        // 1. Xóa các card cũ thuộc các kỹ năng cần cập nhật
+        for (Skill sk : skillsToUpdate) {
+            wb.manualCards.removeIf(c -> {
+                QuestionTemplate t = blank(c.templateCode) ? null : templateRepo.findByCode(c.templateCode).orElse(null);
+                if (t != null) return t.getSkill() == sk;
+                QuestionTypeDef td = blank(c.typeCode) ? null : QuestionTypeCatalog.byCode(c.typeCode).orElse(null);
+                if (td != null) return td.skill() == sk;
+                if (!c.asks.isEmpty() && c.asks.get(0).no != null) {
+                    int no = c.asks.get(0).no;
+                    return QuestionTypeCatalog.section(track, sk).map(s -> s.contains(no)).orElse(false);
+                }
+                return false;
+            });
+        }
+
+        // 2. Chuyển đổi các câu trắc nghiệm (Nghe, Đọc) sang ManualCard
+        for (Skill sk : skillsToUpdate) {
+            if (sk == Skill.WRITING) continue;
+
+            List<ParsedWorkbook.QuestionRow> skillQuestions = wb.questions.stream()
+                    .filter(q -> q.skill == sk && q.no != null)
+                    .sorted(Comparator.comparingInt(q -> q.no))
+                    .toList();
+            if (skillQuestions.isEmpty()) continue;
+
+            // Gom nhóm câu tự động: 2 hoặc 3 câu dùng chung đoạn văn (Đọc) hoặc 2 câu dùng chung phụ đề/audio (Nghe)
+            // hoặc theo cột dạng (type_code / type_name) hoặc group_id
+            List<List<ParsedWorkbook.QuestionRow>> groups = groupQuestionsIntoCards(track, sk, skillQuestions);
+            for (List<ParsedWorkbook.QuestionRow> groupQs : groups) {
+                if (groupQs.isEmpty()) continue;
+                ParsedWorkbook.QuestionRow headQ = groupQs.get(0);
+                QuestionTypeDef type = resolveQuestionType(track, sk, headQ);
+                String typeCode = type != null ? type.code() : headQ.typeCode;
+
+                // Tìm tài nguyên dùng chung trong toàn bộ nhóm
+                String sharedAudio = null;
+                String sharedScript = null;
+                String sharedPassage = null;
+                String sharedImage = null;
+
+                for (ParsedWorkbook.QuestionRow q : groupQs) {
+                    if (sharedAudio == null && !blank(q.audioFile) && !isImagePlaceholder(q.audioFile)) {
+                        sharedAudio = q.audioFile.trim();
+                    }
+                    if (sharedScript == null && !blank(q.scriptKo)) {
+                        sharedScript = cleanPromptText(q.scriptKo);
+                    }
+                    if (sharedPassage == null && !blank(q.passageKo)) {
+                        sharedPassage = cleanPromptText(q.passageKo);
+                    }
+                    if (sharedImage == null && !blank(q.imageFile) && !isImagePlaceholder(q.imageFile)) {
+                        sharedImage = cleanImage(q.imageFile);
+                    }
+                    if (sharedImage == null && q.no != null && prevCardImages.containsKey(sk.name() + "#" + q.no)) {
+                        sharedImage = prevCardImages.get(sk.name() + "#" + q.no);
+                    }
+                }
+
+                // Nếu là bài Nghe mà chưa có sharedAudio, tự động khớp từ tệp đính kèm đã tải lên
+                if (sharedAudio == null && sk == Skill.LISTENING && !audioAssetMap.isEmpty()) {
+                    for (ParsedWorkbook.QuestionRow q : groupQs) {
+                        if (q.no != null && audioAssetMap.containsKey(q.no)) {
+                            sharedAudio = audioAssetMap.get(q.no);
+                            break;
+                        }
+                    }
+                }
+
+                // Cập nhật ngược lại cho các QuestionRow trong nhóm để đồng bộ dữ liệu
+                for (ParsedWorkbook.QuestionRow q : groupQs) {
+                    if (blank(q.audioFile) && sharedAudio != null) q.audioFile = sharedAudio;
+                    if (blank(q.scriptKo) && sharedScript != null) q.scriptKo = sharedScript;
+                    if (blank(q.passageKo) && sharedPassage != null) q.passageKo = sharedPassage;
+                    if (blank(q.imageFile) && sharedImage != null) q.imageFile = sharedImage;
+                    if (typeCode != null) {
+                        q.typeCode = typeCode;
+                        q.resolvedType = typeCode;
+                    }
+                }
+
+                // Nếu typeCode chưa xác định được nhưng nhóm có 2 hoặc 3 câu:
+                if (typeCode == null) {
+                    if (sk == Skill.READING) {
+                        if (groupQs.size() >= 3) {
+                            typeCode = (track == Track.TOPIK_I) ? "I-D10" : "II-D12";
+                        } else if (groupQs.size() == 2) {
+                            typeCode = (track == Track.TOPIK_I) ? "I-D6" : "II-D7";
+                        }
+                    } else if (sk == Skill.LISTENING && groupQs.size() >= 2) {
+                        typeCode = (track == Track.TOPIK_I) ? "I-N8" : "II-N6";
+                    }
+                }
+
+                String tplCode = typeCode != null ? QuestionTemplateCatalog.templateCode(typeCode) : null;
+                if (tplCode == null) {
+                    List<QuestionTemplate> moldList = templateRepo.findByTrackAndSkillOrderByCodeAsc(track, sk);
+                    if (!moldList.isEmpty()) tplCode = moldList.get(0).getCode();
+                }
+
+                ParsedWorkbook.ManualCard card = new ParsedWorkbook.ManualCard();
+                card.id = "card-" + sk.name().toLowerCase(Locale.ROOT) + "-" + headQ.no;
+                card.templateCode = tplCode;
+                card.typeCode = typeCode;
+                card.audioFile = emptyToNull(sharedAudio);
+                card.scriptKo = emptyToNull(sharedScript);
+                card.passageKo = emptyToNull(sharedPassage);
+                card.imageFile = emptyToNull(sharedImage);
+
+                for (ParsedWorkbook.QuestionRow q : groupQs) {
+                    q.groupId = card.id;
+                    ParsedWorkbook.ManualAsk ask = new ParsedWorkbook.ManualAsk();
+                    ask.no = q.no;
+                    ask.promptKo = emptyToNull(cleanPromptText(q.promptKo));
+                    ask.options = new String[]{
+                            cleanOptionText(q.options != null && q.options.length > 0 ? q.options[0] : ""),
+                            cleanOptionText(q.options != null && q.options.length > 1 ? q.options[1] : ""),
+                            cleanOptionText(q.options != null && q.options.length > 2 ? q.options[2] : ""),
+                            cleanOptionText(q.options != null && q.options.length > 3 ? q.options[3] : "")
+                    };
+                    ask.answer = q.answer;
+                    ask.answerRaw = q.answerRaw != null ? q.answerRaw : (q.answer != null ? String.valueOf(q.answer) : "");
+                    ask.explanationVi = emptyToNull(q.explanationVi);
+                    String askImg = cleanImage(q.imageFile);
+                    if (askImg == null && q.no != null) askImg = prevCardImages.get(sk.name() + "#" + q.no);
+                    ask.chart = emptyToNull(askImg);
+                    ask.optImgs = new String[4];
+                    card.asks.add(ask);
+                }
+                wb.manualCards.add(card);
+            }
+        }
+
+        // 3. Chuyển đổi các câu Viết (51-54) sang ManualCard
+        if (skillsToUpdate.contains(Skill.WRITING)) {
+            for (ParsedWorkbook.WritingRow w : wb.writings) {
+                if (w.no == null) continue;
+                QuestionTypeDef type = QuestionTypeCatalog.resolve(track, Skill.WRITING, w.no).orElse(null);
+                String typeCode = type != null ? type.code() : ("II-V" + (w.no - 50));
+                String tplCode = QuestionTemplateCatalog.templateCode(typeCode);
+                if (tplCode == null) tplCode = "TPL2-WRI-" + String.format("%02d", w.no - 50);
+
+                ParsedWorkbook.ManualCard card = new ParsedWorkbook.ManualCard();
+                card.id = "card-writing-" + w.no;
+                card.templateCode = tplCode;
+                card.typeCode = typeCode;
+                card.passageKo = emptyToNull(cleanPromptText(w.passageKo));
+
+                ParsedWorkbook.ManualAsk ask = new ParsedWorkbook.ManualAsk();
+                ask.no = w.no;
+                ask.promptKo = emptyToNull(cleanPromptText(w.promptKo));
+                ask.keys1 = emptyToNull(w.keys1);
+                ask.keys2 = emptyToNull(w.keys2);
+                ask.modelAnswer = emptyToNull(w.modelAnswer);
+                ask.rubricNote = emptyToNull(w.rubricNote);
+                String chart = cleanImage(w.chartJson);
+                if (chart == null && prevCardImages.containsKey("WRITING#" + w.no)) chart = prevCardImages.get("WRITING#" + w.no);
+                ask.chart = emptyToNull(chart);
+                card.asks.add(ask);
+
+                wb.manualCards.add(card);
+            }
+        }
+
+        // 4. Sắp xếp thứ tự các card theo thứ tự hiển thị chuẩn của đề
+        List<QuestionTypeCatalog.Section> sections = QuestionTypeCatalog.sections(track);
+        wb.manualCards.sort(Comparator.comparingInt((ParsedWorkbook.ManualCard c) -> {
+            if (c.asks.isEmpty() || c.asks.get(0).no == null) return 999;
+            int firstNo = c.asks.get(0).no;
+            for (int i = 0; i < sections.size(); i++) {
+                if (sections.get(i).contains(firstNo)) {
+                    return i * 1000 + firstNo;
+                }
+            }
+            return firstNo;
+        }));
+    }
+
+    private QuestionTypeDef resolveQuestionType(Track track, Skill sk, ParsedWorkbook.QuestionRow q) {
+        if (q == null) return null;
+        QuestionTypeDef type = null;
+        if (!blank(q.typeCode)) {
+            type = QuestionTypeCatalog.byCode(q.typeCode).orElse(null);
+            if (type == null) {
+                type = QuestionTypeCatalog.forTrackAndSkill(track, sk).stream()
+                        .filter(t -> t.name().equalsIgnoreCase(q.typeCode.trim())
+                                || t.code().equalsIgnoreCase(q.typeCode.trim())
+                                || t.name().toLowerCase(Locale.ROOT).contains(q.typeCode.trim().toLowerCase(Locale.ROOT)))
+                        .findFirst().orElse(null);
+            }
+        }
+        if (type == null && q.no != null) {
+            type = QuestionTypeCatalog.resolve(track, sk, q.no).orElse(null);
+        }
+        return type;
+    }
+
+    private static String normalizeStimulus(String s) {
+        if (s == null) return "";
+        return s.replaceAll("\\s+", " ").trim().toLowerCase(Locale.ROOT);
+    }
+
+    private List<List<ParsedWorkbook.QuestionRow>> groupQuestionsIntoCards(
+            Track track, Skill sk, List<ParsedWorkbook.QuestionRow> skillQuestions) {
+        List<List<ParsedWorkbook.QuestionRow>> result = new ArrayList<>();
+        if (skillQuestions == null || skillQuestions.isEmpty()) return result;
+
+        int n = skillQuestions.size();
+        int i = 0;
+        while (i < n) {
+            ParsedWorkbook.QuestionRow q0 = skillQuestions.get(i);
+            QuestionTypeDef type0 = resolveQuestionType(track, sk, q0);
+
+            int groupSize = 1;
+            int maxAllowed = (sk == Skill.READING) ? 3 : 2;
+
+            // 1. Kiểm tra theo group_id rõ ràng nếu có
+            if (!blank(q0.groupId)) {
+                int j = i + 1;
+                while (j < n && (j - i) < maxAllowed) {
+                    ParsedWorkbook.QuestionRow qNext = skillQuestions.get(j);
+                    if (!blank(qNext.groupId) && qNext.groupId.trim().equalsIgnoreCase(q0.groupId.trim())) {
+                        j++;
+                    } else {
+                        break;
+                    }
+                }
+                if (j - i > 1) {
+                    groupSize = j - i;
+                }
+            }
+
+            // 2. Kiểm tra theo block chuẩn TOPIK nếu q0.no thuộc block chuẩn
+            if (groupSize == 1 && type0 != null && q0.no != null) {
+                List<Integer> block = type0.blockOf(q0.no);
+                if (block != null && block.size() > 1 && block.get(0).equals(q0.no)) {
+                    int expectedSize = Math.min(block.size(), maxAllowed);
+                    int j = i + 1;
+                    while (j < n && (j - i) < expectedSize) {
+                        ParsedWorkbook.QuestionRow qNext = skillQuestions.get(j);
+                        if (qNext.no != null && block.contains(qNext.no)) {
+                            j++;
+                        } else {
+                            break;
+                        }
+                    }
+                    if (j - i > 1) {
+                        groupSize = j - i;
+                    }
+                }
+            }
+
+            // 3. Kiểm tra theo Cột Dạng (type_code / type_name) và Ngữ liệu dùng chung (passage_ko / script_ko / audio_file)
+            if (groupSize == 1) {
+                boolean isGroupedType = (type0 != null && type0.isGrouped());
+                String code0 = type0 != null ? type0.code() : (q0.typeCode != null ? q0.typeCode : "");
+
+                if (i + 1 < n) {
+                    ParsedWorkbook.QuestionRow q1 = skillQuestions.get(i + 1);
+                    QuestionTypeDef type1 = resolveQuestionType(track, sk, q1);
+                    String code1 = type1 != null ? type1.code() : (q1.typeCode != null ? q1.typeCode : "");
+
+                    boolean sameTypeOrBlank = isGroupedType && (blank(code1) || code1.equalsIgnoreCase(code0));
+
+                    boolean stimulusShared = false;
+                    if (sk == Skill.READING) {
+                        String pass0 = normalizeStimulus(q0.passageKo);
+                        String pass1 = normalizeStimulus(q1.passageKo);
+                        boolean samePassage = !pass0.isEmpty() && pass0.equals(pass1);
+                        boolean q1PassageBlank = !pass0.isEmpty() && pass1.isEmpty();
+                        stimulusShared = samePassage || (sameTypeOrBlank && q1PassageBlank);
+                    } else if (sk == Skill.LISTENING) {
+                        String sc0 = normalizeStimulus(q0.scriptKo);
+                        String sc1 = normalizeStimulus(q1.scriptKo);
+                        boolean sameScript = !sc0.isEmpty() && sc0.equals(sc1);
+                        boolean q1ScriptBlank = !sc0.isEmpty() && sc1.isEmpty();
+
+                        String au0 = q0.audioFile != null ? q0.audioFile.trim() : "";
+                        String au1 = q1.audioFile != null ? q1.audioFile.trim() : "";
+                        boolean sameAudio = !au0.isEmpty() && au0.equalsIgnoreCase(au1);
+                        boolean q1AudioBlank = !au0.isEmpty() && au1.isEmpty();
+
+                        stimulusShared = sameScript || sameAudio || (sameTypeOrBlank && (q1ScriptBlank || q1AudioBlank));
+                    }
+
+                    if (sameTypeOrBlank || stimulusShared) {
+                        int potentialSize = 2;
+
+                        // Nếu là Đọc (Reading) và có thể là 3 câu (dạng II-D12 hoặc 3 câu cùng đoạn văn)
+                        if (sk == Skill.READING && i + 2 < n) {
+                            ParsedWorkbook.QuestionRow q2 = skillQuestions.get(i + 2);
+                            QuestionTypeDef type2 = resolveQuestionType(track, sk, q2);
+                            String code2 = type2 != null ? type2.code() : (q2.typeCode != null ? q2.typeCode : "");
+                            boolean q2SameTypeOrBlank = isGroupedType && (blank(code2) || code2.equalsIgnoreCase(code0));
+
+                            String pass0 = normalizeStimulus(q0.passageKo);
+                            String pass2 = normalizeStimulus(q2.passageKo);
+                            boolean samePassage2 = !pass0.isEmpty() && pass0.equals(pass2);
+                            boolean q2PassageBlank = !pass0.isEmpty() && pass2.isEmpty();
+
+                            boolean stimulusShared2 = samePassage2 || (q2SameTypeOrBlank && q2PassageBlank);
+
+                            if (("II-D12".equalsIgnoreCase(code0) && (q2SameTypeOrBlank || stimulusShared2))
+                                    || (samePassage2 && !pass0.isEmpty())) {
+                                potentialSize = 3;
+                            }
+                        }
+
+                        groupSize = potentialSize;
+                    }
+                }
+            }
+
+            List<ParsedWorkbook.QuestionRow> group = new ArrayList<>();
+            for (int k = 0; k < groupSize && (i + k) < n; k++) {
+                group.add(skillQuestions.get(i + k));
+            }
+            result.add(group);
+            i += group.size();
+        }
+        return result;
+    }
+
+    public void cancelTempImport(String token) {
+        TempImportEntry entry = tempImports.remove(token);
+        if (entry != null) {
+            try {
+                Files.deleteIfExists(entry.filePath());
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    private final Map<String, TempBulkAudioEntry> tempAudioBatches = new ConcurrentHashMap<>();
+
+    private void cleanExpiredTempAudioBatches() {
+        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(30);
+        tempAudioBatches.entrySet().removeIf(entry -> {
+            if (entry.getValue().createdAt().isBefore(cutoff)) {
+                try {
+                    deleteDirectoryRecursively(entry.getValue().tempDir());
+                } catch (Exception ignored) {}
+                return true;
+            }
+            return false;
+        });
+    }
+
+    private static void deleteDirectoryRecursively(Path dir) {
+        if (dir == null || !Files.exists(dir)) return;
+        try (var stream = Files.walk(dir)) {
+            stream.sorted(Comparator.reverseOrder())
+                    .forEach(p -> {
+                        try {
+                            Files.deleteIfExists(p);
+                        } catch (IOException ignored) {}
+                    });
+        } catch (IOException ignored) {}
+    }
+
+    public static String formatBytes(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return String.format(Locale.US, "%.1f KB", bytes / 1024.0);
+        return String.format(Locale.US, "%.1f MB", bytes / (1024.0 * 1024.0));
+    }
+
+    public static List<Integer> extractQuestionNumbers(String filename) {
+        if (filename == null || filename.isBlank()) return List.of();
+        String name = MediaStorageService.baseName(filename);
+        if (name.toLowerCase(Locale.ROOT).endsWith(".mp3")) {
+            name = name.substring(0, name.length() - 4);
+        }
+        name = name.trim().toLowerCase(Locale.ROOT);
+        if (name.isEmpty()) return List.of();
+
+        // 1. Dải câu hỏi nối bằng dấu gạch ngang hoặc ngã: e.g. 21-22, 21~22, 21 - 22, cau_21-22, q21-22
+        java.util.regex.Matcher rm = java.util.regex.Pattern.compile("(?:^|[^0-9])0*(\\d{1,2})\\s*[-~]\\s*0*(\\d{1,2})(?:[^0-9]|$)").matcher(name);
+        if (rm.find()) {
+            try {
+                int start = Integer.parseInt(rm.group(1));
+                int end = Integer.parseInt(rm.group(2));
+                if (start > 0 && end >= start && (end - start) <= 10) {
+                    List<Integer> list = new ArrayList<>();
+                    for (int i = start; i <= end; i++) list.add(i);
+                    return list;
+                }
+            } catch (NumberFormatException ignored) {}
+        }
+
+        // 2. Liệt kê các câu dùng chung phân cách bởi phẩy, và, chấm: e.g. "21, 22", "21,22", "21 & 22", "cau 21, 22", "21. 22"
+        java.util.regex.Matcher enumMatcher = java.util.regex.Pattern.compile("0*(\\d{1,2})(?:\\s*[,&.]\\s*0*(\\d{1,2}))+").matcher(name);
+        if (enumMatcher.find()) {
+            java.util.regex.Matcher numMatcher = java.util.regex.Pattern.compile("0*(\\d{1,2})").matcher(enumMatcher.group());
+            List<Integer> list = new ArrayList<>();
+            while (numMatcher.find()) {
+                try {
+                    int n = Integer.parseInt(numMatcher.group(1));
+                    if (n > 0 && !list.contains(n)) list.add(n);
+                } catch (NumberFormatException ignored) {}
+            }
+            if (!list.isEmpty()) return list;
+        }
+
+        // 3. Hai câu liên tiếp phân cách bởi gạch dưới hoặc khoảng trắng: e.g. "21_22", "21 22", "cau_21_22"
+        java.util.regex.Matcher pairMatcher = java.util.regex.Pattern.compile("(?:^|[^0-9])0*(\\d{1,2})[_\\s]+0*(\\d{1,2})(?:[^0-9]|$)").matcher(name);
+        if (pairMatcher.find()) {
+            try {
+                int a = Integer.parseInt(pairMatcher.group(1));
+                int b = Integer.parseInt(pairMatcher.group(2));
+                if (a > 0 && b > a && (b - a) <= 5) {
+                    List<Integer> list = new ArrayList<>();
+                    for (int i = a; i <= b; i++) list.add(i);
+                    return list;
+                }
+            } catch (NumberFormatException ignored) {}
+        }
+
+        // 4. Một câu duy nhất: e.g. 01, 14, cau_04, cau14, q-02, audio_15
+        java.util.regex.Matcher sm = java.util.regex.Pattern.compile("^(?:.*?(?:cau|câu|q|question|bai|bài|_|-|\\s|^))?0*(\\d{1,2})(?:[^0-9].*)?$").matcher(name);
+        if (sm.matches()) {
+            try {
+                int n = Integer.parseInt(sm.group(1));
+                if (n > 0) return List.of(n);
+            } catch (NumberFormatException ignored) {}
+        }
+
+        // 5. Dự phòng: tìm số 1-2 chữ số trong tên file
+        java.util.regex.Matcher anyNum = java.util.regex.Pattern.compile("(?:^|[^0-9])0*(\\d{1,2})(?:[^0-9]|$)").matcher(name);
+        if (anyNum.find()) {
+            try {
+                int n = Integer.parseInt(anyNum.group(1));
+                if (n > 0) return List.of(n);
+            } catch (NumberFormatException ignored) {}
+        }
+
+        return List.of();
+    }
+
+    public static Integer extractQuestionNumber(String filename) {
+        List<Integer> list = extractQuestionNumbers(filename);
+        return list.isEmpty() ? null : list.get(0);
+    }
+
+    public Map<Integer, String> buildAudioMapFromMediaAssets(ExamSource source) {
+        if (source == null || source.getId() == null || media == null) return Map.of();
+        List<MediaAsset> audioAssets = media.findBySourceIdOrderByFilenameAsc(source.getId()).stream()
+                .filter(m -> m.getKind() == MediaKind.AUDIO)
+                .toList();
+        if (audioAssets.isEmpty()) return Map.of();
+
+        Map<Integer, String> questionToAudioMap = new HashMap<>();
+        for (MediaAsset a : audioAssets) {
+            String filename = a.getFilename();
+            List<Integer> qNos = extractQuestionNumbers(filename);
+            for (int no : qNos) {
+                questionToAudioMap.putIfAbsent(no, filename);
+            }
+        }
+
+        int maxListening = source.getTrack() == Track.TOPIK_I ? 30 : 50;
+        for (int i = 1; i <= maxListening; i++) {
+            if (questionToAudioMap.containsKey(i)) {
+                String fn = questionToAudioMap.get(i);
+                QuestionTypeDef type = QuestionTypeCatalog.resolve(source.getTrack(), Skill.LISTENING, i).orElse(null);
+                if (type != null) {
+                    List<Integer> block = type.blockOf(i);
+                    if (block != null && block.size() > 1 && block.get(0) == i) {
+                        for (int other : block) {
+                            questionToAudioMap.putIfAbsent(other, fn);
+                        }
+                    }
+                }
+            }
+        }
+        return questionToAudioMap;
+    }
+
+    public void autoMatchAudioFromMediaAssets(ExamSource source, ParsedWorkbook wb) {
+        if (source == null || wb == null) return;
+        Map<Integer, String> audioMap = buildAudioMapFromMediaAssets(source);
+        if (audioMap.isEmpty()) return;
+
+        for (ParsedWorkbook.QuestionRow q : wb.questions) {
+            if (q.skill == Skill.LISTENING && q.no != null) {
+                if (blank(q.audioFile) || isImagePlaceholder(q.audioFile)) {
+                    String matched = audioMap.get(q.no);
+                    if (matched != null) {
+                        q.audioFile = matched;
+                    }
+                }
+            }
+        }
+
+        for (ParsedWorkbook.ManualCard card : wb.manualCards) {
+            QuestionTemplate t = blank(card.templateCode) ? null : (templateRepo != null ? templateRepo.findByCode(card.templateCode).orElse(null) : null);
+            boolean isListening = (t != null && t.getSkill() == Skill.LISTENING);
+            if (!isListening && !card.asks.isEmpty() && card.asks.get(0).no != null) {
+                isListening = QuestionTypeCatalog.section(source.getTrack(), Skill.LISTENING)
+                        .map(s -> s.contains(card.asks.get(0).no)).orElse(false);
+            }
+            if (isListening && blank(card.audioFile)) {
+                for (ParsedWorkbook.ManualAsk ask : card.asks) {
+                    if (ask.no != null && audioMap.containsKey(ask.no)) {
+                        card.audioFile = audioMap.get(ask.no);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    public Map<Integer, String> buildImageMapFromMediaAssets(ExamSource source) {
+        return Map.of();
+    }
+
+    public void autoMatchImagesFromMediaAssets(ExamSource source, ParsedWorkbook wb) {
+        // Không tự động gán ảnh từ media assets vào câu hỏi để tránh dán nhầm ảnh phương án hoặc ảnh không liên quan
+    }
+
+    private void preserveMediaFromPreviousDraft(ParsedWorkbook currentWb, ParsedWorkbook incoming) {
+        if (currentWb == null || incoming == null) return;
+        Map<String, ParsedWorkbook.QuestionRow> existingMap = currentWb.questions.stream()
+                .filter(q -> q.skill != null && q.no != null)
+                .collect(Collectors.toMap(q -> q.skill.name() + "#" + q.no, q -> q, (a, b) -> a));
+
+        // Trích xuất ảnh và audio từ manualCards của draft hiện tại (phân tách theo skill#no)
+        Map<String, String> cardImageMap = new HashMap<>();
+        Map<String, String> cardAudioMap = new HashMap<>();
+        for (ParsedWorkbook.ManualCard c : currentWb.manualCards) {
+            QuestionTemplate t = blank(c.templateCode) ? null : (templateRepo != null ? templateRepo.findByCode(c.templateCode).orElse(null) : null);
+            Skill cardSkill = t != null ? t.getSkill() : null;
+            if (cardSkill == null && !blank(c.typeCode)) {
+                QuestionTypeDef td = QuestionTypeCatalog.byCode(c.typeCode).orElse(null);
+                if (td != null) cardSkill = td.skill();
+            }
+            for (ParsedWorkbook.ManualAsk a : c.asks) {
+                if (a.no != null) {
+                    Skill s = cardSkill;
+                    if (s == null && a.no >= 51 && a.no <= 54) s = Skill.WRITING;
+                    String key = (s != null ? s.name() : "") + "#" + a.no;
+                    String img = !blank(a.chart) ? a.chart : c.imageFile;
+                    if (!blank(img) && !isImagePlaceholder(img) && !img.trim().startsWith("[")) {
+                        cardImageMap.put(key, img.trim());
+                    }
+                    if (!blank(c.audioFile)) {
+                        cardAudioMap.put(key, c.audioFile.trim());
+                    }
+                }
+            }
+        }
+
+        for (ParsedWorkbook.QuestionRow inQ : incoming.questions) {
+            if (inQ.skill == null || inQ.no == null) continue;
+            String key = inQ.skill.name() + "#" + inQ.no;
+            ParsedWorkbook.QuestionRow ex = existingMap.get(key);
+            if (ex != null) {
+                if ((blank(inQ.audioFile) || isImagePlaceholder(inQ.audioFile)) && !blank(ex.audioFile)) {
+                    inQ.audioFile = ex.audioFile;
+                }
+                if ((blank(inQ.imageFile) || isImagePlaceholder(inQ.imageFile)) && !blank(ex.imageFile) && !isImagePlaceholder(ex.imageFile)) {
+                    inQ.imageFile = ex.imageFile;
+                }
+            }
+            if ((blank(inQ.imageFile) || isImagePlaceholder(inQ.imageFile)) && cardImageMap.containsKey(key)) {
+                inQ.imageFile = cardImageMap.get(key);
+            }
+            if ((blank(inQ.audioFile) || isImagePlaceholder(inQ.audioFile)) && cardAudioMap.containsKey(key)) {
+                inQ.audioFile = cardAudioMap.get(key);
+            }
+        }
+        Map<Integer, ParsedWorkbook.WritingRow> existingWritingMap = currentWb.writings.stream()
+                .filter(w -> w.no != null)
+                .collect(Collectors.toMap(w -> w.no, w -> w, (a, b) -> a));
+        for (ParsedWorkbook.WritingRow inW : incoming.writings) {
+            if (inW.no == null) continue;
+            ParsedWorkbook.WritingRow ex = existingWritingMap.get(inW.no);
+            if (ex != null) {
+                if ((blank(inW.chartJson) || isImagePlaceholder(inW.chartJson)) && !blank(ex.chartJson)) {
+                    inW.chartJson = ex.chartJson;
+                }
+            }
+            String wKey = "WRITING#" + inW.no;
+            if ((blank(inW.chartJson) || isImagePlaceholder(inW.chartJson)) && cardImageMap.containsKey(wKey)) {
+                inW.chartJson = cardImageMap.get(wKey);
+            }
+        }
+    }
+
+    public BulkAudioPreCheckReport preCheckBulkAudio(Long sourceId, MultipartFile file, Actor actor) throws IOException {
+        requireContent(actor);
+        ExamSource source = draftSource(sourceId);
+        if (file == null || file.isEmpty()) {
+            throw new ExamDomainException("Vui lòng chọn file nén .zip chứa các file audio .mp3.");
+        }
+        String originalName = MediaStorageService.baseName(file.getOriginalFilename());
+        if (!"zip".equalsIgnoreCase(MediaStorageService.extension(originalName))) {
+            throw new ExamDomainException("Chỉ nhận file nén định dạng .zip.");
+        }
+        if (file.getSize() > MediaStorageService.MAX_ZIP_BYTES) {
+            throw new ExamDomainException("File .zip tối đa 300 MB.");
+        }
+
+        cleanExpiredTempAudioBatches();
+
+        Path tempDir = Files.createTempDirectory("ht-bulk-audio-" + sourceId + "-");
+        List<BulkAudioIssue> issues = new ArrayList<>();
+        Map<String, Path> extractedFiles = new LinkedHashMap<>();
+
+        byte[] zipBytes = file.getBytes();
+        java.nio.charset.Charset[] charsets = new java.nio.charset.Charset[]{
+                StandardCharsets.UTF_8,
+                java.nio.charset.Charset.forName("MS949"),
+                StandardCharsets.ISO_8859_1
+        };
+        for (java.nio.charset.Charset cs : charsets) {
+            try (ZipInputStream zin = new ZipInputStream(new ByteArrayInputStream(zipBytes), cs)) {
+                ZipEntry entry;
+                extractedFiles.clear();
+                issues.clear();
+                while ((entry = zin.getNextEntry()) != null) {
+                    if (entry.isDirectory()) continue;
+                    String entryName = entry.getName();
+                    String base = MediaStorageService.baseName(entryName);
+                    if (base.isEmpty() || base.startsWith(".") || entryName.startsWith("__MACOSX")
+                            || "Thumbs.db".equalsIgnoreCase(base) || "desktop.ini".equalsIgnoreCase(base)) {
+                        continue;
+                    }
+                    Path dest = tempDir.resolve(base).normalize();
+                    if (!dest.startsWith(tempDir)) {
+                        issues.add(new BulkAudioIssue(base, null, "ERROR", "Đường dẫn file trong zip không an toàn (zip slip)."));
+                        continue;
+                    }
+                    Files.copy(zin, dest, StandardCopyOption.REPLACE_EXISTING);
+                    extractedFiles.put(base, dest);
+                }
+                if (!extractedFiles.isEmpty()) {
+                    break;
+                }
+            } catch (Exception ignored) {
+                // Thử charset kế tiếp
+            }
+        }
+
+        if (extractedFiles.isEmpty()) {
+            deleteDirectoryRecursively(tempDir);
+            throw new ExamDomainException("File .zip không chứa file nào hoặc chỉ chứa thư mục rỗng.");
+        }
+
+        int maxListening = source.getTrack() == Track.TOPIK_I ? 30 : 50;
+        Map<Integer, String> validFiles = new TreeMap<>();
+        List<BulkAudioMatch> matches = new ArrayList<>();
+
+        for (Map.Entry<String, Path> item : extractedFiles.entrySet()) {
+            String filename = item.getKey();
+            Path path = item.getValue();
+            long size = Files.size(path);
+
+            if (!MediaStorageService.isAudio(filename)) {
+                issues.add(new BulkAudioIssue(filename, null, "ERROR",
+                        "File '" + filename + "' không phải file âm thanh .mp3 hợp lệ (bỏ qua file này)."));
+                continue;
+            }
+
+            if (size > MediaStorageService.MAX_AUDIO_BYTES) {
+                issues.add(new BulkAudioIssue(filename, null, "ERROR",
+                        "File '" + filename + "' vượt quá kích thước cho phép 15 MB (" + formatBytes(size) + ")."));
+                continue;
+            }
+
+            List<Integer> qNos = extractQuestionNumbers(filename);
+            if (qNos.isEmpty()) {
+                issues.add(new BulkAudioIssue(filename, null, "ERROR",
+                        "File '" + filename + "' không chứa số thứ tự câu hỏi hợp lệ (Ví dụ: 01.mp3, 21, 22.mp3, cau_14.mp3)."));
+                continue;
+            }
+
+            // Kiểm tra từng câu trong danh sách xem có nằm ngoài phạm vi đề không
+            boolean outOfRange = false;
+            for (int qNo : qNos) {
+                if (qNo < 1 || qNo > maxListening) {
+                    issues.add(new BulkAudioIssue(filename, qNos, "ERROR",
+                            "File '" + filename + "' chứa câu số " + qNo + " nằm ngoài phạm vi kỹ năng Nghe của "
+                                    + source.getTrack().getLabel() + " (Câu 1 đến Câu " + maxListening + ")."));
+                    outOfRange = true;
+                    break;
+                }
+            }
+            if (outOfRange) continue;
+
+            // Kiểm tra trùng lặp với file đã nhận diện trước đó
+            boolean hasDuplicate = false;
+            for (int qNo : qNos) {
+                if (validFiles.containsKey(qNo)) {
+                    String existing = validFiles.get(qNo);
+                    issues.add(new BulkAudioIssue(filename, qNos, "ERROR",
+                            "Trùng số câu " + qNo + ": file '" + filename + "' bị trùng câu hỏi với file '" + existing + "'."));
+                    hasDuplicate = true;
+                    break;
+                }
+            }
+            if (hasDuplicate) continue;
+
+            for (int qNo : qNos) {
+                validFiles.put(qNo, filename);
+            }
+
+            String qLabel = qNos.size() == 1
+                    ? ("Câu " + qNos.get(0))
+                    : ("Câu " + qNos.stream().map(String::valueOf).collect(Collectors.joining(", ")));
+            matches.add(new BulkAudioMatch(filename, qNos, qLabel, size, formatBytes(size)));
+        }
+
+        // Tự động mở rộng cho các bài nghe dùng chung (cặp câu như 21-22, 23-24...) nếu đặt tên đại diện câu đầu và các câu sau chưa có file
+        for (BulkAudioMatch match : new ArrayList<>(matches)) {
+            if (match.questionNos().size() == 1) {
+                int singleNo = match.questionNos().get(0);
+                QuestionTypeDef type = QuestionTypeCatalog.resolve(source.getTrack(), Skill.LISTENING, singleNo).orElse(null);
+                if (type != null) {
+                    List<Integer> block = type.blockOf(singleNo);
+                    if (block != null && block.size() > 1 && block.get(0) == singleNo) {
+                        boolean othersFree = true;
+                        for (int other : block) {
+                            if (other != singleNo && validFiles.containsKey(other)) {
+                                othersFree = false;
+                                break;
+                            }
+                        }
+                        if (othersFree) {
+                            for (int other : block) {
+                                validFiles.put(other, match.filename());
+                            }
+                            String newLabel = "Câu " + block.stream().map(String::valueOf).collect(Collectors.joining(", "));
+                            matches.remove(match);
+                            matches.add(new BulkAudioMatch(match.filename(), block, newLabel, match.sizeBytes(), match.sizeFormatted()));
+                        }
+                    }
+                }
+            }
+        }
+
+        List<Integer> missingQuestions = new ArrayList<>();
+        for (int i = 1; i <= maxListening; i++) {
+            if (!validFiles.containsKey(i)) {
+                missingQuestions.add(i);
+            }
+        }
+
+        if (!missingQuestions.isEmpty()) {
+            String missingListStr = missingQuestions.stream().map(n -> "Câu " + n).collect(Collectors.joining(", "));
+            issues.add(new BulkAudioIssue(null, null, "WARNING",
+                    "Đề thi còn " + missingQuestions.size() + " câu chưa có audio: " + missingListStr + "."));
+        }
+
+        int errorCount = (int) issues.stream().filter(i -> "ERROR".equals(i.severity())).count();
+        boolean ok = errorCount == 0 && missingQuestions.isEmpty();
+
+        String token = UUID.randomUUID().toString();
+        tempAudioBatches.put(token, new TempBulkAudioEntry(token, tempDir, originalName, sourceId, source.getTrack(), validFiles, LocalDateTime.now()));
+
+        return new BulkAudioPreCheckReport(
+                ok,
+                token,
+                originalName,
+                source.getTrack().getLabel(),
+                maxListening,
+                validFiles.size(),
+                missingQuestions.size(),
+                errorCount,
+                missingQuestions,
+                matches,
+                issues
+        );
+    }
+
+    @Transactional
+    public BulkAudioConfirmResult confirmBulkAudio(Long sourceId, String token, Actor actor) throws IOException {
+        requireContent(actor);
+        ExamSource source = draftSource(sourceId);
+        TempBulkAudioEntry entry = tempAudioBatches.remove(token);
+        if (entry == null) {
+            throw new ExamDomainException("Phiên tải audio đã hết hạn hoặc không tồn tại. Vui lòng chọn lại file .zip.");
+        }
+        Path tempDir = entry.tempDir();
+        Map<Integer, String> validFiles = entry.validFiles();
+        if (validFiles.isEmpty()) {
+            deleteDirectoryRecursively(tempDir);
+            throw new ExamDomainException("Không có file audio hợp lệ nào để nạp.");
+        }
+
+        try {
+            int storedCount = 0;
+            for (Map.Entry<Integer, String> e : validFiles.entrySet()) {
+                String filename = e.getValue();
+                Path filePath = tempDir.resolve(filename);
+                if (!Files.exists(filePath)) continue;
+                long size = Files.size(filePath);
+                try (InputStream in = Files.newInputStream(filePath)) {
+                    Path p = storage.storeMedia(sourceId, filename, in);
+                    MediaAsset asset = media.findBySourceIdAndFilename(sourceId, filename).orElseGet(MediaAsset::new);
+                    asset.setSource(source);
+                    asset.setFilename(filename);
+                    asset.setKind(MediaKind.AUDIO);
+                    asset.setSizeBytes(size);
+                    asset.setStoragePath(storage.toStored(p));
+                    media.save(asset);
+                    storedCount++;
+                }
+            }
+
+            Optional<ImportJob> jobOpt = latestJob(sourceId);
+            ImportJob job = jobOpt.orElseGet(() -> startManual(sourceId, actor));
+            ParsedWorkbook wb = workbookOf(job);
+
+            // Cập nhật vào manualCards
+            for (Map.Entry<Integer, String> e : validFiles.entrySet()) {
+                int qNo = e.getKey();
+                String filename = e.getValue();
+                boolean cardFound = false;
+                for (ParsedWorkbook.ManualCard card : wb.manualCards) {
+                    if (card.asks.stream().anyMatch(a -> a.no != null && a.no == qNo)) {
+                        card.audioFile = filename;
+                        cardFound = true;
+                        break;
+                    }
+                }
+                if (!cardFound) {
+                    QuestionTypeDef type = QuestionTypeCatalog.resolve(source.getTrack(), Skill.LISTENING, qNo).orElse(null);
+                    List<Integer> block = type != null ? type.blockOf(qNo) : List.of(qNo);
+                    int headNo = (block != null && !block.isEmpty()) ? block.get(0) : qNo;
+
+                    ParsedWorkbook.ManualCard blockCard = null;
+                    for (ParsedWorkbook.ManualCard card : wb.manualCards) {
+                        if (card.asks.stream().anyMatch(a -> a.no != null && block.contains(a.no))) {
+                            blockCard = card;
+                            break;
+                        }
+                    }
+
+                    if (blockCard != null) {
+                        blockCard.audioFile = filename;
+                        if (blockCard.asks.stream().noneMatch(a -> a.no != null && a.no == qNo)) {
+                            ParsedWorkbook.ManualAsk ask = new ParsedWorkbook.ManualAsk();
+                            ask.no = qNo;
+                            blockCard.asks.add(ask);
+                        }
+                    } else {
+                        String typeCode = type != null ? type.code() : ("I-N" + headNo);
+                        String tplCode = QuestionTemplateCatalog.templateCode(typeCode);
+                        if (tplCode == null) {
+                            List<QuestionTemplate> moldList = templateRepo.findByTrackAndSkillOrderByCodeAsc(source.getTrack(), Skill.LISTENING);
+                            if (!moldList.isEmpty()) tplCode = moldList.get(0).getCode();
+                        }
+                        ParsedWorkbook.ManualCard card = new ParsedWorkbook.ManualCard();
+                        card.id = "card-listening-" + headNo;
+                        card.templateCode = tplCode;
+                        card.typeCode = typeCode;
+                        card.audioFile = filename;
+                        ParsedWorkbook.ManualAsk ask = new ParsedWorkbook.ManualAsk();
+                        ask.no = qNo;
+                        card.asks.add(ask);
+                        wb.manualCards.add(card);
+                    }
+                }
+
+                // Đồng bộ vào wb.questions
+                Optional<ParsedWorkbook.QuestionRow> qRow = wb.questions.stream()
+                        .filter(q -> q.skill == Skill.LISTENING && q.no != null && q.no == qNo)
+                        .findFirst();
+                if (qRow.isPresent()) {
+                    qRow.get().audioFile = filename;
+                } else {
+                    ParsedWorkbook.QuestionRow newQ = new ParsedWorkbook.QuestionRow();
+                    newQ.skill = Skill.LISTENING;
+                    newQ.no = qNo;
+                    newQ.audioFile = filename;
+                    newQ.typeCode = QuestionTypeCatalog.resolve(source.getTrack(), Skill.LISTENING, qNo).map(QuestionTypeDef::code).orElse(null);
+                    wb.questions.add(newQ);
+                }
+            }
+
+            // Sắp xếp thứ tự các card
+            List<QuestionTypeCatalog.Section> sections = QuestionTypeCatalog.sections(source.getTrack());
+            wb.manualCards.sort(Comparator.comparingInt((ParsedWorkbook.ManualCard c) -> {
+                if (c.asks.isEmpty() || c.asks.get(0).no == null) return 999;
+                int firstNo = c.asks.get(0).no;
+                for (int i = 0; i < sections.size(); i++) {
+                    if (sections.get(i).contains(firstNo)) {
+                        return i * 1000 + firstNo;
+                    }
+                }
+                return firstNo;
+            }));
+            wb.questions.sort(Comparator.comparingInt(q -> (q.no == null ? 0 : q.no)));
+
+            job.setFilePath(MANUAL_PATH);
+            storeDraft(job, wb);
+            runValidation(job);
+
+            log(actor, "BULK_UPLOAD_AUDIO", "Upload thành công " + storedCount + " file audio .mp3 từ file "
+                    + entry.originalFilename() + " cho kỹ năng Nghe nguồn đề #" + sourceId);
+
+            String redirectUrl = "/content/sources/" + sourceId + "?skill=LISTENING#paper";
+            return new BulkAudioConfirmResult(storedCount, validFiles.size(),
+                    "Đã tải lên và gán thành công " + validFiles.size() + " file audio vào các câu kỹ năng Nghe.",
+                    redirectUrl);
+        } finally {
+            deleteDirectoryRecursively(tempDir);
+        }
+    }
+
+    public void cancelBulkAudio(String token) {
+        TempBulkAudioEntry entry = tempAudioBatches.remove(token);
+        if (entry != null) {
+            deleteDirectoryRecursively(entry.tempDir());
+        }
     }
 
     @Transactional
@@ -162,7 +1930,15 @@ public class ExamImportService {
         }
         jobs.findFirstBySourceIdOrderByIdDesc(sourceId)
                 .filter(j -> j.getStatus() != ImportJobStatus.SUPERSEDED && j.getStatus() != ImportJobStatus.ACTIVATED)
-                .ifPresent(this::runValidation);
+                .ifPresent(job -> {
+                    ParsedWorkbook wb = workbookOf(job);
+                    autoMatchAudioFromMediaAssets(source, wb);
+                    autoMatchImagesFromMediaAssets(source, wb);
+                    syncManualCards(source, wb, null);
+                    storeDraft(job, wb);
+                    jobs.save(job);
+                    runValidation(job);
+                });
         log(actor, "UPLOAD_EXAM_MEDIA", "Tải " + stored + " file âm thanh/ảnh cho nguồn đề #" + sourceId
                 + (rejected.isEmpty() ? "" : ", từ chối " + rejected.size() + " file"));
         return new MediaUploadReport(stored, rejected);
@@ -177,6 +1953,34 @@ public class ExamImportService {
         if (!MediaStorageService.isImage(file.getOriginalFilename()))
             throw new ExamDomainException("Chỉ nhận ảnh PNG, JPG, JPEG, WEBP hoặc GIF.");
         String filename = "question-" + UUID.randomUUID() + "." + MediaStorageService.extension(file.getOriginalFilename());
+        List<String> rejected = new ArrayList<>();
+        try (InputStream in = file.getInputStream()) {
+            if (!storeOne(source, filename, file.getSize(), in, rejected))
+                throw new ExamDomainException(String.join("; ", rejected));
+        }
+        return filename;
+    }
+
+    /**
+     * Upload ảnh hoặc audio cho câu hỏi trong Ngân hàng câu hỏi.
+     * Khác với uploadQuestionImage, method này cho phép cả nguồn đề đã ACTIVE.
+     */
+    @Transactional
+    public String uploadMediaForBankEdit(Long sourceId, MultipartFile file, Actor actor, boolean isImage) throws IOException {
+        requireContent(actor);
+        ExamSource source = getSource(sourceId); // KHÔNG dùng draftSource — cho phép ACTIVE
+        if (file == null || file.isEmpty())
+            throw new ExamDomainException("Chưa chọn file.");
+        if (isImage) {
+            if (!MediaStorageService.isImage(file.getOriginalFilename()))
+                throw new ExamDomainException("Chỉ nhận ảnh PNG, JPG, JPEG, WEBP hoặc GIF.");
+        } else {
+            if (!MediaStorageService.isAudio(file.getOriginalFilename()))
+                throw new ExamDomainException("Chỉ nhận file audio MP3.");
+        }
+        String ext = MediaStorageService.extension(file.getOriginalFilename());
+        String prefix = isImage ? "question-" : "audio-";
+        String filename = prefix + UUID.randomUUID() + "." + ext;
         List<String> rejected = new ArrayList<>();
         try (InputStream in = file.getInputStream()) {
             if (!storeOne(source, filename, file.getSize(), in, rejected))
@@ -239,18 +2043,193 @@ public class ExamImportService {
     @Transactional
     public void deleteMedia(Long sourceId, Long mediaId, Actor actor) {
         requireContent(actor);
-        draftSource(sourceId);
+        ExamSource source = draftSource(sourceId);
         MediaAsset a = media.findById(mediaId).filter(m -> m.getSource().getId().equals(sourceId))
                 .orElseThrow(() -> new ExamDomainException("Không tìm thấy file."));
+        String filename = a.getFilename();
         media.delete(a);
-        try {
-            Files.deleteIfExists(storage.resolveStored(a.getStoragePath()));
-        } catch (IOException ignored) {
-            // file mồ côi trên đĩa không ảnh hưởng nghiệp vụ
+        storage.deleteStoredSafe(a.getStoragePath());
+        if (filename != null) {
+            try {
+                Files.deleteIfExists(storage.resolveMedia(sourceId, filename));
+            } catch (Exception ignored) {}
+            unlinkMediaFromCards(sourceId, filename);
         }
         jobs.findFirstBySourceIdOrderByIdDesc(sourceId)
                 .filter(j -> j.getStatus() != ImportJobStatus.SUPERSEDED && j.getStatus() != ImportJobStatus.ACTIVATED)
-                .ifPresent(this::runValidation);
+                .ifPresent(job -> {
+                    ParsedWorkbook wb = workbookOf(job);
+                    autoMatchAudioFromMediaAssets(source, wb);
+                    autoMatchImagesFromMediaAssets(source, wb);
+                    syncManualCards(source, wb, null);
+                    storeDraft(job, wb);
+                    jobs.save(job);
+                    runValidation(job);
+                });
+        log(actor, "DELETE_MEDIA", "Xoá file " + filename + " của nguồn đề #" + sourceId);
+    }
+
+    @Transactional
+    public int deleteMediaBatch(Long sourceId, List<Long> mediaIds, Actor actor) {
+        requireContent(actor);
+        ExamSource source = draftSource(sourceId);
+        if (mediaIds == null || mediaIds.isEmpty()) return 0;
+        List<MediaAsset> assets = media.findAllById(mediaIds).stream()
+                .filter(m -> m.getSource().getId().equals(sourceId))
+                .toList();
+        for (MediaAsset a : assets) {
+            String filename = a.getFilename();
+            media.delete(a);
+            storage.deleteStoredSafe(a.getStoragePath());
+            if (filename != null) {
+                try {
+                    Files.deleteIfExists(storage.resolveMedia(sourceId, filename));
+                } catch (Exception ignored) {}
+                unlinkMediaFromCards(sourceId, filename);
+            }
+        }
+        jobs.findFirstBySourceIdOrderByIdDesc(sourceId)
+                .filter(j -> j.getStatus() != ImportJobStatus.SUPERSEDED && j.getStatus() != ImportJobStatus.ACTIVATED)
+                .ifPresent(job -> {
+                    ParsedWorkbook wb = workbookOf(job);
+                    autoMatchAudioFromMediaAssets(source, wb);
+                    autoMatchImagesFromMediaAssets(source, wb);
+                    syncManualCards(source, wb, null);
+                    storeDraft(job, wb);
+                    jobs.save(job);
+                    runValidation(job);
+                });
+        log(actor, "DELETE_MEDIA_BATCH", "Xoá " + assets.size() + " file đính kèm nguồn đề #" + sourceId);
+        return assets.size();
+    }
+
+    @Transactional
+    public int deleteAllMedia(Long sourceId, Actor actor) {
+        requireContent(actor);
+        ExamSource source = draftSource(sourceId);
+        List<MediaAsset> all = media.findBySourceIdOrderByFilenameAsc(sourceId);
+        int count = all.size();
+        for (MediaAsset a : all) {
+            unlinkMediaFromCards(sourceId, a.getFilename());
+            media.delete(a);
+            storage.deleteStoredSafe(a.getStoragePath());
+        }
+        storage.deleteMediaFolder(sourceId);
+        jobs.findFirstBySourceIdOrderByIdDesc(sourceId)
+                .filter(j -> j.getStatus() != ImportJobStatus.SUPERSEDED && j.getStatus() != ImportJobStatus.ACTIVATED)
+                .ifPresent(job -> {
+                    ParsedWorkbook wb = workbookOf(job);
+                    autoMatchAudioFromMediaAssets(source, wb);
+                    autoMatchImagesFromMediaAssets(source, wb);
+                    syncManualCards(source, wb, null);
+                    storeDraft(job, wb);
+                    jobs.save(job);
+                    runValidation(job);
+                });
+        log(actor, "DELETE_ALL_MEDIA", "Xoá toàn bộ " + count + " file đính kèm nguồn đề #" + sourceId);
+        return count;
+    }
+
+    @Transactional
+    public void deleteMediaByName(Long sourceId, String filename) {
+        if (filename == null || filename.isBlank()) return;
+        Optional<MediaAsset> assetOpt = findMedia(sourceId, filename);
+        if (assetOpt.isPresent()) {
+            MediaAsset a = assetOpt.get();
+            if (a.getId() != null) {
+                media.delete(a);
+            }
+            storage.deleteStoredSafe(a.getStoragePath());
+        }
+        try {
+            Files.deleteIfExists(storage.resolveMedia(sourceId, filename));
+        } catch (Exception ignored) {}
+    }
+
+    public void unlinkMediaFromCards(Long sourceId, String filename) {
+        if (filename == null || filename.isBlank()) return;
+        latestJob(sourceId).ifPresent(job -> {
+            try {
+                ParsedWorkbook wb = workbookOf(job);
+                boolean changed = false;
+                for (ParsedWorkbook.ManualCard card : wb.manualCards) {
+                    if (filename.equalsIgnoreCase(card.audioFile)) {
+                        card.audioFile = null;
+                        changed = true;
+                    }
+                    if (filename.equalsIgnoreCase(card.imageFile)) {
+                        card.imageFile = null;
+                        changed = true;
+                    }
+                    for (ParsedWorkbook.ManualAsk ask : card.asks) {
+                        if (filename.equalsIgnoreCase(ask.chart)) {
+                            ask.chart = null;
+                            changed = true;
+                        }
+                    }
+                }
+                for (ParsedWorkbook.QuestionRow q : wb.questions) {
+                    if (filename.equalsIgnoreCase(q.audioFile)) {
+                        q.audioFile = null;
+                        changed = true;
+                    }
+                    if (filename.equalsIgnoreCase(q.imageFile)) {
+                        q.imageFile = null;
+                        changed = true;
+                    }
+                }
+                for (ParsedWorkbook.WritingRow w : wb.writings) {
+                    if (filename.equalsIgnoreCase(w.chartJson)) {
+                        w.chartJson = null;
+                        changed = true;
+                    }
+                }
+                if (changed) {
+                    storeDraft(job, wb);
+                    jobs.save(job);
+                }
+            } catch (Exception ignored) {}
+        });
+    }
+
+    @Transactional
+    public boolean clearCardAudio(Long sourceId, String cardId, String filename, Actor actor) {
+        requireContent(actor);
+        draftSource(sourceId);
+        ImportJob job = manualJob(sourceId);
+        ParsedWorkbook wb = workbookOf(job);
+        boolean changed = false;
+        if (cardId != null && !cardId.isBlank()) {
+            for (ParsedWorkbook.ManualCard card : wb.manualCards) {
+                if (cardId.equals(card.id)) {
+                    card.audioFile = null;
+                    changed = true;
+                }
+            }
+        }
+        if (filename != null && !filename.isBlank()) {
+            for (ParsedWorkbook.QuestionRow q : wb.questions) {
+                if (filename.equalsIgnoreCase(q.audioFile)) {
+                    q.audioFile = null;
+                    changed = true;
+                }
+            }
+        }
+        boolean deletedMedia = false;
+        if (filename != null && !filename.isBlank()) {
+            boolean stillUsed = wb.manualCards.stream()
+                    .anyMatch(c -> filename.equalsIgnoreCase(c.audioFile));
+            if (!stillUsed) {
+                deleteMediaByName(sourceId, filename);
+                deletedMedia = true;
+            }
+        }
+        if (changed) {
+            storeDraft(job, wb);
+            jobs.save(job);
+            runValidation(job);
+        }
+        return deletedMedia;
     }
 
     // ------------------------------------------------------------------ Bước 3: kiểm tra lỗi
@@ -267,7 +2246,7 @@ public class ExamImportService {
     private ParsedWorkbook parseJobFile(ImportJob job) {
         if (MANUAL_PATH.equals(job.getFilePath())) return new ParsedWorkbook();
         try (InputStream in = Files.newInputStream(storage.resolveStored(job.getFilePath()))) {
-            return ExamWorkbookParser.parse(in);
+            return ExamWorkbookParser.parse(in, job.getSource().getTrack());
         } catch (IOException e) {
             ParsedWorkbook wb = new ParsedWorkbook();
             wb.issues.add(ImportIssue.error("FILE", null, null, null, "Không mở được file đã tải, hãy tải lại."));
@@ -300,18 +2279,32 @@ public class ExamImportService {
         }
     }
 
-    private ExamImportValidator.Result validate(ExamSource source, ParsedWorkbook wb) {
-        Map<String, Long> sizes = media.findBySourceIdOrderByFilenameAsc(source.getId()).stream()
+    private Map<String, Long> mediaSizes(Long sourceId) {
+        return media.findBySourceIdOrderByFilenameAsc(sourceId).stream()
                 .collect(Collectors.toMap(m -> ExamImportValidator.key(m.getFilename()), MediaAsset::getSizeBytes, (a, b) -> a));
+    }
+
+    private Map<String, String> existingHashLookup(Long sourceId, Set<String> hashes) {
+        return questions.findByContentHashIn(hashes).stream()
+                .filter(q -> q.getSource() == null || !q.getSource().getId().equals(sourceId))
+                .collect(Collectors.toMap(Question::getContentHash, Question::getCode, (a, b) -> a));
+    }
+
+    private ExamImportValidator.Result validate(ExamSource source, ParsedWorkbook wb) {
         ExamImportValidator.Context ctx = new ExamImportValidator.Context(source.getTrack(), source.isFullExam(),
-                source.isAssessment(), sizes, hashes -> questions.findByContentHashIn(hashes).stream()
-                .filter(q -> q.getSource() == null || !q.getSource().getId().equals(source.getId()))
-                .collect(Collectors.toMap(Question::getContentHash, Question::getCode, (a, b) -> a)));
+                source.isAssessment(), mediaSizes(source.getId()), hashes -> existingHashLookup(source.getId(), hashes));
         return ExamImportValidator.validate(wb, ctx);
     }
 
     public boolean isManual(ImportJob job) {
-        return job != null && MANUAL_PATH.equals(job.getFilePath());
+        if (job == null) return false;
+        if (MANUAL_PATH.equals(job.getFilePath())) return true;
+        try {
+            ParsedWorkbook wb = workbookOf(job);
+            return wb != null && !wb.manualCards.isEmpty();
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     void runValidation(ImportJob job) {
@@ -498,9 +2491,22 @@ public class ExamImportService {
                 }
             }
         }
+        String oldAudio = card.audioFile;
         card.templateCode = template.getCode();
         card.typeCode = chosen == null ? null : chosen.code();
         card.audioFile = emptyToNull(form.audio());
+        if (oldAudio != null && !oldAudio.equalsIgnoreCase(card.audioFile)) {
+            boolean stillUsed = wb.manualCards.stream()
+                    .anyMatch(c -> c != card && oldAudio.equalsIgnoreCase(c.audioFile));
+            if (!stillUsed) {
+                deleteMediaByName(sourceId, oldAudio);
+                for (ParsedWorkbook.QuestionRow q : wb.questions) {
+                    if (oldAudio.equalsIgnoreCase(q.audioFile)) {
+                        q.audioFile = null;
+                    }
+                }
+            }
+        }
         card.imageFile = emptyToNull(form.image());
         card.passageKo = emptyToNull(form.passage());
         card.scriptKo = emptyToNull(form.script());
@@ -530,10 +2536,39 @@ public class ExamImportService {
             ask.no = form.qno() == null || i >= form.qno().size() ? null : form.qno().get(i);
             card.asks.add(ask);
         }
-        if (card.imageFile == null && card.asks.size() == 1 && card.asks.get(0).chart != null) {
-            String c = card.asks.get(0).chart.trim();
-            if (!c.startsWith("[")) {
+        if (card.asks.size() == 1) {
+            String c = card.asks.get(0).chart != null ? card.asks.get(0).chart.trim() : null;
+            if (c != null && !c.startsWith("[")) {
                 card.imageFile = c;
+            } else {
+                card.imageFile = null;
+            }
+        }
+        // Đồng bộ ngược lại vào wb.questions và wb.writings để các luồng khác (validate, activate, re-import) có đầy đủ ảnh và audio
+        for (ParsedWorkbook.ManualAsk ask : card.asks) {
+            if (ask.no != null) {
+                String img = !blank(ask.chart) ? ask.chart : card.imageFile;
+                for (ParsedWorkbook.QuestionRow q : wb.questions) {
+                    if (Objects.equals(q.no, ask.no)) {
+                        if (!blank(img) && !img.trim().startsWith("[")) {
+                            q.imageFile = img.trim();
+                        } else {
+                            q.imageFile = null;
+                        }
+                        if (card.audioFile != null) {
+                            q.audioFile = card.audioFile;
+                        }
+                    }
+                }
+                for (ParsedWorkbook.WritingRow w : wb.writings) {
+                    if (Objects.equals(w.no, ask.no)) {
+                        if (!blank(img)) {
+                            w.chartJson = img.trim();
+                        } else {
+                            w.chartJson = null;
+                        }
+                    }
+                }
             }
         }
         storeDraft(job, wb);
@@ -643,7 +2678,7 @@ public class ExamImportService {
                     issues.add(ImportIssue.error("CARD", index, skill, index, "Bài " + index + " thiếu lời thoại tiếng Hàn."));
                 }
                 if (blank(card.scriptVi)) {
-                    issues.add(ImportIssue.error("CARD", index, skill, index, "Bài " + index + " thiếu bản dịch lời thoại."));
+                    issues.add(ImportIssue.warning("CARD", index, skill, index, "Bài " + index + " chưa có bản dịch lời thoại."));
                 }
             }
             int askNo = 0;
@@ -999,7 +3034,7 @@ public class ExamImportService {
         row.audioFile = keep(row.audioFile, form.audio());
         row.scriptKo = keep(row.scriptKo, form.script());
         row.passageKo = keep(row.passageKo, form.passage());
-        row.imageFile = keep(row.imageFile, form.image());
+        row.imageFile = emptyToNull(form.image());
         QuestionTypeCatalog.resolve(track, form.skill(), form.no()).ifPresent(type -> {
             List<Integer> block = type.blockOf(form.no());
             if (block.size() > 1 && (row.groupId == null || row.groupId.isBlank())) {
@@ -1022,7 +3057,7 @@ public class ExamImportService {
         row.passageKo = keep(row.passageKo, form.passage());
         row.keys1 = keep(row.keys1, form.keys1());
         row.keys2 = keep(row.keys2, form.keys2());
-        row.chartJson = keep(row.chartJson, form.chart());
+        row.chartJson = emptyToNull(form.chart());
         row.modelAnswer = keep(row.modelAnswer, form.modelAnswer());
         String rubric = emptyToNull(form.rubric());
         if (rubric != null) row.rubricNote = rubric;
@@ -1111,8 +3146,15 @@ public class ExamImportService {
         for (QuestionRow row : rows) {
             QuestionTypeDef type = QuestionTypeCatalog.byCode(row.resolvedType).orElseThrow();
             List<Integer> block = type.blockOf(row.no);
-            String blockKey = row.skill + "#" + block.get(0);
-            QuestionGroup group = blockGroups.computeIfAbsent(blockKey, k -> createGroup(source, type, block, rows));
+            String blockKey;
+            if (block != null && !block.isEmpty()) {
+                blockKey = row.skill + "#" + block.get(0);
+            } else if (!blank(row.groupId)) {
+                blockKey = row.skill + "#G#" + row.groupId.trim();
+            } else {
+                blockKey = row.skill + "#" + row.no;
+            }
+            QuestionGroup group = blockGroups.computeIfAbsent(blockKey, k -> createGroup(source, type, block, rows, row));
 
             Question q = new Question();
             q.setSource(source);
@@ -1293,9 +3335,17 @@ public class ExamImportService {
         return blank(value) ? "-" : value;
     }
 
-    private QuestionGroup createGroup(ExamSource source, QuestionTypeDef type, List<Integer> block, List<QuestionRow> rows) {
-        List<QuestionRow> members = rows.stream()
-                .filter(r -> r.skill == type.skill() && block.contains(r.no)).toList();
+    private QuestionGroup createGroup(ExamSource source, QuestionTypeDef type, List<Integer> block, List<QuestionRow> rows, QuestionRow currentRow) {
+        List<QuestionRow> members;
+        if (block != null && !block.isEmpty()) {
+            members = rows.stream()
+                    .filter(r -> r.skill == type.skill() && block.contains(r.no)).toList();
+        } else if (!blank(currentRow.groupId)) {
+            members = rows.stream()
+                    .filter(r -> r.skill == currentRow.skill && currentRow.groupId.equalsIgnoreCase(r.groupId)).toList();
+        } else {
+            members = List.of(currentRow);
+        }
         QuestionGroup g = new QuestionGroup();
         g.setSource(source);
         g.setTypeCode(type.code());
@@ -1352,7 +3402,19 @@ public class ExamImportService {
     }
 
     public List<MediaAsset> mediaOf(Long sourceId) {
-        return media.findBySourceIdOrderByFilenameAsc(sourceId);
+        List<MediaAsset> list = media.findBySourceIdOrderByFilenameAsc(sourceId);
+        for (MediaAsset a : list) {
+            if (a.getStoragePath() != null && a.getStoragePath().contains("?")) {
+                try {
+                    Path real = storage.resolveMedia(sourceId, a.getFilename());
+                    if (Files.exists(real)) {
+                        a.setStoragePath(storage.toStored(real));
+                        media.save(a);
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+        return list;
     }
 
     /** Ảnh tải riêng bởi uploadQuestionImage không thuộc kho file dùng chung, kể cả bản ảnh đã thay thế. */
@@ -1364,11 +3426,79 @@ public class ExamImportService {
     }
 
     public Optional<MediaAsset> findMedia(Long sourceId, String filename) {
-        return media.findBySourceIdAndFilename(sourceId, filename);
+        if (filename == null || filename.isBlank()) return Optional.empty();
+        String raw = filename.trim();
+        Optional<MediaAsset> a = media.findBySourceIdAndFilename(sourceId, raw);
+        if (a.isPresent()) return a;
+
+        // Thử URL decode nếu tên file bị percent-encode (ví dụ: %20, %2C, tiếng Hàn)
+        String decoded = null;
+        try {
+            decoded = java.net.URLDecoder.decode(raw, java.nio.charset.StandardCharsets.UTF_8).trim();
+            if (!decoded.equals(raw)) {
+                a = media.findBySourceIdAndFilename(sourceId, decoded);
+                if (a.isPresent()) return a;
+            }
+        } catch (Exception ignored) {}
+
+        // Thử tìm trong danh sách media của nguồn đề theo tên không phân biệt hoa thường hoặc sau khi decode
+        List<MediaAsset> list = media.findBySourceIdOrderByFilenameAsc(sourceId);
+        for (MediaAsset m : list) {
+            if (m.getFilename() != null) {
+                if (m.getFilename().equalsIgnoreCase(raw)) return Optional.of(m);
+                if (decoded != null && m.getFilename().equalsIgnoreCase(decoded)) return Optional.of(m);
+                try {
+                    String decM = java.net.URLDecoder.decode(m.getFilename(), java.nio.charset.StandardCharsets.UTF_8).trim();
+                    if (decM.equalsIgnoreCase(raw) || (decoded != null && decM.equalsIgnoreCase(decoded))) {
+                        return Optional.of(m);
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+
+        // Dự phòng: nếu file thực tế có trên đĩa nhưng chưa có bản ghi DB
+        try {
+            Path p = storage.resolveMedia(sourceId, raw);
+            if (!Files.exists(p) && decoded != null) {
+                p = storage.resolveMedia(sourceId, decoded);
+            }
+            if (Files.exists(p)) {
+                MediaAsset fallback = new MediaAsset();
+                fallback.setSource(sources.findById(sourceId).orElse(null));
+                fallback.setFilename(p.getFileName().toString());
+                fallback.setKind(MediaStorageService.isAudio(fallback.getFilename()) ? MediaKind.AUDIO : MediaKind.IMAGE);
+                fallback.setSizeBytes(Files.size(p));
+                fallback.setStoragePath(storage.toStored(p));
+                return Optional.of(fallback);
+            }
+        } catch (Exception ignored) {}
+
+        return Optional.empty();
     }
 
     public Path mediaPath(MediaAsset a) {
-        return storage.resolveStored(a.getStoragePath());
+        if (a == null) return storage.resolveStored("");
+        // 1. Ưu tiên tìm file theo filename thực tế trên đĩa (tránh lỗi nếu storagePath bị hỏng ký tự '?')
+        if (a.getSource() != null && a.getFilename() != null && !a.getFilename().isBlank()) {
+            try {
+                Path p = storage.resolveMedia(a.getSource().getId(), a.getFilename());
+                if (Files.exists(p)) {
+                    if (a.getStoragePath() != null && a.getStoragePath().contains("?")) {
+                        a.setStoragePath(storage.toStored(p));
+                        media.save(a);
+                    }
+                    return p;
+                }
+            } catch (Exception ignored) {}
+        }
+        // 2. Thử đường dẫn storagePath đã lưu nếu không chứa '?'
+        if (a.getStoragePath() != null && !a.getStoragePath().isBlank() && !a.getStoragePath().contains("?")) {
+            try {
+                Path p = storage.resolveStored(a.getStoragePath());
+                if (Files.exists(p)) return p;
+            } catch (Exception ignored) {}
+        }
+        return storage.resolveMediaUnchecked(a.getSource() != null ? a.getSource().getId() : 0L, a.getFilename());
     }
 
     public List<Question> questionsOf(Long sourceId) {
@@ -1418,7 +3548,9 @@ public class ExamImportService {
     }
 
     private void log(Actor actor, String action, String details) {
-        audit.logAction(actor.name(), actor.role(), action, "EXAM_SOURCE", details, "127.0.0.1");
+        if (audit != null) {
+            audit.logAction(actor.name(), actor.role(), action, "EXAM_SOURCE", details, "127.0.0.1");
+        }
     }
 
     private static String trim(String s) {

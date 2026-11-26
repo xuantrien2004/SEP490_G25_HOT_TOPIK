@@ -34,6 +34,29 @@ public class RoadmapController {
         this.roadmaps = roadmaps;
     }
 
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: XEM TOÀN CẢNH LỘ TRÌNH HỌC TẬP (ROADMAP VIEW - FUNC_ROAD_02)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Học viên click vào menu "Lộ trình" trên thanh Navbar chính (fragments/navbar.html).
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: GET /lo-trinh (hoặc /roadmap)
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.RoadmapController.roadmap()
+     *    - Triệu gọi Service:
+     *      + com.hottopik.service.exam.LearnerRoadmapService.ensure(): Lấy hoặc sinh lộ trình mặc định.
+     *      + com.hottopik.service.exam.LearnerRoadmapService.view(plan): Dựng toàn bộ lưới bài học theo ngày,
+     *        phân chia thành các tuần (week strip), các pha (phases) và danh sách ô đã hoàn thành (doneKeys).
+     *      + com.hottopik.service.exam.LearnerRoadmapService.rhythmOffer(plan, schedule):
+     *        Kiểm tra nếu học viên nghỉ học liên tiếp >= 3 ngày thì tạo đề xuất Khôi phục nhịp học.
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.study_plans (SELECT theo owner_email).
+     *    - Bảng dbo.program_versions (SELECT bản chương trình đang phát hành).
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
+     *    - Trả về View: "roadmap/index" (src/main/resources/templates/roadmap/index.html)
+     *    - Giao diện hiển thị: Lưới học tập toàn bộ N ngày, huy hiệu Bài mới / Ôn lần 1-3,
+     *      nếu có gián đoạn >= 3 ngày sẽ hiển thị Banner nổi bật: "Bạn đã nghỉ X ngày. Khôi phục nhịp học ngay?".
+     * ========================================================================================= */
     @GetMapping({"/lo-trinh", "/roadmap"})
     public String roadmap(HttpSession session, Model model) {
         StudyPlan plan;
@@ -59,6 +82,27 @@ public class RoadmapController {
         return "roadmap/index";
     }
 
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: KHÔI PHỤC NHỊP HỌC KHI NGHỈ DÀI NGÀY (RESTORE RHYTHM - FUNC_ROAD_03)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Xuất hiện banner đề xuất trên trang Lộ trình (roadmap/index.html).
+     *    - Học viên bấm nút: <button type="submit" class="btn-ssak-primary">Khôi phục nhịp học ngay</button>.
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /lo-trinh/khoi-phuc-nhip
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.RoadmapController.restoreRhythm()
+     *    - Triệu gọi Service: com.hottopik.service.exam.LearnerRoadmapService.restoreRhythm(owner):
+     *      + Kiểm tra lại điều kiện missedStudy >= 3.
+     *      + Tính khoảng thời gian bị lỡ: span = calendarDay - first.
+     *      + Tịnh tiến ngày bắt đầu: plan.setStartDate(plan.getStartDate().plusDays(offer.days())).
+     *      + Giữ nguyên 100% thứ tự các dạng bài và khoảng cách lặp lại ngắt quãng 4 lần/dạng (sessionsPerType = 4).
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.study_plans (UPDATE start_date mới).
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
+     *    - Controller trả về: redirect:/lo-trinh
+     *    - Lộ trình tải lại với ngày bị lỡ đầu tiên được dời thành ngày "Hôm nay", banner nhắc nhở biến mất.
+     * ========================================================================================= */
     @PostMapping("/lo-trinh/khoi-phuc-nhip")
     public String restoreRhythm(HttpSession session) {
         try {
@@ -180,6 +224,28 @@ public class RoadmapController {
         return "roadmap/adjust";
     }
 
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: ĐIỀU CHỈNH SỐ NGÀY & MỤC TIÊU LỘ TRÌNH (RESHAPE ROADMAP - FUNC_ROAD_04)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Học viên vào trang Điều chỉnh lộ trình (src/main/resources/templates/roadmap/adjust.html).
+     *    - Kéo thanh slider số ngày (31 đến 200 ngày), chọn phút học (10..60 phút), chọn TOPIK I hoặc II.
+     *    - Bấm nút "Lưu thay đổi lộ trình": <button type="submit" class="btn-ssak-primary">Lưu điều chỉnh</button>.
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /lo-trinh/dieu-chinh (Form Data: track, days, minutes)
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.RoadmapController.adjust()
+     *    - Triệu gọi Service: com.hottopik.service.exam.LearnerRoadmapService.reshape(owner, track, days, minutes):
+     *      + Chuẩn hóa số ngày (normalizeDays từ 31 đến 200).
+     *      + Dựng lại cấu trúc phân bổ bài học theo bản chương trình phát hành.
+     *      + Gọi remapDone: Giữ lại những bài học mà học viên đã hoàn thành trong quá khứ nếu còn nằm trong lịch mới.
+     *      + Cập nhật các trường: track, totalDays, itemsPerDay, minutesPerDay, doneKeys.
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.study_plans (UPDATE track, total_days, items_per_day, minutes_per_day, done_keys).
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
+     *    - Controller trả về: redirect:/lo-trinh
+     *    - Màn hình Lộ trình tải lại với khung ngày học mới và thanh tiến độ được tính toán lại theo số ngày mới.
+     * ========================================================================================= */
     @PostMapping({"/lo-trinh/dieu-chinh", "/roadmap/adjust"})
     public String adjust(@RequestParam String track,
                          @RequestParam int days,

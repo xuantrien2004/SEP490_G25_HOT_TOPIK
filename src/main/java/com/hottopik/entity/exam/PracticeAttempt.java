@@ -59,6 +59,12 @@ public class PracticeAttempt {
     @Column(name = "checked_answers_json", length = 4000)
     private String checkedAnswersJson = "{}";
 
+    @Column(name = "flags_json", length = 4000)
+    private String flagsJson = "[]";
+
+    @Column(name = "elapsed_seconds")
+    private Integer elapsedSeconds = 0;
+
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 }

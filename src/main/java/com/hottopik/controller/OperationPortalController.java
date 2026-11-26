@@ -123,6 +123,33 @@ public class OperationPortalController {
         return "operation/dashboard";
     }
 
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: KHÓA TÀI KHOẢN HỌC VIÊN TẠM THỜI HOẶC ĐỀ XUẤT KHÓA VĨNH VIỄN (FUNC_OPER_01)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Operation Manager / Admin tại trang Dashboard (/operation), tab "Quản lý học viên".
+     *    - Chọn học viên, mở Modal Khóa tài khoản, chọn Loại khóa (TEMPORARY: 7/14/30 ngày hoặc PERMANENT: vĩnh viễn),
+     *      nhập lý do khóa rồi nhấn nút "Xác nhận khóa".
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /operation/users/lock
+     *    - Format: FormData / application/x-www-form-urlencoded
+     *    - Params: userId, lockType, days, reason
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.OperationPortalController.lockLearner()
+     *    - Kiểm tra quyền: Phải là ROLE_OPERATION_MANAGER hoặc ROLE_ADMIN.
+     *    - Triệu gọi Service:
+     *      + com.hottopik.service.UserService.lockUser(): Cập nhật trạng thái LOCKED và lockUntil đối với khóa tạm thời.
+     *      + com.hottopik.service.ApprovalService.createPermanentLockRequest(): Nếu là PERMANENT, tạo đơn phê duyệt gửi Admin.
+     *      + com.hottopik.service.AdminSystemService.logAction(): Ghi nhật ký kiểm toán (Audit Log).
+     * 4. TRUY VẤN CSDL:
+     *    - UPDATE dbo.users SET status = 'LOCKED', lock_until = :lockUntil, lock_reason = :reason WHERE id = :userId
+     *    - INSERT INTO dbo.approval_requests (target_id, request_type, requester, reason, status...)
+     *    - INSERT INTO dbo.audit_logs (...)
+     * 5. HIỂN THỊ KẾT QUẢ CHO QUẢN LÝ:
+     *    - Trả về JSON: {"success": true, "message": "...", "pendingApproval": false/true}
+     *    - JavaScript tại operation.js nhận phản hồi, cập nhật nhãn trạng thái badge trên bảng danh sách,
+     *      đóng Modal và hiển thị thông báo toast thành công.
+     * ========================================================================================= */
     @PostMapping("/users/lock")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> lockLearner(
@@ -271,6 +298,30 @@ public class OperationPortalController {
         }
     }
 
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: ĐỀ NGHỊ HOÀN TIỀN ĐƠN HÀNG VIP GỬI ADMIN DUYỆT (FUNC_OPER_02)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Operation Manager tại tab "Quản lý Đơn hàng & Doanh thu" (/operation).
+     *    - Tại đơn hàng VIP có khiếu nại hoặc lỗi thanh toán, nhấn nút "Hoàn tiền".
+     *    - Nhập lý do hoàn tiền trong hộp thoại rồi bấm "Xác nhận gửi duyệt".
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: POST /operation/orders/refund (hoặc /orders/request-refund)
+     *    - Params: orderId, reason
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.OperationPortalController.refundOrder()
+     *    - Triệu gọi Service:
+     *      + com.hottopik.service.OperationService.requestRefundApproval(orderId, requester, reason):
+     *        * Đổi trạng thái đơn hàng sang REFUND_REQUESTED.
+     *        * Tạo bản ghi yêu cầu duyệt trong dbo.approval_requests cho Quản trị viên (Admin).
+     *      + com.hottopik.service.AdminSystemService.logAction(): Ghi log kiểm toán SUBMIT_REFUND_PROPOSAL.
+     * 4. TRUY VẤN CSDL:
+     *    - UPDATE dbo.orders SET status = 'REFUND_REQUESTED' WHERE id = :orderId
+     *    - INSERT INTO dbo.approval_requests (target_id, request_type = 'ORDER_REFUND', requester...)
+     * 5. HIỂN THỊ KẾT QUẢ CHO QUẢN LÝ:
+     *    - Trả về JSON: {"success": true, "pendingApproval": true, "status": "REFUND_REQUESTED", "message": "..."}
+     *    - UI cập nhật huy hiệu đơn hàng sang "Chờ Admin duyệt hoàn tiền" mà không reload lại toàn trang.
+     * ========================================================================================= */
     @PostMapping({"/orders/refund", "/orders/request-refund"})
     @ResponseBody
     public ResponseEntity<Map<String, Object>> refundOrder(

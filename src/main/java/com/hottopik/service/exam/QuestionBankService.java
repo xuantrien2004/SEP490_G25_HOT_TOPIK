@@ -229,7 +229,7 @@ public class QuestionBankService {
             if(audioChanged)correctionType="AUDIO";
             group.setImageFile(image==null||image.isBlank()?null:image);group.setAudioFile(audio==null||audio.isBlank()?null:audio);
         }
-        if (prompt == null || prompt.isBlank()) throw new ExamDomainException("Câu hỏi không được để trống.");
+        if (prompt == null || prompt.isBlank()) prompt = "";
         if (options == null || options.size() != 4 || options.stream().anyMatch(o -> o == null || o.isBlank())) {
             throw new ExamDomainException("Cần đủ 4 phương án.");
         }

@@ -14,20 +14,44 @@
 
     <!-- 1. BIỂU ĐỒ ĐIỂM THI THỬ FULL MOCK -->
     <div style="background: #FFFFFF; border: 1.5px solid #E8E5DC; border-radius: 20px; padding: 26px 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); margin-bottom: 24px;">
-        <h2 style="margin: 0 0 20px; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D;">
-            Điểm thi thử theo thời gian
-        </h2>
-
-        <!-- Không có dữ liệu -->
-        <div th:if="${progressData == null or progressData.mockScores().isEmpty()}"
-             style="padding: 40px; text-align: center; color: #8C9BA2; font-size: 14px;">
-            Chưa có lần làm Full Mock nào. Hãy thử sức với đề Full Mock để xem điểm tiến bộ!
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <h2 style="margin: 0 0 4px; font-family: var(--font-heading); font-size: 20px; font-weight: 800; color: #24363D;">
+                    Điểm thi thử theo thời gian
+                </h2>
+                <div style="font-size: 13px; color: #8C9BA2; font-weight: 600;">
+                    Hiển thị điểm số lần làm cao nhất của từng đề thi Full Mock · Cột xếp chồng theo kỹ năng
+                </div>
+            </div>
+            <!-- Tab chọn cấp độ TOPIK I / TOPIK II (chỉ hiện khi có dữ liệu) -->
+            <div th:if="${progressData != null and progressData.hasAnyMockScores()}" style="display: flex; gap: 8px;">
+                <button type="button" class="mock-track-btn" id="btnTrackI"
+                        th:if="${!progressData.topikIScores().isEmpty()}"
+                        onclick="switchMockTrack('TOPIK_I')">
+                    TOPIK I (200đ)
+                </button>
+                <button type="button" class="mock-track-btn" id="btnTrackII"
+                        th:if="${!progressData.topikIIScores().isEmpty()}"
+                        onclick="switchMockTrack('TOPIK_II')">
+                    TOPIK II (300đ)
+                </button>
+            </div>
         </div>
 
-        <!-- Biểu đồ Chart.js -->
-        <div th:unless="${progressData == null or progressData.mockScores().isEmpty()}"
-             style="position: relative; height: 280px;">
+        <!-- Không có dữ liệu -->
+        <div th:if="${progressData == null or !progressData.hasAnyMockScores()}"
+             style="padding: 40px; text-align: center; color: #8C9BA2; font-size: 14px;">
+            Chưa có lần làm Full Mock nào. Hãy thử sức với đề Full Mock để ghi nhận điểm kỷ lục của bạn!
+        </div>
+
+        <!-- Biểu đồ Chart.js (Cột chồng) -->
+        <div th:unless="${progressData == null or !progressData.hasAnyMockScores()}"
+             style="position: relative; height: 320px;">
             <canvas id="mockScoreChart"></canvas>
+        </div>
+        <div th:unless="${progressData == null or !progressData.hasAnyMockScores()}"
+             style="margin-top: 12px; font-size: 12.5px; color: #8C9BA2; text-align: center; font-style: italic;">
+            💡 Bấm vào cột hoặc tên bài thi trên sơ đồ để xem chi tiết bài làm đạt điểm cao nhất đó.
         </div>
     </div>
 
@@ -173,66 +197,171 @@
 <div th:replace="~{fragments/footer :: footer}"></div>
 
 <!-- Chart.js CDN (chỉ load khi có data) -->
-<script th:if="${progressData != null and !progressData.mockScores().isEmpty()}"
+<script th:if="${progressData != null and progressData.hasAnyMockScores()}"
         src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-<script th:if="${progressData != null and !progressData.mockScores().isEmpty()}" th:inline="javascript">
+<script th:if="${progressData != null and progressData.hasAnyMockScores()}" th:inline="javascript">
 (function () {
-    const scores = /*[[${progressData.mockScores()}]]*/ [];
-    const labels = scores.map(s => s.label + '\n' + s.date);
-    const data   = scores.map(s => s.hasScore ? (s.total > 0 ? Math.round(s.correct * 200 / s.total) : s.correct) : null);
+    const topikIScores = /*[[${progressData.topikIScores()}]]*/ [];
+    const topikIIScores = /*[[${progressData.topikIIScores()}]]*/ [];
+    let currentTrack = (topikIScores && topikIScores.length > 0) ? 'TOPIK_I' : ((topikIIScores && topikIIScores.length > 0) ? 'TOPIK_II' : null);
 
     const ctx = document.getElementById('mockScoreChart');
-    if (!ctx || typeof Chart === 'undefined') return;
+    if (!ctx || typeof Chart === 'undefined' || !currentTrack) return;
 
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: scores.map(s => s.label),
-            datasets: [{
-                label: 'Điểm Full Mock (quy đổi 200)',
-                data: data,
-                borderColor: '#2E7D67',
-                backgroundColor: 'rgba(46,125,103,0.08)',
-                borderWidth: 3,
-                pointBackgroundColor: '#FFFFFF',
-                pointBorderColor: '#2E7D67',
-                pointBorderWidth: 3,
-                pointRadius: 7,
-                tension: 0.3,
-                fill: true,
-                spanGaps: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: ctx => {
-                            const s = scores[ctx.dataIndex];
-                            if (!s.hasScore) return 'Chưa có điểm';
-                            const pts = s.total > 0 ? Math.round(s.correct * 200 / s.total) : s.correct;
-                            return pts + ' điểm (' + s.correct + '/' + s.total + ' câu) · ' + s.date;
+    let chartInstance = null;
+
+    function renderChart(track) {
+        const isTopikI = track === 'TOPIK_I';
+        const rawData = isTopikI ? topikIScores : topikIIScores;
+        if (!rawData || rawData.length === 0) return;
+
+        document.getElementById('btnTrackI')?.classList.toggle('active', isTopikI);
+        document.getElementById('btnTrackII')?.classList.toggle('active', !isTopikI);
+
+        const labels = rawData.map(d => d.shortName);
+        const maxScore = isTopikI ? 200 : 300;
+
+        const datasets = [
+            {
+                label: '🎧 Nghe',
+                data: rawData.map(d => d.listenScore),
+                backgroundColor: '#1F6B56',
+                hoverBackgroundColor: '#164E40',
+                borderRadius: isTopikI ? 0 : 0,
+                stack: 'score'
+            },
+            {
+                label: '📖 Đọc',
+                data: rawData.map(d => d.readScore),
+                backgroundColor: '#2563EB',
+                hoverBackgroundColor: '#1D4ED8',
+                borderRadius: isTopikI ? 6 : 0,
+                stack: 'score'
+            }
+        ];
+
+        if (!isTopikI) {
+            datasets.push({
+                label: '✍️ Viết',
+                data: rawData.map(d => d.writingScore),
+                backgroundColor: '#D97706',
+                hoverBackgroundColor: '#B45309',
+                borderRadius: 6,
+                stack: 'score'
+            });
+        }
+
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                barPercentage: 0.45,
+                categoryPercentage: 0.65,
+                scales: {
+                    x: {
+                        stacked: true,
+                        grid: { display: false },
+                        ticks: {
+                            color: '#24363D',
+                            font: { weight: '700', size: 13 }
+                        }
+                    },
+                    y: {
+                        stacked: true,
+                        min: 0,
+                        max: maxScore,
+                        grid: { color: '#F1EEE6' },
+                        ticks: {
+                            color: '#8C9BA2',
+                            font: { weight: '700', size: 12 },
+                            stepSize: 50
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        align: 'end',
+                        labels: {
+                            boxWidth: 14,
+                            boxHeight: 14,
+                            useBorderRadius: true,
+                            borderRadius: 4,
+                            font: { weight: '700', size: 12 },
+                            color: '#53646C'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(36, 54, 61, 0.95)',
+                        titleFont: { weight: '800', size: 14 },
+                        bodyFont: { size: 13 },
+                        padding: 12,
+                        cornerRadius: 10,
+                        callbacks: {
+                            title: function (items) {
+                                if (!items || items.length === 0) return '';
+                                const idx = items[0].dataIndex;
+                                return rawData[idx]?.examName || items[0].label;
+                            },
+                            label: function () {
+                                return null;
+                            },
+                            afterBody: function (items) {
+                                if (!items || items.length === 0) return [];
+                                const idx = items[0].dataIndex;
+                                const item = rawData[idx];
+                                if (!item) return [];
+                                const maxPts = isTopikI ? 200 : 300;
+                                const fmt = v => (Math.abs(v - Math.round(v)) < 0.01) ? Math.round(v) : (Math.round(v * 10) / 10);
+                                const lines = [
+                                    '🏆 Điểm tổng: ' + fmt(item.totalScore) + '/' + maxPts + ' đ'
+                                ];
+                                if (isTopikI) {
+                                    lines.push('🎧 Nghe: ' + fmt(item.listenScore) + 'đ · 📖 Đọc: ' + fmt(item.readScore) + 'đ');
+                                } else {
+                                    lines.push('🎧 Nghe: ' + fmt(item.listenScore) + 'đ · 📖 Đọc: ' + fmt(item.readScore) + 'đ · ✍️ Viết: ' + fmt(item.writingScore) + 'đ');
+                                }
+                                lines.push('📅 Kỷ lục ngày: ' + item.completedDate);
+                                lines.push('🔄 Đã thử sức: ' + item.attemptCount + ' lần');
+                                lines.push('👉 Bấm vào cột để xem chi tiết bài làm');
+                                return lines;
+                            }
+                        }
+                    }
+                },
+                onHover: (event, chartElements) => {
+                    ctx.style.cursor = chartElements.length > 0 ? 'pointer' : 'default';
+                },
+                onClick: (event, chartElements) => {
+                    if (chartElements.length > 0) {
+                        const idx = chartElements[0].index;
+                        const item = rawData[idx];
+                        if (item && item.attemptId) {
+                            window.location.href = '/ket-qua/' + item.attemptId;
                         }
                     }
                 }
-            },
-            scales: {
-                y: {
-                    min: 0, max: 200,
-                    ticks: { color: '#8C9BA2', font: { weight: '700' } },
-                    grid: { color: '#F1EEE6' }
-                },
-                x: {
-                    ticks: { color: '#53646C', font: { weight: '700' }, maxRotation: 0 },
-                    grid: { display: false }
-                }
             }
-        }
-    });
+        });
+    }
+
+    window.switchMockTrack = function (track) {
+        currentTrack = track;
+        renderChart(track);
+    };
+
+    renderChart(currentTrack);
 })();
 </script>
 
@@ -283,6 +412,30 @@ document.addEventListener('DOMContentLoaded', () => sortTypes('acc-asc'));
 </script>
 
 <style>
+.mock-track-btn {
+    height: 34px;
+    padding: 0 16px;
+    border-radius: 17px;
+    border: 1.5px solid #E8E5DC;
+    background: #FFFFFF;
+    font-size: 13px;
+    font-weight: 700;
+    color: #53646C;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s ease;
+}
+.mock-track-btn.active {
+    background: #2E7D67;
+    color: #FFFFFF;
+    border-color: #2E7D67;
+    box-shadow: 0 2px 6px rgba(46, 125, 103, 0.25);
+}
+.mock-track-btn:hover:not(.active) {
+    border-color: #2E7D67;
+    color: #2E7D67;
+}
+
 .skill-tab {
     padding: 10px 20px;
     border: none;

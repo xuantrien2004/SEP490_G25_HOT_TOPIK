@@ -178,10 +178,30 @@ public class TheoryController {
         return "theory/unlearned";
     }
 
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: CẦU NỐI HÁN VIỆT 24 GỐC HÁN TỰ (HANJA ROOTS THEORY - FUNC_THEO_06)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Học viên click vào menu "Lý thuyết" -> Chọn "Cầu nối Hán Việt" (theory/index.html).
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: GET /ly-thuyet/han-viet?tab={learn/guess/learned/mistakes}
+     * 3. CONTROLLER & SERVICE XỬ LÝ:
+     *    - Controller: com.hottopik.controller.TheoryController.hanja()
+     *    - Triệu gọi Service: com.hottopik.service.HanjaService.getActiveHanjaRoots():
+     *      + Nạp 24 gốc Hán tự và 192 từ vựng liên quan.
+     *      + Thống kê số gốc đã học, số từ cần luyện tập.
+     * 4. TRUY VẤN CSDL:
+     *    - Bảng dbo.hanja_roots (SELECT gốc Hán).
+     *    - Bảng dbo.hanja_root_words (SELECT từ vựng cùng họ).
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
+     *    - Trả về View: "theory/hanja" (src/main/resources/templates/theory/hanja.html)
+     *    - Giao diện hiển thị: Lưới 4 cột gốc Hán, bảng nghĩa Hán Việt, phát âm Audio và 4 tab chức năng.
+     * ========================================================================================= */
     @GetMapping({"/ly-thuyet/han-viet", "/theory/hanja"})
-    public String hanja(Model model) {
+    public String hanja(@RequestParam(value = "tab", required = false) String tab, Model model) {
         model.addAttribute("pageTitle", "Cầu nối Hán Việt · 32 gốc từ");
         model.addAttribute("activePage", "theory");
+        model.addAttribute("currentTab", tab != null ? tab : "learn");
         try {
             model.addAttribute("hanjaRoots", hanjaService.getActiveHanjaRoots(null));
             model.addAttribute("hanjaStats", hanjaService.getLearnerStats());
@@ -267,11 +287,26 @@ public class TheoryController {
                 .body(vocabularyService.getAllTopicsGroupedByLevel());
     }
 
-    /**
-     * Endpoint phát âm tiếng Hàn (Korean TTS Proxy):
-     * Tự động sinh âm thanh giọng đọc chuẩn cho từ vựng và câu ví dụ,
-     * hoạt động độc lập và ổn định trên mọi trình duyệt (Brave, Chrome, Edge, Safari...).
-     */
+    /* =========================================================================================
+     * LUỒNG CHỨC NĂNG: PHÁT ÂM TIẾNG HÀN QUA TTS PROXY (KOREAN TTS PROXY - FUNC_THEO_09)
+     * -----------------------------------------------------------------------------------------
+     * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
+     *    - Học viên bấm icon chiếc loa phát âm <i class="bi bi-volume-up"></i> trên bất kỳ từ vựng
+     *      hoặc câu ví dụ nào trong các trang Từ vựng, Flashcard, Quiz, Hán Việt.
+     *    - JavaScript gọi speakWord(text) phát âm qua thẻ new Audio('/api/tts?text=' + encoded).
+     * 2. HTTP REQUEST & ENDPOINT:
+     *    - URL: GET /api/tts?text={koreanText}
+     * 3. CONTROLLER & BACKEND XỬ LÝ:
+     *    - Controller: com.hottopik.controller.TheoryController.getKoreanTts()
+     *    - Triệu gọi HTTP Client kết nối đến dịch vụ Google Translate TTS Proxy:
+     *      https://translate.google.com/translate_tts?ie=UTF-8&tl=ko&client=tw-ob&q=...
+     *    - Thiết lập connectTimeout 4s, readTimeout 6s để chống treo server.
+     * 4. TRUY VẤN CSDL:
+     *    - Không truy vấn CSDL (Xử lý Stream IO byte array).
+     * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
+     *    - Trả về ResponseEntity<byte[]> với Content-Type: audio/mpeg và Cache-Control: max-age=7 days.
+     *    - Trình duyệt học viên nhận luồng MP3 và phát trực tiếp qua loa mà không bị phụ thuộc vào giọng đọc máy của hệ điều hành.
+     * ========================================================================================= */
     @GetMapping(value = "/api/tts", produces = "audio/mpeg")
     @ResponseBody
     public ResponseEntity<byte[]> getKoreanTts(@RequestParam("text") String text) {

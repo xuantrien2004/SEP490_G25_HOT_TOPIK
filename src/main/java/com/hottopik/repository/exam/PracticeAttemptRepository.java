@@ -11,6 +11,8 @@ public interface PracticeAttemptRepository extends JpaRepository<PracticeAttempt
     @org.springframework.data.jpa.repository.Query("select a from PracticeAttempt a where a.completedAt is not null and concat(concat(',', a.questionIds), ',') like concat(concat('%,', :qid), ',%') order by a.id")
     List<PracticeAttempt> findCompletedWithQuestion(@org.springframework.data.repository.query.Param("qid") String qid);
     List<PracticeAttempt> findByUserIdAndTypeCodeAndCompletedAtIsNotNullOrderByCompletedAtDesc(Long userId, String typeCode);
+    List<PracticeAttempt> findByUserIdAndTypeCodeAndCompletedAtIsNullOrderByIdDesc(Long userId, String typeCode);
+    List<PracticeAttempt> findByUserIdAndTypeCodeOrderByStartedAtDescIdDesc(Long userId, String typeCode);
     List<PracticeAttempt> findByUserIdAndCompletedAtIsNotNullOrderByCompletedAtDesc(Long userId);
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @org.springframework.data.jpa.repository.Query("select a from PracticeAttempt a where a.id = :id and a.userId = :userId")

@@ -65,7 +65,7 @@ public interface QuestionRepository extends JpaRepository<Question, Long>, JpaSp
             + "and q.source.status = com.hottopik.entity.exam.SourceStatus.ACTIVE")
     List<Question> findAssessmentPool(@org.springframework.data.repository.query.Param("typeCode") String typeCode);
 
-    @EntityGraph(attributePaths = {"source", "group"})
+    @EntityGraph(attributePaths = {"source", "group", "group.source"})
     @Query("select q from Question q where q.id in :ids")
     List<Question> findWithMediaByIdIn(@org.springframework.data.repository.query.Param("ids") Collection<Long> ids);
 
