@@ -129,6 +129,49 @@
     let unlearnedCount = 0;
     let isFlipped = false;
 
+    // Khóa lưu tiến độ phiên học duy nhất theo Cấp, Chủ đề hoặc Chế độ học
+    const PROGRESS_STORAGE_KEY = 'hottopik_flashcard_progress_' + (mode ? mode : (currentLevelNum + '_' + encodeURIComponent(currentTopicName)));
+
+    function saveCurrentProgress() {
+        try {
+            const data = {
+                currentIndex: currentIndex,
+                rememberedCount: rememberedCount,
+                unlearnedCount: unlearnedCount,
+                total: activeVocabList ? activeVocabList.length : 0,
+                timestamp: Date.now()
+            };
+            localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(data));
+            sessionStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(data));
+        } catch (e) {
+            console.warn('[Flashcard] Error saving progress:', e);
+        }
+    }
+
+    function loadSavedProgress() {
+        try {
+            const raw = localStorage.getItem(PROGRESS_STORAGE_KEY) || sessionStorage.getItem(PROGRESS_STORAGE_KEY);
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            if (!data || typeof data.currentIndex !== 'number') return null;
+            
+            // Nếu đã học xong toàn bộ hoặc phiên đã cũ hơn 7 ngày thì không khôi phục
+            if (data.total && data.currentIndex >= data.total) return null;
+            if (data.timestamp && (Date.now() - data.timestamp > 7 * 24 * 60 * 60 * 1000)) return null;
+
+            return data;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function clearSavedProgress() {
+        try {
+            localStorage.removeItem(PROGRESS_STORAGE_KEY);
+            sessionStorage.removeItem(PROGRESS_STORAGE_KEY);
+        } catch (e) {}
+    }
+
     function init() {
         const total = activeVocabList ? activeVocabList.length : 0;
         document.getElementById('totalCardsText').innerText = total;
@@ -138,6 +181,22 @@
             document.getElementById('completedBox').classList.remove('d-none');
             return;
         }
+
+        // Tự động khôi phục vị trí thẻ và số từ đã học trước đó nếu người dùng F5 hoặc tắt tab
+        const saved = loadSavedProgress();
+        if (saved && saved.currentIndex > 0 && saved.currentIndex < total) {
+            currentIndex = saved.currentIndex;
+            rememberedCount = saved.rememberedCount || 0;
+            unlearnedCount = saved.unlearnedCount || 0;
+            document.getElementById('countRemembered').innerText = rememberedCount;
+            document.getElementById('countUnlearned').innerText = unlearnedCount;
+
+            // Thông báo toast thông minh cho học viên
+            if (typeof showSsakToast === 'function') {
+                showSsakToast(`Tiếp tục phiên học tại thẻ ${currentIndex + 1}/${total} (Đã học ${currentIndex} từ trước đó)`);
+            }
+        }
+
         renderCard();
     }
 
@@ -147,8 +206,11 @@
             document.getElementById('actionButtons').classList.add('d-none');
             document.getElementById('completedBox').classList.remove('d-none');
             document.getElementById('cardProgress').style.width = '100%';
+            clearSavedProgress(); // Đã hoàn thành toàn bộ thẻ, xóa tiến độ dở dang
             return;
         }
+
+        saveCurrentProgress(); // Tự động lưu vị trí thẻ hiện tại và số từ đã ghi nhận
 
         const v = activeVocabList[currentIndex];
         const dir = document.getElementById('flipDirection').value;
@@ -222,49 +284,68 @@
         document.getElementById('flashcardBox').classList.remove('d-none');
         document.getElementById('actionButtons').classList.remove('d-none');
         document.getElementById('completedBox').classList.add('d-none');
+        clearSavedProgress(); // Học lại từ đầu thì reset tiến độ đã lưu
         renderCard();
     }
+
+    let activeCardAudio = null;
 
     function speakCurrentWord() {
         if (!activeVocabList || currentIndex >= activeVocabList.length) return;
         const v = activeVocabList[currentIndex];
-        if (v.audioUrl && v.audioUrl.trim() !== '') {
-            new Audio(v.audioUrl).play().catch(() => playSpeech(v.word));
-        } else {
-            playSpeech(v.word);
+        if (!v || !v.word) return;
+
+        if (activeCardAudio) {
+            try { activeCardAudio.pause(); activeCardAudio.currentTime = 0; } catch (e) {}
+            activeCardAudio = null;
         }
+
+        if (v.audioUrl && typeof v.audioUrl === 'string' && v.audioUrl.trim() !== '') {
+            let normalizedUrl = v.audioUrl.trim();
+            if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://') && !normalizedUrl.startsWith('/')) {
+                normalizedUrl = '/' + normalizedUrl;
+            }
+            try {
+                const audio = new Audio(normalizedUrl);
+                activeCardAudio = audio;
+                const p = audio.play();
+                if (p && typeof p.then === 'function') {
+                    p.catch(() => playOnlineKoreanTTS(v.word));
+                }
+                return;
+            } catch (e) {}
+        }
+        playOnlineKoreanTTS(v.word);
     }
 
     function playSpeech(word) {
-        if (!word || !word.trim()) return;
-        word = word.trim();
-        if ('speechSynthesis' in window) {
-            try {
-                window.speechSynthesis.cancel();
-                const u = new SpeechSynthesisUtterance(word);
-                u.lang = 'ko-KR';
-                u.rate = 0.85;
-                const voices = window.speechSynthesis.getVoices();
-                const koVoice = voices.find(v => v.lang.startsWith('ko') || v.lang.includes('KR'));
-                if (koVoice) u.voice = koVoice;
-                let hasSpoken = false;
-                u.onstart = function() { hasSpoken = true; };
-                u.onerror = function() { playOnlineKoreanTTS(word); };
-                if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-                window.speechSynthesis.speak(u);
-                setTimeout(() => {
-                    if (!hasSpoken && !window.speechSynthesis.speaking) playOnlineKoreanTTS(word);
-                }, 800);
-                return;
-            } catch(e) {}
-        }
         playOnlineKoreanTTS(word);
     }
 
     function playOnlineKoreanTTS(word) {
+        if (!word || !word.trim()) return;
         try {
-            const url = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=ko&client=tw-ob&q=' + encodeURIComponent(word);
-            new Audio(url).play().catch(() => {});
+            if (activeCardAudio) {
+                try { activeCardAudio.pause(); activeCardAudio.currentTime = 0; } catch (e) {}
+            }
+            const url = '/api/tts?text=' + encodeURIComponent(word.trim());
+            const audio = new Audio(url);
+            activeCardAudio = audio;
+            const playPromise = audio.play();
+            if (playPromise && typeof playPromise.then === 'function') {
+                playPromise.catch(e => {
+                    console.warn('[TTS] Backend /api/tts failed, fallback to Web Speech:', e);
+                    if ('speechSynthesis' in window) {
+                        try {
+                            window.speechSynthesis.cancel();
+                            const u = new SpeechSynthesisUtterance(word);
+                            u.lang = 'ko-KR';
+                            u.rate = 0.85;
+                            window.speechSynthesis.speak(u);
+                        } catch(err) {}
+                    }
+                });
+            }
         } catch(e) {}
     }
 

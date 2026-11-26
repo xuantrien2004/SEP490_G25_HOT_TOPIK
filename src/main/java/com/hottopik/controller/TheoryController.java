@@ -50,6 +50,9 @@ public class TheoryController {
         this.grammarGroupService = grammarGroupService;
     }
 
+    /**
+     * Thiết lập header không lưu cache để trình duyệt luôn tải dữ liệu lý thuyết mới nhất.
+     */
     private void setNoCacheHeaders(HttpServletResponse response) {
         if (response != null) {
             response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -58,6 +61,9 @@ public class TheoryController {
         }
     }
 
+    /**
+     * Trang tổng quan Lý thuyết (hiển thị danh sách chủ đề Từ vựng hoặc nhóm Ngữ pháp theo cấp TOPIK).
+     */
     @GetMapping({"/ly-thuyet", "/theory", "/ly-thuyet/ngu-phap"})
     public String theory(@RequestParam(value = "tab", required = false) String tab,
                          @RequestParam(value = "level", defaultValue = "1") Short level,
@@ -84,6 +90,9 @@ public class TheoryController {
         return "theory/index";
     }
 
+    /**
+     * Trang học Từ vựng chi tiết theo chủ đề và cấp TOPIK (hiển thị danh sách từ, nghĩa, phiên âm, ví dụ và nút nghe phát âm).
+     */
     @GetMapping({"/ly-thuyet/tu-vung", "/theory/vocabulary"})
     public String vocabulary(@RequestParam(value = "topic", required = false) String topic,
                              @RequestParam(value = "level", required = false, defaultValue = "1") Integer level,
@@ -114,6 +123,9 @@ public class TheoryController {
         return "theory/vocabulary";
     }
 
+    /**
+     * Trang học từ vựng bằng thẻ ghi nhớ 3D (Flashcard) theo chủ đề và cấp TOPIK.
+     */
     @GetMapping({"/ly-thuyet/the", "/theory/flashcard", "/theory/flashcards"})
     public String flashcard(@RequestParam(value = "topic", required = false) String topic,
                             @RequestParam(value = "level", required = false, defaultValue = "1") Integer level,
@@ -142,6 +154,9 @@ public class TheoryController {
         return "theory/flashcard";
     }
 
+    /**
+     * Trang làm Quiz trắc nghiệm 4 lựa chọn kiểm tra nhanh từ vựng theo chủ đề.
+     */
     @GetMapping({"/ly-thuyet/quiz", "/theory/quiz"})
     public String quiz(@RequestParam(value = "topic", required = false) String topic,
                        @RequestParam(value = "level", required = false, defaultValue = "1") Integer level,
@@ -170,6 +185,9 @@ public class TheoryController {
         return "theory/quiz";
     }
 
+    /**
+     * Trang Sổ từ chưa thuộc giúp học viên ôn lại các từ đã đánh dấu chưa nhớ.
+     */
     @GetMapping({"/tu-chua-thuoc", "/theory/review", "/theory/unlearned"})
     public String unlearnedWords(HttpServletResponse response, Model model) {
         setNoCacheHeaders(response);
@@ -239,6 +257,9 @@ public class TheoryController {
     // ==========================================
     // REST APIs cho AJAX phía người dùng
     // ==========================================
+    /**
+     * API trả về danh sách từ vựng ACTIVE theo cấp độ và chủ đề cho phía học viên.
+     */
     @GetMapping("/api/theory/vocabularies")
     @ResponseBody
     public ResponseEntity<?> getVocabulariesApi(@RequestParam(value = "level", required = false, defaultValue = "1") Integer level,
@@ -249,6 +270,9 @@ public class TheoryController {
                 .body(vocabularyService.getVocabulariesForLearner(level, topic));
     }
 
+    /**
+     * API trả về danh sách chủ đề ACTIVE của một cấp độ TOPIK.
+     */
     @GetMapping("/api/theory/topics")
     @ResponseBody
     public ResponseEntity<?> getTopicsApi(@RequestParam(value = "level", required = false, defaultValue = "1") Integer level) {
@@ -258,6 +282,9 @@ public class TheoryController {
                 .body(vocabularyService.getTopicsForLearner(level));
     }
 
+    /**
+     * API trả về toàn bộ chủ đề ACTIVE được gom nhóm theo từng cấp TOPIK (1–6).
+     */
     @GetMapping("/api/theory/topics/all")
     @ResponseBody
     public ResponseEntity<?> getAllTopicsGroupedApi() {
@@ -303,6 +330,9 @@ public class TheoryController {
         return ResponseEntity.notFound().build();
     }
 
+    /**
+     * Kênh SSE đồng bộ dữ liệu từ vựng thời gian thực từ Content Manager sang màn hình học viên.
+     */
     @GetMapping(value = {"/api/theory/sync/stream", "/api/vocab-sync/stream", "/api/vocabulary/sync/stream"}, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @ResponseBody
     public SseEmitter syncStreamForLearner() {

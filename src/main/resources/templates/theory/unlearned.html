@@ -310,44 +310,63 @@
         }
     }
 
-    function speakWord(word, audioUrl) {
-        if (audioUrl && audioUrl.trim()) {
-            new Audio(audioUrl).play().catch(() => playSpeech(word));
-        } else {
-            playSpeech(word);
-        }
-    }
+    let activeUnlearnedAudio = null;
 
-    function playSpeech(word) {
+    function speakWord(word, audioUrl) {
         if (!word || !word.trim()) return;
         word = word.trim();
-        if ('speechSynthesis' in window) {
+
+        if (activeUnlearnedAudio) {
+            try { activeUnlearnedAudio.pause(); activeUnlearnedAudio.currentTime = 0; } catch(e) {}
+            activeUnlearnedAudio = null;
+        }
+
+        if (audioUrl && typeof audioUrl === 'string' && audioUrl.trim()) {
+            let normalizedUrl = audioUrl.trim();
+            if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://') && !normalizedUrl.startsWith('/')) {
+                normalizedUrl = '/' + normalizedUrl;
+            }
             try {
-                window.speechSynthesis.cancel();
-                const u = new SpeechSynthesisUtterance(word);
-                u.lang = 'ko-KR';
-                u.rate = 0.85;
-                const voices = window.speechSynthesis.getVoices();
-                const koVoice = voices.find(v => v.lang.startsWith('ko') || v.lang.includes('KR'));
-                if (koVoice) u.voice = koVoice;
-                let hasSpoken = false;
-                u.onstart = function() { hasSpoken = true; };
-                u.onerror = function() { playOnlineKoreanTTS(word); };
-                if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-                window.speechSynthesis.speak(u);
-                setTimeout(() => {
-                    if (!hasSpoken && !window.speechSynthesis.speaking) playOnlineKoreanTTS(word);
-                }, 800);
+                const audio = new Audio(normalizedUrl);
+                activeUnlearnedAudio = audio;
+                const p = audio.play();
+                if (p && typeof p.then === 'function') {
+                    p.catch(() => playOnlineKoreanTTS(word));
+                }
                 return;
             } catch(e) {}
         }
         playOnlineKoreanTTS(word);
     }
 
+    function playSpeech(word) {
+        playOnlineKoreanTTS(word);
+    }
+
     function playOnlineKoreanTTS(word) {
+        if (!word || !word.trim()) return;
         try {
-            const url = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=ko&client=tw-ob&q=' + encodeURIComponent(word);
-            new Audio(url).play().catch(() => {});
+            if (activeUnlearnedAudio) {
+                try { activeUnlearnedAudio.pause(); activeUnlearnedAudio.currentTime = 0; } catch(e) {}
+            }
+            const url = '/api/tts?text=' + encodeURIComponent(word.trim());
+            const audio = new Audio(url);
+            activeUnlearnedAudio = audio;
+            const playPromise = audio.play();
+            if (playPromise && typeof playPromise.then === 'function') {
+                playPromise.catch(e => {
+                    console.warn('[TTS] Backend /api/tts failed, fallback to Web Speech:', e);
+                    if ('speechSynthesis' in window) {
+                        try {
+                            window.speechSynthesis.cancel();
+                            const u = new SpeechSynthesisUtterance(word);
+                            u.lang = 'ko-KR';
+                            u.rate = 0.85;
+                            window.speechSynthesis.speak(u);
+                        } catch(err) {}
+                    }
+                });
+            }
         } catch(e) {}
     }
 

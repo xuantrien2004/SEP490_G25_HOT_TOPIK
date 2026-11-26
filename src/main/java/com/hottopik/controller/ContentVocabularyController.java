@@ -38,6 +38,12 @@ public class ContentVocabularyController {
         this.adminSystemService = adminSystemService;
     }
 
+    /**
+     * Hiển thị màn hình quản lý từ vựng theo 3 cấp:
+     * 1. Danh sách cấp TOPIK (1–6) nếu chưa chọn level.
+     * 2. Danh sách chủ đề của cấp TOPIK nếu đã chọn level nhưng chưa chọn topic.
+     * 3. Danh sách từ vựng chi tiết nếu đã chọn cả level và topic (hỗ trợ tìm kiếm & lọc).
+     */
     @GetMapping
     public String viewVocabularyHierarchy(
             @RequestParam(value = "level", required = false) Integer level,
@@ -105,6 +111,10 @@ public class ContentVocabularyController {
     // ==========================================
     // TOPIC CRUD ENDPOINTS
     // ==========================================
+    /**
+     * Kiểm tra số lượng từ vựng hiện có trong một chủ đề trước khi xóa
+     * để hiển thị cảnh báo xác nhận cho Content Manager.
+     */
     @GetMapping("/topic/check-delete")
     @ResponseBody
     public ResponseEntity<?> checkTopicDelete(
@@ -118,6 +128,9 @@ public class ContentVocabularyController {
         ));
     }
 
+    /**
+     * API tạo chủ đề từ vựng mới theo cấp TOPIK và ghi nhận nhật ký hoạt động (Audit Log).
+     */
     @PostMapping("/topic/create")
     @ResponseBody
     public ResponseEntity<?> createTopic(@RequestBody Map<String, Object> body, HttpSession session) {
@@ -154,6 +167,9 @@ public class ContentVocabularyController {
         }
     }
 
+    /**
+     * API đổi tên / cập nhật mô tả chủ đề và đồng bộ tên chủ đề cho toàn bộ từ vựng bên trong.
+     */
     @PostMapping("/topic/update")
     @ResponseBody
     public ResponseEntity<?> updateTopic(@RequestBody Map<String, Object> body, HttpSession session) {
@@ -191,6 +207,9 @@ public class ContentVocabularyController {
         }
     }
 
+    /**
+     * API xóa vĩnh viễn một chủ đề cùng toàn bộ từ vựng thuộc chủ đề đó.
+     */
     @PostMapping("/topic/delete")
     @ResponseBody
     public ResponseEntity<?> deleteTopic(@RequestBody Map<String, Object> body, HttpSession session) {
@@ -220,6 +239,9 @@ public class ContentVocabularyController {
         }
     }
 
+    /**
+     * API bật/tắt trạng thái hiển thị (ACTIVE/INACTIVE) của một chủ đề và tất cả từ vựng bên trong.
+     */
     @PostMapping("/topic/toggle")
     @ResponseBody
     public ResponseEntity<?> toggleTopic(@RequestBody Map<String, Object> body, HttpSession session) {
@@ -258,6 +280,9 @@ public class ContentVocabularyController {
         }
     }
 
+    /**
+     * API xóa một từ vựng đơn lẻ theo ID và ghi nhật ký Audit Log.
+     */
     @PostMapping("/delete/{id}")
     @ResponseBody
     public ResponseEntity<?> deleteVocabulary(@PathVariable("id") Long id, HttpSession session) {
@@ -288,6 +313,9 @@ public class ContentVocabularyController {
     // ==========================================
     // VOCABULARY CRUD & BULK ENDPOINTS
     // ==========================================
+    /**
+     * API lấy thông tin chi tiết một từ vựng theo ID (phục vụ mở modal chỉnh sửa).
+     */
     @GetMapping("/{id}")
     @ResponseBody
     public ResponseEntity<?> getVocabularyDetail(@PathVariable("id") Long id) {
@@ -298,6 +326,10 @@ public class ContentVocabularyController {
         return ResponseEntity.ok(dto);
     }
 
+    /**
+     * API thêm mới hoặc cập nhật từ vựng: kiểm tra hợp lệ, tự sinh phiên âm Latin nếu trống,
+     * chặn trùng lặp từ tiếng Hàn + cùng từ loại, và ghi Audit Log.
+     */
     @PostMapping("/save")
     @ResponseBody
     public ResponseEntity<?> saveVocabulary(@RequestBody VocabularyDTO dto, HttpSession session) {
@@ -377,6 +409,9 @@ public class ContentVocabularyController {
         ));
     }
 
+    /**
+     * API bật/tắt trạng thái hiển thị (ACTIVE <-> INACTIVE) cho một từ vựng theo ID.
+     */
     @PostMapping("/toggle/{id}")
     @ResponseBody
     public ResponseEntity<?> toggleWord(@PathVariable("id") Long id, HttpSession session) {
@@ -403,6 +438,9 @@ public class ContentVocabularyController {
         ));
     }
 
+    /**
+     * API bật/tắt hàng loạt theo cả cấp độ TOPIK (LEVEL) hoặc theo chủ đề (TOPIC).
+     */
     @PostMapping("/bulk-toggle")
     @ResponseBody
     public ResponseEntity<?> bulkToggle(@RequestBody BulkToggleRequest request, HttpSession session) {
@@ -471,6 +509,9 @@ public class ContentVocabularyController {
         }
     }
 
+    /**
+     * API nhập hàng loạt từ vựng (từ file Excel), tự động lọc trùng và trả về số lượng đã thêm/bỏ qua.
+     */
     @PostMapping("/bulk-create")
     @ResponseBody
     public ResponseEntity<?> bulkCreate(@RequestBody List<VocabularyDTO> list, HttpSession session) {
@@ -514,6 +555,9 @@ public class ContentVocabularyController {
         ));
     }
 
+    /**
+     * API kiểm tra nhanh một từ tiếng Hàn + loại từ đã tồn tại trong hệ thống hay chưa (khi nhập tay).
+     */
     @GetMapping("/check-duplicate")
     @ResponseBody
     public ResponseEntity<?> checkDuplicate(
@@ -531,6 +575,9 @@ public class ContentVocabularyController {
         return ResponseEntity.ok(Map.of("duplicate", false));
     }
 
+    /**
+     * API kiểm tra trùng lặp theo lô (batch) cho danh sách từ đọc từ file Excel trước khi import.
+     */
     @PostMapping("/check-duplicates-batch")
     @ResponseBody
     public ResponseEntity<?> checkDuplicatesBatch(@RequestBody List<Map<String, Object>> items) {
@@ -561,6 +608,9 @@ public class ContentVocabularyController {
         return ResponseEntity.ok(Map.of("duplicates", duplicates));
     }
 
+    /**
+     * Mở kết nối SSE (Server-Sent Events) để đồng bộ thay đổi từ vựng thời gian thực cho trang quản trị.
+     */
     @GetMapping(value = "/sync/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @ResponseBody
     public SseEmitter syncStream() {

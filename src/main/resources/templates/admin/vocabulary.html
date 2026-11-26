@@ -1858,38 +1858,11 @@
                 console.log("Audio URL fallback to TTS:", e);
             }
         }
-        // 2. Fallback: Web Speech API → Backend TTS
-        playSpeech(word);
+        // 2. Trực tiếp gọi server proxy TTS /api/tts (chuẩn và ổn định trên mọi browser)
+        playOnlineKoreanTTS(word);
     }
 
     function playSpeech(word) {
-        if ('speechSynthesis' in window) {
-            try {
-                const utterance = new SpeechSynthesisUtterance(word);
-                utterance.lang = 'ko-KR';
-                utterance.rate = 0.9;
-
-                const voices = window.speechSynthesis.getVoices();
-                const koVoice = voices.find(v => v.lang && (v.lang.startsWith('ko') || v.lang.includes('KR')));
-                if (koVoice) utterance.voice = koVoice;
-
-                let hasSpoken = false;
-                utterance.onstart = function() { hasSpoken = true; };
-                utterance.onerror = function() { playOnlineKoreanTTS(word); };
-
-                if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-                window.speechSynthesis.speak(utterance);
-
-                setTimeout(() => {
-                    if (!hasSpoken && !window.speechSynthesis.speaking) {
-                        playOnlineKoreanTTS(word);
-                    }
-                }, 600);
-                return;
-            } catch (e) {
-                console.warn('[TTS] Web Speech failed:', e);
-            }
-        }
         playOnlineKoreanTTS(word);
     }
 
@@ -1901,13 +1874,21 @@
             const url = '/api/tts?text=' + encodeURIComponent(word);
             const audio = new Audio(url);
             currentAdminAudio = audio;
-            audio.play().catch(e => {
-                console.warn('[TTS] Backend audio failed, trying direct:', e);
-                const directUrl = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=ko&client=tw-ob&q=' + encodeURIComponent(word);
-                const fallback = new Audio(directUrl);
-                currentAdminAudio = fallback;
-                fallback.play().catch(() => {});
-            });
+            const playPromise = audio.play();
+            if (playPromise && typeof playPromise.then === 'function') {
+                playPromise.catch(e => {
+                    console.warn('[TTS] Backend audio failed, trying fallback to Web Speech:', e);
+                    if ('speechSynthesis' in window) {
+                        try {
+                            window.speechSynthesis.cancel();
+                            const u = new SpeechSynthesisUtterance(word);
+                            u.lang = 'ko-KR';
+                            u.rate = 0.85;
+                            window.speechSynthesis.speak(u);
+                        } catch(err) {}
+                    }
+                });
+            }
         } catch (err) {
             console.error('[TTS] Error creating Audio:', err);
         }

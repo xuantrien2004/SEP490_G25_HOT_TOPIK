@@ -421,6 +421,9 @@ public class VocabularyService {
     }
 
     @Transactional
+    /**
+     * Tạo chủ đề từ vựng mới theo cấp TOPIK (chặn trùng tên trong cùng cấp) và lưu vào CSDL.
+     */
     public TopicDTO createTopic(int level, String name, String description) {
         String cleanName = name.trim();
         String key = topicKey(level, cleanName);
@@ -448,6 +451,9 @@ public class VocabularyService {
         return t;
     }
 
+    /**
+     * Đổi tên / cập nhật mô tả chủ đề và tự động đồng bộ tên chủ đề mới cho toàn bộ từ vựng thuộc chủ đề đó.
+     */
     @Transactional
     public TopicDTO updateTopic(int level, String oldName, String newName, String description) {
         String oldKey = topicKey(level, oldName);
@@ -493,6 +499,10 @@ public class VocabularyService {
         return existing;
     }
 
+    /**
+     * Xóa chủ đề và xóa dây chuyền (cascade) toàn bộ từ vựng nằm trong chủ đề đó.
+     * @return Số lượng từ vựng đã bị xóa kèm theo.
+     */
     @Transactional
     public int deleteTopic(int level, String name) {
         String key = topicKey(level, name);
@@ -702,6 +712,10 @@ public class VocabularyService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Tìm kiếm từ vựng đa ngôn ngữ (tiếng Hàn, phiên âm Latin, nghĩa tiếng Việt)
+     * kết hợp lọc theo cấp độ TOPIK, chủ đề, từ loại và trạng thái, sắp xếp giảm dần theo ID.
+     */
     public List<VocabularyDTO> searchAndFilter(String query, Integer level, String topic, String wordType, String status) {
         return vocabMap.values().stream()
                 .filter(v -> {
@@ -885,6 +899,9 @@ public class VocabularyService {
         }
     }
 
+    /**
+     * Bật/tắt trạng thái hiển thị (ACTIVE <-> INACTIVE) của một từ vựng theo ID và phát sự kiện đồng bộ.
+     */
     @Transactional
     public boolean toggleWordStatus(Long id) {
         VocabularyDTO v = vocabMap.get(id);
@@ -921,6 +938,9 @@ public class VocabularyService {
         return count;
     }
 
+    /**
+     * Bật/tắt trạng thái hiển thị của chủ đề và toàn bộ từ vựng thuộc chủ đề đó trong cấp TOPIK chỉ định.
+     */
     @Transactional
     public int toggleTopicStatus(int level, String topic, boolean active) {
         if (topic == null || topic.trim().isEmpty()) return 0;
@@ -971,6 +991,9 @@ public class VocabularyService {
         return count;
     }
 
+    /**
+     * Bật/tắt hàng loạt trạng thái hiển thị của cả một cấp độ TOPIK (1–6) và tất cả chủ đề/từ vựng bên trong.
+     */
     @Transactional
     public int toggleTopikLevelStatus(int level, boolean active) {
         String newStatus = active ? "ACTIVE" : "INACTIVE";
@@ -1122,6 +1145,10 @@ public class VocabularyService {
     }
 
     @Transactional
+    /**
+     * Nhập hàng loạt từ vựng (từ Excel), tự động bỏ qua từ trùng trong batch hoặc đã ACTIVE trong hệ thống.
+     * @return Số lượng từ vựng mới đã được thêm thành công.
+     */
     public int bulkCreate(List<VocabularyDTO> list) {
         return bulkCreateEntities(list).size();
     }

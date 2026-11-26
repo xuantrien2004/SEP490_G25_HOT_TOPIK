@@ -25,6 +25,9 @@ public class VocabularySyncService {
 
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
+    /**
+     * Khởi tạo một kết nối SSE mới cho client (timeout 5 phút) và gửi sự kiện chào mừng ban đầu.
+     */
     public SseEmitter createEmitter() {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
 
@@ -83,6 +86,9 @@ public class VocabularySyncService {
         }
     }
 
+    /**
+     * Trả về số lượng client đang kết nối lắng nghe đồng bộ SSE.
+     */
     public int getActiveClientCount() {
         return emitters.size();
     }

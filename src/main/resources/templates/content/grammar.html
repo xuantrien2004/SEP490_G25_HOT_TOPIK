@@ -637,22 +637,36 @@
     </div>
 </div>
 
-<!-- MODAL: CẢNH BÁO XÓA DẠNG -->
+<!-- MODAL: CẢNH BÁO XÓA DẠNG / NHÓM NGỮ PHÁP -->
 <div class="modal fade" id="modalDeleteGrammarType" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 20px; border: 2px solid #CF1322; padding: 8px;">
             <div class="modal-header" style="border-bottom: 2px solid var(--ssak-border); padding: 16px 20px;">
-                <h5 class="modal-title" style="font-family: var(--font-heading); font-weight: 800; color: #CF1322; margin: 0;">
+                <h5 class="modal-title" id="modalDeleteGrammarTypeTitle" style="font-family: var(--font-heading); font-weight: 800; color: #CF1322; margin: 0;">
                     ⚠️ Cảnh báo Xóa Dạng Ngữ pháp!
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
-                <p style="margin: 0; font-size: 14px;">Bạn đang chuẩn bị xóa nhóm: <strong id="deleteGrammarTypeNameDisplay" style="color: #1F6B56;"></strong>.</p>
+                <!-- Trạng thái 1: Nhóm có ngữ pháp con -> Chặn xóa -->
+                <div id="deleteBlockedNotice" class="d-none">
+                    <div class="alert alert-danger mb-0" style="border-radius: 12px; font-size: 14.5px; font-weight: 600; line-height: 1.6;">
+                        <i class="bi bi-x-circle-fill me-2 fs-5"></i>
+                        Không thể xóa nhóm này vì đang chứa <strong id="deleteBlockedCountText">0</strong> ngữ pháp con. Vui lòng di chuyển hoặc xóa ngữ pháp con trước!
+                    </div>
+                </div>
+
+                <!-- Trạng thái 2: Nhóm trống không có gì -> Hỏi xác nhận -->
+                <div id="deleteConfirmNotice">
+                    <p style="margin: 0; font-size: 15px; color: #24363D;">
+                        Bạn có chắc chắn muốn xóa nhóm <strong id="deleteGrammarTypeNameDisplay" style="color: #1F6B56;"></strong> không?
+                    </p>
+                    <small class="text-muted d-block mt-2">Hành động này sẽ gỡ bỏ nhóm ngữ pháp khỏi danh mục và không thể hoàn tác.</small>
+                </div>
             </div>
             <div class="modal-footer" style="border-top: 2px solid var(--ssak-border); padding: 14px 20px;">
-                <button type="button" class="btn-ssak-outline" data-bs-dismiss="modal">Hủy bỏ</button>
-                <button type="button" class="btn-ssak-primary" style="background: #CF1322; border-color: #CF1322; height: 40px; padding: 0 20px; font-weight: 800;" onclick="confirmDeleteGrammarType()">Xác nhận Xóa</button>
+                <button type="button" class="btn-ssak-outline" data-bs-dismiss="modal" id="btnCancelDeleteType">Hủy bỏ</button>
+                <button type="button" class="btn-ssak-primary" id="btnConfirmDeleteTypeAction" style="background: #CF1322; border-color: #CF1322; height: 40px; padding: 0 20px; font-weight: 800;" onclick="confirmDeleteGrammarType()">Xác nhận Xóa</button>
             </div>
         </div>
     </div>
@@ -924,7 +938,38 @@
     let deleteTargetTypeId = null;
     function openDeleteTypeModal(id, name, count) {
         deleteTargetTypeId = parseInt(id);
-        document.getElementById('deleteGrammarTypeNameDisplay').innerText = name;
+        const childCount = parseInt(count) || 0;
+        
+        const blockedNotice = document.getElementById('deleteBlockedNotice');
+        const confirmNotice = document.getElementById('deleteConfirmNotice');
+        const btnConfirm = document.getElementById('btnConfirmDeleteTypeAction');
+        const modalTitle = document.getElementById('modalDeleteGrammarTypeTitle');
+        const btnCancel = document.getElementById('btnCancelDeleteType');
+
+        if (childCount > 0) {
+            // Nhóm đang chứa ngữ pháp con: Chặn hành động xóa
+            blockedNotice.classList.remove('d-none');
+            confirmNotice.classList.add('d-none');
+            document.getElementById('deleteBlockedCountText').innerText = childCount;
+            if (btnConfirm) btnConfirm.classList.add('d-none'); // Ẩn nút xác nhận xóa
+            if (modalTitle) modalTitle.innerText = '🚫 Không thể xóa nhóm ngữ pháp';
+            if (btnCancel) {
+                btnCancel.innerText = 'Đã hiểu & Đóng';
+                btnCancel.className = 'btn-ssak-primary';
+            }
+        } else {
+            // Nhóm trống: Chỉ hỏi xác nhận
+            blockedNotice.classList.add('d-none');
+            confirmNotice.classList.remove('d-none');
+            document.getElementById('deleteGrammarTypeNameDisplay').innerText = name;
+            if (btnConfirm) btnConfirm.classList.remove('d-none');
+            if (modalTitle) modalTitle.innerText = '⚠️ Xác nhận xóa nhóm ngữ pháp';
+            if (btnCancel) {
+                btnCancel.innerText = 'Hủy bỏ';
+                btnCancel.className = 'btn-ssak-outline';
+            }
+        }
+
         new bootstrap.Modal(document.getElementById('modalDeleteGrammarType')).show();
     }
 

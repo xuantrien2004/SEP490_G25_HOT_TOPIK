@@ -34,7 +34,8 @@ public class UserSeeder implements ApplicationRunner {
             new SeedUser("content@hottopik.com", "content@123", "Lê Thu Hà", "CONTENT_MANAGER", (short) 6, (short) 5),
             new SeedUser("operation@hottopik.com", "operation@123", "Trần Quốc Tuấn", "OPERATION_MANAGER", (short) 4, (short) 3),
             new SeedUser("teacher@hottopik.com", "teacher@123", "Cô Mai (Giáo viên)", "MENTOR", (short) 6, (short) 6),
-            new SeedUser("learner@hottopik.com", "user@123", "Phạm Minh Anh", "STUDENT", (short) 1, (short) 2)
+            new SeedUser("learner@hottopik.com", "user@123", "Phạm Minh Anh", "STUDENT", (short) 1, (short) 2),
+            new SeedUser("viplearner@hottopik.com", "vip@123", "Nguyễn Hoàng Nam", "STUDENT", (short) 3, (short) 5)
     );
 
     public UserSeeder(UserRepository userRepository) {
@@ -45,7 +46,16 @@ public class UserSeeder implements ApplicationRunner {
     @Transactional
     public void run(ApplicationArguments args) {
         for (SeedUser seed : ACCOUNTS) {
-            if (userRepository.existsByEmail(seed.email())) continue;
+            var existingOpt = userRepository.findByEmail(seed.email());
+            if (existingOpt.isPresent()) {
+                User u = existingOpt.get();
+                if (u.getLockedUntil() != null || (u.getFailedLoginCount() != null && u.getFailedLoginCount() > 0)) {
+                    u.setLockedUntil(null);
+                    u.setFailedLoginCount((short) 0);
+                    userRepository.save(u);
+                }
+                continue;
+            }
             User user = User.builder()
                     .email(seed.email())
                     .passwordHash(passwordEncoder.encode(seed.rawPassword()))
