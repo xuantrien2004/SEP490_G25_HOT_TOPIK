@@ -4,6 +4,9 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * DTO đại diện cho một yêu cầu chờ Admin phê duyệt (hoàn tiền, đổi giá gói, cấp bù VIP, khóa vĩnh viễn, xuất bản đề).
+ */
 public class ApprovalRequestDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 

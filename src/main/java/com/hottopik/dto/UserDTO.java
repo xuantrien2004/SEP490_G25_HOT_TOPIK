@@ -3,6 +3,9 @@ package com.hottopik.dto;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+/**
+ * DTO lưu thông tin tài khoản người dùng trong phiên đăng nhập (HttpSession) và các màn hình quản trị/vận hành.
+ */
 public class UserDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -14,6 +17,9 @@ public class UserDTO implements Serializable {
     public void setStreakDays(Integer value) { setStudiedDays(value); }
     public java.util.List<String> getPermissions() { return permissions; }
     public void setPermissions(java.util.List<String> value) { permissions = value; }
+    /**
+     * Alias kiểm tra tài khoản có phải vai trò Giáo viên (Mentor) hay không.
+     */
     public boolean isTeacher() { return isMentor(); }
 
     private Long id;
@@ -98,6 +104,9 @@ public class UserDTO implements Serializable {
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
 
+    /**
+     * Trả về mã vai trò chuẩn hóa kèm tiền tố ROLE_ (tự động phân biệt ROLE_VIP / ROLE_USER cho STUDENT).
+     */
     public String getRole() {
         if (role == null) return "ROLE_USER";
         if (role.startsWith("ROLE_")) return role;
@@ -111,6 +120,9 @@ public class UserDTO implements Serializable {
         }
     }
 
+    /**
+     * Trả về mã vai trò gốc lưu trong DB (không có tiền tố ROLE_).
+     */
     public String getRawRole() {
         if (role == null) return "STUDENT";
         if (role.startsWith("ROLE_")) {
@@ -156,22 +168,37 @@ public class UserDTO implements Serializable {
         this.fullName = displayName;
     }
 
+    /**
+     * Kiểm tra tài khoản có quyền Quản trị viên (Admin).
+     */
     public boolean isAdmin() {
         return "ADMIN".equalsIgnoreCase(role) || "ROLE_ADMIN".equalsIgnoreCase(role);
     }
 
+    /**
+     * Kiểm tra tài khoản có quyền Giảng viên chấm bài (Mentor/Teacher).
+     */
     public boolean isMentor() {
         return "MENTOR".equalsIgnoreCase(role) || "ROLE_TEACHER".equalsIgnoreCase(role);
     }
 
+    /**
+     * Kiểm tra tài khoản có quyền Quản lý nội dung (Content Manager).
+     */
     public boolean isContentManager() {
         return "CONTENT_MANAGER".equalsIgnoreCase(role) || "ROLE_CONTENT_MANAGER".equalsIgnoreCase(role);
     }
 
+    /**
+     * Kiểm tra tài khoản có quyền Quản lý vận hành (Operation Manager).
+     */
     public boolean isOperationManager() {
         return "OPERATION_MANAGER".equalsIgnoreCase(role) || "ROLE_OPERATION_MANAGER".equalsIgnoreCase(role);
     }
 
+    /**
+     * Kiểm tra tài khoản có phải Học viên (thường hoặc VIP).
+     */
     public boolean isStudent() {
         return "STUDENT".equalsIgnoreCase(role) || "ROLE_USER".equalsIgnoreCase(role) || "ROLE_VIP".equalsIgnoreCase(role);
     }
@@ -182,10 +209,16 @@ public class UserDTO implements Serializable {
     public String getLockReason() { return lockReason; }
     public void setLockReason(String lockReason) { this.lockReason = lockReason; }
 
+    /**
+     * Kiểm tra tài khoản có đang bị khóa vĩnh viễn hay không.
+     */
     public boolean isPermanentlyLocked() {
         return "LOCKED".equalsIgnoreCase(status) && (lockedUntil == null || lockedUntil.isAfter(LocalDateTime.now().plusYears(1)));
     }
 
+    /**
+     * Định dạng thời hạn khóa tài khoản để hiển thị lên giao diện ("Vĩnh viễn" hoặc dd/MM/yyyy HH:mm).
+     */
     public String getFormattedLockedUntil() {
         if (lockedUntil == null) return null;
         if (isPermanentlyLocked()) return "Vĩnh viễn";
@@ -198,6 +231,9 @@ public class UserDTO implements Serializable {
     public LocalDateTime getVipExpireAt() { return vipExpireAt; }
     public void setVipExpireAt(LocalDateTime vipExpireAt) { this.vipExpireAt = vipExpireAt; }
 
+    /**
+     * Định dạng ngày hết hạn gói VIP để hiển thị ("Trọn đời", "Chưa kích hoạt" hoặc dd/MM/yyyy HH:mm).
+     */
     public String getFormattedVipExpireAt() {
         if (vipExpireAt == null) {
             return isVip ? "Trọn đời" : "Chưa kích hoạt";

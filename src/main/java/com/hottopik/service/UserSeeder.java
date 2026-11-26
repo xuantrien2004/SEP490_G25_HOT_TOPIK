@@ -41,6 +41,9 @@ public class UserSeeder implements ApplicationRunner {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Tự động khởi tạo các tài khoản mẫu (Admin, Content, Operation, Mentor, Learner) vào DB nếu email chưa tồn tại.
+     */
     @Override
     @Transactional
     public void run(ApplicationArguments args) {

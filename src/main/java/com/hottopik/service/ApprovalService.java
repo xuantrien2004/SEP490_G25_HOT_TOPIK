@@ -18,6 +18,9 @@ public class ApprovalService {
     private final AtomicLong idGenerator = new AtomicLong(100);
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
+    /**
+     * Khởi tạo các yêu cầu phê duyệt mẫu ban đầu.
+     */
     @PostConstruct
     public void init() {
         // Seed matching SEP490.sql
@@ -55,12 +58,18 @@ public class ApprovalService {
         ));
     }
 
+    /**
+     * Lấy toàn bộ danh sách yêu cầu phê duyệt, sắp xếp mới nhất trước.
+     */
     public List<ApprovalRequestDTO> getAllRequests() {
         return requests.values().stream()
                 .sorted(Comparator.comparing(ApprovalRequestDTO::getId).reversed())
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Lấy danh sách các yêu cầu đang ở trạng thái chờ duyệt (PENDING).
+     */
     public List<ApprovalRequestDTO> getPendingRequests() {
         return requests.values().stream()
                 .filter(r -> "PENDING".equalsIgnoreCase(r.getStatus()))
@@ -68,6 +77,9 @@ public class ApprovalService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Lọc danh sách yêu cầu phê duyệt theo vai trò người gửi.
+     */
     public List<ApprovalRequestDTO> getRequestsByRole(String role) {
         return requests.values().stream()
                 .filter(r -> r.getRequesterRole().equalsIgnoreCase(role))
@@ -75,11 +87,17 @@ public class ApprovalService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Gửi một yêu cầu phê duyệt chung lên Admin.
+     */
     public ApprovalRequestDTO submitRequest(String requesterName, String requesterRole,
                                             String requestType, String title, String description) {
         return submitRequest(requesterName, requesterRole, requestType, title, description, null);
     }
 
+    /**
+     * Gửi yêu cầu phê duyệt gắn với một đối tượng mục tiêu (targetId).
+     */
     public ApprovalRequestDTO submitRequest(String requesterName, String requesterRole,
                                             String requestType, String title, String description, Long targetId) {
         long id = idGenerator.incrementAndGet();
@@ -98,6 +116,9 @@ public class ApprovalService {
         return req;
     }
 
+    /**
+     * Gửi yêu cầu phê duyệt có kiểm tra trùng lặp theo đối tượng và loại yêu cầu đang PENDING.
+     */
     public ApprovalRequestDTO submitTargetedRequest(String requesterName, String requesterRole,
                                                     String requestType, String title, String description,
                                                     String targetType, Long targetId, String payload) {
@@ -114,15 +135,24 @@ public class ApprovalService {
         return req;
     }
 
+    /**
+     * Tìm yêu cầu phê duyệt theo ID.
+     */
     public Optional<ApprovalRequestDTO> findById(Long id) {
         return Optional.ofNullable(requests.get(id));
     }
 
+    /**
+     * Lấy chi tiết yêu cầu phê duyệt theo ID (trả về empty nếu id null).
+     */
     public Optional<ApprovalRequestDTO> getRequestById(Long id) {
         if (id == null) return Optional.empty();
         return Optional.ofNullable(requests.get(id));
     }
 
+    /**
+     * Kiểm tra học viên có đang có yêu cầu khóa vĩnh viễn chờ duyệt hay không.
+     */
     public boolean hasPendingPermanentLockRequest(Long userId) {
         if (userId == null) return false;
         return requests.values().stream()
@@ -131,6 +161,9 @@ public class ApprovalService {
                         && userId.equals(r.getTargetId()));
     }
 
+    /**
+     * Phê duyệt hoặc từ chối yêu cầu (không kèm tên người quyết định).
+     */
     public boolean decideRequest(Long id, boolean approve, String note) {
         return decideRequest(id, approve, note, null);
     }

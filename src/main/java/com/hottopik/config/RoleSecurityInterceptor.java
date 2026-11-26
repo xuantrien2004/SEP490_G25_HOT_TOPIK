@@ -11,6 +11,9 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Component
 public class RoleSecurityInterceptor implements HandlerInterceptor {
 
+    /**
+     * Kiểm tra phiên đăng nhập và phân quyền theo tiền tố URL (/admin, /content, /operation, /teacher) trước khi vào Controller.
+     */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String uri = request.getRequestURI();

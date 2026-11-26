@@ -2,6 +2,9 @@ package com.hottopik.dto;
 
 import java.io.Serializable;
 
+/**
+ * DTO thông báo hệ thống do Operation Manager soạn và phát tới nhóm đối tượng hoặc học viên đích danh.
+ */
 public class AnnouncementDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -40,6 +43,9 @@ public class AnnouncementDTO implements Serializable {
         this.sentAt = sentAt;
     }
 
+    /**
+     * Chuyển đổi mã nhóm người nhận (ALL, VIP, FREE, TOPIK_I, TOPIK_II, SPECIFIC) sang nhãn tiếng Việt.
+     */
     public static String parseAudienceLabel(String code) {
         if (code == null) return "Tất cả học viên";
         switch (code.toUpperCase()) {

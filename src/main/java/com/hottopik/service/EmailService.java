@@ -61,6 +61,9 @@ public class EmailService {
         sendHtmlEmail(toEmail, subject, htmlContent, otpCode, "QUÊN MẬT KHẨU");
     }
 
+    /**
+     * In mã OTP ra log console để kiểm thử nhanh và gửi email HTML qua JavaMailSender.
+     */
     private void sendHtmlEmail(String toEmail, String subject, String htmlContent, String otpCode, String purpose) {
         // Luôn in mã OTP to rõ ràng ra Terminal để dev/test tức thì
         log.info("========================================================================");

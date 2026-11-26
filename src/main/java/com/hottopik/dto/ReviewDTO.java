@@ -2,6 +2,9 @@ package com.hottopik.dto;
 
 import java.io.Serializable;
 
+/**
+ * DTO thông tin đánh giá của học viên phục vụ kiểm duyệt hiển thị trên cổng Operation Manager.
+ */
 public class ReviewDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 

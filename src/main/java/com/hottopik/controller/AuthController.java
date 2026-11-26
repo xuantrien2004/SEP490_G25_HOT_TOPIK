@@ -39,6 +39,9 @@ public class AuthController {
 
 
     // Đăng nhập và đăng ký
+    /**
+     * Hiển thị trang đăng nhập / đăng ký kèm các thông báo trạng thái từ query param.
+     */
     @GetMapping("/login")
     public String login(@RequestParam(value = "tab", defaultValue = "login") String tab,
                         @RequestParam(value = "error", required = false) String error,
@@ -75,6 +78,9 @@ public class AuthController {
     }
     // phân quyền 
     // ================= 2. XỬ LÝ ĐĂNG NHẬP PHÂN QUYỀN =================
+    /**
+     * Xác thực đăng nhập bằng Email/Mật khẩu, kiểm tra trạng thái OTP/khóa tài khoản, lưu session và điều hướng theo role.
+     */
     @PostMapping("/login")
     public String handleLogin(@RequestParam(value = "email", required = false) String email,
                               @RequestParam(value = "password", required = false) String password,
@@ -130,6 +136,9 @@ public class AuthController {
     }
 
     // ================= 3. ĐIỀU HƯỚNG TAB ĐĂNG KÝ =================
+    /**
+     * Lấy đường dẫn RETURN_AFTER_LOGIN hợp lệ trong session để đưa Content Manager quay lại trang trước đó.
+     */
     private String redirectContent(HttpSession session) {
         Object back = session.getAttribute("RETURN_AFTER_LOGIN");
         session.removeAttribute("RETURN_AFTER_LOGIN");
@@ -139,6 +148,9 @@ public class AuthController {
         return "redirect:/content";
     }
 
+    /**
+     * Hiển thị trang đăng nhập ở tab đăng ký tài khoản mới.
+     */
     @GetMapping("/register")
     public String register(Model model) {
         model.addAttribute("pageTitle", "Đăng ký tài khoản · HOT TOPIK");
@@ -147,6 +159,9 @@ public class AuthController {
     }
 
     // ================= 4. XỬ LÝ ĐĂNG KÝ & GỬI MÃ OTP THẬT =================
+    /**
+     * Kiểm tra dữ liệu đăng ký học viên mới, tạo tài khoản chờ xác thực và gửi mã OTP qua email.
+     */
     @PostMapping("/register")
     public String handleRegister(@RequestParam("displayName") String displayName,
                                  @RequestParam("email") String email,
@@ -179,6 +194,9 @@ public class AuthController {
     }
 
     // ================= 5. MÀN HÌNH & XỬ LÝ XÁC THỰC OTP ĐĂNG KÝ =================
+    /**
+     * Hiển thị màn hình nhập mã OTP 6 số để kích hoạt tài khoản.
+     */
     @GetMapping("/verify-otp")
     public String verifyOtpPage(@RequestParam("email") String email, Model model) {
         model.addAttribute("pageTitle", "Nhập mã OTP kích hoạt tài khoản · HOT TOPIK");
@@ -186,6 +204,9 @@ public class AuthController {
         return "auth/verify-otp";
     }
 
+    /**
+     * Xác thực mã OTP đăng ký; nếu hợp lệ thì kích hoạt tài khoản, lưu session và chuyển sang /onboarding.
+     */
     @PostMapping("/verify-otp")
     public String handleVerifyOtp(@RequestParam("email") String email,
                                   @RequestParam("otpCode") String otpCode,
@@ -206,6 +227,9 @@ public class AuthController {
         }
     }
 
+    /**
+     * Gửi lại mã OTP kích hoạt tài khoản mới đến email người dùng.
+     */
     @GetMapping("/resend-verify-otp")
     public String resendVerifyOtp(@RequestParam("email") String email, RedirectAttributes redirectAttributes) {
         userService.resendRegistrationOtp(email);
@@ -214,6 +238,9 @@ public class AuthController {
     }
 
     // ================= 6. LUỒNG QUÊN MẬT KHẨU BẰNG MÃ OTP THẬT =================
+    /**
+     * Xử lý yêu cầu quên mật khẩu: gửi mã OTP khôi phục tới email và chuyển sang trang đặt lại mật khẩu.
+     */
     @PostMapping("/forgot-password")
     public String handleForgotPassword(@RequestParam("email") String email, RedirectAttributes redirectAttributes) {
         if (email == null || email.trim().isEmpty()) {
@@ -226,6 +253,9 @@ public class AuthController {
         return "redirect:/reset-password-otp?email=" + URLEncoder.encode(email.trim().toLowerCase(), StandardCharsets.UTF_8);
     }
 
+    /**
+     * Hiển thị màn hình nhập mã OTP và mật khẩu mới để đặt lại mật khẩu.
+     */
     @GetMapping("/reset-password-otp")
     public String resetPasswordOtpPage(@RequestParam("email") String email, Model model) {
         model.addAttribute("pageTitle", "Đặt lại mật khẩu bằng mã OTP · HOT TOPIK");
@@ -233,6 +263,9 @@ public class AuthController {
         return "auth/reset-password-otp";
     }
 
+    /**
+     * Kiểm tra mật khẩu mới và xác thực OTP để cập nhật lại mật khẩu cho tài khoản.
+     */
     @PostMapping("/reset-password-otp")
     public String handleResetPasswordOtp(@RequestParam("email") String email,
                                          @RequestParam("otpCode") String otpCode,
@@ -263,6 +296,9 @@ public class AuthController {
         }
     }
 
+    /**
+     * Gửi lại mã OTP khôi phục mật khẩu đến email người dùng.
+     */
     @GetMapping("/resend-reset-otp")
     public String resendResetOtp(@RequestParam("email") String email, RedirectAttributes redirectAttributes) {
         userService.sendPasswordResetOtp(email);
@@ -271,6 +307,9 @@ public class AuthController {
     }
 
     // ================= 7. HỖ TRỢ LINK XÁC THỰC EMAIL CŨ =================
+    /**
+     * Hỗ trợ kích hoạt tài khoản thông qua liên kết chứa token xác thực email cũ.
+     */
     @GetMapping("/verify-email")
     public String verifyEmail(@RequestParam(value = "token", required = false) String token,
                               RedirectAttributes redirectAttributes) {
@@ -282,6 +321,9 @@ public class AuthController {
     }
 
     // ================= 8. ĐĂNG XUẤT =================
+    /**
+     * Xóa thông tin người dùng khỏi session, hủy phiên làm việc và chuyển hướng về trang đăng nhập.
+     */
     @GetMapping("/logout")
     public String logout(HttpSession session) {
         session.removeAttribute("LOGGED_IN_USER");

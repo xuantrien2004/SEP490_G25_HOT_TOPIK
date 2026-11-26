@@ -35,6 +35,9 @@ public class AdminController {
         this.operationService = operationService;
     }
 
+    /**
+     * Hiển thị trang tổng quan Cổng Quản trị viên (yêu cầu duyệt, nhân sự, audit log, Break-glass).
+     */
     @GetMapping
     public String adminDashboard(HttpSession session, Model model) {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
@@ -63,6 +66,9 @@ public class AdminController {
         return "admin/dashboard";
     }
 
+    /**
+     * Khóa tạm thời hoặc khóa vĩnh viễn tài khoản học viên và ghi nhận audit log.
+     */
     @PostMapping("/learners/lock")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> lockLearner(
@@ -132,6 +138,9 @@ public class AdminController {
         return ResponseEntity.ok(resp);
     }
 
+    /**
+     * Mở khóa tài khoản học viên đang bị khóa và ghi nhận audit log.
+     */
     @PostMapping("/learners/unlock")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> unlockLearner(
@@ -174,6 +183,9 @@ public class AdminController {
         return ResponseEntity.ok(resp);
     }
 
+    /**
+     * Đảo trạng thái khóa/mở khóa học viên (mặc định tạm khóa 7 ngày nếu đang hoạt động).
+     */
     @PostMapping("/learners/toggle-lock")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> toggleLearnerLock(
@@ -196,6 +208,9 @@ public class AdminController {
         }
     }
 
+    /**
+     * Phê duyệt hoặc từ chối yêu cầu (khóa vĩnh viễn, hoàn tiền, đổi giá gói, cấp bù VIP) và thực thi hành động tương ứng.
+     */
     @PostMapping("/approval/decide")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> decideApproval(
@@ -330,6 +345,9 @@ public class AdminController {
         return ResponseEntity.ok(resp);
     }
 
+    /**
+     * Khóa hoặc mở khóa tài khoản nhân sự nội bộ và ghi audit log.
+     */
     @PostMapping("/staff/toggle-lock")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> toggleStaffLock(
@@ -366,6 +384,9 @@ public class AdminController {
         return ResponseEntity.ok(resp);
     }
 
+    /**
+     * Kiểm tra dữ liệu đầu vào và tạo tài khoản nhân sự nội bộ mới (Content, Operation, Teacher, Admin).
+     */
     @PostMapping("/staff/create")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> createStaff(
@@ -421,6 +442,9 @@ public class AdminController {
         }
     }
 
+    /**
+     * Admin thực hiện hoàn tiền trực tiếp cho đơn hàng và ghi nhận audit log.
+     */
     @PostMapping("/orders/refund")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> refundOrder(
@@ -455,6 +479,9 @@ public class AdminController {
         return ResponseEntity.ok(resp);
     }
 
+    /**
+     * Admin cập nhật trực tiếp giá mới cho gói VIP.
+     */
     @PostMapping("/prices/update")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> updatePrice(
@@ -495,6 +522,9 @@ public class AdminController {
         return ResponseEntity.ok(resp);
     }
 
+    /**
+     * Admin cấp bù hoặc gia hạn trực tiếp số ngày VIP và Xu thưởng cho học viên.
+     */
     @PostMapping("/vip/compensate")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> compensateVip(
@@ -555,6 +585,9 @@ public class AdminController {
         return ResponseEntity.ok(resp);
     }
 
+    /**
+     * Cập nhật hạn mức chi tiêu hàng tháng và ngưỡng cảnh báo cho dịch vụ AI.
+     */
     @PostMapping("/ai-budget/update")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> updateAiBudget(
@@ -590,6 +623,9 @@ public class AdminController {
         return ResponseEntity.ok(resp);
     }
 
+    /**
+     * Bật hoặc tắt chế độ khẩn cấp Break-glass của hệ thống.
+     */
     @PostMapping("/break-glass/toggle")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> toggleBreakGlass(
@@ -615,6 +651,9 @@ public class AdminController {
     // ADMIN PROFILE ENDPOINTS
     // ==========================================
 
+    /**
+     * Hiển thị trang hồ sơ cá nhân của Admin kèm 8 nhật ký thao tác gần nhất.
+     */
     @GetMapping("/profile")
     public String adminProfile(HttpSession session, Model model) {
         UserDTO currentUser = AuthHelper.getLoggedInUser(session);
@@ -630,6 +669,9 @@ public class AdminController {
         return "admin/profile";
     }
 
+    /**
+     * Cập nhật thông tin hồ sơ cá nhân của Admin và đồng bộ lại session.
+     */
     @PostMapping("/profile/update")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> updateAdminProfile(
@@ -689,6 +731,9 @@ public class AdminController {
         }
     }
 
+    /**
+     * Xóa số điện thoại hoặc khôi phục ảnh đại diện mặc định trong hồ sơ Admin.
+     */
     @PostMapping("/profile/clear-field")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> clearAdminField(
@@ -723,6 +768,9 @@ public class AdminController {
         return ResponseEntity.badRequest().body(resp);
     }
 
+    /**
+     * Đổi mật khẩu tài khoản Admin hiện tại và ghi nhận audit log bảo mật.
+     */
     @PostMapping("/profile/change-password")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> changeAdminPassword(

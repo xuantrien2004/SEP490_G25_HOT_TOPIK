@@ -2,6 +2,9 @@ package com.hottopik.dto;
 
 import java.io.Serializable;
 
+/**
+ * DTO cấu hình bảng giá và trạng thái đề xuất điều chỉnh giá các gói VIP.
+ */
 public class PackagePriceDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 

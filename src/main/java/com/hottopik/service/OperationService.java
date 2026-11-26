@@ -38,6 +38,9 @@ public class OperationService {
     @Autowired(required = false)
     private ReviewRepository reviewRepository;
 
+    /**
+     * Khởi tạo dữ liệu mẫu ban đầu cho đơn hàng, bảng giá gói VIP, thông báo và lịch sử cấp bù.
+     */
     @PostConstruct
     public void init() {
         // Seed Orders matching SEP490.sql
@@ -59,22 +62,37 @@ public class OperationService {
         compensationHistory.add(new VipCompensationRecordDTO(2L, 9006L, "Nguyễn Hoàng Nam", "viplearner@hottopik.com", 30, 100, "Tri ân học viên VIP tích cực đạt mốc 100 giờ học", "Vũ Minh Quân", "Admin", "2026-10-07 10:00"));
     }
 
+    /**
+     * Lấy danh sách toàn bộ đơn hàng.
+     */
     public List<OrderDTO> getOrders() {
         return new ArrayList<>(orders.values());
     }
 
+    /**
+     * Tìm thông tin đơn hàng theo ID.
+     */
     public Optional<OrderDTO> getOrderById(Long id) {
         return Optional.ofNullable(orders.get(id));
     }
 
+    /**
+     * Lấy danh sách bảng giá các gói VIP hiện có.
+     */
     public List<PackagePriceDTO> getPackagePrices() {
         return new ArrayList<>(packagePrices.values());
     }
 
+    /**
+     * Tìm thông tin gói VIP theo ID.
+     */
     public Optional<PackagePriceDTO> getPackageById(Long id) {
         return Optional.ofNullable(packagePrices.get(id));
     }
 
+    /**
+     * Lấy danh sách đánh giá (Review) của học viên từ DB kèm tên người gửi và trạng thái duyệt.
+     */
     @Transactional(readOnly = true)
     public List<ReviewDTO> getReviews() {
         if (reviewRepository == null) return Collections.emptyList();
@@ -91,12 +109,18 @@ public class OperationService {
         }).collect(Collectors.toList());
     }
 
+    /**
+     * Lấy danh sách thông báo đã phát, sắp xếp mới nhất trước.
+     */
     public List<AnnouncementDTO> getAnnouncements() {
         List<AnnouncementDTO> list = new ArrayList<>(announcements.values());
         list.sort(Comparator.comparing(AnnouncementDTO::getId).reversed());
         return list;
     }
 
+    /**
+     * Lấy lịch sử cấp bù / gia hạn quyền lợi VIP, sắp xếp mới nhất trước.
+     */
     public List<VipCompensationRecordDTO> getCompensationHistory() {
         List<VipCompensationRecordDTO> list = new ArrayList<>(compensationHistory);
         list.sort(Comparator.comparing(VipCompensationRecordDTO::getId).reversed());
@@ -265,6 +289,9 @@ public class OperationService {
         return rec;
     }
 
+    /**
+     * Bật/tắt trạng thái phê duyệt hiển thị (APPROVED/PENDING) cho đánh giá của học viên.
+     */
     public boolean toggleReviewApproval(Long reviewId) {
         if (reviewRepository == null) return false;
         Optional<Review> review = reviewRepository.findById(reviewId);
@@ -307,6 +334,9 @@ public class OperationService {
         return ann;
     }
 
+    /**
+     * Phát thông báo tới toàn bộ hoặc nhóm người dùng (overload không chỉ định user cụ thể).
+     */
     public AnnouncementDTO sendAnnouncement(String title, String content, String audience, String authorName) {
         return sendAnnouncement(title, content, audience, null, null, authorName);
     }

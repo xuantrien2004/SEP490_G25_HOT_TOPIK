@@ -58,6 +58,9 @@ public class UserService {
         this.emailService = emailService;
     }
 
+    /**
+     * Nạp danh sách tài khoản mẫu vào RAM (dùng làm fallback khi chưa kết nối được DB).
+     */
     @PostConstruct
     public void initSeedAccounts() {
         // Tài khoản mẫu tương thích cả seed SEP490 cũ và HotTopik_2 mới
@@ -684,6 +687,9 @@ public class UserService {
         return false;
     }
 
+    /**
+     * Chuyển đổi Entity User sang UserDTO kèm tên hiển thị vai trò và trạng thái gói VIP.
+     */
     private UserDTO mapToDTO(User u) {
         String roleName;
         switch (u.getRole()) {
@@ -749,6 +755,9 @@ public class UserService {
         return dto;
     }
 
+    /**
+     * Lấy danh sách toàn bộ người dùng từ DB kết hợp bổ sung tài khoản mẫu in-memory nếu chưa có.
+     */
     public List<UserDTO> getAllUsers() {
         Map<String, UserDTO> merged = new LinkedHashMap<>();
         Set<Long> usedIds = new HashSet<>();
@@ -782,18 +791,27 @@ public class UserService {
         return new ArrayList<>(merged.values());
     }
 
+    /**
+     * Lọc danh sách tài khoản nhân sự nội bộ (Admin, Content Manager, Operation Manager, Mentor).
+     */
     public List<UserDTO> getStaffUsers() {
         return getAllUsers().stream()
                 .filter(u -> u.isAdmin() || u.isContentManager() || u.isOperationManager() || u.isMentor())
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Lọc danh sách tài khoản học viên (loại trừ các vai trò nhân sự nội bộ).
+     */
     public List<UserDTO> getLearners() {
         return getAllUsers().stream()
                 .filter(u -> !u.isAdmin() && !u.isContentManager() && !u.isOperationManager() && !u.isMentor())
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Tìm kiếm người dùng theo ID trong DB (fallback sang in-memory nếu không thấy).
+     */
     public Optional<UserDTO> findById(Long id) {
         if (id == null) return Optional.empty();
         try {
@@ -807,6 +825,9 @@ public class UserService {
         return Optional.ofNullable(users.get(id));
     }
 
+    /**
+     * Tìm kiếm người dùng theo email trong DB (fallback sang in-memory nếu không thấy).
+     */
     public Optional<UserDTO> findByEmail(String email) {
         if (email == null) return Optional.empty();
         String cleanEmail = email.trim().toLowerCase();
@@ -823,6 +844,9 @@ public class UserService {
                 .findFirst();
     }
 
+    /**
+     * Tạm khóa tài khoản người dùng trong số ngày chỉ định kèm lý do.
+     */
     @Transactional
     public boolean lockUserTemporarily(Long id, int days, String reason) {
         if (id == null) return false;
@@ -866,6 +890,9 @@ public class UserService {
         return found;
     }
 
+    /**
+     * Khóa vĩnh viễn tài khoản người dùng (+100 năm) kèm lý do.
+     */
     @Transactional
     public boolean lockUserPermanently(Long id, String reason) {
         if (id == null) return false;
@@ -908,6 +935,9 @@ public class UserService {
         return found;
     }
 
+    /**
+     * Mở khóa tài khoản người dùng, đưa trạng thái về ACTIVE và đặt lại số lần đăng nhập sai.
+     */
     @Transactional
     public boolean unlockUser(Long id) {
         if (id == null) return false;
@@ -949,6 +979,9 @@ public class UserService {
         return found;
     }
 
+    /**
+     * Đảo trạng thái khóa/mở khóa tài khoản (đang khóa -> mở khóa, đang hoạt động -> tạm khóa 7 ngày).
+     */
     @Transactional
     public boolean toggleUserLock(Long id) {
         if (id == null) return false;
@@ -1233,6 +1266,9 @@ public class UserService {
         return true;
     }
 
+    /**
+     * Chuẩn hóa chuỗi cấp độ TOPIK (ví dụ: TOPIK_1, Cấp 2, BEGINNER) sang giá trị số Short (0..6).
+     */
     private Short parseLevelToShort(String lvl, Short defaultVal) {
         if (lvl == null) return defaultVal;
         String clean = lvl.toUpperCase()
