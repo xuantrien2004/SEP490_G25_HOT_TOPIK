@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/billing.css}">
+<div class="bl-admin">
+    <aside th:replace="~{fragments/billing :: sidebar}"></aside>
+    <main class="bl-main">
+        <div class="bl-crumb"><a th:href="@{'/' + ${portal}}" th:text="${portal == 'admin' ? 'Admin' : 'Vận hành'}">Vận hành</a> › Giao dịch Sandbox</div>
+        <h1 class="bl-title">Quản lý giao dịch</h1>
+        <p class="bl-subtitle">Danh sách các lần thanh toán VNPay Sandbox. Không có thao tác sửa số tiền hay đánh dấu thành công thủ công.</p>
+        <div th:replace="~{fragments/billing :: flash}"></div>
+        <div th:replace="~{fragments/billing :: sandboxNotice}"></div>
+
+        <div class="bl-grid cols-5" style="margin-bottom:16px;">
+            <div class="bl-card bl-kpi"><span class="label">Tổng giao dịch</span><span class="value" th:text="${summary.total}">0</span></div>
+            <div class="bl-card bl-kpi"><span class="label">Thành công</span><span class="value" th:text="${summary.success}">0</span></div>
+            <div class="bl-card bl-kpi"><span class="label">Đang chờ</span><span class="value" th:text="${summary.pending}">0</span></div>
+            <div class="bl-card bl-kpi"><span class="label">Thất bại / hủy / hết hạn</span><span class="value" th:text="${summary.failed}">0</span></div>
+            <div class="bl-card bl-kpi"><span class="label">Cần đối soát</span><span class="value" th:text="${summary.review}">0</span></div>
+        </div>
+
+        <form method="get" class="bl-filter">
+            <div><label for="q">Từ khóa</label><input id="q" name="q" class="bl-input" th:value="${q}" placeholder="Mã đơn, mã VNPay, email, tên"></div>
+            <div><label for="status">Trạng thái</label>
+                <select id="status" name="status" class="bl-input">
+                    <option value="">Tất cả</option>
+                    <option th:each="s : ${paymentStatuses}" th:value="${s.name()}" th:text="${s.label}" th:selected="${s.name() == statusFilter}"></option>
+                </select></div>
+            <div><label for="planId">Gói học</label>
+                <select id="planId" name="planId" class="bl-input">
+                    <option value="">Tất cả</option>
+                    <option th:each="p : ${plans}" th:if="${p.premium}" th:value="${p.id}" th:text="${p.name}" th:selected="${p.id == planFilter}"></option>
+                </select></div>
+            <div><label for="from">Từ ngày</label><input id="from" name="from" type="date" class="bl-input" th:value="${fromFilter}"></div>
+            <div><label for="to">Đến ngày</label><input id="to" name="to" type="date" class="bl-input" th:value="${toFilter}"></div>
+            <button class="bl-btn primary" type="submit">Lọc</button>
+            <a class="bl-btn" th:href="@{'/' + ${portal} + '/transactions'}">Xóa lọc</a>
+        </form>
+
+        <div class="bl-card bl-table-wrap" style="padding:0;">
+            <div th:if="${transactions.empty}" class="bl-empty"><span class="icon">💳</span>Không có giao dịch phù hợp.</div>
+            <table class="bl-table" th:unless="${transactions.empty}">
+                <thead><tr><th>Mã đơn</th><th>Mã giao dịch VNPay</th><th>Người mua</th><th>Email</th><th>Gói học</th><th>Số tiền</th><th>Môi trường</th><th>Trạng thái</th><th>Ngày tạo</th><th>Ngày thanh toán</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="t : ${transactions.content}">
+                    <td><span th:text="${t.orderCode}">HT</span><div style="font-size:11.5px;color:var(--ssak-text-muted);" th:text="${t.txnRef}"></div></td>
+                    <td th:text="${t.transactionNo != null ? t.transactionNo : '—'}">—</td>
+                    <td th:text="${t.buyerName}">Tên</td>
+                    <td th:text="${t.buyerEmail}">email</td>
+                    <td th:text="${t.planName}">Gói</td>
+                    <td th:text="${t.amountText}">99.000đ</td>
+                    <td><span class="bl-sandbox-tag" th:text="${t.environment}">SANDBOX</span></td>
+                    <td><span class="bl-status" th:classappend="'st-' + ${t.status}" th:text="${t.statusLabel}">--</span></td>
+                    <td th:text="${t.createdAtText}">--</td>
+                    <td th:text="${t.paidAtText}">--</td>
+                    <td><a class="bl-btn sm" th:href="@{'/' + ${portal} + '/transactions/' + ${t.id}}">Chi tiết</a></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:replace="~{fragments/billing :: pager(${transactions})}"></div>
+    </main>
+</div>
+</body>
+</html>

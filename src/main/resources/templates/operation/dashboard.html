@@ -2,6 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/head :: head('Cổng Quản lý Vận hành (Operation Manager) · HOT TOPIK')}"></head>
 <body>
+<link rel="stylesheet" th:href="@{/css/billing.css}">
 <div style="min-height: 100vh; background: #F4F3EF; font-family: var(--font-body); color: var(--ssak-text-main); display: flex;">
     
     <!-- ==================== LEFT SIDEBAR (THANH TÁC VỤ BÊN TRÁI) ==================== -->
@@ -102,6 +103,23 @@
                 <span style="font-size: 17px;">📜</span>
                 <span style="flex-grow: 1;">Nhật ký Vận hành</span>
             </a>
+
+            <!-- Module gói học & thanh toán VNPay Sandbox: bấm để xổ danh sách trang con -->
+            <details class="sidebar-group">
+                <summary class="sidebar-item">
+                    <span style="font-size: 17px;">📦</span>
+                    <span style="flex-grow: 1;">Gói học &amp; Thanh toán (Sandbox)</span>
+                    <span class="sidebar-caret">▾</span>
+                </summary>
+                <div class="sidebar-submenu">
+                    <a th:href="@{/operation/subscriptions}">Quản lý gói học</a>
+                    <a th:href="@{/operation/subscriptions/requests}">Yêu cầu phê duyệt</a>
+                    <a th:href="@{/operation/subscriptions/price-history}">Lịch sử giá</a>
+                    <a th:href="@{/operation/transactions}">Giao dịch Sandbox</a>
+                    <a th:href="@{/operation/premium-users}">Học viên Premium</a>
+                    <a th:href="@{/operation/revenue}">Doanh thu Sandbox</a>
+                </div>
+            </details>
         </div>
 
         <!-- Sidebar Bottom Footer -->

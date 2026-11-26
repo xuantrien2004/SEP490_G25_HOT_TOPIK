@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/billing.css}">
+<div class="bl-admin">
+    <aside th:replace="~{fragments/billing :: sidebar}"></aside>
+    <main class="bl-main">
+        <div class="bl-crumb"><a th:href="@{/admin/subscription-requests}">Phê duyệt gói học</a> › <span th:text="${'Yêu cầu #' + req.id}">#1</span></div>
+        <div class="bl-header">
+            <div>
+                <h1 class="bl-title" th:text="${req.requestTypeLabel + ': ' + req.planName}">Thay đổi giá</h1>
+                <p class="bl-subtitle" th:text="${'Mã gói ' + req.planCode + ' · Yêu cầu #' + req.id}"></p>
+            </div>
+            <span class="bl-status" th:classappend="'st-' + ${req.status}" th:text="${req.statusLabel}">Chờ duyệt</span>
+        </div>
+        <div th:replace="~{fragments/billing :: flash}"></div>
+
+        <div class="bl-card bl-table-wrap" style="padding:0;margin-top:14px;">
+            <table class="bl-table">
+                <thead><tr><th>Thuộc tính</th><th>Hiện tại</th><th>Đề xuất</th></tr></thead>
+                <tbody>
+                <tr th:each="row : ${req.rows}" th:classappend="${row.changed} ? 'changed'">
+                    <td><strong th:text="${row.label}">Giá</strong> <span th:if="${row.changed}" class="bl-status st-PENDING" style="margin-left:6px;">Thay đổi</span></td>
+                    <td th:text="${row.before}">99.000đ</td>
+                    <td th:classappend="${row.changed} ? 'changed-after'" th:text="${row.after}">129.000đ</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bl-card" style="margin-top:16px;">
+            <dl class="bl-detail-list">
+                <dt>Lý do thay đổi</dt><dd th:text="${req.reason}">--</dd>
+                <dt>Người yêu cầu</dt><dd th:text="${req.requestedByName}">OM</dd>
+                <dt>Thời gian gửi</dt><dd th:text="${req.requestedAtText}">--</dd>
+                <dt th:if="${req.reviewedByName != null}">Người xử lý</dt><dd th:if="${req.reviewedByName != null}" th:text="${req.reviewedByName + ' · ' + req.reviewedAtText}"></dd>
+                <dt th:if="${req.rejectionReason != null}">Lý do từ chối</dt><dd th:if="${req.rejectionReason != null}" th:text="${req.rejectionReason}"></dd>
+            </dl>
+
+            <th:block th:if="${req.isPending()}">
+                <div th:if="${ownRequest}" class="bl-alert warning">Bạn là người gửi yêu cầu này nên không thể tự phê duyệt.</div>
+                <div class="bl-alert info">Phê duyệt sẽ áp dụng ngay cho đơn hàng mới. Đơn hàng cũ, giao dịch đã thanh toán và Premium đã mua không bị ảnh hưởng.</div>
+                <div class="bl-actions" th:unless="${ownRequest}">
+                    <button type="button" class="bl-btn primary" data-bs-toggle="modal" data-bs-target="#approveModal">✔ Phê duyệt</button>
+                    <button type="button" class="bl-btn danger" data-bs-toggle="modal" data-bs-target="#rejectModal">✖ Từ chối</button>
+                </div>
+            </th:block>
+            <a th:href="@{/admin/subscription-requests}" class="bl-btn" style="margin-top:10px;">← Quay lại danh sách</a>
+        </div>
+    </main>
+</div>
+
+<div class="modal fade bl-modal" id="approveModal" tabindex="-1" aria-labelledby="approveTitle" aria-hidden="true" th:if="${req.isPending() and !ownRequest}">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content js-once" method="post" th:action="@{/admin/subscription-requests/{id}/approve(id=${req.id})}">
+            <div class="modal-header"><h5 class="modal-title" id="approveTitle">Xác nhận phê duyệt</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+            <div class="modal-body">
+                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                <p>Phê duyệt <strong th:text="${req.requestTypeLabel}"></strong> cho gói <strong th:text="${req.planName}"></strong>?</p>
+                <p style="font-size:13px;color:var(--ssak-text-muted);">Nếu gói đã bị thay đổi kể từ khi yêu cầu được gửi, hệ thống sẽ từ chối áp dụng để tránh ghi đè dữ liệu.</p>
+            </div>
+            <div class="modal-footer"><button type="button" class="bl-btn" data-bs-dismiss="modal">Hủy</button>
+                <button type="submit" class="bl-btn primary">Phê duyệt</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade bl-modal" id="rejectModal" tabindex="-1" aria-labelledby="rejectTitle" aria-hidden="true" th:if="${req.isPending() and !ownRequest}">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content js-once bl-form" method="post" th:action="@{/admin/subscription-requests/{id}/reject(id=${req.id})}">
+            <div class="modal-header"><h5 class="modal-title" id="rejectTitle">Từ chối yêu cầu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+            <div class="modal-body">
+                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                <label for="note">Lý do từ chối (bắt buộc)</label>
+                <textarea id="note" name="note" rows="3" maxlength="1000" required class="bl-input" style="width:100%;"></textarea>
+            </div>
+            <div class="modal-footer"><button type="button" class="bl-btn" data-bs-dismiss="modal">Hủy</button>
+                <button type="submit" class="bl-btn danger">Từ chối</button></div>
+        </form>
+    </div>
+</div>
+<script th:replace="~{fragments/billing :: confirmScript}"></script>
+</body>
+</html>

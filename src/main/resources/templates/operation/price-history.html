@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/billing.css}">
+<div class="bl-admin">
+    <aside th:replace="~{fragments/billing :: sidebar}"></aside>
+    <main class="bl-main">
+        <div class="bl-crumb"><a th:href="@{'/' + ${portal} + '/subscriptions'}">Gói học</a> › Lịch sử thay đổi giá</div>
+        <h1 class="bl-title">Lịch sử thay đổi giá</h1>
+        <p class="bl-subtitle">Chỉ ghi nhận khi Admin phê duyệt. Lịch sử giá không thể chỉnh sửa hoặc xóa.</p>
+
+        <form method="get" th:action="@{'/' + ${portal} + '/subscriptions/price-history'}" class="bl-filter" style="margin-top:14px;">
+            <div>
+                <label for="planId">Gói học</label>
+                <select id="planId" name="planId" class="bl-input">
+                    <option value="">Tất cả gói</option>
+                    <option th:each="p : ${plans}" th:value="${p.id}" th:text="${p.name}" th:selected="${p.id == planFilter}"></option>
+                </select>
+            </div>
+            <button class="bl-btn primary" type="submit">Lọc</button>
+        </form>
+
+        <div class="bl-card bl-table-wrap" style="padding:0;">
+            <div th:if="${history.empty}" class="bl-empty"><span class="icon">🕘</span>Chưa có thay đổi giá nào được phê duyệt.</div>
+            <table class="bl-table" th:unless="${history.empty}">
+                <thead><tr><th>ID</th><th>Gói học</th><th>Giá cũ</th><th>Giá mới</th><th>Lý do</th><th>Người gửi</th><th>Người duyệt</th><th>Yêu cầu</th><th>Gửi lúc</th><th>Duyệt lúc</th><th>Hiệu lực</th></tr></thead>
+                <tbody>
+                <tr th:each="h : ${history.content}">
+                    <td th:text="${h.id}">1</td>
+                    <td th:text="${h.planName}">Gói</td>
+                    <td th:text="${h.oldPriceText}">99.000đ</td>
+                    <td style="font-weight:800;color:var(--ssak-primary-dark);" th:text="${h.newPriceText}">129.000đ</td>
+                    <td th:text="${h.reason}">--</td>
+                    <td th:text="${h.requestedBy}">OM</td>
+                    <td th:text="${h.approvedBy}">Admin</td>
+                    <td th:text="${h.requestId != null ? '#' + h.requestId : '—'}">#1</td>
+                    <td th:text="${h.requestedAtText}">--</td>
+                    <td th:text="${h.approvedAtText}">--</td>
+                    <td th:text="${h.effectiveAtText}">--</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:replace="~{fragments/billing :: pager(${history})}"></div>
+    </main>
+</div>
+</body>
+</html>

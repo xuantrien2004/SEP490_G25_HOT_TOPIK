@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/billing.css}">
+<div class="bl-admin">
+    <aside th:replace="~{fragments/billing :: sidebar}"></aside>
+    <main class="bl-main">
+        <div class="bl-crumb"><a th:href="@{/operation/subscriptions}">Gói học</a> › Yêu cầu phê duyệt</div>
+        <h1 class="bl-title">Yêu cầu phê duyệt đã gửi</h1>
+        <p class="bl-subtitle">Theo dõi kết quả xử lý của Admin, lý do từ chối và gửi lại yêu cầu mới sau khi chỉnh sửa.</p>
+        <div th:replace="~{fragments/billing :: flash}"></div>
+
+        <form method="get" class="bl-filter" style="margin-top:14px;">
+            <div>
+                <label for="status">Trạng thái</label>
+                <select id="status" name="status" class="bl-input">
+                    <option value="">Tất cả</option>
+                    <option th:each="s : ${requestStatuses}" th:value="${s.name()}" th:text="${s.label}" th:selected="${s.name() == statusFilter}"></option>
+                </select>
+            </div>
+            <label style="display:flex;gap:6px;align-items:center;height:40px;color:inherit;">
+                <input type="checkbox" name="mine" value="true" th:checked="${mine}"> Chỉ yêu cầu của tôi</label>
+            <button class="bl-btn primary" type="submit">Lọc</button>
+        </form>
+
+        <div class="bl-card bl-table-wrap" style="padding:0;">
+            <div th:if="${requests.empty}" class="bl-empty"><span class="icon">📝</span>Chưa có yêu cầu nào.</div>
+            <table class="bl-table" th:unless="${requests.empty}">
+                <thead><tr><th>Mã</th><th>Loại yêu cầu</th><th>Gói</th><th>Thay đổi</th><th>Người gửi</th><th>Thời gian gửi</th><th>Trạng thái</th><th>Kết quả</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="r : ${requests.content}">
+                    <td th:text="${'#' + r.id}">#1</td>
+                    <td th:text="${r.requestTypeLabel}">Thay đổi giá</td>
+                    <td th:text="${r.planName}">Gói</td>
+                    <td style="font-size:13px;">
+                        <div th:each="row : ${r.rows}" th:if="${row.changed}">
+                            <strong th:text="${row.label}"></strong>: <span th:text="${row.before}"></span> → <span style="color:var(--ssak-primary-dark);font-weight:800;" th:text="${row.after}"></span>
+                        </div>
+                        <div style="color:var(--ssak-text-muted);">Lý do: <span th:text="${r.reason}"></span></div>
+                    </td>
+                    <td th:text="${r.requestedByName}">OM</td>
+                    <td th:text="${r.requestedAtText}">--</td>
+                    <td><span class="bl-status" th:classappend="'st-' + ${r.status}" th:text="${r.statusLabel}">Chờ duyệt</span></td>
+                    <td style="font-size:13px;">
+                        <span th:if="${r.reviewedByName != null}" th:text="${r.reviewedByName + ' · ' + r.reviewedAtText}"></span>
+                        <div th:if="${r.rejectionReason != null}" style="color:var(--ssak-terracotta);font-weight:700;" th:text="${'Lý do từ chối: ' + r.rejectionReason}"></div>
+                    </td>
+                    <td>
+                        <form th:if="${r.isPending() and currentUser != null and r.requestedBy == currentUser.id}" method="post"
+                              th:action="@{/operation/subscriptions/requests/{id}/cancel(id=${r.id})}" class="js-confirm" data-confirm="Hủy yêu cầu này?">
+                            <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                            <button type="submit" class="bl-btn sm danger">Hủy</button>
+                        </form>
+                        <a th:if="${r.status == 'REJECTED'}" class="bl-btn sm" th:href="@{/operation/subscriptions/{id}/edit(id=${r.planId})}">Sửa &amp; gửi lại</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:replace="~{fragments/billing :: pager(${requests})}"></div>
+    </main>
+</div>
+<script th:replace="~{fragments/billing :: confirmScript}"></script>
+</body>
+</html>
