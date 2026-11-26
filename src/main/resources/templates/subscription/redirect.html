@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/billing.css}">
+<div class="bl-page">
+    <div th:replace="~{fragments/navbar :: navbar('vip')}"></div>
+
+    <main class="bl-container narrow">
+        <div class="bl-card bl-result">
+            <div class="bl-spinner" aria-hidden="true"></div>
+            <h1 class="bl-title" style="font-size:24px;margin-top:16px;">Đang chuyển đến VNPay Sandbox...</h1>
+            <div th:replace="~{fragments/billing :: sandboxNotice}"></div>
+            <dl class="bl-detail-list" style="max-width:460px;margin:18px auto;">
+                <dt>Mã đơn hàng</dt><dd th:text="${order.orderCode}">HT...</dd>
+                <dt>Gói học</dt><dd th:text="${order.planNameSnapshot}">Premium</dd>
+                <dt>Số tiền thử nghiệm</dt><dd th:text="${order.totalAmountText}">99.000đ</dd>
+            </dl>
+            <p style="font-size:14px;color:var(--ssak-text-muted);">
+                Nếu trình duyệt không tự chuyển trang, hãy bấm nút bên dưới. Hãy nhập thông tin thẻ thử nghiệm của VNPay Sandbox,
+                không dùng thẻ ngân hàng thật.
+            </p>
+            <a id="vnpayLink" th:href="${paymentUrl}" class="bl-btn primary">Mở trang thanh toán VNPay Sandbox</a>
+            <a th:href="@{/subscription/payment/{c}(c=${order.orderCode})}" class="bl-btn">Xem đơn hàng</a>
+        </div>
+    </main>
+</div>
+<script>
+    setTimeout(function () {
+        var link = document.getElementById('vnpayLink');
+        if (link) window.location.href = link.href;
+    }, 1500);
+</script>
+</body>
+</html>
