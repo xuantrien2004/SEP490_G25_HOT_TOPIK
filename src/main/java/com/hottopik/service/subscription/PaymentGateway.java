@@ -36,6 +36,7 @@ public interface PaymentGateway {
                          String responseCode, String transactionStatus, String transactionNo, String bankCode,
                          Long amountVnd, String payDate) {
 
+        /** Thanh toán thành công khi cả mã phản hồi và trạng thái giao dịch đều là 00. */
         public boolean isSuccess() {
             return "00".equals(responseCode) && "00".equals(transactionStatus);
         }

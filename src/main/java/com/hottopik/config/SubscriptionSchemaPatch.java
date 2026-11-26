@@ -27,6 +27,7 @@ public class SubscriptionSchemaPatch {
         this.dataSource = dataSource;
     }
 
+    /** Chạy sau khi ứng dụng khởi động xong: thêm cột còn thiếu, CHECK constraint, filtered unique index, khóa ngoại. */
     @EventListener(ApplicationReadyEvent.class)
     @Order(1)
     public void apply() {

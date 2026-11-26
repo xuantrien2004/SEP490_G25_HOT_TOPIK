@@ -118,11 +118,13 @@ public class SubscriptionOrderService {
                 .orElseThrow(() -> new NoSuchElementException("Không tìm thấy đơn hàng."));
     }
 
+    /** Đơn hàng của học viên (lọc trạng thái, mới nhất trước). */
     @Transactional(readOnly = true)
     public Page<SubscriptionOrder> getUserOrders(Long userId, OrderStatus status, int page, int size) {
         return orders.findByUser(userId, status, PageRequest.of(Math.max(page, 0), size, Sort.by(Sort.Direction.DESC, "createdAt")));
     }
 
+    /** Các lần thanh toán của một đơn, mới nhất trước. */
     @Transactional(readOnly = true)
     public List<PaymentTransaction> getAttempts(Long orderId) {
         return transactions.findByOrder_IdOrderByCreatedAtDesc(orderId);

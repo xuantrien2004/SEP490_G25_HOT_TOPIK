@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/** Đánh giá website: mỗi học viên một đánh giá (gửi lần đầu là tạo, lần sau là sửa) và tính điểm trung bình (tính cả đánh giá bị ẩn). */
 @Service
 @RequiredArgsConstructor
 public class ReviewService {

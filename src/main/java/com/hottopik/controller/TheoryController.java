@@ -216,6 +216,7 @@ public class TheoryController {
         return "theory/special";
     }
 
+    /** GET /theory/grammar – trang chi tiết một mẫu ngữ pháp (chỉ ngữ pháp và nhóm đang hiển thị), kèm nút lưu ⭐. */
     @GetMapping("/theory/grammar")
     public String grammarDetail(@RequestParam(value = "id", defaultValue = "1") Long id, HttpSession session, Model model) {
         Long userId = currentUserId(session);
@@ -239,6 +240,7 @@ public class TheoryController {
         return "theory/grammar";
     }
 
+    /** GET /ly-thuyet/ngu-phap-nhom – danh sách ngữ pháp trong một nhóm, đánh dấu những ngữ pháp học viên đã lưu. */
     @GetMapping({"/ly-thuyet/ngu-phap-nhom", "/theory/grammar-list"})
     public String grammarListByGroup(@RequestParam("groupId") Integer groupId, HttpSession session, Model model) {
         model.addAttribute("pageTitle", "Danh sách ngữ pháp theo nhóm");
@@ -266,6 +268,7 @@ public class TheoryController {
 
     // ===== SỔ NGỮ PHÁP: học viên lưu (⭐) mẫu ngữ pháp hay/khó nhớ để ôn lại =====
 
+    /** GET /ly-thuyet/ngu-phap-da-luu – sổ tay ngữ pháp đã lưu của học viên (cần đăng nhập). */
     @GetMapping({"/ly-thuyet/ngu-phap-da-luu", "/theory/saved-grammar"})
     public String savedGrammars(HttpSession session, HttpServletResponse response, Model model) {
         Long userId = currentUserId(session);
@@ -277,6 +280,7 @@ public class TheoryController {
         return "theory/saved-grammar";
     }
 
+    /** POST /api/theory/grammar/{id}/save – lưu / bỏ lưu ngữ pháp vào sổ tay (401 nếu chưa đăng nhập). */
     @PostMapping("/api/theory/grammar/{id}/save")
     @ResponseBody
     public ResponseEntity<java.util.Map<String, Object>> toggleSavedGrammar(@PathVariable Long id, HttpSession session) {

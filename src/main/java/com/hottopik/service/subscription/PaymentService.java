@@ -126,6 +126,7 @@ public class PaymentService {
         }
     }
 
+    /** Xử lý IPN đã đúng chữ ký: kiểm tra merchant, giao dịch, số tiền, trạng thái rồi ghi nhận kết quả (idempotent). */
     @Transactional
     public IpnResponse processIpn(Map<String, String> p) {
         if (!gateway.merchantCode().equals(p.get("vnp_TmnCode"))) {
@@ -216,6 +217,7 @@ public class PaymentService {
         return "Xác nhận bằng Return URL có chữ ký";
     }
 
+    /** Lưu mã kết quả VNPay ghi trên Return URL (đã kiểm tra chữ ký) để không hết hạn nhầm đơn đã trả tiền. */
     @Transactional
     public void recordReturnResult(Long txnId, String responseCode, String transactionStatus) {
         PaymentTransaction txn = transactions.findByIdForUpdate(txnId).orElseThrow();
@@ -402,6 +404,7 @@ public class PaymentService {
         return toStatus(order, orderService.getAttempts(order.getId()));
     }
 
+    /** Đổi trạng thái đơn + lần thanh toán thành trạng thái hiển thị (SUCCESS, VERIFYING, FAILED...) cho trang kết quả. */
     public PaymentStatusDTO toStatus(SubscriptionOrder order, List<PaymentTransaction> attempts) {
         PaymentTransaction latest = attempts.isEmpty() ? null : attempts.get(0);
         PaymentTransaction success = attempts.stream().filter(t -> t.getStatus() == PaymentStatus.SUCCESS).findFirst().orElse(null);
@@ -496,6 +499,7 @@ public class PaymentService {
         self.doCancel(order.getId(), userId);
     }
 
+    /** Hủy đơn trong transaction (khóa ghi đơn); các lần thanh toán đang chờ chuyển sang CANCELLED. */
     @Transactional
     public void doCancel(Long orderId, Long userId) {
         SubscriptionOrder order = orders.findByIdForUpdate(orderId).orElseThrow();
@@ -538,6 +542,7 @@ public class PaymentService {
         }
     }
 
+    /** Chuyển đơn quá hạn sang EXPIRED, hoặc REQUIRES_REVIEW nếu VNPay đã báo thành công trên Return URL. */
     @Transactional
     public void expireOrder(Long orderId) {
         SubscriptionOrder order = orders.findByIdForUpdate(orderId).orElseThrow();
@@ -565,6 +570,7 @@ public class PaymentService {
 
     // ------------------------------------------------------------------ quản lý giao dịch
 
+    /** Tìm kiếm giao dịch cho Operation / Admin (từ khóa: mã đơn, mã VNPay, email, tên người mua). */
     @Transactional(readOnly = true)
     public Page<PaymentTransactionDTO> search(String keyword, PaymentStatus status, Long planId,
                                               LocalDateTime from, LocalDateTime to, int page, int size) {
@@ -580,11 +586,13 @@ public class PaymentService {
         return toDTOs(result);
     }
 
+    /** Chi tiết một giao dịch. */
     @Transactional(readOnly = true)
     public Optional<PaymentTransactionDTO> getTransaction(Long id) {
         return transactions.findDetailById(id).map(t -> toDTOs(List.of(t)).get(0));
     }
 
+    /** Thống kê số giao dịch theo trạng thái cho thẻ tóm tắt. */
     @Transactional(readOnly = true)
     public Map<String, Long> transactionSummary() {
         Map<String, Long> m = new LinkedHashMap<>();

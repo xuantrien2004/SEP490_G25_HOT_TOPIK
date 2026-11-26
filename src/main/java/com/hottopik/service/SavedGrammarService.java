@@ -48,18 +48,21 @@ public class SavedGrammarService {
         return true;
     }
 
+    /** Danh sách ngữ pháp học viên đã lưu (chỉ ngữ pháp và nhóm còn đang hiển thị), mới nhất trước. */
     @Transactional(readOnly = true)
     public List<UserSavedGrammar> getSavedGrammars(Long userId) {
         if (userId == null) return List.of();
         return savedRepository.findVisibleByUserId(userId);
     }
 
+    /** Tập id ngữ pháp học viên đã lưu, dùng để tô nút ⭐ trên danh sách. */
     @Transactional(readOnly = true)
     public Set<Long> getSavedGrammarIds(Long userId) {
         if (userId == null) return Set.of();
         return new HashSet<>(savedRepository.findGrammarIdsByUserId(userId));
     }
 
+    /** Kiểm tra học viên đã lưu ngữ pháp này chưa. */
     @Transactional(readOnly = true)
     public boolean isSaved(Long userId, Long grammarId) {
         return userId != null && grammarId != null

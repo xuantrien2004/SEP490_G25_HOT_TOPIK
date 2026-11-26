@@ -143,6 +143,7 @@ public class UserSubscriptionService {
 
     // ------------------------------------------------------------------ đọc dữ liệu
 
+    /** Gói hiện tại của học viên (Premium hoặc Free), số ngày còn lại, % đã dùng và quyền lợi. */
     @Transactional(readOnly = true)
     public UserSubscriptionDTO getCurrentSubscription(Long userId) {
         LocalDateTime now = PaymentDateTimeUtil.now();
@@ -174,6 +175,7 @@ public class UserSubscriptionService {
                 s.getStartsAt(), s.getEndsAt(), remaining, usedPercent, fs);
     }
 
+    /** Lịch sử kích hoạt / gia hạn / hết hạn của học viên. */
     @Transactional(readOnly = true)
     public List<SubscriptionHistory> getSubscriptionHistory(Long userId) {
         return history.findByUserIdOrderByCreatedAtDescIdDesc(userId);

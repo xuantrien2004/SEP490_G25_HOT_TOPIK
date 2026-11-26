@@ -10,6 +10,7 @@ public class PriceChangedException extends RuntimeException {
         this.currentPrice = currentPrice;
     }
 
+    /** Giá mới nhất trong database. */
     public long getCurrentPrice() {
         return currentPrice;
     }

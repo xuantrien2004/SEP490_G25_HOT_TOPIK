@@ -23,6 +23,7 @@ public class PaymentCallbackLogService {
         this.repository = repository;
     }
 
+    /** Ghi nhận một callback vừa nhận (Return / IPN / QUERY), chỉ lưu hash của dữ liệu; trả id log. */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Long received(String type, Map<String, String> params) {
         try {
@@ -42,6 +43,7 @@ public class PaymentCallbackLogService {
         }
     }
 
+    /** Cập nhật kết quả xử lý của callback (PROCESSED, DUPLICATE, INVALID_SIGNATURE, ...). */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void finish(Long logId, String status, String error) {
         if (logId == null) return;

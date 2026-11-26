@@ -62,6 +62,7 @@ public class VNPaySandboxPaymentGateway implements PaymentGateway {
         return props.getTmnCode();
     }
 
+    /** Tạo URL thanh toán VNPay Sandbox: ghép tham số vnp_*, sắp xếp, ký HMAC-SHA512. */
     @Override
     public String createPaymentUrl(PaymentUrlRequest r) {
         assertReady();
@@ -84,11 +85,13 @@ public class VNPaySandboxPaymentGateway implements PaymentGateway {
         return props.getPaymentUrl() + "?" + query + "&" + VNPaySignatureUtil.SECURE_HASH + "=" + hash;
     }
 
+    /** Kiểm tra chữ ký dữ liệu VNPay gửi về (Return URL / IPN). */
     @Override
     public boolean verifyCallback(Map<String, String> params) {
         return props.isConfigured() && VNPaySignatureUtil.verify(params, props.getHashSecret());
     }
 
+    /** Gọi API QueryDR để hỏi kết quả giao dịch; chỉ tin phản hồi có chữ ký hợp lệ. */
     @Override
     public GatewayResult queryTransaction(String txnRef, String transactionDate, String orderInfo, String ipAddr) {
         try {

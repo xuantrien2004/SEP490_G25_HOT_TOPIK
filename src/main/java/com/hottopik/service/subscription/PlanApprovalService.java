@@ -81,6 +81,7 @@ public class PlanApprovalService {
                 .collect(Collectors.toList());
     }
 
+    /** Mã quyền lợi của phiên bản gói hiện hành (gói chưa duyệt lần nào thì lấy quyền lợi mặc định). */
     public List<String> currentFeatureCodes(SubscriptionPlan plan) {
         if (plan.getCurrentVersionNo() <= 0) return defaultFeatureCodes(plan.getTier());
         return versions.findByPlan_IdAndVersionNumber(plan.getId(), plan.getCurrentVersionNo())
@@ -116,6 +117,7 @@ public class PlanApprovalService {
 
     // ------------------------------------------------------------------ gửi yêu cầu
 
+    /** Tạo yêu cầu phê duyệt: kiểm tra trạng thái gói, dữ liệu, mỗi gói chỉ một yêu cầu PENDING; lưu phiên bản gói để chống ghi đè. */
     @Transactional
     public PlanChangeRequest submit(Long planId, PlanRequestType type, PlanData newData, String reason, BillingActor actor) {
         String cleanReason = reason == null ? "" : reason.trim();
@@ -256,6 +258,7 @@ public class PlanApprovalService {
         self.applyDecision(r.getTargetId(), ev.approved(), ev.note(), admin);
     }
 
+    /** Áp dụng quyết định trong một transaction: duyệt thì cập nhật gói, tạo phiên bản mới, ghi lịch sử giá; từ chối thì giữ nguyên. */
     @Transactional
     public void applyDecision(Long requestId, boolean approve, String note, BillingActor fallbackAdmin) {
         BillingActor admin = DECIDER.get() != null ? DECIDER.get() : fallbackAdmin;
@@ -366,6 +369,7 @@ public class PlanApprovalService {
         notifier.afterCommit(() -> notifier.notifyUser(userId, type, title, message, "/operation/subscriptions/requests"));
     }
 
+    /** Người gửi hủy yêu cầu đang chờ duyệt. */
     @Transactional
     public void cancel(Long requestId, BillingActor actor) {
         PlanChangeRequest req = requests.findByIdForUpdate(requestId)
@@ -404,6 +408,7 @@ public class PlanApprovalService {
 
     // ------------------------------------------------------------------ đọc dữ liệu
 
+    /** Danh sách yêu cầu (lọc trạng thái, người gửi), kèm bảng so sánh Trước / Sau. */
     @Transactional(readOnly = true)
     public Page<PlanChangeRequestDTO> search(PlanRequestStatus status, Long requestedBy, int page, int size) {
         return requests.search(status, requestedBy,
@@ -411,12 +416,14 @@ public class PlanApprovalService {
                 .map(this::toDTO);
     }
 
+    /** Chi tiết một yêu cầu kèm bảng so sánh Trước / Sau. */
     @Transactional(readOnly = true)
     public PlanChangeRequestDTO getDetail(Long requestId) {
         return requests.findDetailById(requestId).map(this::toDTO)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy yêu cầu."));
     }
 
+    /** Số yêu cầu đang chờ duyệt. */
     public long countPending() {
         return requests.countByStatus(PlanRequestStatus.PENDING);
     }

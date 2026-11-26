@@ -34,6 +34,7 @@ public class VNPayPaymentController {
         this.paymentService = paymentService;
     }
 
+    /** GET /payment/vnpay/return – VNPay đưa học viên quay về: kiểm tra chữ ký rồi chuyển sang trang kết quả. */
     @GetMapping("/payment/vnpay/return")
     public String vnpayReturn(@RequestParam Map<String, String> params, HttpServletRequest request) {
         String orderCode = paymentService.handleReturn(params, request.getRemoteAddr());
@@ -41,6 +42,7 @@ public class VNPayPaymentController {
         return "redirect:/subscription/payment/result?orderCode=" + URLEncoder.encode(orderCode, StandardCharsets.UTF_8);
     }
 
+    /** GET /payment/vnpay/ipn – VNPay gọi server-to-server; trả {"RspCode","Message"} theo quy định VNPay. */
     @GetMapping(value = "/payment/vnpay/ipn", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public Map<String, String> vnpayIpn(@RequestParam Map<String, String> params) {
@@ -48,6 +50,7 @@ public class VNPayPaymentController {
         return Map.of("RspCode", r.rspCode(), "Message", r.message());
     }
 
+    /** GET /api/payments/{orderCode}/status – trạng thái đơn cho polling (cần đăng nhập và là chủ đơn). */
     @GetMapping(value = "/api/payments/{orderCode}/status", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public ResponseEntity<?> status(@PathVariable String orderCode, HttpSession session, HttpServletRequest request) {

@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.security.Principal;
 
+/** API đánh giá website cho học viên: gửi / sửa đánh giá và lấy đánh giá hiện có của chính mình. */
 @Controller
 @RequiredArgsConstructor
 public class FeedbackController {

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
+/** Truy vấn sổ tay ngữ pháp đã lưu của học viên. */
 @Repository
 public interface UserSavedGrammarRepository extends JpaRepository<UserSavedGrammar, Long> {
 

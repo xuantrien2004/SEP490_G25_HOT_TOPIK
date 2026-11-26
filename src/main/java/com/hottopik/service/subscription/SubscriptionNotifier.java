@@ -50,6 +50,7 @@ public class SubscriptionNotifier {
         }
     }
 
+    /** Lưu một thông báo in-app cho học viên (transaction riêng). */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void notifyUser(Long userId, String type, String title, String message, String link) {
         if (userId == null) return;
@@ -69,6 +70,7 @@ public class SubscriptionNotifier {
         notifyUser(userId, type, title, message, link);
     }
 
+    /** Gửi thông báo cho tất cả tài khoản Admin. */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void notifyAdmins(String type, String title, String message, String link) {
         userRepository.findByRoleIn(List.of("ADMIN", "ROLE_ADMIN"))

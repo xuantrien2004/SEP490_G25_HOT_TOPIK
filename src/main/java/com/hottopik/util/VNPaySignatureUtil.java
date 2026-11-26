@@ -21,6 +21,7 @@ public final class VNPaySignatureUtil {
 
     private VNPaySignatureUtil() {}
 
+    /** Tính HMAC-SHA512 (hex chữ thường). */
     public static String hmacSHA512(String key, String data) {
         try {
             Mac mac = Mac.getInstance("HmacSHA512");
@@ -52,6 +53,7 @@ public final class VNPaySignatureUtil {
         return joiner.toString();
     }
 
+    /** Ký bộ tham số vnp_* bằng Hash Secret. */
     public static String sign(Map<String, String> params, String secret) {
         return hmacSHA512(secret, buildHashData(params));
     }

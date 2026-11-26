@@ -5,6 +5,7 @@ public final class PaymentAmountUtil {
 
     private PaymentAmountUtil() {}
 
+    /** Đổi VND sang vnp_Amount (nhân 100). */
     public static String toVnpAmount(long vnd) {
         if (vnd <= 0) throw new IllegalArgumentException("Số tiền thanh toán phải lớn hơn 0.");
         return String.valueOf(Math.multiplyExact(vnd, 100L));
@@ -22,6 +23,7 @@ public final class PaymentAmountUtil {
         }
     }
 
+    /** Định dạng tiền để hiển thị, ví dụ 99.000đ. */
     public static String format(Long vnd) {
         if (vnd == null) return "—";
         return String.format("%,d", vnd).replace(',', '.') + "đ";

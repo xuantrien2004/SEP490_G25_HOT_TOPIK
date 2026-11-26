@@ -21,6 +21,7 @@ public final class OrderCodeGenerator {
         return orderCode + "P" + attempt;
     }
 
+    /** Mã yêu cầu duy nhất cho API QueryDR (vnp_RequestId). */
     public static String requestId() {
         return PaymentDateTimeUtil.now().format(TIME) + String.format("%06d", RANDOM.nextInt(1_000_000));
     }

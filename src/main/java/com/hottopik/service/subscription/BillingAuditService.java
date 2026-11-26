@@ -18,6 +18,7 @@ public class BillingAuditService {
         this.adminSystemService = adminSystemService;
     }
 
+    /** Ghi một dòng Audit Log (người thực hiện, hành động, đối tượng, giá trị cũ / mới, mô tả). */
     public void log(BillingActor actor, String action, String targetType, Object targetId,
                     String oldValue, String newValue, String description) {
         StringBuilder details = new StringBuilder();

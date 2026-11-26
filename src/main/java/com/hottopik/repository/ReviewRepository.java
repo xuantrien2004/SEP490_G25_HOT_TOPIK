@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
+/** Truy vấn đánh giá: lọc theo trạng thái / số sao (JOIN FETCH user để tránh lỗi lazy) và tính trung bình tất cả đánh giá. */
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 

@@ -33,6 +33,7 @@ public class BillingPageSupport {
         this.callbackLogs = callbackLogs;
     }
 
+    /** Gắn các thuộc tính chung cho trang quản lý (người dùng, portal, menu đang chọn, tiêu đề, CSRF). */
     public UserDTO prepare(HttpSession session, Model model, String portal, String active, String title) {
         UserDTO user = AuthHelper.getLoggedInUser(session);
         model.addAttribute("currentUser", user);
@@ -43,6 +44,7 @@ public class BillingPageSupport {
         return user;
     }
 
+    /** Nạp danh sách giao dịch theo bộ lọc và thống kê nhanh cho trang Quản lý giao dịch. */
     public void transactions(Model model, String q, String status, Long planId,
                              @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
                              @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to, int page) {
@@ -59,6 +61,7 @@ public class BillingPageSupport {
         model.addAttribute("toFilter", to);
     }
 
+    /** Nạp chi tiết giao dịch và nhật ký callback; trả false nếu không tìm thấy. */
     public boolean transactionDetail(Model model, Long id) {
         var txn = paymentService.getTransaction(id);
         if (txn.isEmpty()) return false;
@@ -67,6 +70,7 @@ public class BillingPageSupport {
         return true;
     }
 
+    /** Nạp số liệu báo cáo doanh thu theo khoảng thời gian. */
     public void revenue(Model model, String range, LocalDate from, LocalDate to) {
         RevenueService.Range r = revenueService.resolveRange(range, from, to);
         model.addAttribute("range", r);
@@ -75,6 +79,7 @@ public class BillingPageSupport {
         model.addAttribute("toFilter", to);
     }
 
+    /** Trả file Excel báo cáo doanh thu Sandbox. */
     public ResponseEntity<byte[]> exportRevenue(String range, LocalDate from, LocalDate to) {
         byte[] data = revenueService.exportExcel(revenueService.resolveRange(range, from, to));
         return ResponseEntity.ok()
@@ -83,6 +88,7 @@ public class BillingPageSupport {
                 .body(data);
     }
 
+    /** Nạp lịch sử giá (lọc theo gói nếu có). */
     public void priceHistory(Model model, Long planId, int page) {
         model.addAttribute("history", planService.getPriceHistory(planId, page, 20));
         model.addAttribute("plans", planService.getAllForManagement());

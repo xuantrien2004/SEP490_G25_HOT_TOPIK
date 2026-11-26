@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 @Table(name = "user_saved_grammars", schema = "dbo",
         uniqueConstraints = @UniqueConstraint(name = "UQ_user_saved_grammars", columnNames = {"user_id", "grammar_id"}),
         indexes = @Index(name = "ix_saved_grammars_user", columnList = "user_id, created_at"))
+/** Ngữ pháp học viên lưu vào sổ tay (mỗi học viên lưu một ngữ pháp tối đa một lần). */
 @Getter
 @Setter
 @NoArgsConstructor

@@ -45,6 +45,7 @@ public class SubscriptionPlanService {
 
     // ------------------------------------------------------------------ học viên
 
+    /** Các gói đang bán (ACTIVE) kèm quyền lợi, theo thứ tự hiển thị. */
     @Transactional(readOnly = true)
     public List<SubscriptionPlanDTO> getActivePlans() {
         return toDTOs(plans.findByStatusOrderBySortOrderAscIdAsc(SubscriptionPlanStatus.ACTIVE));
@@ -67,6 +68,7 @@ public class SubscriptionPlanService {
                 .collect(Collectors.toList());
     }
 
+    /** Quyền lợi Premium đang bật (để chọn khi đề xuất thay đổi quyền lợi). */
     @Transactional(readOnly = true)
     public List<PlanFeatureDTO> getActivePremiumFeatures() {
         return getActiveFeatures().stream().filter(PlanFeatureDTO::isPremiumOnly).collect(Collectors.toList());
@@ -74,6 +76,7 @@ public class SubscriptionPlanService {
 
     // ------------------------------------------------------------------ quản lý
 
+    /** Tìm kiếm gói cho trang quản lý (từ khóa, trạng thái, phân trang). */
     @Transactional(readOnly = true)
     public Page<SubscriptionPlanDTO> search(String keyword, SubscriptionPlanStatus status, int page, int size) {
         String kw = keyword == null || keyword.isBlank() ? null : keyword.trim();
@@ -83,6 +86,7 @@ public class SubscriptionPlanService {
         return new org.springframework.data.domain.PageImpl<>(dtos, result.getPageable(), result.getTotalElements());
     }
 
+    /** Thống kê nhanh: tổng gói, đang bán, ngừng bán, yêu cầu chờ duyệt. */
     @Transactional(readOnly = true)
     public Map<String, Long> summary() {
         Map<String, Long> m = new LinkedHashMap<>();
@@ -93,16 +97,19 @@ public class SubscriptionPlanService {
         return m;
     }
 
+    /** Một gói bất kỳ trạng thái (cho trang quản lý). */
     @Transactional(readOnly = true)
     public SubscriptionPlanDTO getForManagement(Long id) {
         return toDTOs(List.of(find(id))).get(0);
     }
 
+    /** Tất cả gói (cho bộ lọc). */
     @Transactional(readOnly = true)
     public List<SubscriptionPlanDTO> getAllForManagement() {
         return toDTOs(plans.findAllByOrderBySortOrderAscIdAsc());
     }
 
+    /** Tạo bản nháp gói Premium (mã gói không được trùng). */
     @Transactional
     public SubscriptionPlan createDraft(CreatePlanRequest form, BillingActor actor) {
         String code = form.getCode().trim().toUpperCase(Locale.ROOT);
@@ -168,6 +175,7 @@ public class SubscriptionPlanService {
         return true;
     }
 
+    /** Gửi bản nháp cho Admin duyệt mở bán. */
     @Transactional
     public void submitDraft(Long id, String reason, BillingActor actor) {
         SubscriptionPlan plan = find(id);
@@ -176,6 +184,7 @@ public class SubscriptionPlanService {
         approval.submit(id, PlanRequestType.CREATE_PLAN, data, reason, actor);
     }
 
+    /** Đề xuất giá mới (khác giá hiện tại); giá chính thức chỉ đổi khi Admin duyệt. */
     @Transactional
     public void requestPriceChange(Long id, ChangePriceRequest form, BillingActor actor) {
         SubscriptionPlan plan = find(id);
@@ -186,6 +195,7 @@ public class SubscriptionPlanService {
         approval.submit(id, PlanRequestType.UPDATE_PRICE, data, form.getReason(), actor);
     }
 
+    /** Đề xuất kích hoạt / ngừng bán / lưu trữ gói. */
     @Transactional
     public void requestStatusChange(Long id, PlanRequestType type, String reason, BillingActor actor) {
         SubscriptionPlanStatus target = switch (type) {
@@ -199,11 +209,13 @@ public class SubscriptionPlanService {
         approval.submit(id, type, data, reason, actor);
     }
 
+    /** Các phiên bản đã duyệt của gói, mới nhất trước. */
     @Transactional(readOnly = true)
     public List<SubscriptionPlanVersion> getVersions(Long planId) {
         return versions.findByPlan_IdOrderByVersionNumberDesc(planId);
     }
 
+    /** Lịch sử thay đổi giá (lọc theo gói nếu có). */
     @Transactional(readOnly = true)
     public Page<PlanPriceHistory> getPriceHistory(Long planId, int page, int size) {
         return priceHistory.search(planId, PageRequest.of(Math.max(page, 0), size, Sort.by(Sort.Direction.DESC, "createdAt")));

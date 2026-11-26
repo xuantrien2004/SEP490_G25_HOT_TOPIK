@@ -45,6 +45,7 @@ public class SubscriptionController {
         this.gateway = gateway;
     }
 
+    /** Thêm CSRF token, mục menu đang chọn và người dùng hiện tại cho mọi trang gói học. */
     @ModelAttribute
     public void common(HttpSession session, Model model) {
         model.addAttribute("csrfToken", CsrfGuard.token(session));
@@ -54,6 +55,7 @@ public class SubscriptionController {
 
     // ------------------------------------------------------------------ bảng giá
 
+    /** GET /subscription/plans – bảng giá các gói đang bán, bảng so sánh Free / Premium và gói hiện tại của học viên. */
     @GetMapping("/plans")
     public String plans(HttpSession session, Model model) {
         UserDTO user = AuthHelper.getLoggedInUser(session);
@@ -68,6 +70,7 @@ public class SubscriptionController {
         return "subscription/plans";
     }
 
+    /** GET /subscription/plans/{id} – chi tiết một gói đang bán. */
     @GetMapping("/plans/{id}")
     public String planDetail(@PathVariable Long id, HttpSession session, Model model, RedirectAttributes ra) {
         try {
@@ -87,6 +90,7 @@ public class SubscriptionController {
 
     // ------------------------------------------------------------------ gói của tôi
 
+    /** GET /subscription/my-plan – gói hiện tại, số ngày còn lại, quyền lợi và lịch sử kích hoạt / gia hạn. */
     @GetMapping({"/my-plan", "/history"})
     public String myPlan(HttpSession session, Model model, RedirectAttributes ra) {
         UserDTO user = AuthHelper.getLoggedInUser(session);
@@ -101,6 +105,7 @@ public class SubscriptionController {
 
     // ------------------------------------------------------------------ checkout
 
+    /** GET /subscription/checkout/{planId} – trang xác nhận đơn hàng (giá lấy từ database). */
     @GetMapping("/checkout/{planId}")
     public String checkout(@PathVariable Long planId, HttpSession session, Model model, RedirectAttributes ra) {
         UserDTO user = AuthHelper.getLoggedInUser(session);
@@ -126,6 +131,7 @@ public class SubscriptionController {
         return "subscription/checkout";
     }
 
+    /** POST /subscription/checkout – tạo đơn (chốt giá) rồi chuyển sang VNPay Sandbox; giá đổi thì hiển thị lại để xác nhận. */
     @PostMapping("/checkout")
     public String confirmCheckout(@RequestParam Long planId, @RequestParam(required = false) Long expectedPrice,
                                   @RequestParam(value = CsrfGuard.PARAM, required = false) String csrf,
@@ -166,6 +172,7 @@ public class SubscriptionController {
 
     // ------------------------------------------------------------------ đơn hàng / thanh toán
 
+    /** GET /subscription/payment/{orderCode} – chi tiết đơn hàng và các lần thanh toán (chỉ chủ đơn xem được). */
     @GetMapping({"/payment/{orderCode}", "/transactions/{orderCode}"})
     public String orderDetail(@PathVariable String orderCode, HttpSession session, Model model, RedirectAttributes ra) {
         UserDTO user = AuthHelper.getLoggedInUser(session);
@@ -185,6 +192,7 @@ public class SubscriptionController {
         }
     }
 
+    /** POST /subscription/payment/{orderCode}/retry – tạo lần thanh toán mới cho đơn còn hiệu lực. */
     @PostMapping("/payment/{orderCode}/retry")
     public String retry(@PathVariable String orderCode, @RequestParam(value = CsrfGuard.PARAM, required = false) String csrf,
                         HttpSession session, HttpServletRequest request, Model model, RedirectAttributes ra) {
@@ -197,6 +205,7 @@ public class SubscriptionController {
         return redirectToGateway(orderCode, user, request, model, ra);
     }
 
+    /** POST /subscription/payment/{orderCode}/cancel – học viên hủy đơn chưa thanh toán (đối soát trước khi hủy). */
     @PostMapping("/payment/{orderCode}/cancel")
     public String cancel(@PathVariable String orderCode, @RequestParam(value = CsrfGuard.PARAM, required = false) String csrf,
                          HttpSession session, HttpServletRequest request, RedirectAttributes ra) {
@@ -235,6 +244,7 @@ public class SubscriptionController {
         return "subscription/payment-result";
     }
 
+    /** GET /subscription/transactions – lịch sử đơn hàng của học viên (lọc trạng thái, phân trang). */
     @GetMapping("/transactions")
     public String transactions(@RequestParam(required = false) String status, @RequestParam(defaultValue = "0") int page,
                                HttpSession session, Model model, RedirectAttributes ra) {

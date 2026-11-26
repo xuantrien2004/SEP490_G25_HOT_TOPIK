@@ -242,6 +242,7 @@ public class ContentPortalController {
     // GRAMMAR MANAGEMENT (TÍCH HỢP 3 VIEW MODE & API GIAO DIỆN)
     // ==========================================
 
+    /** GET /content/grammar – trang Kho ngữ pháp TOPIK 1–6 của Content Manager (lọc theo cấp, nhóm, trạng thái, từ khóa). */
     @GetMapping("/grammar")
     public String grammarPage(
             @RequestParam(value = "level", required = false) Integer level,
@@ -314,6 +315,7 @@ public class ContentPortalController {
         return "content/grammar";
     }
 
+    /** POST /content/grammar/save – thêm mẫu ngữ pháp mới (kèm ví dụ và ghi chú). */
     @PostMapping("/grammar/save")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> saveGrammar(
@@ -348,6 +350,7 @@ public class ContentPortalController {
         }
     }
 
+    /** POST /content/grammar/toggle – ẩn / hiện một mẫu ngữ pháp. */
     @PostMapping("/grammar/toggle")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> toggleGrammar(
@@ -382,6 +385,7 @@ public class ContentPortalController {
         }
     }
 
+    /** POST /content/grammar/delete-type – xóa một nhóm (loại) ngữ pháp. */
     @PostMapping("/grammar/delete-type")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> deleteGrammarType(
@@ -432,6 +436,7 @@ public class ContentPortalController {
         return user != null && (user.isContentManager() || user.isAdmin());
     }
 
+    /** GET /content/grammar/template – tải file Excel mẫu để nhập ngữ pháp cho nhóm đã chọn. */
     @GetMapping("/grammar/template")
     public ResponseEntity<byte[]> downloadGrammarTemplate(@RequestParam("groupId") Integer groupId, HttpSession session) {
         if (!canEditContent(AuthHelper.getLoggedInUser(session))) return ResponseEntity.status(403).build();
@@ -448,6 +453,7 @@ public class ContentPortalController {
         }
     }
 
+    /** POST /content/grammar/import/preview – tải file Excel lên và xem trước kết quả kiểm tra từng dòng. */
     @PostMapping("/grammar/import/preview")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> previewGrammarImport(
@@ -471,6 +477,7 @@ public class ContentPortalController {
         }
     }
 
+    /** POST /content/grammar/import/confirm – lưu các dòng hợp lệ (trạng thái DRAFT) và ghi audit log. */
     @PostMapping("/grammar/import/confirm")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> confirmGrammarImport(
@@ -507,6 +514,7 @@ public class ContentPortalController {
         }
     }
 
+    /** GET /content/grammar/check-delete-type – kiểm tra nhóm ngữ pháp có xóa được không trước khi xóa. */
     @GetMapping("/grammar/check-delete-type")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> checkDeleteGrammarType(
@@ -738,6 +746,7 @@ public class ContentPortalController {
         }
     }
 
+    /** POST /content/grammar/group/toggle – ẩn / hiện một nhóm ngữ pháp. */
     @PostMapping("/grammar/group/toggle")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> toggleGrammarGroup(
@@ -763,6 +772,7 @@ public class ContentPortalController {
             return ResponseEntity.badRequest().body(resp);
         }
     }
+    /** POST /content/grammar/update – cập nhật mẫu ngữ pháp (giữ thứ tự và id ví dụ cũ). */
     @PostMapping("/grammar/update")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> updateGrammar(

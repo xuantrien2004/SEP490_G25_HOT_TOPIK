@@ -32,6 +32,7 @@ public class HomeController {
         model.addAttribute("totalReviews", summary.total());
     }
 
+    /** GET / – trang chủ; hiển thị đánh giá đang công khai (lọc theo số sao nếu có) và điểm trung bình đánh giá. */
     @Transactional(readOnly = true)
     @GetMapping("/")
     public String index(
@@ -57,6 +58,7 @@ public class HomeController {
         return "guest/home";
     }
 
+    /** GET /ve-topik – trang Về TOPIK, kèm danh sách đánh giá công khai và điểm trung bình. */
     @Transactional(readOnly = true) // Giữ transaction cho phép Lazy Loading User cho trang Về TOPIK
     @GetMapping({"/ve-topik", "/about-topik"})
     public String aboutTopik(Model model) {

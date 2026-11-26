@@ -44,6 +44,7 @@ public class RevenueService {
     /** Khoảng thời gian theo bộ lọc: today, 7d, 30d, month, year, custom (from/to là ngày, to tính hết ngày). */
     public record Range(String key, String label, LocalDateTime from, LocalDateTime to) {}
 
+    /** Đổi bộ lọc (today, 7d, 30d, month, year, custom) thành khoảng thời gian [from, to). */
     public Range resolveRange(String key, LocalDate from, LocalDate to) {
         LocalDate today = PaymentDateTimeUtil.now().toLocalDate();
         String k = key == null ? "30d" : key;
@@ -63,6 +64,7 @@ public class RevenueService {
         };
     }
 
+    /** Số liệu báo cáo: doanh thu mô phỏng, số giao dịch, theo gói, dữ liệu biểu đồ, giao dịch gần đây. */
     @Transactional(readOnly = true)
     public RevenueDashboardDTO getDashboard(Range range) {
         LocalDateTime now = PaymentDateTimeUtil.now();

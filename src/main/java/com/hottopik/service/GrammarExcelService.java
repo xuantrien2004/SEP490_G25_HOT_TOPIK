@@ -54,6 +54,7 @@ public class GrammarExcelService {
 
     // ======================= FILE MẪU =======================
 
+    /** Tạo file Excel mẫu (sheet NguPhap có 2 dòng ví dụ + sheet HuongDan) cho nhóm ngữ pháp được chọn. */
     @Transactional(readOnly = true)
     public byte[] buildTemplate(Integer groupId) {
         GrammarGroup group = requireGroup(groupId);
@@ -122,6 +123,7 @@ public class GrammarExcelService {
 
     // ======================= BƯỚC 1: XEM TRƯỚC =======================
 
+    /** Đọc file Excel và kiểm tra từng dòng (thiếu dữ liệu, trùng trong nhóm / trong file, sai định dạng); chưa lưu gì vào database. */
     @Transactional(readOnly = true)
     public PreviewResult preview(MultipartFile file, Integer groupId) {
         GrammarGroup group = requireGroup(groupId);

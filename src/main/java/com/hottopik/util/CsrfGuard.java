@@ -20,6 +20,7 @@ public final class CsrfGuard {
 
     private CsrfGuard() {}
 
+    /** Lấy (hoặc tạo mới) CSRF token gắn với session. */
     public static String token(HttpSession session) {
         Object existing = session.getAttribute(SESSION_KEY);
         if (existing instanceof String s) return s;
@@ -30,6 +31,7 @@ public final class CsrfGuard {
         return token;
     }
 
+    /** So sánh token gửi lên với token trong session (so sánh thời gian hằng). */
     public static boolean isValid(HttpSession session, String provided) {
         if (session == null || provided == null) return false;
         Object expected = session.getAttribute(SESSION_KEY);
@@ -37,6 +39,7 @@ public final class CsrfGuard {
                 && MessageDigest.isEqual(s.getBytes(StandardCharsets.UTF_8), provided.getBytes(StandardCharsets.UTF_8));
     }
 
+    /** Ném SecurityException nếu token không hợp lệ. */
     public static void require(HttpSession session, String provided) {
         if (!isValid(session, provided)) {
             throw new SecurityException("Phiên làm việc đã hết hạn hoặc yêu cầu không hợp lệ. Vui lòng tải lại trang và thử lại.");

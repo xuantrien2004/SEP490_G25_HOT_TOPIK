@@ -35,6 +35,7 @@ public class SubscriptionAccessService {
         this.planFeatures = planFeatures;
     }
 
+    /** Premium đang hợp lệ của học viên (ACTIVE, đã bắt đầu, chưa hết hạn), nếu có. */
     @Transactional(readOnly = true)
     public Optional<UserSubscription> getValidSubscription(Long userId) {
         if (userId == null) return Optional.empty();
@@ -53,10 +54,12 @@ public class SubscriptionAccessService {
                 s.getEndsAt()));
     }
 
+    /** Học viên có Premium hợp lệ tại thời điểm hiện tại không. */
     public boolean hasActiveSubscription(Long userId) {
         return getValidSubscription(userId).isPresent();
     }
 
+    /** Tên gọi khác của hasActiveSubscription, dùng ở các chức năng Premium. */
     public boolean isPremium(Long userId) {
         return hasActiveSubscription(userId);
     }

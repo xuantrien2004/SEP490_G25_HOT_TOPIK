@@ -40,6 +40,7 @@ public class AdminSubscriptionController {
         this.support = support;
     }
 
+    /** GET /admin/subscription-requests – danh sách yêu cầu phê duyệt gói học (mặc định: đang chờ). */
     @GetMapping("/subscription-requests")
     public String requests(@RequestParam(required = false) String status, @RequestParam(defaultValue = "0") int page,
                            HttpSession session, Model model) {
@@ -52,6 +53,7 @@ public class AdminSubscriptionController {
         return "admin/subscription-requests";
     }
 
+    /** GET /admin/subscription-requests/{id} – chi tiết yêu cầu với bảng so sánh Trước / Sau. */
     @GetMapping("/subscription-requests/{id}")
     public String requestDetail(@PathVariable Long id, HttpSession session, Model model, RedirectAttributes ra) {
         UserDTO user = support.prepare(session, model, PORTAL, "requests", "Chi tiết yêu cầu #" + id);
@@ -66,12 +68,14 @@ public class AdminSubscriptionController {
         }
     }
 
+    /** POST /admin/subscription-requests/{id}/approve – phê duyệt yêu cầu. */
     @PostMapping("/subscription-requests/{id}/approve")
     public String approve(@PathVariable Long id, @RequestParam(value = CsrfGuard.PARAM, required = false) String csrf,
                           HttpSession session, Model model, RedirectAttributes ra) {
         return decide(id, true, null, csrf, session, model, ra);
     }
 
+    /** POST /admin/subscription-requests/{id}/reject – từ chối yêu cầu (bắt buộc nhập lý do). */
     @PostMapping("/subscription-requests/{id}/reject")
     public String reject(@PathVariable Long id, @RequestParam(required = false) String note,
                          @RequestParam(value = CsrfGuard.PARAM, required = false) String csrf,
@@ -79,6 +83,7 @@ public class AdminSubscriptionController {
         return decide(id, false, note, csrf, session, model, ra);
     }
 
+    /** Xử lý chung cho duyệt / từ chối: kiểm tra CSRF rồi gọi PlanApprovalService. */
     private String decide(Long id, boolean approve, String note, String csrf, HttpSession session, Model model, RedirectAttributes ra) {
         UserDTO user = support.prepare(session, model, PORTAL, "requests", null);
         if (!CsrfGuard.isValid(session, csrf)) return OperationSubscriptionController.csrfFailed(ra, "/admin/subscription-requests/" + id);
@@ -92,6 +97,7 @@ public class AdminSubscriptionController {
         return "redirect:/admin/subscription-requests/" + id;
     }
 
+    /** GET /admin/subscriptions – xem toàn bộ gói học (chỉ xem). */
     @GetMapping("/subscriptions")
     public String plans(@RequestParam(required = false) String q, @RequestParam(required = false) String status,
                         @RequestParam(defaultValue = "0") int page, HttpSession session, Model model) {
@@ -110,6 +116,7 @@ public class AdminSubscriptionController {
         return "operation/subscriptions";
     }
 
+    /** GET /admin/subscriptions/price-history – lịch sử thay đổi giá. */
     @GetMapping("/subscriptions/price-history")
     public String priceHistory(@RequestParam(required = false) Long planId, @RequestParam(defaultValue = "0") int page,
                                HttpSession session, Model model) {
@@ -118,6 +125,7 @@ public class AdminSubscriptionController {
         return "operation/price-history";
     }
 
+    /** GET /admin/transactions – toàn bộ giao dịch Sandbox. */
     @GetMapping("/transactions")
     public String transactions(@RequestParam(required = false) String q, @RequestParam(required = false) String status,
                                @RequestParam(required = false) Long planId,
@@ -129,6 +137,7 @@ public class AdminSubscriptionController {
         return "operation/transactions";
     }
 
+    /** GET /admin/transactions/{id} – chi tiết giao dịch, có nút đối soát. */
     @GetMapping("/transactions/{id}")
     public String transactionDetail(@PathVariable Long id, HttpSession session, Model model, RedirectAttributes ra) {
         support.prepare(session, model, PORTAL, "transactions", "Chi tiết giao dịch Sandbox");
@@ -160,6 +169,7 @@ public class AdminSubscriptionController {
         return "redirect:/admin/transactions/" + id;
     }
 
+    /** GET /admin/revenue – báo cáo doanh thu thử nghiệm (Sandbox). */
     @GetMapping("/revenue")
     public String revenue(@RequestParam(required = false) String range,
                           @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
@@ -170,6 +180,7 @@ public class AdminSubscriptionController {
         return "operation/revenue";
     }
 
+    /** GET /admin/revenue/export – xuất báo cáo doanh thu Sandbox ra Excel. */
     @GetMapping("/revenue/export")
     public ResponseEntity<byte[]> exportRevenue(@RequestParam(required = false) String range,
                                                 @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,

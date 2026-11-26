@@ -51,6 +51,7 @@ public class OperationSubscriptionController {
 
     // ------------------------------------------------------------------ danh sách gói
 
+    /** GET /operation/subscriptions – danh sách gói (tìm kiếm, lọc, phân trang) và thống kê nhanh. */
     @GetMapping("/subscriptions")
     public String list(@RequestParam(required = false) String q, @RequestParam(required = false) String status,
                        @RequestParam(defaultValue = "0") int page, HttpSession session, Model model) {
@@ -65,6 +66,7 @@ public class OperationSubscriptionController {
         return "operation/subscriptions";
     }
 
+    /** GET /operation/subscriptions/create – form tạo bản nháp gói Premium. */
     @GetMapping("/subscriptions/create")
     public String createForm(HttpSession session, Model model) {
         support.prepare(session, model, PORTAL, "plans", "Tạo bản nháp gói học");
@@ -73,6 +75,7 @@ public class OperationSubscriptionController {
         return "operation/subscription-form";
     }
 
+    /** POST /operation/subscriptions/create – lưu bản nháp (chưa bán cho đến khi Admin duyệt). */
     @PostMapping("/subscriptions/create")
     public String create(@Valid @ModelAttribute("form") CreatePlanRequest form, BindingResult binding,
                          @RequestParam(value = CsrfGuard.PARAM, required = false) String csrf,
@@ -95,6 +98,7 @@ public class OperationSubscriptionController {
         }
     }
 
+    /** GET /operation/subscriptions/{id}/edit – form sửa gói. */
     @GetMapping("/subscriptions/{id}/edit")
     public String editForm(@PathVariable Long id, HttpSession session, Model model, RedirectAttributes ra) {
         support.prepare(session, model, PORTAL, "plans", "Chỉnh sửa gói học");
@@ -121,6 +125,7 @@ public class OperationSubscriptionController {
         }
     }
 
+    /** POST /operation/subscriptions/{id}/update – bản nháp lưu thẳng; gói đã duyệt thì tạo yêu cầu phê duyệt. */
     @PostMapping("/subscriptions/{id}/update")
     public String update(@PathVariable Long id, @Valid @ModelAttribute("form") UpdatePlanRequest form, BindingResult binding,
                          @RequestParam(value = CsrfGuard.PARAM, required = false) String csrf,
@@ -145,6 +150,7 @@ public class OperationSubscriptionController {
         }
     }
 
+    /** POST /operation/subscriptions/{id}/submit – gửi bản nháp cho Admin duyệt mở bán (CREATE_PLAN). */
     @PostMapping("/subscriptions/{id}/submit")
     public String submitDraft(@PathVariable Long id, @RequestParam(required = false) String reason,
                               @RequestParam(value = CsrfGuard.PARAM, required = false) String csrf,
@@ -155,6 +161,7 @@ public class OperationSubscriptionController {
         });
     }
 
+    /** POST /operation/subscriptions/{id}/change-price – đề xuất giá mới (UPDATE_PRICE), giá chính thức chưa đổi. */
     @PostMapping("/subscriptions/{id}/change-price")
     public String changePrice(@PathVariable Long id, @Valid @ModelAttribute ChangePriceRequest form, BindingResult binding,
                               @RequestParam(value = CsrfGuard.PARAM, required = false) String csrf,
@@ -169,6 +176,7 @@ public class OperationSubscriptionController {
         });
     }
 
+    /** POST /operation/subscriptions/{id}/activate – đề xuất mở bán lại gói đang tạm ngừng. */
     @PostMapping("/subscriptions/{id}/activate")
     public String activate(@PathVariable Long id, @RequestParam(required = false) String reason,
                            @RequestParam(value = CsrfGuard.PARAM, required = false) String csrf,
@@ -176,6 +184,7 @@ public class OperationSubscriptionController {
         return statusRequest(id, PlanRequestType.ACTIVATE_PLAN, reason, csrf, session, model, ra);
     }
 
+    /** POST /operation/subscriptions/{id}/deactivate – đề xuất ngừng bán gói. */
     @PostMapping("/subscriptions/{id}/deactivate")
     public String deactivate(@PathVariable Long id, @RequestParam(required = false) String reason,
                              @RequestParam(value = CsrfGuard.PARAM, required = false) String csrf,
@@ -183,6 +192,7 @@ public class OperationSubscriptionController {
         return statusRequest(id, PlanRequestType.DEACTIVATE_PLAN, reason, csrf, session, model, ra);
     }
 
+    /** POST /operation/subscriptions/{id}/archive – đề xuất lưu trữ (ngừng kinh doanh) gói. */
     @PostMapping("/subscriptions/{id}/archive")
     public String archive(@PathVariable Long id, @RequestParam(required = false) String reason,
                           @RequestParam(value = CsrfGuard.PARAM, required = false) String csrf,
@@ -198,6 +208,7 @@ public class OperationSubscriptionController {
         });
     }
 
+    /** GET /operation/subscriptions/{id}/price-history – lịch sử giá của một gói. */
     @GetMapping("/subscriptions/{id}/price-history")
     public String priceHistory(@PathVariable Long id, @RequestParam(defaultValue = "0") int page, HttpSession session, Model model) {
         support.prepare(session, model, PORTAL, "priceHistory", "Lịch sử thay đổi giá");
@@ -205,6 +216,7 @@ public class OperationSubscriptionController {
         return "operation/price-history";
     }
 
+    /** GET /operation/subscriptions/price-history – lịch sử giá của tất cả gói. */
     @GetMapping("/subscriptions/price-history")
     public String allPriceHistory(@RequestParam(required = false) Long planId, @RequestParam(defaultValue = "0") int page,
                                   HttpSession session, Model model) {
@@ -215,6 +227,7 @@ public class OperationSubscriptionController {
 
     // ------------------------------------------------------------------ yêu cầu đã gửi
 
+    /** GET /operation/subscriptions/requests – các yêu cầu đã gửi, kết quả và lý do từ chối. */
     @GetMapping("/subscriptions/requests")
     public String requests(@RequestParam(required = false) String status, @RequestParam(defaultValue = "false") boolean mine,
                            @RequestParam(defaultValue = "0") int page, HttpSession session, Model model) {
@@ -227,6 +240,7 @@ public class OperationSubscriptionController {
         return "operation/subscription-requests";
     }
 
+    /** POST /operation/subscriptions/requests/{id}/cancel – người gửi hủy yêu cầu đang chờ duyệt. */
     @PostMapping("/subscriptions/requests/{id}/cancel")
     public String cancelRequest(@PathVariable Long id, @RequestParam(value = CsrfGuard.PARAM, required = false) String csrf,
                                 HttpSession session, Model model, RedirectAttributes ra) {
@@ -242,6 +256,7 @@ public class OperationSubscriptionController {
 
     // ------------------------------------------------------------------ giao dịch, Premium, doanh thu
 
+    /** GET /operation/transactions – danh sách giao dịch Sandbox (tìm kiếm, lọc, phân trang). */
     @GetMapping("/transactions")
     public String transactions(@RequestParam(required = false) String q, @RequestParam(required = false) String status,
                                @RequestParam(required = false) Long planId,
@@ -253,6 +268,7 @@ public class OperationSubscriptionController {
         return "operation/transactions";
     }
 
+    /** GET /operation/transactions/{id} – chi tiết giao dịch và nhật ký callback. */
     @GetMapping("/transactions/{id}")
     public String transactionDetail(@PathVariable Long id, HttpSession session, Model model, RedirectAttributes ra) {
         support.prepare(session, model, PORTAL, "transactions", "Chi tiết giao dịch Sandbox");
@@ -263,6 +279,7 @@ public class OperationSubscriptionController {
         return "operation/transaction-detail";
     }
 
+    /** GET /operation/premium-users – học viên đang dùng Premium. */
     @GetMapping("/premium-users")
     public String premiumUsers(@RequestParam(defaultValue = "0") int page, HttpSession session, Model model) {
         support.prepare(session, model, PORTAL, "premiumUsers", "Học viên Premium");
@@ -270,6 +287,7 @@ public class OperationSubscriptionController {
         return "operation/premium-users";
     }
 
+    /** GET /operation/revenue – báo cáo doanh thu thử nghiệm (Sandbox). */
     @GetMapping("/revenue")
     public String revenue(@RequestParam(required = false) String range,
                           @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
@@ -280,6 +298,7 @@ public class OperationSubscriptionController {
         return "operation/revenue";
     }
 
+    /** GET /operation/revenue/export – xuất báo cáo doanh thu Sandbox ra Excel. */
     @GetMapping("/revenue/export")
     public ResponseEntity<byte[]> exportRevenue(@RequestParam(required = false) String range,
                                                 @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
@@ -289,10 +308,12 @@ public class OperationSubscriptionController {
 
     // ------------------------------------------------------------------ helpers
 
+    /** Người thực hiện thao tác, lấy từ session. */
     private BillingActor actor(HttpSession session, Model model) {
         return BillingActor.of(support.prepare(session, model, PORTAL, "plans", null));
     }
 
+    /** Chạy một thao tác gửi yêu cầu: kiểm tra CSRF, gắn thông báo thành công / lỗi rồi quay về danh sách gói. */
     private String act(HttpSession session, Model model, RedirectAttributes ra, String csrf, Supplier<String> action) {
         if (!CsrfGuard.isValid(session, csrf)) return csrfFailed(ra, "/operation/subscriptions");
         try {
@@ -303,6 +324,7 @@ public class OperationSubscriptionController {
         return "redirect:/operation/subscriptions";
     }
 
+    /** Đổi exception thành thông báo dễ hiểu cho người dùng (không lộ stack trace). */
     static String friendly(RuntimeException e) {
         if (e instanceof DataIntegrityViolationException) {
             return "Gói này đang có yêu cầu chờ phê duyệt hoặc dữ liệu bị trùng. Vui lòng tải lại trang.";

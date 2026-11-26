@@ -58,8 +58,10 @@ public class PaymentProperties {
     @Value("${VNPAY_ACCEPT_SIGNED_RETURN:false}")
     private boolean acceptSignedReturn;
 
+    /** true = cho phép xác nhận bằng Return URL có chữ ký (chỉ dùng demo Sandbox). */
     public boolean isAcceptSignedReturn() { return acceptSignedReturn; }
 
+    /** Đã khai báo đủ TMN Code và Hash Secret chưa. */
     public boolean isConfigured() {
         return !isBlank(tmnCode) && !isBlank(hashSecret);
     }

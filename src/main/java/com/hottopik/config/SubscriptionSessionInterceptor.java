@@ -34,6 +34,7 @@ public class SubscriptionSessionInterceptor implements HandlerInterceptor {
     /** Đánh dấu cờ VIP trong session đang do module gói học quản lý (đã từng khớp với subscription trong DB). */
     static final String SYNCED_KEY = "PREMIUM_SYNCED_FROM_SUBSCRIPTION";
 
+    /** Trước mỗi request của học viên: cập nhật cờ Premium trong session theo database. */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         HttpSession session = request.getSession(false);

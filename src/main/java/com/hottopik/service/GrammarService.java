@@ -17,6 +17,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.hottopik.service.VocabularySyncService;
 
+/** Nghiệp vụ ngữ pháp: thêm / sửa / ẩn / xóa mẫu ngữ pháp (kèm ví dụ) và truy vấn cho trang lý thuyết của học viên. */
 @Service
 public class GrammarService {
 
@@ -473,6 +474,7 @@ public class GrammarService {
                 .filter(g -> g.getGrammarGroup() != null && "ACTIVE".equalsIgnoreCase(g.getGrammarGroup().getStatus()));
     }
 
+    /** Ngữ pháp đang hiển thị theo cấp TOPIK (dùng cho trang lý thuyết). */
     @Transactional(readOnly = true)
     public List<Grammar> getActiveGrammarsByLevel(Short level) {
         return grammarRepository.findActiveByLevelAndStatus(level, "ACTIVE");
