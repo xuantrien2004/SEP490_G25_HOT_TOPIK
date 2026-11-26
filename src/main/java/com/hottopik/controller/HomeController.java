@@ -24,6 +24,9 @@ public class HomeController {
     @Autowired
     private ReviewService reviewService;
 
+    @Autowired(required = false)
+    private com.hottopik.service.subscription.SubscriptionPlanService planService;
+
     // Danh sách bình luận chỉ gồm review đang hiển thị, nhưng điểm trung bình + tổng số tính trên TẤT CẢ review
     // (kể cả review bị ẩn) và không phụ thuộc bộ lọc sao, để ẩn review không làm điểm trung bình đẹp hơn.
     private void addRatingSummary(Model model) {
@@ -52,6 +55,16 @@ public class HomeController {
         model.addAttribute("approvedReviews", approvedReviews);
         model.addAttribute("selectedRating", rating);
         addRatingSummary(model);
+
+        try {
+            if (planService != null) {
+                var activePlans = planService.getActivePlans();
+                var vipPlans = activePlans.stream()
+                        .filter(com.hottopik.dto.subscription.SubscriptionPlanDTO::isPremium)
+                        .toList();
+                model.addAttribute("vipPlans", vipPlans);
+            }
+        } catch (Exception ignored) {}
 
         model.addAttribute("pageTitle", "HOT TOPIK — Nền tảng luyện thi TOPIK chuẩn Hàn Quốc");
         model.addAttribute("activePage", "home");

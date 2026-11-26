@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
 <body style="background: #F8F6EF; color: #24363D; font-family: 'Nunito','Be Vietnam Pro','Noto Sans KR',sans-serif; margin: 0; padding: 0;">
@@ -202,45 +202,57 @@
                             <!-- So sánh điểm số: Trước -> Sau -->
                             <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.35fr); gap: 14px; align-items: stretch;">
                                 <!-- Trước khi khiếu nại -->
-                                <div style="padding: 14px 16px; border-radius: 14px; background: #F8F6EF; border: 1.5px solid #E6E1D3;">
-                                    <div style="font-size: 11px; font-weight: 800; color: #5C6E72; text-transform: uppercase; letter-spacing: .4px;">
-                                        Điểm ban đầu
+                                <div style="padding: 16px 18px; border-radius: 16px; background: #F8F6EF; border: 1.5px solid #E6E1D3; display: flex; flex-direction: column; justify-content: space-between; gap: 12px;">
+                                    <div>
+                                        <div style="font-size: 11px; font-weight: 800; color: #5C6E72; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px;">
+                                            📋 Điểm ban đầu
+                                        </div>
+                                        <div style="display: flex; align-items: baseline; gap: 6px;">
+                                            <span style="font-family: var(--font-heading); font-size: 36px; font-weight: 800; color: #5C6E72;" th:text="${sub.originalScore != null ? sub.originalScore : sub.totalScore}">25</span>
+                                            <span style="font-size: 14px; font-weight: 700; color: #9BA8AB;" th:text="${'/ ' + sub.maxScore + ' điểm'}">/ 30 điểm</span>
+                                        </div>
                                     </div>
-                                    <div style="display: flex; align-items: baseline; gap: 6px; margin: 4px 0 8px;">
-                                        <span style="font-size: 32px; font-weight: 800; color: #5C6E72;" th:text="${sub.originalScore != null ? sub.originalScore : sub.totalScore}">25</span>
-                                        <span style="font-size: 14px; font-weight: 700; color: #9BA8AB;" th:text="${'/ ' + sub.maxScore + ' điểm'}">/ 30 điểm</span>
-                                    </div>
-                                    <div class="writing-break-text" style="font-size: 12.5px; color: #5C6E72; line-height: 1.5;">
-                                        <b>Nhận xét cũ:</b> <span th:text="${sub.originalFeedback}">Nhận xét ban đầu...</span>
+                                    <div style="background: #FFFFFF; border-radius: 12px; padding: 12px 14px; border: 1px solid #E2E8F0; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                                        <span style="font-size: 11px; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: .4px;">💬 Nhận xét cũ:</span>
+                                        <div class="writing-break-text" style="font-size: 13.5px; color: #475569; line-height: 1.6;" th:text="${sub.originalFeedback}">
+                                            Nhận xét ban đầu...
+                                        </div>
                                     </div>
                                 </div>
 
                                 <!-- Mũi tên -->
-                                <div style="display: flex; align-items: center; justify-content: center; font-size: 24px; color: #B0A898;">
-                                    ➔
+                                <div style="display: flex; align-items: center; justify-content: center;">
+                                    <div style="width: 38px; height: 38px; border-radius: 50%; background: #EFECE3; color: #5C6E72; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; box-shadow: 0 2px 6px rgba(0,0,0,0.05); border: 1px solid #D8D1C2;">
+                                        ➔
+                                    </div>
                                 </div>
 
                                 <!-- Sau khi xử lý -->
-                                <div style="padding: 14px 16px; border-radius: 14px; background: #E3F2EA; border: 2px solid #A7D7BE;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <span style="font-size: 11px; font-weight: 800; color: #1F6B56; text-transform: uppercase; letter-spacing: .4px;">
-                                            Sau khi xử lý khiếu nại
-                                        </span>
-                                        <span th:if="${sub.totalScore != null and sub.originalScore != null and sub.totalScore > sub.originalScore}"
-                                              style="font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 5px; background: #2E7D67; color: #fff;"
-                                              th:text="${'+' + (sub.totalScore - sub.originalScore) + ' điểm'}">+2</span>
-                                        <span th:if="${sub.totalScore != null and sub.originalScore != null and sub.totalScore < sub.originalScore}"
-                                              style="font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 5px; background: #CF1322; color: #fff;"
-                                              th:text="${(sub.totalScore - sub.originalScore) + ' điểm'}">-1</span>
-                                        <span th:if="${sub.totalScore != null and sub.originalScore != null and sub.totalScore == sub.originalScore}"
-                                              style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 5px; background: #ECE7DA; color: #5C6E72;">Giữ nguyên điểm</span>
+                                <div style="padding: 16px 18px; border-radius: 16px; background: #E3F2EA; border: 2px solid #A7D7BE; display: flex; flex-direction: column; justify-content: space-between; gap: 12px;">
+                                    <div>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                            <span style="font-size: 11px; font-weight: 800; color: #1F6B56; text-transform: uppercase; letter-spacing: .5px;">
+                                                ⚖️ Sau khi xử lý khiếu nại
+                                            </span>
+                                            <span th:if="${sub.totalScore != null and sub.originalScore != null and sub.totalScore > sub.originalScore}"
+                                                  style="font-size: 11.5px; font-weight: 800; padding: 3px 9px; border-radius: 6px; background: #2E7D67; color: #fff; box-shadow: 0 1px 3px rgba(46,125,103,0.2);"
+                                                  th:text="${'+' + (sub.totalScore - sub.originalScore) + ' điểm'}">+2 điểm</span>
+                                            <span th:if="${sub.totalScore != null and sub.originalScore != null and sub.totalScore < sub.originalScore}"
+                                                  style="font-size: 11.5px; font-weight: 800; padding: 3px 9px; border-radius: 6px; background: #CF1322; color: #fff; box-shadow: 0 1px 3px rgba(207,19,34,0.2);"
+                                                  th:text="${(sub.totalScore - sub.originalScore) + ' điểm'}">-15 điểm</span>
+                                            <span th:if="${sub.totalScore != null and sub.originalScore != null and sub.totalScore == sub.originalScore}"
+                                                  style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 6px; background: #ECE7DA; color: #5C6E72;">Giữ nguyên điểm</span>
+                                        </div>
+                                        <div style="display: flex; align-items: baseline; gap: 6px;">
+                                            <span style="font-family: var(--font-heading); font-size: 36px; font-weight: 800; color: #1F6B56;" th:text="${sub.totalScore}">27</span>
+                                            <span style="font-size: 14px; font-weight: 700; color: #1F6B56;" th:text="${'/ ' + sub.maxScore + ' điểm'}">/ 30 điểm</span>
+                                        </div>
                                     </div>
-                                    <div style="display: flex; align-items: baseline; gap: 6px; margin: 4px 0 8px;">
-                                        <span style="font-size: 32px; font-weight: 800; color: #1F6B56;" th:text="${sub.totalScore}">27</span>
-                                        <span style="font-size: 14px; font-weight: 700; color: #5C6E72;" th:text="${'/ ' + sub.maxScore + ' điểm'}">/ 30 điểm</span>
-                                    </div>
-                                    <div class="writing-break-text" style="font-size: 12.5px; color: #1F6B56; line-height: 1.5;">
-                                        <b>Nhận xét mới:</b> <span th:text="${sub.overallFeedback}">Nhận xét sau khiếu nại...</span>
+                                    <div style="background: #FFFFFF; border-radius: 12px; padding: 12px 14px; border: 1.5px solid #A7D7BE; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 1px 4px rgba(31,107,86,0.06);">
+                                        <span style="font-size: 11px; font-weight: 800; color: #1F6B56; text-transform: uppercase; letter-spacing: .4px;">✨ Nhận xét mới:</span>
+                                        <div class="writing-break-text" style="font-size: 13.5px; font-weight: 600; color: #164E40; line-height: 1.6;" th:text="${sub.overallFeedback}">
+                                            Nhận xét sau khiếu nại...
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -384,11 +396,14 @@
                                 </div>
 
                                 <!-- Nhận xét của giáo viên -->
-                                <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 1px solid #EEE9DD;">
-                                    <span style="font-size: 12px; font-weight: 800; color: #5C6E72; letter-spacing: .4px; text-transform: uppercase;">
-                                        💬 NHẬN XÉT CỦA GIÁO VIÊN
-                                    </span>
-                                    <div class="writing-break-text" style="padding: 12px 14px; border-radius: 12px; background: #F8F6EF; font-size: 14px; line-height: 1.6; color: #24363D;" 
+                                <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 14px; border-top: 1px solid #EEE9DD;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span style="font-size: 18px;">👩‍🏫</span>
+                                        <span style="font-size: 12px; font-weight: 800; color: #2E7D67; letter-spacing: .4px; text-transform: uppercase;">
+                                            NHẬN XÉT CỦA GIÁO VIÊN
+                                        </span>
+                                    </div>
+                                    <div class="writing-break-text" style="padding: 16px 18px; border-radius: 14px; background: #FAF9F5; border: 1.5px solid #E6E1D3; border-left: 5px solid #2E7D67; font-size: 14.5px; line-height: 1.7; color: #24363D; box-shadow: 0 2px 8px rgba(0,0,0,0.03);" 
                                          th:text="${sub.overallFeedback != null and !sub.overallFeedback.isEmpty() ? sub.overallFeedback : '(Chưa có nhận xét)'}">
                                         Bài viết làm rất tốt...
                                     </div>

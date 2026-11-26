@@ -8,7 +8,7 @@
     <main class="bl-main">
         <div class="bl-crumb"><a th:href="@{'/' + ${portal} + '/subscriptions'}">Gói học</a> › Lịch sử thay đổi giá</div>
         <h1 class="bl-title">Lịch sử thay đổi giá</h1>
-        <p class="bl-subtitle">Chỉ ghi nhận khi Admin phê duyệt. Lịch sử giá không thể chỉnh sửa hoặc xóa.</p>
+        <p class="bl-subtitle">Ghi nhận lịch sử các lần thay đổi giá gói học của Operation Manager. Lịch sử giá không thể chỉnh sửa hoặc xóa.</p>
 
         <form method="get" th:action="@{'/' + ${portal} + '/subscriptions/price-history'}" class="bl-filter" style="margin-top:14px;">
             <div>
@@ -22,7 +22,7 @@
         </form>
 
         <div class="bl-card bl-table-wrap" style="padding:0;">
-            <div th:if="${history.empty}" class="bl-empty"><span class="icon">🕘</span>Chưa có thay đổi giá nào được phê duyệt.</div>
+            <div th:if="${history.empty}" class="bl-empty"><span class="icon">🕘</span>Chưa có thay đổi giá nào được ghi nhận.</div>
             <table class="bl-table" th:unless="${history.empty}">
                 <thead><tr><th>ID</th><th>Gói học</th><th>Giá cũ</th><th>Giá mới</th><th>Lý do</th><th>Người gửi</th><th>Người duyệt</th><th>Yêu cầu</th><th>Gửi lúc</th><th>Duyệt lúc</th><th>Hiệu lực</th></tr></thead>
                 <tbody>

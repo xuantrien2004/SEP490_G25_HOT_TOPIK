@@ -31,58 +31,72 @@
     </div>
 
     <!-- So sánh điểm: Trước / Sau -->
-    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;">
+    <div style="display:grid;grid-template-columns:1fr auto 1.35fr;gap:14px;align-items:stretch;">
 
         <!-- Trước khi khiếu nại -->
-        <div style="padding:16px 18px;border-radius:16px;background:#F8F6EF;border:2px solid #E6E1D3;">
-            <div style="font-size:11px;font-weight:800;color:#5C6E72;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Trước khi khiếu nại</div>
-            <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:10px;">
-                <span style="font-size:36px;font-weight:800;color:#5C6E72;" th:text="${s.originalScore}">25</span>
-                <span style="font-size:16px;font-weight:700;color:#9BA8AB;" th:text="${'/ ' + s.maxScore + ' điểm'}">/ 30 điểm</span>
+        <div style="padding:16px 18px;border-radius:16px;background:#F8F6EF;border:1.5px solid #E6E1D3;display:flex;flex-direction:column;justify-content:space-between;gap:12px;">
+            <div>
+                <div style="font-size:11px;font-weight:800;color:#5C6E72;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">📋 Điểm ban đầu</div>
+                <div style="display:flex;align-items:baseline;gap:6px;">
+                    <span style="font-family:var(--font-heading);font-size:36px;font-weight:800;color:#5C6E72;" th:text="${s.originalScore}">25</span>
+                    <span style="font-size:14px;font-weight:700;color:#9BA8AB;" th:text="${'/ ' + s.maxScore + ' điểm'}">/ 30 điểm</span>
+                </div>
             </div>
-            <p style="margin:0;font-size:13px;color:#5C6E72;line-height:1.6;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;" th:text="${s.originalFeedback}">Nhận xét cũ...</p>
+            <div style="background:#FFFFFF;border-radius:12px;padding:12px 14px;border:1px solid #E2E8F0;display:flex;flex-direction:column;gap:4px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+                <span style="font-size:11px;font-weight:800;color:#64748B;text-transform:uppercase;letter-spacing:.4px;">💬 Nhận xét cũ:</span>
+                <p style="margin:0;font-size:13.5px;color:#475569;line-height:1.6;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;" th:text="${s.originalFeedback}">Nhận xét cũ...</p>
+            </div>
         </div>
 
         <!-- Mũi tên -->
-        <div style="text-align:center;font-size:22px;color:#B0A898;">→</div>
+        <div style="display:flex;align-items:center;justify-content:center;">
+            <div style="width:38px;height:38px;border-radius:50%;background:#EFECE3;color:#5C6E72;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,0.05);border:1px solid #D8D1C2;">➔</div>
+        </div>
 
         <!-- Sau khi xử lý -->
         <div th:if="${s.appealResolved}"
              th:style="${s.totalScore != null and s.originalScore != null and s.totalScore > s.originalScore}
-                       ? 'padding:16px 18px;border-radius:16px;background:#E3F2EA;border:2px solid #A7D7BE;'
+                       ? 'padding:16px 18px;border-radius:16px;background:#E3F2EA;border:2px solid #A7D7BE;display:flex;flex-direction:column;justify-content:space-between;gap:12px;'
                        : (s.totalScore != null and s.originalScore != null and s.totalScore < s.originalScore
-                          ? 'padding:16px 18px;border-radius:16px;background:#FFF1F0;border:2px solid #FFA39E;'
-                          : 'padding:16px 18px;border-radius:16px;background:#F8F6EF;border:2px solid #E6E1D3;')">
-            <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;"
-                 th:style="${s.totalScore != null and s.originalScore != null and s.totalScore > s.originalScore}
-                           ? 'color:#1F6B56;'
-                           : (s.totalScore != null and s.originalScore != null and s.totalScore < s.originalScore
-                              ? 'color:#CF1322;' : 'color:#5C6E72;')">
-                Sau khi xử lý khiếu nại
-            </div>
+                          ? 'padding:16px 18px;border-radius:16px;background:#FFF1F0;border:2px solid #FFA39E;display:flex;flex-direction:column;justify-content:space-between;gap:12px;'
+                          : 'padding:16px 18px;border-radius:16px;background:#F8F6EF;border:2px solid #E6E1D3;display:flex;flex-direction:column;justify-content:space-between;gap:12px;')">
+            <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;"
+                          th:style="${s.totalScore != null and s.originalScore != null and s.totalScore > s.originalScore}
+                                    ? 'color:#1F6B56;'
+                                    : (s.totalScore != null and s.originalScore != null and s.totalScore < s.originalScore
+                                       ? 'color:#CF1322;' : 'color:#5C6E72;')">
+                        ⚖️ Sau khi xử lý khiếu nại
+                    </span>
+                    <!-- Badge chênh lệch -->
+                    <span th:if="${s.totalScore != null and s.originalScore != null and s.totalScore > s.originalScore}"
+                          style="font-size:11.5px;font-weight:800;padding:3px 9px;border-radius:6px;background:#2E7D67;color:#fff;box-shadow:0 1px 3px rgba(46,125,103,0.2);"
+                          th:text="${'+' + (s.totalScore - s.originalScore) + ' điểm'}">+2 điểm</span>
+                    <span th:if="${s.totalScore != null and s.originalScore != null and s.totalScore < s.originalScore}"
+                          style="font-size:11.5px;font-weight:800;padding:3px 9px;border-radius:6px;background:#CF1322;color:#fff;box-shadow:0 1px 3px rgba(207,19,34,0.2);"
+                          th:text="${(s.totalScore - s.originalScore) + ' điểm'}">-1 điểm</span>
+                    <span th:if="${s.totalScore != null and s.originalScore != null and s.totalScore == s.originalScore}"
+                          style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;background:#ECE7DA;color:#5C6E72;">Giữ nguyên điểm</span>
+                </div>
 
-            <!-- Điểm mới + chênh lệch -->
-            <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px;">
-                <span style="font-size:36px;font-weight:800;"
-                      th:style="${s.totalScore != null and s.originalScore != null and s.totalScore > s.originalScore}
-                                ? 'color:#1F6B56;' : (s.totalScore != null and s.originalScore != null and s.totalScore < s.originalScore ? 'color:#CF1322;' : 'color:#5C6E72;')"
-                      th:text="${s.totalScore}">27</span>
-                <span style="font-size:16px;font-weight:700;color:#9BA8AB;" th:text="${'/ ' + s.maxScore + ' điểm'}">/ 30 điểm</span>
-                <!-- Badge chênh lệch -->
-                <span th:if="${s.totalScore != null and s.originalScore != null and s.totalScore > s.originalScore}"
-                      style="font-size:12px;font-weight:800;padding:2px 8px;border-radius:6px;background:#2E7D67;color:#fff;"
-                      th:text="${'+' + (s.totalScore - s.originalScore)}">+2</span>
-                <span th:if="${s.totalScore != null and s.originalScore != null and s.totalScore < s.originalScore}"
-                      style="font-size:12px;font-weight:800;padding:2px 8px;border-radius:6px;background:#CF1322;color:#fff;"
-                      th:text="${(s.totalScore - s.originalScore)}">-1</span>
-                <span th:if="${s.totalScore != null and s.originalScore != null and s.totalScore == s.originalScore}"
-                      style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px;background:#ECE7DA;color:#5C6E72;">Giữ nguyên</span>
+                <!-- Điểm mới + chênh lệch -->
+                <div style="display:flex;align-items:baseline;gap:6px;">
+                    <span style="font-family:var(--font-heading);font-size:36px;font-weight:800;"
+                          th:style="${s.totalScore != null and s.originalScore != null and s.totalScore > s.originalScore}
+                                    ? 'color:#1F6B56;' : (s.totalScore != null and s.originalScore != null and s.totalScore < s.originalScore ? 'color:#CF1322;' : 'color:#5C6E72;')"
+                          th:text="${s.totalScore}">27</span>
+                    <span style="font-size:14px;font-weight:700;color:#9BA8AB;" th:text="${'/ ' + s.maxScore + ' điểm'}">/ 30 điểm</span>
+                </div>
             </div>
 
             <!-- Nhận xét mới -->
-            <p style="margin:0 0 8px;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;"
-               th:style="${s.totalScore != null and s.originalScore != null and s.totalScore > s.originalScore} ? 'color:#1F6B56;' : 'color:#5C6E72;'"
-               th:text="${s.overallFeedback}">Nhận xét sau khiếu nại...</p>
+            <div style="background:#FFFFFF;border-radius:12px;padding:12px 14px;border:1.5px solid #A7D7BE;display:flex;flex-direction:column;gap:4px;box-shadow:0 1px 4px rgba(31,107,86,0.06);">
+                <span style="font-size:11px;font-weight:800;color:#1F6B56;text-transform:uppercase;letter-spacing:.4px;">✨ Nhận xét mới:</span>
+                <p style="margin:0;font-size:13.5px;font-weight:600;line-height:1.6;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;"
+                   th:style="${s.totalScore != null and s.originalScore != null and s.totalScore > s.originalScore} ? 'color:#164E40;' : 'color:#5C6E72;'"
+                   th:text="${s.overallFeedback}">Nhận xét sau khiếu nại...</p>
+            </div>
 
             <!-- Lời nhắn GV nếu có -->
             <div th:if="${s.appealMessage != null and !#strings.isEmpty(s.appealMessage)}"

@@ -34,7 +34,6 @@
         <a class="item" th:href="@{/operation}">📊 Tổng quan</a>
         <a class="item" th:href="@{/operation(tab='users')}">👥 Quản lý Học viên</a>
         <a class="item" th:href="@{/operation(tab='orders')}">💳 Đơn hàng &amp; Hoàn tiền</a>
-        <a class="item" th:href="@{/operation(tab='prices')}">🏷️ Bảng giá gói VIP</a>
         <a class="item" th:href="@{/operation(tab='compensation')}">🎁 Cấp bù &amp; Gia hạn VIP</a>
         <a class="item" th:href="@{/operation(tab='reviews')}">⭐ Duyệt Đánh giá &amp; Review</a>
         <a class="item" th:href="@{/operation(tab='announcements')}">📢 Phát Thông báo</a>
@@ -46,29 +45,19 @@
         <a class="item" th:href="@{/admin(tab='audit')}">📋 Nhật ký Kiểm toán</a>
     </th:block>
 
-    <!-- Nhóm Gói học & Thanh toán: đang ở trang con nên mở sẵn -->
-    <details class="group" open>
+    <!-- Nhóm Gói học & Thanh toán: chỉ hiển thị cho Operation Manager -->
+    <details class="group" th:if="${portal == 'operation'}" open>
         <summary class="item group-head">📦 Gói học &amp; Thanh toán <span class="sandbox">Sandbox</span></summary>
-        <div class="sub" th:if="${portal == 'operation'}">
+        <div class="sub">
             <a th:href="@{/operation/subscriptions}" th:classappend="${activeMenu == 'plans'} ? 'active'">Quản lý gói học</a>
-            <a th:href="@{/operation/subscriptions/requests}" th:classappend="${activeMenu == 'requests'} ? 'active'">Yêu cầu phê duyệt</a>
             <a th:href="@{/operation/subscriptions/price-history}" th:classappend="${activeMenu == 'priceHistory'} ? 'active'">Lịch sử giá</a>
             <a th:href="@{/operation/transactions}" th:classappend="${activeMenu == 'transactions'} ? 'active'">Giao dịch Sandbox</a>
             <a th:href="@{/operation/premium-users}" th:classappend="${activeMenu == 'premiumUsers'} ? 'active'">Học viên Premium</a>
             <a th:href="@{/operation/revenue}" th:classappend="${activeMenu == 'revenue'} ? 'active'">Doanh thu Sandbox</a>
         </div>
-        <div class="sub" th:if="${portal == 'admin'}">
-            <a th:href="@{/admin/subscription-requests}" th:classappend="${activeMenu == 'requests'} ? 'active'">Phê duyệt gói học</a>
-            <a th:href="@{/admin/subscriptions}" th:classappend="${activeMenu == 'plans'} ? 'active'">Danh sách gói học</a>
-            <a th:href="@{/admin/subscriptions/price-history}" th:classappend="${activeMenu == 'priceHistory'} ? 'active'">Lịch sử giá</a>
-            <a th:href="@{/admin/transactions}" th:classappend="${activeMenu == 'transactions'} ? 'active'">Giao dịch Sandbox</a>
-            <a th:href="@{/admin/revenue}" th:classappend="${activeMenu == 'revenue'} ? 'active'">Doanh thu Sandbox</a>
-        </div>
     </details>
 
     <div class="bottom">
-        <a th:if="${portal == 'admin'}" th:href="@{/operation}">💼 Cổng Vận hành</a>
-        <a th:href="@{/today}">🎓 Xem Cổng Học viên</a>
         <a th:href="@{/logout}" class="logout">🚪 Đăng xuất hệ thống</a>
     </div>
 </aside>

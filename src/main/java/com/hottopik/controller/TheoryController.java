@@ -85,7 +85,7 @@ public class TheoryController {
         if (tab == null && request != null && request.getRequestURI() != null && request.getRequestURI().endsWith("/ngu-phap")) {
             tab = "grammar";
         }
-        model.addAttribute("pageTitle", "Lý thuyết · Từ vựng, Ngữ pháp, Hán Việt, Đặc thù");
+        model.addAttribute("pageTitle", "Lý thuyết · Từ vựng, Ngữ pháp, Hán Việt");
         model.addAttribute("activePage", "theory");
         model.addAttribute("currentTab", tab != null ? tab : "vocab");
         model.addAttribute("selectedLevel", level);
@@ -230,10 +230,8 @@ public class TheoryController {
     }
 
     @GetMapping({"/ly-thuyet/dac-thu", "/theory/special"})
-    public String special(Model model) {
-        model.addAttribute("pageTitle", "Đặc thù tiếng Hàn");
-        model.addAttribute("activePage", "theory");
-        return "theory/special";
+    public String special() {
+        return "redirect:/ly-thuyet";
     }
 
     /** GET /theory/grammar – trang chi tiết một mẫu ngữ pháp (chỉ ngữ pháp và nhóm đang hiển thị), kèm nút lưu ⭐. */

@@ -59,12 +59,15 @@ public class SubscriptionController {
     @GetMapping("/plans")
     public String plans(HttpSession session, Model model) {
         UserDTO user = AuthHelper.getLoggedInUser(session);
+        if (user == null) {
+            return "redirect:/login";
+        }
         var all = planService.getActivePlans();
         model.addAttribute("pageTitle", "Gói học Premium");
         model.addAttribute("freePlan", all.stream().filter(p -> !p.isPremium()).findFirst().orElse(null));
         model.addAttribute("premiumPlans", all.stream().filter(SubscriptionPlanDTO::isPremium).toList());
         model.addAttribute("features", planService.getActiveFeatures());
-        if (user != null && user.isStudent()) {
+        if (user.isStudent()) {
             model.addAttribute("currentSub", userSubscriptionService.getCurrentSubscription(user.getId()));
         }
         return "subscription/plans";
@@ -73,12 +76,15 @@ public class SubscriptionController {
     /** GET /subscription/plans/{id} – chi tiết một gói đang bán. */
     @GetMapping("/plans/{id}")
     public String planDetail(@PathVariable Long id, HttpSession session, Model model, RedirectAttributes ra) {
+        UserDTO user = AuthHelper.getLoggedInUser(session);
+        if (user == null) {
+            return "redirect:/login";
+        }
         try {
             SubscriptionPlanDTO plan = planService.getPlanDetail(id);
-            UserDTO user = AuthHelper.getLoggedInUser(session);
             model.addAttribute("pageTitle", plan.name());
             model.addAttribute("plan", plan);
-            if (user != null && user.isStudent()) {
+            if (user.isStudent()) {
                 model.addAttribute("currentSub", userSubscriptionService.getCurrentSubscription(user.getId()));
             }
             return "subscription/plan-detail";

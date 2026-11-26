@@ -22,8 +22,8 @@
         </div>
     </div>
 
-    <!-- 4 EQUAL TABS: Từ vựng | Ngữ pháp | Cầu nối Hán Việt | Đặc thù tiếng Hàn -->
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+    <!-- 3 EQUAL TABS: Từ vựng | Ngữ pháp | Cầu nối Hán Việt -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
         
         <!-- Tab 1: Từ vựng (Active in image 4 & 5) -->
         <div id="tab-vocab" class="theory-main-tab" th:classappend="${currentTab == 'vocab'} ? ' active' : ''" onclick="switchTheoryCategory('vocab')">
@@ -55,17 +55,6 @@
             <div>
                 <span class="theory-tab-title">Cầu nối Hán Việt</span>
                 <span class="theory-tab-sub">Gốc chữ Hán</span>
-            </div>
-        </a>
-
-        <!-- Tab 4: Đặc thù tiếng Hàn -->
-        <a th:href="@{/ly-thuyet/dac-thu}" id="tab-special" class="theory-main-tab" style="text-decoration: none;">
-            <div class="theory-tab-icon" style="background: #FEF9E7; color: #B7791F;">
-                한
-            </div>
-            <div>
-                <span class="theory-tab-title">Đặc thù tiếng Hàn</span>
-                <span class="theory-tab-sub">Biến âm, ngữ pháp dễ nhầm</span>
             </div>
         </a>
 
@@ -327,21 +316,9 @@ const hanjaRootsData = [
     { char: '動', name: 'Gốc ĐỘNG (동) · Hoạt động, động tác', count: '11 từ', percent: 30 }
 ];
 
-// Special Korean Nuances data
-const specialData = [
-    { char: '音', name: 'Biến âm & chép chính tả (12 quy tắc)', count: '12 câu', percent: 40 },
-    { char: '聲', name: 'Phụ âm thường / bật hơi / căng (ㄱ-ㅋ-ㄲ)', count: '10 câu', percent: 20 },
-    { char: '誤', name: 'Ngữ pháp dễ nhầm (-아서 vs -니까)', count: '8 câu', percent: 50 },
-    { char: '格', name: 'Quy tắc giấy ô vuông 원고지 (Câu 53-54)', count: '6 bài', percent: 0 }
-];
-
 function switchTheoryCategory(cat) {
     if (cat === 'hanja') {
         window.location.href = '/ly-thuyet/han-viet';
-        return;
-    }
-    if (cat === 'special') {
-        window.location.href = '/ly-thuyet/dac-thu';
         return;
     }
     window.location.href = `/ly-thuyet?tab=${cat}&level=${currentLevel}`;
@@ -560,9 +537,6 @@ function renderCards(filterQuery = '') {
     } else if (currentCategory === 'hanja') {
         list = hanjaRootsData;
         titleEl.textContent = `Cầu nối Hán Việt · ${list.length} gốc chữ Hán`;
-    } else if (currentCategory === 'special') {
-        list = specialData;
-        titleEl.textContent = `Đặc thù tiếng Hàn · 4 chuyên đề luyện sâu`;
     }
 
     if (filterQuery.trim()) {

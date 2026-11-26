@@ -9,9 +9,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import com.hottopik.util.PaymentDateTimeUtil;
 
 /**
  * Gói học: đọc cho học viên (chỉ gói ACTIVE), quản lý bản nháp cho Operation Manager và tạo yêu cầu phê duyệt
@@ -133,69 +135,99 @@ public class SubscriptionPlanService {
     }
 
     /**
-     * Gói DRAFT: lưu trực tiếp (chưa bán nên không cần duyệt).
-     * Gói đã duyệt: tạo yêu cầu UPDATE_PRICE / UPDATE_DURATION / UPDATE_BENEFITS / UPDATE_PLAN tùy dữ liệu thay đổi.
-     * @return true nếu đã tạo yêu cầu phê duyệt, false nếu lưu thẳng bản nháp.
+     * Operation Manager cập nhật thông tin gói học trực tiếp (không qua Admin phê duyệt).
+     * Mọi thay đổi về giá được lưu vào lịch sử giá và ghi nhận trong Nhật ký kiểm toán.
      */
     @Transactional
     public boolean updatePlan(Long id, UpdatePlanRequest form, BillingActor actor) {
         SubscriptionPlan plan = find(id);
-        if (plan.getStatus() == SubscriptionPlanStatus.DRAFT) {
-            plan.setName(form.getName().trim());
-            plan.setDescription(blankToNull(form.getDescription()));
-            plan.setPrice(form.getPrice());
-            plan.setDurationDays(form.getDurationDays());
-            plan.setFeatured(form.isFeatured());
-            plan.setSortOrder(form.getSortOrder());
-            plan.setUpdatedBy(actor.name());
-            audit.log(actor, "UPDATE_SUBSCRIPTION_PLAN", "SUBSCRIPTION_PLAN", plan.getId(), null, null,
-                    "Cập nhật bản nháp gói " + plan.getName());
-            return false;
-        }
-        if (plan.getStatus() == SubscriptionPlanStatus.PENDING_APPROVAL) {
-            throw new IllegalStateException("Gói đang chờ phê duyệt lần đầu, chưa thể chỉnh sửa.");
-        }
-        List<String> currentCodes = approval.currentFeatureCodes(plan);
+        Long oldPrice = plan.getPrice();
+        boolean priceChanged = !Objects.equals(oldPrice, form.getPrice());
+
+        plan.setName(form.getName().trim());
+        plan.setDescription(blankToNull(form.getDescription()));
+        plan.setPrice(form.getPrice());
+        plan.setDurationDays(form.getDurationDays());
+        plan.setFeatured(form.isFeatured());
+        plan.setSortOrder(form.getSortOrder());
+        plan.setUpdatedBy(actor.name());
+
         List<String> newCodes = mergeFeatureCodes(form.getFeatureCodes());
-        boolean nameChanged = !Objects.equals(plan.getName(), form.getName().trim())
-                || !Objects.equals(nz(plan.getDescription()), nz(form.getDescription()))
-                || plan.isFeatured() != form.isFeatured() || plan.getSortOrder() != form.getSortOrder();
-        boolean priceChanged = !Objects.equals(plan.getPrice(), form.getPrice());
-        boolean durationChanged = !Objects.equals(plan.getDurationDays(), form.getDurationDays());
-        boolean benefitsChanged = !new HashSet<>(currentCodes).equals(new HashSet<>(newCodes));
-        int changes = (nameChanged ? 1 : 0) + (priceChanged ? 1 : 0) + (durationChanged ? 1 : 0) + (benefitsChanged ? 1 : 0);
-        if (changes == 0) throw new IllegalArgumentException("Không có thay đổi nào so với dữ liệu hiện tại.");
-        PlanRequestType type = changes > 1 || nameChanged ? PlanRequestType.UPDATE_PLAN
-                : priceChanged ? PlanRequestType.UPDATE_PRICE
-                : durationChanged ? PlanRequestType.UPDATE_DURATION
-                : PlanRequestType.UPDATE_BENEFITS;
-        PlanData newData = new PlanData(form.getName().trim(), blankToNull(form.getDescription()), form.getPrice(),
-                form.getDurationDays(), form.isFeatured(), form.getSortOrder(), plan.getStatus().name(), newCodes);
-        approval.submit(plan.getId(), type, newData, form.getReason(), actor);
-        return true;
+        approval.createVersion(plan, newCodes, actor.name());
+        plans.save(plan);
+
+        if (priceChanged) {
+            PlanPriceHistory h = new PlanPriceHistory();
+            h.setPlan(plan);
+            h.setPlanName(plan.getName());
+            h.setOldPrice(oldPrice);
+            h.setNewPrice(form.getPrice());
+            h.setReason(form.getReason() != null && !form.getReason().isBlank() ? form.getReason().trim() : "Operation Manager cập nhật giá gói");
+            h.setRequestedBy(actor.name());
+            h.setApprovedBy(actor.name());
+            LocalDateTime now = PaymentDateTimeUtil.now();
+            h.setRequestedAt(now);
+            h.setApprovedAt(now);
+            h.setEffectiveAt(now);
+            priceHistory.save(h);
+        }
+
+        audit.log(actor, priceChanged ? "APPROVE_PRICE_CHANGE" : "UPDATE_SUBSCRIPTION_PLAN", "SUBSCRIPTION_PLAN", plan.getId(),
+                priceChanged ? String.valueOf(oldPrice) : null,
+                priceChanged ? String.valueOf(form.getPrice()) : null,
+                "Operation Manager cập nhật thông tin gói " + plan.getName() + (form.getReason() != null && !form.getReason().isBlank() ? ". Lý do: " + form.getReason() : ""));
+        return false;
     }
 
-    /** Gửi bản nháp cho Admin duyệt mở bán. */
+    /** Kích hoạt mở bán gói học trực tiếp từ bản nháp. */
     @Transactional
     public void submitDraft(Long id, String reason, BillingActor actor) {
         SubscriptionPlan plan = find(id);
-        PlanData data = PlanData.of(plan, approval.defaultFeatureCodes(plan.getTier()))
-                .withStatus(SubscriptionPlanStatus.ACTIVE.name());
-        approval.submit(id, PlanRequestType.CREATE_PLAN, data, reason, actor);
+        plan.setStatus(SubscriptionPlanStatus.ACTIVE);
+        plan.setUpdatedBy(actor.name());
+        if (plan.getCurrentVersionNo() <= 0) {
+            approval.createVersion(plan, approval.defaultFeatureCodes(plan.getTier()), actor.name());
+        }
+        plans.save(plan);
+
+        audit.log(actor, "CREATE_SUBSCRIPTION_PLAN", "SUBSCRIPTION_PLAN", plan.getId(), null,
+                plan.getPrice() + "đ/" + plan.getDurationDays() + " ngày",
+                "Operation Manager kích hoạt mở bán gói " + plan.getName() + (reason != null && !reason.isBlank() ? ". Lý do: " + reason : ""));
     }
 
-    /** Đề xuất giá mới (khác giá hiện tại); giá chính thức chỉ đổi khi Admin duyệt. */
+    /** Thay đổi giá gói học trực tiếp; ghi nhận vào lịch sử giá và nhật ký kiểm toán. */
     @Transactional
     public void requestPriceChange(Long id, ChangePriceRequest form, BillingActor actor) {
         SubscriptionPlan plan = find(id);
         if (Objects.equals(plan.getPrice(), form.getNewPrice())) {
             throw new IllegalArgumentException("Giá mới không được bằng giá hiện tại.");
         }
-        PlanData data = PlanData.of(plan, approval.currentFeatureCodes(plan)).withPrice(form.getNewPrice());
-        approval.submit(id, PlanRequestType.UPDATE_PRICE, data, form.getReason(), actor);
+        Long oldPrice = plan.getPrice();
+        plan.setPrice(form.getNewPrice());
+        plan.setUpdatedBy(actor.name());
+        approval.createVersion(plan, approval.currentFeatureCodes(plan), actor.name());
+        plans.save(plan);
+
+        PlanPriceHistory h = new PlanPriceHistory();
+        h.setPlan(plan);
+        h.setPlanName(plan.getName());
+        h.setOldPrice(oldPrice);
+        h.setNewPrice(form.getNewPrice());
+        h.setReason(form.getReason());
+        h.setRequestedBy(actor.name());
+        h.setApprovedBy(actor.name());
+        LocalDateTime now = PaymentDateTimeUtil.now();
+        h.setRequestedAt(now);
+        h.setApprovedAt(now);
+        h.setEffectiveAt(now);
+        priceHistory.save(h);
+
+        audit.log(actor, "APPROVE_PRICE_CHANGE", "SUBSCRIPTION_PLAN", plan.getId(),
+                String.valueOf(oldPrice), String.valueOf(form.getNewPrice()),
+                "Operation Manager đổi giá gói " + plan.getName() + " từ " + oldPrice + "đ sang " + form.getNewPrice() + "đ. Lý do: " + form.getReason());
     }
 
-    /** Đề xuất kích hoạt / ngừng bán / lưu trữ gói. */
+    /** Kích hoạt / ngừng bán / lưu trữ gói trực tiếp; ghi nhận nhật ký kiểm toán. */
     @Transactional
     public void requestStatusChange(Long id, PlanRequestType type, String reason, BillingActor actor) {
         SubscriptionPlanStatus target = switch (type) {
@@ -205,8 +237,12 @@ public class SubscriptionPlanService {
             default -> throw new IllegalArgumentException("Loại yêu cầu không hợp lệ.");
         };
         SubscriptionPlan plan = find(id);
-        PlanData data = PlanData.of(plan, approval.currentFeatureCodes(plan)).withStatus(target.name());
-        approval.submit(id, type, data, reason, actor);
+        plan.setStatus(target);
+        plan.setUpdatedBy(actor.name());
+        plans.save(plan);
+
+        audit.log(actor, type.name(), "SUBSCRIPTION_PLAN", plan.getId(), null, null,
+                "Operation Manager " + type.getLabel() + " cho gói " + plan.getName() + (reason != null && !reason.isBlank() ? ". Lý do: " + reason : ""));
     }
 
     /** Các phiên bản đã duyệt của gói, mới nhất trước. */

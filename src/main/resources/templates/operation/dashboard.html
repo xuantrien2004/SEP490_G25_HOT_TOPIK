@@ -63,13 +63,6 @@
                 <span class="ssak-badge badge-honey" style="font-size: 11px; padding: 2px 7px;" th:text="${#lists.size(orders)}">3</span>
             </a>
 
-            <!-- Tab 3: Package Prices -->
-            <a href="javascript:void(0)" onclick="switchOperationTab('prices')" id="side-nav-prices" class="sidebar-item">
-                <span style="font-size: 17px;">🏷️</span>
-                <span style="flex-grow: 1;">Bảng giá gói VIP</span>
-                <span class="ssak-badge badge-sky" style="font-size: 11px; padding: 2px 7px;" th:text="${#lists.size(packagePrices)}">3</span>
-            </a>
-
             <!-- Tab: VIP Compensation & Extension -->
             <a href="javascript:void(0)" onclick="switchOperationTab('compensation')" id="side-nav-compensation" class="sidebar-item">
                 <span style="font-size: 17px;">🎁</span>
@@ -113,7 +106,6 @@
                 </summary>
                 <div class="sidebar-submenu">
                     <a th:href="@{/operation/subscriptions}">Quản lý gói học</a>
-                    <a th:href="@{/operation/subscriptions/requests}">Yêu cầu phê duyệt</a>
                     <a th:href="@{/operation/subscriptions/price-history}">Lịch sử giá</a>
                     <a th:href="@{/operation/transactions}">Giao dịch Sandbox</a>
                     <a th:href="@{/operation/premium-users}">Học viên Premium</a>
@@ -124,10 +116,6 @@
 
         <!-- Sidebar Bottom Footer -->
         <div style="padding: 16px 14px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;">
-            <a th:href="@{/today}" class="sidebar-bottom-link">
-                <span>🎓</span>
-                <span>Xem Cổng Học viên</span>
-            </a>
             <a th:href="@{/logout}" class="sidebar-bottom-link logout">
                 <span>🚪</span>
                 <span>Đăng xuất hệ thống</span>
@@ -297,31 +285,6 @@
                             <button type="button" onclick="switchOperationTab('orders')" style="height: 36px; padding: 0 18px; border-radius: 8px; border: none; background: #1F6B56; color: #FFFFFF; font-size: 12.5px; font-weight: 800; cursor: pointer; transition: background 0.15s ease;"
                                     onmouseover="this.style.background='#164E40'" onmouseout="this.style.background='#1F6B56'">
                                 Kiểm tra ngay
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Row 3: Đề xuất Giá Gói VIP Mới -->
-                    <div style="background: #FFFFFF; border: 1.5px solid var(--ssak-border); border-left: 5px solid #EAB308; border-radius: 14px; padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; transition: all 0.18s ease; cursor: pointer;" onclick="switchOperationTab('prices')"
-                         onmouseover="this.style.boxShadow='0 4px 14px rgba(234,179,8,0.12)'; this.style.borderColor='#FEF08A';"
-                         onmouseout="this.style.boxShadow='none'; this.style.borderColor='var(--ssak-border)';">
-                        <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex-grow: 1;">
-                            <div style="width: 42px; height: 42px; border-radius: 12px; background: #FEF3C7; color: #D97706; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 19px;">
-                                🏷️
-                            </div>
-                            <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
-                                <div style="font-weight: 800; font-size: 13.5px; color: #24363D;">
-                                    Đề xuất Giá Gói VIP Mới (New VIP Package Price Proposal) – <span th:text="${urgentPackageName}">Gói VIP 3 Tháng</span>
-                                </div>
-                                <div style="font-size: 12px; font-weight: 700; color: #D97706;">
-                                    Chờ Admin
-                                </div>
-                            </div>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
-                            <button type="button" onclick="switchOperationTab('prices')" style="height: 36px; padding: 0 18px; border-radius: 8px; border: none; background: #1F6B56; color: #FFFFFF; font-size: 12.5px; font-weight: 800; cursor: pointer; transition: background 0.15s ease;"
-                                    onmouseover="this.style.background='#164E40'" onmouseout="this.style.background='#1F6B56'">
-                                Xem chi tiết
                             </button>
                         </div>
                     </div>
@@ -536,46 +499,6 @@
                             </tr>
                         </tbody>
                     </table>
-                </div>
-            </section>
-
-            <!-- TAB 3: PROPOSE PACKAGE PRICES (Use Case: Propose Package Prices) -->
-            <section id="pane-prices" class="ssak-card" style="padding: 26px; background: #FFFFFF; border-radius: 24px; border: 2px solid var(--ssak-border); display: none; flex-direction: column; gap: 18px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 19px; font-weight: 800; color: #24363D;">
-                            🏷️ Quản lý & Điều chỉnh Giá gói VIP (Package Prices)
-                        </h3>
-                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--ssak-text-muted);">
-                            Điều chỉnh mức giá ưu đãi gói VIP áp dụng trực tiếp ra ngoài hệ thống.
-                        </p>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;">
-                    <div th:each="pkg : ${packagePrices}" class="ssak-card" style="padding: 22px; border: 1.5px solid var(--ssak-border); background: #F8FAFC; border-radius: 18px; display: flex; flex-direction: column; gap: 12px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-weight: 800; font-size: 16px; color: #24363D;" th:text="${pkg.name}">Gói VIP 1 Tháng</span>
-                            <span class="ssak-badge badge-mint">Đang áp dụng</span>
-                        </div>
-                        <div style="font-size: 13px; color: var(--ssak-text-muted);" th:text="${pkg.description}">Mô tả gói</div>
-
-                        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
-                            <span style="font-size: 13px; color: var(--ssak-text-muted);">Giá hiện tại:</span>
-                            <span style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #1F6B56;" th:text="${#numbers.formatDecimal(pkg.currentPrice, 0, 'POINT', 0, 'COMMA') + 'đ'}">129.000đ</span>
-                        </div>
-
-                        <div style="border-top: 1px dashed var(--ssak-border); padding-top: 12px; display: flex; flex-direction: column; gap: 8px;">
-                            <label style="font-size: 12px; font-weight: 700; color: var(--ssak-text-muted);">Điều chỉnh giá mới (VNĐ):</label>
-                            <div style="display: flex; gap: 8px;">
-                                <input type="number" th:id="${'op-prop-price-' + pkg.id}" th:value="${pkg.currentPrice}" class="ssak-input" style="height: 38px; font-size: 13px;" placeholder="Nhập giá mới">
-                                <button type="button" class="btn-ssak-primary" style="height: 38px; padding: 0 14px; font-size: 12px; font-weight: 800; white-space: nowrap;"
-                                        th:data-id="${pkg.id}" onclick="updateOpPackagePrice(this.getAttribute('data-id'))">
-                                    Lưu giá ngay
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </section>
 
@@ -976,11 +899,6 @@
             title: 'Quản lý Đơn hàng & Hoàn tiền (Manage Orders & Refunds)',
             subtitle: 'Theo dõi giao dịch mua gói VIP và thực hiện hoàn tiền trực tiếp cho học viên khi cần thiết.'
         },
-        prices: {
-            icon: '🏷️',
-            title: 'Quản lý & Điều chỉnh Giá gói VIP (Package Prices)',
-            subtitle: 'Điều chỉnh mức giá ưu đãi gói VIP áp dụng trực tiếp ra ngoài hệ thống.'
-        },
         compensation: {
             icon: '🎁',
             title: 'Cấp bù & Gia hạn Quyền lợi VIP (VIP Compensation & Extension)',
@@ -1016,7 +934,7 @@
             if (tabName === 'overview') url.searchParams.delete('tab'); else url.searchParams.set('tab', tabName);
             history.replaceState(null, '', url);
         } catch (ignored) {}
-        const tabs = ['overview', 'users', 'orders', 'prices', 'compensation', 'reviews', 'announcements', 'aiBudget', 'audit'];
+        const tabs = ['overview', 'users', 'orders', 'compensation', 'reviews', 'announcements', 'aiBudget', 'audit'];
         tabs.forEach(t => {
             const pane = document.getElementById('pane-' + t);
             const sideNav = document.getElementById('side-nav-' + t);
@@ -1331,35 +1249,6 @@
         .then(r => r.json())
         .then(data => {
             closeOpRefundModal();
-            if (data.success) {
-                showSsakToast(data.message);
-                setTimeout(() => window.location.reload(), 700);
-            } else {
-                showSsakToast('Lỗi: ' + data.message);
-            }
-        })
-        .catch(e => showSsakToast('Có lỗi: ' + e));
-    }
-
-    function updateOpPackagePrice(pkgId) {
-        const input = document.getElementById('op-prop-price-' + pkgId);
-        if (!input) return;
-        const newPrice = input.value;
-        if (!newPrice || newPrice <= 0) {
-            alert('Vui lòng nhập giá hợp lệ.');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('packageId', pkgId);
-        formData.append('newPrice', newPrice);
-
-        fetch('/operation/prices/update', {
-            method: 'POST',
-            body: formData
-        })
-        .then(r => r.json())
-        .then(data => {
             if (data.success) {
                 showSsakToast(data.message);
                 setTimeout(() => window.location.reload(), 700);

@@ -10,17 +10,16 @@
         <div class="bl-header">
             <div>
                 <h1 class="bl-title">Quản lý gói học</h1>
-                <p class="bl-subtitle" th:text="${readOnly} ? 'Xem toàn bộ gói học. Phê duyệt thay đổi tại mục Phê duyệt gói học.' : 'Thay đổi trên gói đang bán chỉ tạo yêu cầu phê duyệt, giá chính thức chỉ đổi khi Admin duyệt.'"></p>
+                <p class="bl-subtitle" th:text="${readOnly} ? 'Xem toàn bộ gói học.' : 'Thay đổi thông tin, giá gói hoặc trạng thái được áp dụng trực tiếp và ghi lại trong Nhật ký kiểm toán.'"></p>
             </div>
             <a th:unless="${readOnly}" th:href="@{/operation/subscriptions/create}" class="bl-btn primary">＋ Tạo bản nháp gói học</a>
         </div>
         <div th:replace="~{fragments/billing :: flash}"></div>
 
-        <div class="bl-grid cols-4" style="margin:16px 0;">
+        <div class="bl-grid cols-3" style="margin:16px 0;">
             <div class="bl-card bl-kpi"><span class="label">Tổng số gói</span><span class="value" th:text="${summary.total}">0</span></div>
             <div class="bl-card bl-kpi"><span class="label">Đang bán</span><span class="value" th:text="${summary.active}">0</span></div>
             <div class="bl-card bl-kpi"><span class="label">Ngừng bán</span><span class="value" th:text="${summary.stopped}">0</span></div>
-            <div class="bl-card bl-kpi"><span class="label">Yêu cầu chờ duyệt</span><span class="value" th:text="${summary.pending}">0</span></div>
         </div>
 
         <form method="get" class="bl-filter">
@@ -40,7 +39,7 @@
             <div th:if="${plans.empty}" class="bl-empty"><span class="icon">📦</span>Không có gói học nào phù hợp.</div>
             <table class="bl-table" th:unless="${plans.empty}">
                 <thead>
-                <tr><th>STT</th><th>Mã gói</th><th>Tên gói</th><th>Giá hiện tại</th><th>Thời hạn</th><th>Trạng thái</th><th>Cập nhật</th><th>Yêu cầu</th><th th:unless="${readOnly}">Hành động</th></tr>
+                <tr><th>STT</th><th>Mã gói</th><th>Tên gói</th><th>Giá hiện tại</th><th>Thời hạn</th><th>Trạng thái</th><th>Cập nhật</th><th th:unless="${readOnly}">Hành động</th></tr>
                 </thead>
                 <tbody>
                 <tr th:each="p, it : ${plans.content}">
@@ -52,25 +51,22 @@
                     <td th:text="${p.durationText}">30 ngày</td>
                     <td><span class="bl-status" th:classappend="'st-' + ${p.status}" th:text="${p.statusLabel}">Đang bán</span></td>
                     <td><span th:text="${p.updatedAtText}">--</span><div style="font-size:12px;color:var(--ssak-text-muted);" th:text="${p.updatedBy}"></div></td>
-                    <td><span th:if="${p.hasPendingRequest()}" class="bl-status st-PENDING" th:text="${'Chờ duyệt: ' + p.pendingRequestLabel}">Chờ duyệt</span>
-                        <span th:unless="${p.hasPendingRequest()}">—</span></td>
                     <td th:unless="${readOnly}">
                         <div class="bl-actions" th:if="${p.premium}">
                             <a class="bl-btn sm" th:href="@{/operation/subscriptions/{id}/edit(id=${p.id})}"
-                               th:classappend="${p.hasPendingRequest() or p.status == 'PENDING_APPROVAL' or p.status == 'ARCHIVED'} ? 'disabled'">Sửa</a>
+                               th:classappend="${p.status == 'ARCHIVED'} ? 'disabled'">Sửa</a>
                             <button th:if="${p.isDraft()}" type="button" class="bl-btn sm primary js-reason"
-                                    th:attr="data-action=@{/operation/subscriptions/{id}/submit(id=${p.id})},data-title=${'Gửi duyệt gói ' + p.name}"
-                                    data-hint="Gói mới chỉ được bán sau khi Admin phê duyệt.">Gửi duyệt</button>
+                                    th:attr="data-action=@{/operation/subscriptions/{id}/submit(id=${p.id})},data-title=${'Mở bán gói ' + p.name}"
+                                    data-hint="Gói sẽ được kích hoạt mở bán trực tiếp cho học viên.">Mở bán</button>
                             <button th:if="${p.currentVersionNo > 0 and (p.status == 'ACTIVE' or p.status == 'INACTIVE')}" type="button"
-                                    class="bl-btn sm js-price" th:disabled="${p.hasPendingRequest()}"
+                                    class="bl-btn sm js-price"
                                     th:attr="data-action=@{/operation/subscriptions/{id}/change-price(id=${p.id})},data-name=${p.name},data-price=${p.price}">Đổi giá</button>
                             <button th:if="${p.status == 'INACTIVE' and p.currentVersionNo > 0}" type="button" class="bl-btn sm js-reason"
-                                    th:disabled="${p.hasPendingRequest()}"
-                                    th:attr="data-action=@{/operation/subscriptions/{id}/activate(id=${p.id})},data-title=${'Đề xuất mở bán lại ' + p.name}"
-                                    data-hint="Gói sẽ được bán lại sau khi Admin phê duyệt.">Kích hoạt</button>
-                            <button th:if="${p.status == 'ACTIVE'}" type="button" class="bl-btn sm danger js-reason" th:disabled="${p.hasPendingRequest()}"
-                                    th:attr="data-action=@{/operation/subscriptions/{id}/deactivate(id=${p.id})},data-title=${'Đề xuất ngừng bán ' + p.name}"
-                                    data-hint="Ngừng bán không ảnh hưởng học viên đã mua.">Ngừng bán</button>
+                                    th:attr="data-action=@{/operation/subscriptions/{id}/activate(id=${p.id})},data-title=${'Kích hoạt mở bán lại ' + p.name}"
+                                    data-hint="Gói sẽ được kích hoạt mở bán lại ngay lập tức.">Kích hoạt</button>
+                            <button th:if="${p.status == 'ACTIVE'}" type="button" class="bl-btn sm danger js-reason"
+                                    th:attr="data-action=@{/operation/subscriptions/{id}/deactivate(id=${p.id})},data-title=${'Ngừng bán ' + p.name}"
+                                    data-hint="Ngừng bán không ảnh hưởng học viên đã mua trước đó.">Ngừng bán</button>
                             <a th:if="${p.currentVersionNo > 0}" class="bl-btn sm" th:href="@{/operation/subscriptions/{id}/price-history(id=${p.id})}">Lịch sử giá</a>
                         </div>
                         <span th:unless="${p.premium}" style="font-size:12.5px;color:var(--ssak-text-muted);">Gói Free không cần thanh toán</span>
@@ -86,8 +82,8 @@
 <!-- Modal: đổi giá -->
 <div class="modal fade bl-modal" id="priceModal" tabindex="-1" aria-labelledby="priceModalTitle" aria-hidden="true" th:unless="${readOnly}">
     <div class="modal-dialog modal-dialog-centered">
-        <form class="modal-content js-confirm" method="post" id="priceForm" data-confirm="Gửi yêu cầu thay đổi giá cho Admin phê duyệt?">
-            <div class="modal-header"><h5 class="modal-title" id="priceModalTitle">Đề xuất thay đổi giá</h5>
+        <form class="modal-content js-confirm" method="post" id="priceForm" data-confirm="Xác nhận thay đổi giá gói học này?">
+            <div class="modal-header"><h5 class="modal-title" id="priceModalTitle">Thay đổi giá gói học</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
             <div class="modal-body bl-form">
                 <input type="hidden" name="_csrf" th:value="${csrfToken}">
@@ -98,10 +94,10 @@
                 <div class="row-field" style="font-size:14px;">Chênh lệch: <strong id="pmDiff">—</strong> · Thay đổi: <strong id="pmPercent">—</strong></div>
                 <div class="row-field"><label for="pmReason">Lý do thay đổi (bắt buộc)</label>
                     <textarea id="pmReason" name="reason" rows="3" maxlength="1000" required class="bl-input" style="width:100%;"></textarea></div>
-                <div class="bl-alert info" style="margin:0;">Giá hiện tại vẫn được áp dụng cho đến khi Admin phê duyệt. Đơn hàng cũ giữ nguyên giá đã chốt.</div>
+                <div class="bl-alert info" style="margin:0;">Mức giá mới sẽ áp dụng trực tiếp cho các đơn hàng tiếp theo và được ghi lại vào lịch sử giá.</div>
             </div>
             <div class="modal-footer"><button type="button" class="bl-btn" data-bs-dismiss="modal">Hủy</button>
-                <button type="submit" class="bl-btn primary">Gửi yêu cầu</button></div>
+                <button type="submit" class="bl-btn primary">Lưu giá mới</button></div>
         </form>
     </div>
 </div>
@@ -119,7 +115,7 @@
                 <textarea id="rmReason" name="reason" rows="3" maxlength="1000" required class="bl-input" style="width:100%;"></textarea>
             </div>
             <div class="modal-footer"><button type="button" class="bl-btn" data-bs-dismiss="modal">Hủy</button>
-                <button type="submit" class="bl-btn primary">Gửi yêu cầu</button></div>
+                <button type="submit" class="bl-btn primary">Xác nhận</button></div>
         </form>
     </div>
 </div>

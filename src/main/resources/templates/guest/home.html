@@ -183,43 +183,140 @@
 
         <div class="row g-4 justify-content-center">
             <!-- Free Plan -->
-            <div class="col-md-5 col-lg-4">
-                <div class="p-4 rounded-4 bg-white border h-100 d-flex flex-column justify-content-between shadow-sm">
+            <div class="col-md-6 col-lg-4 col-xl-3">
+                <div class="p-4 rounded-4 bg-white border h-100 d-flex flex-column justify-content-between shadow-sm" style="border: 1.5px solid var(--ssak-border) !important;">
                     <div>
                         <span class="badge bg-secondary px-3 py-2 rounded-pill mb-3">TÀI KHOẢN FREE</span>
-                        <h3 class="fw-bold" style="font-size: 24px;">Miễn phí</h3>
-                        <div class="display-6 fw-bold my-3">0đ</div>
-                        <ul class="list-unstyled d-flex flex-column gap-2 text-muted" style="font-size: 14px;">
+                        <h3 class="fw-bold" style="font-size: 22px;">Miễn phí</h3>
+                        <div class="display-6 fw-bold my-3 text-dark">0đ</div>
+                        <ul class="list-unstyled d-flex flex-column gap-2 text-muted" style="font-size: 13.5px;">
                             <li><i class="bi bi-check-lg text-success me-2"></i>Bài kiểm tra trình độ Placement</li>
-                            <li><i class="bi bi-check-lg text-success me-2"></i>Lộ trình 7 ngày đầu</li>
+                            <li><i class="bi bi-check-lg text-success me-2"></i>Lộ trình học thử 7 ngày đầu</li>
                             <li><i class="bi bi-check-lg text-success me-2"></i>Luyện tập tự do 3 bài / ngày</li>
                             <li><i class="bi bi-check-lg text-success me-2"></i>2 lượt AI chấm Viết / ngày</li>
-                            <li><i class="bi bi-check-lg text-success me-2"></i>1 đề Mini Test & 1 Full Mock</li>
+                            <li><i class="bi bi-check-lg text-success me-2"></i>1 đề Mini Test &amp; 1 Full Mock</li>
                         </ul>
                     </div>
-                    <a th:href="@{/register}" class="btn-ssak-outline w-100 text-center py-2 rounded-pill mt-4 text-decoration-none">Bắt đầu ngay</a>
+                    <a th:href="@{/register}" class="btn-ssak-outline w-100 text-center py-2 rounded-pill mt-4 text-decoration-none fw-bold">Bắt đầu miễn phí</a>
                 </div>
             </div>
 
-            <!-- VIP Lifetime / Recommended -->
-            <div class="col-md-5 col-lg-4">
-                <div class="p-4 rounded-4 bg-white h-100 d-flex flex-column justify-content-between shadow" style="border: 2px solid var(--ssak-primary); position: relative;">
-                    <span class="position-absolute top-0 start-50 translate-middle badge rounded-pill px-3 py-2" style="background: var(--ssak-primary); font-size: 12px;">ĐƯỢC CHỌN NHIỀU NHẤT</span>
-                    <div>
-                        <span class="badge px-3 py-2 rounded-pill mb-3" style="background: var(--ssak-honey); color: var(--ssak-honey-text); font-weight: 800;">👑 VIP TRỌN ĐỜI</span>
-                        <h3 class="fw-bold" style="font-size: 24px;">VIP Hoàn toàn</h3>
-                        <div class="display-6 fw-bold my-3 text-success" style="color: var(--ssak-primary) !important;">1.490.000đ</div>
-                        <ul class="list-unstyled d-flex flex-column gap-2" style="font-size: 14px; color: var(--ssak-text-main);">
-                            <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Toàn bộ lộ trình 30–200 ngày</strong></li>
-                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Luyện tập không giới hạn số bài</li>
-                            <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>20 lượt AI chấm Viết / ngày</strong></li>
-                            <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>4 bài Mentor chấm chi tiết / tháng</strong></li>
-                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Mở khóa tất cả đề Full Mock & Mini</li>
-                        </ul>
+            <!-- VIP Plans (Hiển thị động theo database) -->
+            <th:block th:if="${vipPlans != null and !vipPlans.empty}">
+                <div th:each="p : ${vipPlans}" class="col-md-6 col-lg-4 col-xl-3">
+                    <div class="p-4 rounded-4 bg-white h-100 d-flex flex-column justify-content-between shadow-sm position-relative"
+                         th:style="${p.featured} ? 'border: 2px solid var(--ssak-primary); box-shadow: 0 10px 25px rgba(31,107,86,0.15) !important;' : 'border: 1.5px solid var(--ssak-border);'">
+                        <span th:if="${p.featured}" class="position-absolute top-0 start-50 translate-middle badge rounded-pill px-3 py-2" style="background: var(--ssak-primary); font-size: 11px; z-index: 2;">
+                            ⭐ ĐƯỢC CHỌN NHIỀU NHẤT
+                        </span>
+                        <div>
+                            <span class="badge px-3 py-2 rounded-pill mb-3"
+                                  th:style="${p.featured} ? 'background: var(--ssak-honey); color: var(--ssak-honey-text); font-weight: 800;' : 'background: #E8F5E9; color: #1F6B56; font-weight: 800;'"
+                                  th:text="${'👑 VIP ' + p.durationText}">👑 VIP 30 ngày</span>
+                            <h3 class="fw-bold" style="font-size: 22px;" th:text="${p.name}">Premium</h3>
+                            <div class="display-6 fw-bold my-3 text-success" style="color: var(--ssak-primary) !important;" th:text="${p.priceText}">99.000đ</div>
+                            <div th:if="${p.monthlyPriceText != null}" class="text-muted small mb-3" style="margin-top: -8px;" th:text="'≈ ' + ${p.monthlyPriceText}">≈ 83.000đ/tháng</div>
+                            <p class="text-muted small mb-3" th:if="${p.description != null and !#strings.isEmpty(p.description)}" th:text="${p.description}">Mô tả gói</p>
+                            <ul class="list-unstyled d-flex flex-column gap-2" style="font-size: 13.5px; color: var(--ssak-text-main);">
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Toàn bộ lộ trình TOPIK</strong></li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i>Luyện tập không giới hạn số bài</li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>20 lượt AI chấm Viết / ngày</strong></li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Giáo viên chuyên môn chấm bài</strong></li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i>Mở khóa tất cả đề Full Mock &amp; Mini</li>
+                            </ul>
+                        </div>
+                        <a th:href="${session.LOGGED_IN_USER != null ? '/subscription/plans' : '/login'}" class="btn-ssak-primary w-100 text-center py-2 rounded-pill mt-4 text-decoration-none fw-bold"
+                           th:text="${p.featured} ? 'Đăng ký ngay ⭐' : 'Nâng cấp VIP ngay'">Nâng cấp VIP ngay</a>
                     </div>
-                    <a th:href="@{/vip}" class="btn-ssak-primary w-100 text-center py-2 rounded-pill mt-4 text-decoration-none fw-bold">Nâng cấp VIP ngay</a>
                 </div>
-            </div>
+            </th:block>
+
+            <!-- Fallback đầy đủ 4 gói nếu chưa khởi tạo database -->
+            <th:block th:if="${vipPlans == null or vipPlans.empty}">
+                <!-- 1 Tháng -->
+                <div class="col-md-6 col-lg-4 col-xl-3">
+                    <div class="p-4 rounded-4 bg-white h-100 d-flex flex-column justify-content-between shadow-sm" style="border: 1.5px solid var(--ssak-border);">
+                        <div>
+                            <span class="badge px-3 py-2 rounded-pill mb-3" style="background: #E8F5E9; color: #1F6B56; font-weight: 800;">👑 VIP 30 NGÀY</span>
+                            <h3 class="fw-bold" style="font-size: 22px;">Premium 1 tháng</h3>
+                            <div class="display-6 fw-bold my-3 text-success" style="color: var(--ssak-primary) !important;">99.000đ</div>
+                            <p class="text-muted small mb-3">Phù hợp ôn cấp tốc trước kỳ thi</p>
+                            <ul class="list-unstyled d-flex flex-column gap-2" style="font-size: 13.5px; color: var(--ssak-text-main);">
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Toàn bộ lộ trình 30 ngày</strong></li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i>Luyện tập không giới hạn số bài</li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>20 lượt AI chấm Viết / ngày</strong></li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Giáo viên chấm bài chi tiết</strong></li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i>Mở khóa toàn bộ kho đề thi</li>
+                            </ul>
+                        </div>
+                        <a th:href="${session.LOGGED_IN_USER != null ? '/subscription/plans' : '/login'}" class="btn-ssak-primary w-100 text-center py-2 rounded-pill mt-4 text-decoration-none fw-bold">Nâng cấp VIP ngay</a>
+                    </div>
+                </div>
+
+                <!-- 3 Tháng (Featured) -->
+                <div class="col-md-6 col-lg-4 col-xl-3">
+                    <div class="p-4 rounded-4 bg-white h-100 d-flex flex-column justify-content-between shadow position-relative" style="border: 2px solid var(--ssak-primary); box-shadow: 0 10px 25px rgba(31,107,86,0.15) !important;">
+                        <span class="position-absolute top-0 start-50 translate-middle badge rounded-pill px-3 py-2" style="background: var(--ssak-primary); font-size: 11px; z-index: 2;">⭐ ĐƯỢC CHỌN NHIỀU NHẤT</span>
+                        <div>
+                            <span class="badge px-3 py-2 rounded-pill mb-3" style="background: var(--ssak-honey); color: var(--ssak-honey-text); font-weight: 800;">👑 VIP 90 NGÀY</span>
+                            <h3 class="fw-bold" style="font-size: 22px;">Premium 3 tháng</h3>
+                            <div class="display-6 fw-bold my-3 text-success" style="color: var(--ssak-primary) !important;">249.000đ</div>
+                            <div class="text-muted small mb-3" style="margin-top: -8px;">≈ 83.000đ/tháng</div>
+                            <p class="text-muted small mb-3">Lựa chọn phổ biến cho một kỳ ôn thi</p>
+                            <ul class="list-unstyled d-flex flex-column gap-2" style="font-size: 13.5px; color: var(--ssak-text-main);">
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Toàn bộ lộ trình 90 ngày</strong></li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i>Luyện tập không giới hạn số bài</li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>20 lượt AI chấm Viết / ngày</strong></li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Giáo viên chấm bài chi tiết</strong></li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i>Mở khóa toàn bộ kho đề thi</li>
+                            </ul>
+                        </div>
+                        <a th:href="${session.LOGGED_IN_USER != null ? '/subscription/plans' : '/login'}" class="btn-ssak-primary w-100 text-center py-2 rounded-pill mt-4 text-decoration-none fw-bold">Đăng ký ngay ⭐</a>
+                    </div>
+                </div>
+
+                <!-- 6 Tháng -->
+                <div class="col-md-6 col-lg-4 col-xl-3">
+                    <div class="p-4 rounded-4 bg-white h-100 d-flex flex-column justify-content-between shadow-sm" style="border: 1.5px solid var(--ssak-border);">
+                        <div>
+                            <span class="badge px-3 py-2 rounded-pill mb-3" style="background: #E8F5E9; color: #1F6B56; font-weight: 800;">👑 VIP 180 NGÀY</span>
+                            <h3 class="fw-bold" style="font-size: 22px;">Premium 6 tháng</h3>
+                            <div class="display-6 fw-bold my-3 text-success" style="color: var(--ssak-primary) !important;">449.000đ</div>
+                            <div class="text-muted small mb-3" style="margin-top: -8px;">≈ 75.000đ/tháng</div>
+                            <p class="text-muted small mb-3">Ôn luyện dài hạn, tiết kiệm hơn</p>
+                            <ul class="list-unstyled d-flex flex-column gap-2" style="font-size: 13.5px; color: var(--ssak-text-main);">
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Toàn bộ lộ trình 180 ngày</strong></li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i>Luyện tập không giới hạn số bài</li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>20 lượt AI chấm Viết / ngày</strong></li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Giáo viên chấm bài chi tiết</strong></li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i>Mở khóa toàn bộ kho đề thi</li>
+                            </ul>
+                        </div>
+                        <a th:href="${session.LOGGED_IN_USER != null ? '/subscription/plans' : '/login'}" class="btn-ssak-primary w-100 text-center py-2 rounded-pill mt-4 text-decoration-none fw-bold">Nâng cấp VIP ngay</a>
+                    </div>
+                </div>
+
+                <!-- 12 Tháng -->
+                <div class="col-md-6 col-lg-4 col-xl-3">
+                    <div class="p-4 rounded-4 bg-white h-100 d-flex flex-column justify-content-between shadow-sm" style="border: 1.5px solid var(--ssak-border);">
+                        <div>
+                            <span class="badge px-3 py-2 rounded-pill mb-3" style="background: #E8F5E9; color: #1F6B56; font-weight: 800;">👑 VIP 365 NGÀY</span>
+                            <h3 class="fw-bold" style="font-size: 22px;">Premium 12 tháng</h3>
+                            <div class="display-6 fw-bold my-3 text-success" style="color: var(--ssak-primary) !important;">799.000đ</div>
+                            <div class="text-muted small mb-3" style="margin-top: -8px;">≈ 67.000đ/tháng</div>
+                            <p class="text-muted small mb-3">Đồng hành cả năm, chi phí mỗi tháng thấp nhất</p>
+                            <ul class="list-unstyled d-flex flex-column gap-2" style="font-size: 13.5px; color: var(--ssak-text-main);">
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Toàn bộ lộ trình 365 ngày</strong></li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i>Luyện tập không giới hạn số bài</li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>20 lượt AI chấm Viết / ngày</strong></li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Giáo viên chấm bài chi tiết</strong></li>
+                                <li><i class="bi bi-check-circle-fill text-success me-2"></i>Mở khóa toàn bộ kho đề thi</li>
+                            </ul>
+                        </div>
+                        <a th:href="${session.LOGGED_IN_USER != null ? '/subscription/plans' : '/login'}" class="btn-ssak-primary w-100 text-center py-2 rounded-pill mt-4 text-decoration-none fw-bold">Nâng cấp VIP ngay</a>
+                    </div>
+                </div>
+            </th:block>
         </div>
     </section>
 

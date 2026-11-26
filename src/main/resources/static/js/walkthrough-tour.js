@@ -51,13 +51,13 @@
         },
         {
             step: 5,
-            path: '/vip',
+            path: '/subscription/plans',
             name: 'Gói VIP',
             badge: 'Trạm 5/11 · Gói VIP',
             title: 'Nâng cấp gói VIP · Mở khóa quyền lợi đặc quyền',
             desc: 'Trở thành học viên VIP để mở khóa toàn bộ kho đề thi Full Mock chuẩn thi thật, nhận 20 lượt AI chấm bài viết mỗi ngày và được Giáo viên chuyên môn chấm, sửa lỗi chi tiết từng câu trong bài viết luận.',
             tip: 'Có nhiều gói linh hoạt từ 1 tháng đến Trọn đời. Bạn cũng có thể dùng Xu tích lũy để đổi lượt chấm Viết mà không bắt buộc nạp tiền.',
-            selectors: ['main > div:nth-of-type(2)', '.vip-plan-card', 'main']
+            selectors: ['.bl-grid', '.bl-plan', '.bl-section', 'main > div:nth-of-type(2)', '.vip-plan-card', 'main']
         },
         {
             step: 6,
@@ -408,7 +408,7 @@
         if (isActive) {
             const savedStep = parseInt(localStorage.getItem(STORAGE_KEY_STEP), 10) || 1;
             const station = TOUR_STATIONS[savedStep - 1];
-            if (station && (path === station.path || path === station.path.split('#')[0])) {
+            if (station && (path === station.path || path === station.path.split('#')[0] || ((station.path === '/subscription/plans' || station.path === '/vip') && (path === '/vip' || path === '/subscription/plans')))) {
                 currentStep = savedStep;
                 renderStation(station, false);
                 return;
@@ -475,7 +475,7 @@
 
     window.spotlightCurrentPage = function () {
         const path = window.location.pathname;
-        let matched = TOUR_STATIONS.find(s => s.path === path || path === s.path.split('#')[0]);
+        let matched = TOUR_STATIONS.find(s => s.path === path || path === s.path.split('#')[0] || ((s.path === '/subscription/plans' || s.path === '/vip') && (path === '/vip' || path === '/subscription/plans')));
         if (!matched) {
             matched = {
                 step: 0,

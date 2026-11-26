@@ -138,10 +138,8 @@ public class OperationSubscriptionController {
             return "redirect:/operation/subscriptions/" + id + "/edit";
         }
         try {
-            boolean requested = planService.updatePlan(id, form, BillingActor.of(user));
-            ra.addFlashAttribute("successMessage", requested
-                    ? "Đã gửi yêu cầu thay đổi cho Admin phê duyệt. Gói vẫn được bán theo thông tin hiện tại cho đến khi được duyệt."
-                    : "Đã lưu bản nháp.");
+            planService.updatePlan(id, form, BillingActor.of(user));
+            ra.addFlashAttribute("successMessage", "Đã cập nhật thông tin gói học thành công.");
             return "redirect:/operation/subscriptions";
         } catch (RuntimeException e) {
             ra.addFlashAttribute("form", form);
@@ -150,18 +148,18 @@ public class OperationSubscriptionController {
         }
     }
 
-    /** POST /operation/subscriptions/{id}/submit – gửi bản nháp cho Admin duyệt mở bán (CREATE_PLAN). */
+    /** POST /operation/subscriptions/{id}/submit – kích hoạt mở bán gói học từ bản nháp. */
     @PostMapping("/subscriptions/{id}/submit")
     public String submitDraft(@PathVariable Long id, @RequestParam(required = false) String reason,
                               @RequestParam(value = CsrfGuard.PARAM, required = false) String csrf,
                               HttpSession session, Model model, RedirectAttributes ra) {
         return act(session, model, ra, csrf, () -> {
             planService.submitDraft(id, reason, actor(session, model));
-            return "Đã gửi yêu cầu tạo gói mới cho Admin phê duyệt.";
+            return "Đã kích hoạt mở bán gói học thành công.";
         });
     }
 
-    /** POST /operation/subscriptions/{id}/change-price – đề xuất giá mới (UPDATE_PRICE), giá chính thức chưa đổi. */
+    /** POST /operation/subscriptions/{id}/change-price – đổi giá gói học trực tiếp; ghi nhận lịch sử giá. */
     @PostMapping("/subscriptions/{id}/change-price")
     public String changePrice(@PathVariable Long id, @Valid @ModelAttribute ChangePriceRequest form, BindingResult binding,
                               @RequestParam(value = CsrfGuard.PARAM, required = false) String csrf,
@@ -172,11 +170,11 @@ public class OperationSubscriptionController {
         }
         return act(session, model, ra, csrf, () -> {
             planService.requestPriceChange(id, form, actor(session, model));
-            return "Đã gửi yêu cầu thay đổi giá. Giá hiện tại vẫn được áp dụng cho đến khi Admin phê duyệt.";
+            return "Đã cập nhật giá mới thành công và ghi nhận vào lịch sử giá.";
         });
     }
 
-    /** POST /operation/subscriptions/{id}/activate – đề xuất mở bán lại gói đang tạm ngừng. */
+    /** POST /operation/subscriptions/{id}/activate – mở bán lại gói đang tạm ngừng. */
     @PostMapping("/subscriptions/{id}/activate")
     public String activate(@PathVariable Long id, @RequestParam(required = false) String reason,
                            @RequestParam(value = CsrfGuard.PARAM, required = false) String csrf,
@@ -184,7 +182,7 @@ public class OperationSubscriptionController {
         return statusRequest(id, PlanRequestType.ACTIVATE_PLAN, reason, csrf, session, model, ra);
     }
 
-    /** POST /operation/subscriptions/{id}/deactivate – đề xuất ngừng bán gói. */
+    /** POST /operation/subscriptions/{id}/deactivate – ngừng bán gói. */
     @PostMapping("/subscriptions/{id}/deactivate")
     public String deactivate(@PathVariable Long id, @RequestParam(required = false) String reason,
                              @RequestParam(value = CsrfGuard.PARAM, required = false) String csrf,
@@ -192,7 +190,7 @@ public class OperationSubscriptionController {
         return statusRequest(id, PlanRequestType.DEACTIVATE_PLAN, reason, csrf, session, model, ra);
     }
 
-    /** POST /operation/subscriptions/{id}/archive – đề xuất lưu trữ (ngừng kinh doanh) gói. */
+    /** POST /operation/subscriptions/{id}/archive – lưu trữ (ngừng kinh doanh) gói. */
     @PostMapping("/subscriptions/{id}/archive")
     public String archive(@PathVariable Long id, @RequestParam(required = false) String reason,
                           @RequestParam(value = CsrfGuard.PARAM, required = false) String csrf,
@@ -204,7 +202,12 @@ public class OperationSubscriptionController {
                                  HttpSession session, Model model, RedirectAttributes ra) {
         return act(session, model, ra, csrf, () -> {
             planService.requestStatusChange(id, type, reason, actor(session, model));
-            return "Đã gửi yêu cầu \"" + type.getLabel() + "\" cho Admin phê duyệt.";
+            return switch (type) {
+                case ACTIVATE_PLAN -> "Đã kích hoạt mở bán lại gói học.";
+                case DEACTIVATE_PLAN -> "Đã ngừng bán gói học thành công.";
+                case ARCHIVE_PLAN -> "Đã lưu trữ gói học thành công.";
+                default -> "Đã cập nhật trạng thái gói học.";
+            };
         });
     }
 
@@ -225,33 +228,17 @@ public class OperationSubscriptionController {
         return "operation/price-history";
     }
 
-    // ------------------------------------------------------------------ yêu cầu đã gửi
+    // ------------------------------------------------------------------ yêu cầu phê duyệt (đã bãi bỏ, chuyển hướng về danh sách)
 
-    /** GET /operation/subscriptions/requests – các yêu cầu đã gửi, kết quả và lý do từ chối. */
+    /** Đã xoá tác vụ Yêu cầu phê duyệt cho Operation Manager: chuyển hướng về danh sách gói. */
     @GetMapping("/subscriptions/requests")
-    public String requests(@RequestParam(required = false) String status, @RequestParam(defaultValue = "false") boolean mine,
-                           @RequestParam(defaultValue = "0") int page, HttpSession session, Model model) {
-        UserDTO user = support.prepare(session, model, PORTAL, "requests", "Yêu cầu phê duyệt gói học");
-        PlanRequestStatus st = parseRequestStatus(status);
-        model.addAttribute("requests", approvalService.search(st, mine ? user.getId() : null, page, 10));
-        model.addAttribute("requestStatuses", PlanRequestStatus.values());
-        model.addAttribute("statusFilter", st == null ? "" : st.name());
-        model.addAttribute("mine", mine);
-        return "operation/subscription-requests";
+    public String requests() {
+        return "redirect:/operation/subscriptions";
     }
 
-    /** POST /operation/subscriptions/requests/{id}/cancel – người gửi hủy yêu cầu đang chờ duyệt. */
     @PostMapping("/subscriptions/requests/{id}/cancel")
-    public String cancelRequest(@PathVariable Long id, @RequestParam(value = CsrfGuard.PARAM, required = false) String csrf,
-                                HttpSession session, Model model, RedirectAttributes ra) {
-        if (!CsrfGuard.isValid(session, csrf)) return csrfFailed(ra, "/operation/subscriptions/requests");
-        try {
-            approvalService.cancel(id, actor(session, model));
-            ra.addFlashAttribute("successMessage", "Đã hủy yêu cầu #" + id + ".");
-        } catch (RuntimeException e) {
-            ra.addFlashAttribute("errorMessage", friendly(e));
-        }
-        return "redirect:/operation/subscriptions/requests";
+    public String cancelRequest() {
+        return "redirect:/operation/subscriptions";
     }
 
     // ------------------------------------------------------------------ giao dịch, Premium, doanh thu

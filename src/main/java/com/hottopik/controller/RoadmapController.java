@@ -22,7 +22,9 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
-/** Lộ trình của người học, lấy thứ tự dạng từ bản Content Manager đã phát hành. */
+/**
+ * Lộ trình của người học, lấy thứ tự dạng từ bản Content Manager đã phát hành.
+ */
 @Controller
 public class RoadmapController {
 
@@ -34,39 +36,56 @@ public class RoadmapController {
         this.roadmaps = roadmaps;
     }
 
-    /* =========================================================================================
+    /*
+     * =============================================================================
+     * ============
      * LUỒNG CHỨC NĂNG: XEM TOÀN CẢNH LỘ TRÌNH HỌC TẬP (ROADMAP VIEW - FUNC_ROAD_02)
-     * -----------------------------------------------------------------------------------------
+     * -----------------------------------------------------------------------------
+     * ------------
      * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
-     *    - Học viên click vào menu "Lộ trình" trên thanh Navbar chính (fragments/navbar.html).
+     * - Học viên click vào menu "Lộ trình" trên thanh Navbar chính
+     * (fragments/navbar.html).
      * 2. HTTP REQUEST & ENDPOINT:
-     *    - URL: GET /lo-trinh (hoặc /roadmap)
+     * - URL: GET /lo-trinh (hoặc /roadmap)
      * 3. CONTROLLER & SERVICE XỬ LÝ:
-     *    - Controller: com.hottopik.controller.RoadmapController.roadmap()
-     *    - Triệu gọi Service:
-     *      + com.hottopik.service.exam.LearnerRoadmapService.ensure(): Lấy hoặc sinh lộ trình mặc định.
-     *      + com.hottopik.service.exam.LearnerRoadmapService.view(plan): Dựng toàn bộ lưới bài học theo ngày,
-     *        phân chia thành các tuần (week strip), các pha (phases) và danh sách ô đã hoàn thành (doneKeys).
-     *      + com.hottopik.service.exam.LearnerRoadmapService.rhythmOffer(plan, schedule):
-     *        Kiểm tra nếu học viên nghỉ học liên tiếp >= 3 ngày thì tạo đề xuất Khôi phục nhịp học.
+     * - Controller: com.hottopik.controller.RoadmapController.roadmap()
+     * - Triệu gọi Service:
+     * + com.hottopik.service.exam.LearnerRoadmapService.ensure(): Lấy hoặc sinh lộ
+     * trình mặc định.
+     * + com.hottopik.service.exam.LearnerRoadmapService.view(plan): Dựng toàn bộ
+     * lưới bài học theo ngày,
+     * phân chia thành các tuần (week strip), các pha (phases) và danh sách ô đã
+     * hoàn thành (doneKeys).
+     * + com.hottopik.service.exam.LearnerRoadmapService.rhythmOffer(plan,
+     * schedule):
+     * Kiểm tra nếu học viên nghỉ học liên tiếp >= 3 ngày thì tạo đề xuất Khôi phục
+     * nhịp học.
      * 4. TRUY VẤN CSDL:
-     *    - Bảng dbo.study_plans (SELECT theo owner_email).
-     *    - Bảng dbo.program_versions (SELECT bản chương trình đang phát hành).
+     * - Bảng dbo.study_plans (SELECT theo owner_email).
+     * - Bảng dbo.program_versions (SELECT bản chương trình đang phát hành).
      * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
-     *    - Trả về View: "roadmap/index" (src/main/resources/templates/roadmap/index.html)
-     *    - Giao diện hiển thị: Lưới học tập toàn bộ N ngày, huy hiệu Bài mới / Ôn lần 1-3,
-     *      nếu có gián đoạn >= 3 ngày sẽ hiển thị Banner nổi bật: "Bạn đã nghỉ X ngày. Khôi phục nhịp học ngay?".
-     * ========================================================================================= */
-    @GetMapping({"/lo-trinh", "/roadmap"})
+     * - Trả về View: "roadmap/index"
+     * (src/main/resources/templates/roadmap/index.html)
+     * - Giao diện hiển thị: Lưới học tập toàn bộ N ngày, huy hiệu Bài mới / Ôn lần
+     * 1-3,
+     * nếu có gián đoạn >= 3 ngày sẽ hiển thị Banner nổi bật:
+     * "Bạn đã nghỉ X ngày. Khôi phục nhịp học ngay?".
+     * =============================================================================
+     * ============
+     */
+    @GetMapping({ "/lo-trinh", "/roadmap" })
     public String roadmap(HttpSession session, Model model) {
+        if (AuthHelper.getLoggedInUser(session) == null) {
+            return "redirect:/login";
+        }
         StudyPlan plan;
         try {
             plan = roadmaps.ensure(owner(session), trackFor(session));
         } catch (ExamDomainException e) {
-                model.addAttribute("pageTitle", "Lộ trình học theo ngày");
-                model.addAttribute("activePage", "roadmap");
-                model.addAttribute("loadError", e.getMessage());
-                return "roadmap/index";
+            model.addAttribute("pageTitle", "Lộ trình học theo ngày");
+            model.addAttribute("activePage", "roadmap");
+            model.addAttribute("loadError", e.getMessage());
+            return "roadmap/index";
         }
         model.addAttribute("pageTitle", "Lộ trình học theo ngày");
         model.addAttribute("activePage", "roadmap");
@@ -82,29 +101,43 @@ public class RoadmapController {
         return "roadmap/index";
     }
 
-    /* =========================================================================================
-     * LUỒNG CHỨC NĂNG: KHÔI PHỤC NHỊP HỌC KHI NGHỈ DÀI NGÀY (RESTORE RHYTHM - FUNC_ROAD_03)
-     * -----------------------------------------------------------------------------------------
+    /*
+     * =============================================================================
+     * ============
+     * LUỒNG CHỨC NĂNG: KHÔI PHỤC NHỊP HỌC KHI NGHỈ DÀI NGÀY (RESTORE RHYTHM -
+     * FUNC_ROAD_03)
+     * -----------------------------------------------------------------------------
+     * ------------
      * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
-     *    - Xuất hiện banner đề xuất trên trang Lộ trình (roadmap/index.html).
-     *    - Học viên bấm nút: <button type="submit" class="btn-ssak-primary">Khôi phục nhịp học ngay</button>.
+     * - Xuất hiện banner đề xuất trên trang Lộ trình (roadmap/index.html).
+     * - Học viên bấm nút: <button type="submit" class="btn-ssak-primary">Khôi phục
+     * nhịp học ngay</button>.
      * 2. HTTP REQUEST & ENDPOINT:
-     *    - URL: POST /lo-trinh/khoi-phuc-nhip
+     * - URL: POST /lo-trinh/khoi-phuc-nhip
      * 3. CONTROLLER & SERVICE XỬ LÝ:
-     *    - Controller: com.hottopik.controller.RoadmapController.restoreRhythm()
-     *    - Triệu gọi Service: com.hottopik.service.exam.LearnerRoadmapService.restoreRhythm(owner):
-     *      + Kiểm tra lại điều kiện missedStudy >= 3.
-     *      + Tính khoảng thời gian bị lỡ: span = calendarDay - first.
-     *      + Tịnh tiến ngày bắt đầu: plan.setStartDate(plan.getStartDate().plusDays(offer.days())).
-     *      + Giữ nguyên 100% thứ tự các dạng bài và khoảng cách lặp lại ngắt quãng 4 lần/dạng (sessionsPerType = 4).
+     * - Controller: com.hottopik.controller.RoadmapController.restoreRhythm()
+     * - Triệu gọi Service:
+     * com.hottopik.service.exam.LearnerRoadmapService.restoreRhythm(owner):
+     * + Kiểm tra lại điều kiện missedStudy >= 3.
+     * + Tính khoảng thời gian bị lỡ: span = calendarDay - first.
+     * + Tịnh tiến ngày bắt đầu:
+     * plan.setStartDate(plan.getStartDate().plusDays(offer.days())).
+     * + Giữ nguyên 100% thứ tự các dạng bài và khoảng cách lặp lại ngắt quãng 4
+     * lần/dạng (sessionsPerType = 4).
      * 4. TRUY VẤN CSDL:
-     *    - Bảng dbo.study_plans (UPDATE start_date mới).
+     * - Bảng dbo.study_plans (UPDATE start_date mới).
      * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
-     *    - Controller trả về: redirect:/lo-trinh
-     *    - Lộ trình tải lại với ngày bị lỡ đầu tiên được dời thành ngày "Hôm nay", banner nhắc nhở biến mất.
-     * ========================================================================================= */
+     * - Controller trả về: redirect:/lo-trinh
+     * - Lộ trình tải lại với ngày bị lỡ đầu tiên được dời thành ngày "Hôm nay",
+     * banner nhắc nhở biến mất.
+     * =============================================================================
+     * ============
+     */
     @PostMapping("/lo-trinh/khoi-phuc-nhip")
     public String restoreRhythm(HttpSession session) {
+        if (AuthHelper.getLoggedInUser(session) == null) {
+            return "redirect:/login";
+        }
         try {
             roadmaps.restoreRhythm(owner(session));
         } catch (ExamDomainException e) {
@@ -113,12 +146,15 @@ public class RoadmapController {
         return "redirect:/lo-trinh";
     }
 
-    @GetMapping({"/lo-trinh/tao", "/roadmap/create"})
+    @GetMapping({ "/lo-trinh/tao", "/roadmap/create" })
     public String createForm(@RequestParam(defaultValue = "TOPIK_II") String track,
-                             @RequestParam(required = false) Integer days,
-                             @RequestParam(defaultValue = "20") int minutes,
-                             @RequestParam(required = false) String error,
-                             HttpSession session, Model model) {
+            @RequestParam(required = false) Integer days,
+            @RequestParam(defaultValue = "20") int minutes,
+            @RequestParam(required = false) String error,
+            HttpSession session, Model model) {
+        if (AuthHelper.getLoggedInUser(session) == null) {
+            return "redirect:/login";
+        }
         model.addAttribute("pageTitle", "Tạo lộ trình học cá nhân");
         model.addAttribute("activePage", "roadmap");
         model.addAttribute("minutes", minutes);
@@ -147,11 +183,14 @@ public class RoadmapController {
         return "roadmap/create";
     }
 
-    @PostMapping({"/lo-trinh", "/roadmap"})
+    @PostMapping({ "/lo-trinh", "/roadmap" })
     public String create(@RequestParam String track,
-                         @RequestParam int days,
-                         @RequestParam int minutes,
-                         HttpSession session) {
+            @RequestParam int days,
+            @RequestParam int minutes,
+            HttpSession session) {
+        if (AuthHelper.getLoggedInUser(session) == null) {
+            return "redirect:/login";
+        }
         try {
             roadmaps.open(owner(session), LearnerRoadmapService.trackOf(track), days, minutes);
             return "redirect:/lo-trinh";
@@ -164,9 +203,12 @@ public class RoadmapController {
     @PostMapping("/lo-trinh/tien-do")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> mark(@RequestParam int day,
-                                                    @RequestParam int slot,
-                                                    @RequestParam(defaultValue = "1") String done,
-                                                    HttpSession session) {
+            @RequestParam int slot,
+            @RequestParam(defaultValue = "1") String done,
+            HttpSession session) {
+        if (AuthHelper.getLoggedInUser(session) == null) {
+            return ResponseEntity.status(401).body(Map.of("ok", false, "message", "Unauthorized"));
+        }
         try {
             boolean finished = !"0".equals(done) && !"false".equalsIgnoreCase(done);
             return ResponseEntity.ok(Map.of("ok", true,
@@ -176,12 +218,15 @@ public class RoadmapController {
         }
     }
 
-    @GetMapping({"/lo-trinh/dieu-chinh", "/roadmap/adjust"})
+    @GetMapping({ "/lo-trinh/dieu-chinh", "/roadmap/adjust" })
     public String adjustForm(@RequestParam(required = false) String track,
-                             @RequestParam(required = false) Integer days,
-                             @RequestParam(required = false) Integer minutes,
-                             @RequestParam(required = false) String error,
-                             HttpSession session, Model model) {
+            @RequestParam(required = false) Integer days,
+            @RequestParam(required = false) Integer minutes,
+            @RequestParam(required = false) String error,
+            HttpSession session, Model model) {
+        if (AuthHelper.getLoggedInUser(session) == null) {
+            return "redirect:/login";
+        }
         model.addAttribute("pageTitle", "Điều chỉnh lộ trình học");
         model.addAttribute("activePage", "roadmap");
         model.addAttribute("error", error);
@@ -224,33 +269,51 @@ public class RoadmapController {
         return "roadmap/adjust";
     }
 
-    /* =========================================================================================
-     * LUỒNG CHỨC NĂNG: ĐIỀU CHỈNH SỐ NGÀY & MỤC TIÊU LỘ TRÌNH (RESHAPE ROADMAP - FUNC_ROAD_04)
-     * -----------------------------------------------------------------------------------------
+    /*
+     * =============================================================================
+     * ============
+     * LUỒNG CHỨC NĂNG: ĐIỀU CHỈNH SỐ NGÀY & MỤC TIÊU LỘ TRÌNH (RESHAPE ROADMAP -
+     * FUNC_ROAD_04)
+     * -----------------------------------------------------------------------------
+     * ------------
      * 1. THAO TÁC NGƯỜI DÙNG & UI/HTML:
-     *    - Học viên vào trang Điều chỉnh lộ trình (src/main/resources/templates/roadmap/adjust.html).
-     *    - Kéo thanh slider số ngày (31 đến 200 ngày), chọn phút học (10..60 phút), chọn TOPIK I hoặc II.
-     *    - Bấm nút "Lưu thay đổi lộ trình": <button type="submit" class="btn-ssak-primary">Lưu điều chỉnh</button>.
+     * - Học viên vào trang Điều chỉnh lộ trình
+     * (src/main/resources/templates/roadmap/adjust.html).
+     * - Kéo thanh slider số ngày (31 đến 200 ngày), chọn phút học (10..60 phút),
+     * chọn TOPIK I hoặc II.
+     * - Bấm nút "Lưu thay đổi lộ trình": <button type="submit"
+     * class="btn-ssak-primary">Lưu điều chỉnh</button>.
      * 2. HTTP REQUEST & ENDPOINT:
-     *    - URL: POST /lo-trinh/dieu-chinh (Form Data: track, days, minutes)
+     * - URL: POST /lo-trinh/dieu-chinh (Form Data: track, days, minutes)
      * 3. CONTROLLER & SERVICE XỬ LÝ:
-     *    - Controller: com.hottopik.controller.RoadmapController.adjust()
-     *    - Triệu gọi Service: com.hottopik.service.exam.LearnerRoadmapService.reshape(owner, track, days, minutes):
-     *      + Chuẩn hóa số ngày (normalizeDays từ 31 đến 200).
-     *      + Dựng lại cấu trúc phân bổ bài học theo bản chương trình phát hành.
-     *      + Gọi remapDone: Giữ lại những bài học mà học viên đã hoàn thành trong quá khứ nếu còn nằm trong lịch mới.
-     *      + Cập nhật các trường: track, totalDays, itemsPerDay, minutesPerDay, doneKeys.
+     * - Controller: com.hottopik.controller.RoadmapController.adjust()
+     * - Triệu gọi Service:
+     * com.hottopik.service.exam.LearnerRoadmapService.reshape(owner, track, days,
+     * minutes):
+     * + Chuẩn hóa số ngày (normalizeDays từ 31 đến 200).
+     * + Dựng lại cấu trúc phân bổ bài học theo bản chương trình phát hành.
+     * + Gọi remapDone: Giữ lại những bài học mà học viên đã hoàn thành trong quá
+     * khứ nếu còn nằm trong lịch mới.
+     * + Cập nhật các trường: track, totalDays, itemsPerDay, minutesPerDay,
+     * doneKeys.
      * 4. TRUY VẤN CSDL:
-     *    - Bảng dbo.study_plans (UPDATE track, total_days, items_per_day, minutes_per_day, done_keys).
+     * - Bảng dbo.study_plans (UPDATE track, total_days, items_per_day,
+     * minutes_per_day, done_keys).
      * 5. HIỂN THỊ KẾT QUẢ CHO NGƯỜI DÙNG:
-     *    - Controller trả về: redirect:/lo-trinh
-     *    - Màn hình Lộ trình tải lại với khung ngày học mới và thanh tiến độ được tính toán lại theo số ngày mới.
-     * ========================================================================================= */
-    @PostMapping({"/lo-trinh/dieu-chinh", "/roadmap/adjust"})
+     * - Controller trả về: redirect:/lo-trinh
+     * - Màn hình Lộ trình tải lại với khung ngày học mới và thanh tiến độ được tính
+     * toán lại theo số ngày mới.
+     * =============================================================================
+     * ============
+     */
+    @PostMapping({ "/lo-trinh/dieu-chinh", "/roadmap/adjust" })
     public String adjust(@RequestParam String track,
-                         @RequestParam int days,
-                         @RequestParam int minutes,
-                         HttpSession session) {
+            @RequestParam int days,
+            @RequestParam int minutes,
+            HttpSession session) {
+        if (AuthHelper.getLoggedInUser(session) == null) {
+            return "redirect:/login";
+        }
         try {
             roadmaps.reshape(owner(session), LearnerRoadmapService.trackOf(track), days, minutes);
             return "redirect:/lo-trinh";
@@ -261,16 +324,24 @@ public class RoadmapController {
     }
 
     @GetMapping({"/lo-trinh/nhin-lai-tuan", "/roadmap/retrospective"})
-    public String retrospective(Model model) {
+
+    public String retrospective(HttpSession session, Model model) {
+        if (AuthHelper.getLoggedInUser(session) == null) {
+            return "redirect:/login";
+        }
         model.addAttribute("pageTitle", "Nhìn lại tuần học");
         model.addAttribute("activePage", "roadmap");
         return "roadmap/retrospective";
     }
 
-    /** Cùng mốc tháng, ô số ngày và ô lịch với bài kiểm tra trình độ. Ngày tính từ ngày bắt đầu lịch. */
+    /**
+     * Cùng mốc tháng, ô số ngày và ô lịch với bài kiểm tra trình độ. Ngày tính từ
+     * ngày bắt đầu lịch.
+     */
     private static void fillSpan(Model model, LocalDate start, int days) {
         int shown = days == 30 ? 31 : days;
-        if (shown < 1 || shown > 400) shown = PlacementRules.defaultSpan();
+        if (shown < 1 || shown > 400)
+            shown = PlacementRules.defaultSpan();
         model.addAttribute("minDays", PlacementRules.MIN_DAYS);
         model.addAttribute("maxDays", PlacementRules.MAX_DAYS);
         model.addAttribute("goalDays", shown);
@@ -295,7 +366,8 @@ public class RoadmapController {
             model.addAttribute("lessonCount", preview.newCount() + preview.reviewCount()
                     + preview.miniCount() + preview.fullCount());
         } catch (ExamDomainException e) {
-            if (model.getAttribute("error") == null) model.addAttribute("error", e.getMessage());
+            if (model.getAttribute("error") == null)
+                model.addAttribute("error", e.getMessage());
         }
     }
 
@@ -311,20 +383,25 @@ public class RoadmapController {
 
     private static String levelPath(HttpSession session) {
         UserDTO user = AuthHelper.getLoggedInUser(session);
-        if (user == null) return null;
+        if (user == null)
+            return null;
         String from = prettyLevel(user.getCurrentLevel());
         String to = prettyLevel(user.getTargetLevel());
-        if (from != null && to != null && !from.equals(to)) return from + " → " + to;
-        if (to != null) return to;
+        if (from != null && to != null && !from.equals(to))
+            return from + " → " + to;
+        if (to != null)
+            return to;
         return from;
     }
 
     private static String prettyLevel(String raw) {
-        if (raw == null || raw.isBlank()) return null;
+        if (raw == null || raw.isBlank())
+            return null;
         String value = raw.trim().toUpperCase().replace(' ', '_').replace('-', '_');
         if (value.startsWith("TOPIK_")) {
             String rest = value.substring("TOPIK_".length());
-            if (rest.matches("[0-9]")) return "TOPIK " + rest;
+            if (rest.matches("[0-9]"))
+                return "TOPIK " + rest;
             return "TOPIK " + rest;
         }
         return raw.trim();
