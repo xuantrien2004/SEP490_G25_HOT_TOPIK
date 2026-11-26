@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<body>
+
+<!-- Thông báo môi trường thử nghiệm (bắt buộc ở mọi trang liên quan thanh toán) -->
+<div th:fragment="sandboxNotice" class="bl-sandbox" role="note">
+    <span aria-hidden="true">🧪</span>
+    <span>Môi trường thanh toán thử nghiệm – VNPay Sandbox. Giao dịch không phát sinh tiền thật.</span>
+</div>
+
+<!-- Flash message -->
+<th:block th:fragment="flash">
+    <div th:if="${successMessage}" class="bl-alert success" role="status" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" class="bl-alert error" role="alert" th:text="${errorMessage}"></div>
+    <div th:if="${warningMessage}" class="bl-alert warning" role="alert" th:text="${warningMessage}"></div>
+    <div th:if="${infoMessage}" class="bl-alert info" role="status" th:text="${infoMessage}"></div>
+</th:block>
+
+<!-- Sidebar trang quản lý (Operation Manager / Admin) -->
+<!-- Giống sidebar của dashboard Operation/Admin: các mục cũ quay về đúng tab (?tab=...),
+     nhóm "Gói học & Thanh toán" mở sẵn danh sách trang con. -->
+<aside th:fragment="sidebar" class="bl-sidebar" aria-label="Menu điều hướng">
+    <a th:href="@{'/' + ${portal}}" class="brand">🌱 HOT TOPIK</a>
+    <span class="role-pill" th:text="${portal == 'admin' ? '🛡️ Administrator' : '💼 Operation Manager'}">Operation Manager</span>
+
+    <a th:if="${currentUser != null}" th:href="@{'/' + ${portal} + '/profile'}" class="profile">
+        <span class="avatar" th:text="${currentUser.fullName != null and !#strings.isEmpty(currentUser.fullName) ? #strings.substring(currentUser.fullName, 0, 1) : 'U'}">U</span>
+        <span class="who"><strong th:text="${currentUser.fullName}">Tên</strong>
+            <small th:text="${portal == 'admin' ? 'Hồ sơ Quản trị →' : 'Hồ sơ Vận hành →'}">Hồ sơ →</small></span>
+    </a>
+
+    <div class="label" th:text="${portal == 'admin' ? 'Tác vụ Quản trị' : 'Tác vụ Vận hành'}">Tác vụ</div>
+    <th:block th:if="${portal == 'operation'}">
+        <a class="item" th:href="@{/operation}">📊 Tổng quan</a>
+        <a class="item" th:href="@{/operation(tab='users')}">👥 Quản lý Học viên</a>
+        <a class="item" th:href="@{/operation(tab='orders')}">💳 Đơn hàng &amp; Hoàn tiền</a>
+        <a class="item" th:href="@{/operation(tab='prices')}">🏷️ Bảng giá gói VIP</a>
+        <a class="item" th:href="@{/operation(tab='compensation')}">🎁 Cấp bù &amp; Gia hạn VIP</a>
+        <a class="item" th:href="@{/operation(tab='reviews')}">⭐ Duyệt Đánh giá &amp; Review</a>
+        <a class="item" th:href="@{/operation(tab='announcements')}">📢 Phát Thông báo</a>
+        <a class="item" th:href="@{/operation(tab='aiBudget')}">🤖 Ngân sách AI</a>
+        <a class="item" th:href="@{/operation(tab='audit')}">📜 Nhật ký Vận hành</a>
+    </th:block>
+    <th:block th:if="${portal == 'admin'}">
+        <a class="item" th:href="@{/admin(tab='staff')}">👥 Quản lý Nhân sự</a>
+        <a class="item" th:href="@{/admin(tab='audit')}">📋 Nhật ký Kiểm toán</a>
+    </th:block>
+
+    <!-- Nhóm Gói học & Thanh toán: đang ở trang con nên mở sẵn -->
+    <details class="group" open>
+        <summary class="item group-head">📦 Gói học &amp; Thanh toán <span class="sandbox">Sandbox</span></summary>
+        <div class="sub" th:if="${portal == 'operation'}">
+            <a th:href="@{/operation/subscriptions}" th:classappend="${activeMenu == 'plans'} ? 'active'">Quản lý gói học</a>
+            <a th:href="@{/operation/subscriptions/requests}" th:classappend="${activeMenu == 'requests'} ? 'active'">Yêu cầu phê duyệt</a>
+            <a th:href="@{/operation/subscriptions/price-history}" th:classappend="${activeMenu == 'priceHistory'} ? 'active'">Lịch sử giá</a>
+            <a th:href="@{/operation/transactions}" th:classappend="${activeMenu == 'transactions'} ? 'active'">Giao dịch Sandbox</a>
+            <a th:href="@{/operation/premium-users}" th:classappend="${activeMenu == 'premiumUsers'} ? 'active'">Học viên Premium</a>
+            <a th:href="@{/operation/revenue}" th:classappend="${activeMenu == 'revenue'} ? 'active'">Doanh thu Sandbox</a>
+        </div>
+        <div class="sub" th:if="${portal == 'admin'}">
+            <a th:href="@{/admin/subscription-requests}" th:classappend="${activeMenu == 'requests'} ? 'active'">Phê duyệt gói học</a>
+            <a th:href="@{/admin/subscriptions}" th:classappend="${activeMenu == 'plans'} ? 'active'">Danh sách gói học</a>
+            <a th:href="@{/admin/subscriptions/price-history}" th:classappend="${activeMenu == 'priceHistory'} ? 'active'">Lịch sử giá</a>
+            <a th:href="@{/admin/transactions}" th:classappend="${activeMenu == 'transactions'} ? 'active'">Giao dịch Sandbox</a>
+            <a th:href="@{/admin/revenue}" th:classappend="${activeMenu == 'revenue'} ? 'active'">Doanh thu Sandbox</a>
+        </div>
+    </details>
+
+    <div class="bottom">
+        <a th:if="${portal == 'admin'}" th:href="@{/operation}">💼 Cổng Vận hành</a>
+        <a th:href="@{/today}">🎓 Xem Cổng Học viên</a>
+        <a th:href="@{/logout}" class="logout">🚪 Đăng xuất hệ thống</a>
+    </div>
+</aside>
+
+<!-- Phân trang: giữ nguyên các tham số lọc trên URL, chỉ đổi page -->
+<nav th:fragment="pager(pageObj)" class="bl-pager" aria-label="Phân trang" th:if="${pageObj.totalPages > 1}">
+    <a th:if="${pageObj.hasPrevious()}" href="#" class="js-page" th:attr="data-page=${pageObj.number - 1}">‹ Trước</a>
+    <span th:unless="${pageObj.hasPrevious()}" class="disabled">‹ Trước</span>
+    <th:block th:each="i : ${#numbers.sequence(0, pageObj.totalPages - 1)}"
+              th:if="${i == 0 or i == pageObj.totalPages - 1 or (i >= pageObj.number - 2 and i <= pageObj.number + 2)}">
+        <span th:if="${i == pageObj.number}" class="current" th:text="${i + 1}" aria-current="page">1</span>
+        <a th:unless="${i == pageObj.number}" href="#" class="js-page" th:attr="data-page=${i}" th:text="${i + 1}">2</a>
+    </th:block>
+    <a th:if="${pageObj.hasNext()}" href="#" class="js-page" th:attr="data-page=${pageObj.number + 1}">Sau ›</a>
+    <span th:unless="${pageObj.hasNext()}" class="disabled">Sau ›</span>
+    <script>
+        document.querySelectorAll('.bl-pager .js-page').forEach(function (a) {
+            a.addEventListener('click', function (e) {
+                e.preventDefault();
+                var url = new URL(window.location.href);
+                url.searchParams.set('page', a.getAttribute('data-page'));
+                window.location.href = url.toString();
+            });
+        });
+    </script>
+</nav>
+
+<!-- Hộp xác nhận trước khi gửi form có class js-confirm (data-confirm = nội dung hỏi) -->
+<script th:fragment="confirmScript">
+    document.querySelectorAll('form.js-confirm').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            var msg = form.getAttribute('data-confirm') || 'Bạn chắc chắn muốn thực hiện thao tác này?';
+            if (!window.confirm(msg)) { e.preventDefault(); return; }
+            form.querySelectorAll('button[type=submit]').forEach(function (b) { b.disabled = true; b.textContent = 'Đang xử lý...'; });
+        });
+    });
+    document.querySelectorAll('form.js-once').forEach(function (form) {
+        form.addEventListener('submit', function () {
+            form.querySelectorAll('button[type=submit]').forEach(function (b) { b.disabled = true; b.textContent = 'Đang xử lý...'; });
+        });
+    });
+</script>
+
+</body>
+</html>

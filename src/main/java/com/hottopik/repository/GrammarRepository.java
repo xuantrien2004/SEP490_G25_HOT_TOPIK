@@ -83,4 +83,9 @@ public interface GrammarRepository extends JpaRepository<Grammar, Long> {
 
     @Query("SELECT g FROM Grammar g WHERE g.level = :level AND g.status = :status AND g.grammarGroup.status = 'ACTIVE' ORDER BY g.sortOrder ASC, g.id ASC")
     List<Grammar> findActiveByLevelAndStatus(@Param("level") Short level, @Param("status") String status);
+
+    // Trang chi tiết cho học viên: nạp sẵn nhóm và câu ví dụ vì open-in-view=false,
+    // template đọc grammarGroup/examples sau khi transaction đã đóng.
+    @Query("SELECT DISTINCT g FROM Grammar g JOIN FETCH g.grammarGroup LEFT JOIN FETCH g.examples WHERE g.id = :id")
+    java.util.Optional<Grammar> findDetailById(@Param("id") Long id);
 }

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/billing.css}">
+<div class="bl-page">
+    <div th:replace="~{fragments/navbar :: navbar('vip')}"></div>
+
+    <main class="bl-container narrow">
+        <div class="bl-crumb"><a th:href="@{/subscription/plans}">Gói học</a> › <span th:text="${plan.name}">Gói</span></div>
+        <h1 class="bl-title" th:text="${plan.name}">Premium</h1>
+        <p class="bl-subtitle" th:text="${plan.description}"></p>
+        <div th:replace="~{fragments/billing :: sandboxNotice}"></div>
+
+        <div class="bl-card">
+            <dl class="bl-detail-list">
+                <dt>Giá hiện tại</dt><dd th:text="${plan.priceText}">99.000đ</dd>
+                <dt>Thời hạn</dt><dd th:text="${plan.durationText}">30 ngày</dd>
+                <dt th:if="${plan.monthlyPriceText != null}">Quy đổi</dt><dd th:if="${plan.monthlyPriceText != null}" th:text="${plan.monthlyPriceText}"></dd>
+            </dl>
+            <h2 style="font-family:var(--font-heading);font-size:18px;font-weight:800;">Quyền lợi</h2>
+            <ul class="bl-features">
+                <li th:each="f : ${plan.features}" th:classappend="${f.premiumOnly} ? 'premium'">
+                    <span th:text="${f.name}"></span>
+                    <span th:if="${f.premiumOnly}" class="bl-status st-ACTIVE" style="margin-left:6px;">Premium</span>
+                </li>
+            </ul>
+            <div style="margin-top:18px;" th:if="${plan.premium}">
+                <a th:href="@{/subscription/checkout/{id}(id=${plan.id})}" class="bl-btn primary"
+                   th:text="${currentSub != null and currentSub.premium} ? 'Gia hạn bằng gói này' : 'Đăng ký ngay'">Đăng ký ngay</a>
+                <a th:href="@{/subscription/plans}" class="bl-btn">← Xem các gói khác</a>
+            </div>
+        </div>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+</body>
+</html>

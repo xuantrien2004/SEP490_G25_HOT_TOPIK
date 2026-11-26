@@ -9,6 +9,14 @@
 
         <!-- Left: Grammar Content (Chỉ hiện khi tìm thấy dữ liệu grammar) -->
         <section style="flex-grow: 1; display: flex; flex-direction: column; gap: 20px;" th:if="${grammar != null}">
+            <!-- Quay lại: mở từ "Ngữ pháp đã lưu" (?from=saved) thì về trang đó, còn lại về nhóm của ngữ pháp -->
+            <div style="font-size: 14px;">
+                <a th:if="${param.from != null and param.from[0] == 'saved'}" th:href="@{/ly-thuyet/ngu-phap-da-luu}"
+                   style="color: #2E7D67; text-decoration: none; font-weight: 700;">← Quay lại Ngữ pháp đã lưu</a>
+                <a th:unless="${param.from != null and param.from[0] == 'saved'}" th:href="@{/theory/grammar-list(groupId=${grammar.grammarGroup.id})}"
+                   style="color: #2E7D67; text-decoration: none; font-weight: 700;"
+                   th:text="${'← Quay lại nhóm ' + grammar.grammarGroup.nameVi}">← Quay lại nhóm</a>
+            </div>
             <div class="ssak-card" style="padding: 32px; display: flex; flex-direction: column; gap: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div style="display: flex; gap: 8px;">
@@ -17,7 +25,15 @@
                         <!-- Hiển thị tên nhóm ngữ pháp (nếu có quan hệ grammarGroup) -->
                         <span class="ssak-badge badge-sky" th:text="${grammar.grammarGroup != null ? grammar.grammarGroup.nameVi : 'Ngữ pháp TOPIK'}">Nhóm ngữ pháp</span>
                     </div>
-                    <span style="font-size: 13px; font-weight: 700; color: var(--ssak-text-muted);" th:text="'Mã: G-' + ${grammar.id}">Mã: G-042</span>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 13px; font-weight: 700; color: var(--ssak-text-muted);" th:text="'Mã: G-' + ${grammar.id}">Mã: G-042</span>
+                        <!-- Lưu vào Sổ ngữ pháp (POST /api/theory/grammar/{id}/save) -->
+                        <button type="button" class="save-grammar-btn" th:data-id="${grammar.id}" th:data-saved="${isSaved}"
+                                onclick="toggleSaveGrammar(this)"
+                                style="height: 36px; padding: 0 14px; border-radius: 10px; font-size: 13px; font-weight: 800; cursor: pointer;">
+                            ⭐ Lưu ngữ pháp
+                        </button>
+                    </div>
                 </div>
 
                 <div>
@@ -72,14 +88,6 @@
                         <b>Lưu ý quan trọng:</b> Nội dung ghi chú...
                     </div>
                 </div>
-
-                <!-- Practice Questions Linked -->
-                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--ssak-border);">
-                    <span style="font-size: 14px; color: var(--ssak-text-muted);">Hệ thống luyện tập thông minh HOT TOPIK</span>
-                    <a th:href="@{/practice/play(mode='practice')}" class="btn-ssak-primary" style="height: 44px; padding: 0 20px; font-size: 14px;">
-                        Luyện bài tập chứa ngữ pháp này →
-                    </a>
-                </div>
             </div>
         </section>
 
@@ -101,6 +109,17 @@
                 <div style="font-size: 13px; color: var(--ssak-text-muted); font-style: italic;">
                     Khám phá thêm các mẫu câu trong cùng chủ đề để củng cố kiến thức TOPIK của bạn.
                 </div>
+                <a th:each="rel : ${relatedGrammars}" th:href="@{/theory/grammar(id=${rel.id})}"
+                   style="display: block; padding: 12px 14px; border: 1.5px solid var(--ssak-border); border-radius: 12px; text-decoration: none; background: #FFFFFF;">
+                    <span style="display: block; font-family: var(--font-korean); font-size: 15px; font-weight: 800; color: #2E7D67;" th:text="${rel.pattern}">-아서/어서</span>
+                    <span style="display: block; font-size: 13px; color: #53646C;" th:text="${rel.translation}">Vì... nên...</span>
+                </a>
+                <div th:if="${relatedGrammars == null or #lists.isEmpty(relatedGrammars)}" style="font-size: 13px; color: var(--ssak-text-muted);">
+                    Nhóm này chưa có mẫu ngữ pháp nào khác.
+                </div>
+                <a th:href="@{/theory/grammar-list(groupId=${grammar.grammarGroup.id})}" style="font-size: 13px; font-weight: 800; color: #2E7D67; text-decoration: none;">
+                    Xem cả nhóm →
+                </a>
             </div>
         </aside>
 
@@ -108,5 +127,6 @@
 
     <div th:replace="~{fragments/footer :: footer}"></div>
 </div>
+<script th:src="@{/js/saved-grammar.js}"></script>
 </body>
 </html>

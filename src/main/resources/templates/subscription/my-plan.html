@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/billing.css}">
+<div class="bl-page">
+    <div th:replace="~{fragments/navbar :: navbar('vip')}"></div>
+
+    <main class="bl-container">
+        <div class="bl-crumb"><a th:href="@{/subscription/plans}">Gói học</a> › Gói của tôi</div>
+        <h1 class="bl-title">Gói của tôi</h1>
+        <div th:replace="~{fragments/billing :: flash}"></div>
+
+        <div class="bl-grid cols-2" style="margin-top:16px;align-items:start;">
+            <!-- Gói hiện tại -->
+            <div class="bl-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                    <div>
+                        <div style="font-size:13px;color:var(--ssak-text-muted);font-weight:800;">GÓI HIỆN TẠI</div>
+                        <div style="font-family:var(--font-heading);font-size:26px;font-weight:800;" th:text="${currentSub.planName}">Free</div>
+                    </div>
+                    <span class="bl-status" th:classappend="'st-' + ${currentSub.premium ? 'ACTIVE' : 'FREE'}"
+                          th:text="${currentSub.premium} ? 'Premium đang hoạt động' : 'Free'">Free</span>
+                </div>
+
+                <th:block th:if="${currentSub.premium}">
+                    <dl class="bl-detail-list" style="grid-template-columns:140px 1fr;">
+                        <dt>Ngày bắt đầu</dt><dd th:text="${currentSub.startsAtText}">--</dd>
+                        <dt>Ngày hết hạn</dt><dd th:text="${currentSub.endsAtText}">--</dd>
+                        <dt>Còn lại</dt><dd th:text="${currentSub.remainingDays >= 0 ? currentSub.remainingDays + ' ngày' : 'Không thời hạn'}">--</dd>
+                    </dl>
+                    <div class="bl-progress" th:if="${currentSub.endsAt != null}" role="progressbar" aria-label="Thời gian đã sử dụng"
+                         th:attr="aria-valuenow=${currentSub.usedPercent}" aria-valuemin="0" aria-valuemax="100">
+                        <span th:style="'width:' + ${currentSub.usedPercent} + '%'"></span>
+                    </div>
+                    <div style="font-size:12.5px;color:var(--ssak-text-muted);margin-top:6px;" th:if="${currentSub.endsAt != null}"
+                         th:text="'Đã dùng ' + ${currentSub.usedPercent} + '% thời gian'">Đã dùng</div>
+                    <div th:if="${currentSub.expiringSoon}" class="bl-alert warning">Premium sắp hết hạn. Gia hạn để không bị gián đoạn quyền lợi.</div>
+                    <a th:href="@{/subscription/plans}" class="bl-btn primary" style="margin-top:14px;">Gia hạn Premium</a>
+                </th:block>
+                <th:block th:unless="${currentSub.premium}">
+                    <p style="color:var(--ssak-text-muted);font-size:14px;margin:12px 0;">
+                        Bạn đang dùng gói Free. Nâng cấp Premium để mở thêm quyền lợi. Dữ liệu học tập của bạn luôn được giữ nguyên.
+                    </p>
+                    <a th:href="@{/subscription/plans}" class="bl-btn primary">Nâng cấp Premium</a>
+                </th:block>
+            </div>
+
+            <!-- Quyền lợi -->
+            <div class="bl-card">
+                <h2 style="font-family:var(--font-heading);font-size:18px;font-weight:800;margin:0 0 10px;">Quyền lợi của bạn</h2>
+                <ul class="bl-features">
+                    <li th:each="f : ${currentSub.features}" th:classappend="${f.premiumOnly} ? 'premium'">
+                        <span th:text="${f.name}"></span>
+                        <span th:if="${f.premiumOnly}" class="bl-status st-ACTIVE" style="margin-left:6px;">Premium</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Lịch sử đăng ký -->
+        <div class="bl-section" id="history">
+            <h2>Lịch sử đăng ký</h2>
+            <div class="bl-card bl-table-wrap" style="padding:0;">
+                <div th:if="${#lists.isEmpty(history)}" class="bl-empty"><span class="icon">🗂️</span>Chưa có lịch sử kích hoạt hoặc gia hạn.</div>
+                <table class="bl-table" th:unless="${#lists.isEmpty(history)}">
+                    <thead><tr><th>Thời gian</th><th>Sự kiện</th><th>Hết hạn cũ</th><th>Hết hạn mới</th><th>Mô tả</th></tr></thead>
+                    <tbody>
+                    <tr th:each="h : ${history}">
+                        <td th:text="${h.createdAtText}">--</td>
+                        <td><span class="bl-status" th:classappend="${h.actionType.name() == 'EXPIRED'} ? 'st-EXPIRED' : 'st-ACTIVE'" th:text="${h.actionType.label}">Kích hoạt</span></td>
+                        <td th:text="${h.oldEndDateText}">--</td>
+                        <td th:text="${h.newEndDateText}">--</td>
+                        <td th:text="${h.description}">--</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="bl-section">
+            <div class="bl-header"><h2>Đơn hàng gần đây</h2><a th:href="@{/subscription/transactions}" class="bl-btn sm">Xem tất cả</a></div>
+            <div class="bl-card bl-table-wrap" style="padding:0;">
+                <div th:if="${#lists.isEmpty(recentOrders)}" class="bl-empty"><span class="icon">🧾</span>Bạn chưa có đơn hàng nào.</div>
+                <table class="bl-table" th:unless="${#lists.isEmpty(recentOrders)}">
+                    <thead><tr><th>Mã đơn</th><th>Gói học</th><th>Số tiền</th><th>Ngày tạo</th><th>Trạng thái</th></tr></thead>
+                    <tbody>
+                    <tr th:each="o : ${recentOrders}">
+                        <td><a th:href="@{/subscription/transactions/{c}(c=${o.orderCode})}" th:text="${o.orderCode}">HT</a></td>
+                        <td th:text="${o.planNameSnapshot}">Premium</td>
+                        <td th:text="${o.totalAmountText}">99.000đ</td>
+                        <td th:text="${o.createdAtText}">--</td>
+                        <td><span class="bl-status" th:classappend="'st-' + ${o.status.name()}" th:text="${o.status.label}">--</span></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+</body>
+</html>

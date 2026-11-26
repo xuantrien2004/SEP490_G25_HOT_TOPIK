@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/billing.css}">
+<div class="bl-page">
+    <div th:replace="~{fragments/navbar :: navbar('vip')}"></div>
+
+    <main class="bl-container">
+        <div class="bl-crumb"><a th:href="@{/}">Trang chủ</a> › Gói học</div>
+        <h1 class="bl-title">Chọn gói học phù hợp với bạn</h1>
+        <p class="bl-subtitle">Các gói Premium có cùng quyền lợi, chỉ khác giá và thời hạn sử dụng. Giá được cập nhật trực tiếp từ hệ thống.</p>
+
+        <div th:replace="~{fragments/billing :: flash}"></div>
+        <div th:replace="~{fragments/billing :: sandboxNotice}"></div>
+
+        <!-- Gói hiện tại -->
+        <div th:if="${currentSub != null}" class="bl-card" style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+            <div>
+                <div style="font-size:13px;color:var(--ssak-text-muted);font-weight:800;">GÓI HIỆN TẠI CỦA BẠN</div>
+                <div style="font-family:var(--font-heading);font-size:22px;font-weight:800;" th:text="${currentSub.planName}">Free</div>
+                <div th:if="${currentSub.premium}" style="font-size:14px;">
+                    Hết hạn: <strong th:text="${currentSub.endsAtText}">--</strong>
+                    <span th:if="${currentSub.remainingDays >= 0}"> · còn <strong th:text="${currentSub.remainingDays}">0</strong> ngày</span>
+                </div>
+                <div th:unless="${currentSub.premium}" style="font-size:14px;color:var(--ssak-text-muted);">Bạn đang dùng các quyền lợi miễn phí.</div>
+            </div>
+            <a th:href="@{/subscription/my-plan}" class="bl-btn">Xem gói của tôi →</a>
+        </div>
+
+        <!-- Pricing cards -->
+        <div class="bl-section">
+            <div th:if="${#lists.isEmpty(premiumPlans)}" class="bl-card bl-empty">
+                <span class="icon">📦</span>Hiện chưa có gói Premium nào đang được bán. Vui lòng quay lại sau.
+            </div>
+            <div class="bl-grid cols-4" th:unless="${#lists.isEmpty(premiumPlans)}">
+                <div th:each="p : ${premiumPlans}" class="bl-card bl-plan" th:classappend="${p.featured} ? 'featured'">
+                    <span th:if="${p.featured}" class="bl-ribbon">⭐ Đề xuất</span>
+                    <div>
+                        <span class="bl-status st-ACTIVE" th:text="${p.durationText}">30 ngày</span>
+                        <h3 class="bl-plan-name" style="margin-top:8px;" th:text="${p.name}">Premium</h3>
+                        <div style="font-size:13px;color:var(--ssak-text-muted);min-height:36px;" th:text="${p.description}"></div>
+                    </div>
+                    <div class="bl-price">
+                        <span th:text="${p.priceText}">99.000đ</span>
+                        <small th:if="${p.monthlyPriceText != null}" th:text="'≈ ' + ${p.monthlyPriceText}"></small>
+                    </div>
+                    <ul class="bl-features">
+                        <li th:each="f : ${p.features}" th:if="${f.premiumOnly}" class="premium" th:text="${f.name}"></li>
+                        <li>Toàn bộ quyền lợi gói Free</li>
+                    </ul>
+                    <a th:href="@{/subscription/checkout/{id}(id=${p.id})}" class="btn-ssak-primary text-center text-decoration-none"
+                       style="padding:10px 0;border-radius:12px;font-weight:800;"
+                       th:text="${currentSub != null and currentSub.premium} ? 'Gia hạn thêm' : 'Đăng ký ngay'">Đăng ký ngay</a>
+                    <a th:href="@{/subscription/plans/{id}(id=${p.id})}" class="text-center" style="font-size:13px;font-weight:700;color:var(--ssak-primary);">Xem chi tiết</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bảng so sánh Free / Premium -->
+        <div class="bl-section">
+            <h2>So sánh Free và Premium</h2>
+            <div class="bl-card bl-table-wrap" style="padding:0;">
+                <table class="bl-table">
+                    <thead>
+                    <tr><th>Quyền lợi</th><th style="text-align:center;">Free</th><th style="text-align:center;">Premium</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="f : ${features}">
+                        <td>
+                            <strong th:text="${f.name}">Tên</strong>
+                            <div style="font-size:12.5px;color:var(--ssak-text-muted);" th:text="${f.description}"></div>
+                        </td>
+                        <td style="text-align:center;" th:text="${f.premiumOnly} ? '—' : '✓'">✓</td>
+                        <td style="text-align:center;color:var(--ssak-primary);font-weight:800;">✓</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Giá</strong></td>
+                        <td style="text-align:center;" th:text="${freePlan != null ? freePlan.priceText : '0đ'}">0đ</td>
+                        <td style="text-align:center;">Theo gói (xem bảng giá phía trên)</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p style="font-size:13px;color:var(--ssak-text-muted);margin-top:10px;">
+                Chỉ những quyền lợi đã có trong hệ thống mới được liệt kê. Mua thêm khi đang có Premium sẽ được cộng dồn vào ngày hết hạn hiện tại.
+                Hệ thống không tự động gia hạn hay tự động trừ tiền.
+            </p>
+        </div>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+</body>
+</html>

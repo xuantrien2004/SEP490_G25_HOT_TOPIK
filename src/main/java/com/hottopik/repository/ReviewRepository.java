@@ -3,14 +3,15 @@ package com.hottopik.repository;
 import com.hottopik.entity.Review;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
+/** Truy vấn đánh giá: lọc theo trạng thái / số sao (JOIN FETCH user để tránh lỗi lazy) và tính trung bình tất cả đánh giá. */
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
@@ -30,5 +31,16 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     @Query(value = "SELECT r FROM Review r JOIN FETCH r.user WHERE LOWER(r.status) = LOWER(:status) AND r.rating = :rating",
             countQuery = "SELECT COUNT(r) FROM Review r WHERE LOWER(r.status) = LOWER(:status) AND r.rating = :rating")
     Page<Review> findByStatusAndRating(@Param("status") String status, @Param("rating") Short rating, Pageable pageable);
-    List<Review> findByStatusAndRating(String status, Short rating, Sort sort);
+    // Lọc theo số sao cho trang chủ. Phải JOIN FETCH user: open-in-view=false nên template đọc rev.user
+    // sau khi transaction đóng sẽ ném LazyInitializationException nếu user chưa được nạp sẵn.
+    @Query("SELECT r FROM Review r JOIN FETCH r.user WHERE LOWER(r.status) = LOWER(:status) AND r.rating = :rating ORDER BY r.createdAt DESC")
+    List<Review> findByStatusAndRatingWithUser(@Param("status") String status, @Param("rating") Short rating);
+
+    // Điểm trung bình trên TẤT CẢ review (kể cả review bị Operation Manager ẩn), null khi bảng rỗng.
+    // Ẩn review chỉ ẩn nội dung bình luận, không được làm thay đổi điểm trung bình.
+    @Query("SELECT AVG(r.rating) FROM Review r")
+    Double averageRatingAll();
+
+    // Mỗi học viên chỉ có 1 đánh giá. Lấy bản mới nhất để vẫn chạy đúng nếu DB cũ còn sót bản trùng.
+    Optional<Review> findFirstByUser_IdOrderByCreatedAtDescIdDesc(Long userId);
 }

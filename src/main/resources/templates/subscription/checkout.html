@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/billing.css}">
+<div class="bl-page">
+    <div th:replace="~{fragments/navbar :: navbar('vip')}"></div>
+
+    <main class="bl-container narrow">
+        <div class="bl-crumb"><a th:href="@{/subscription/plans}">Gói học</a> › Xác nhận đơn hàng</div>
+        <h1 class="bl-title">Xác nhận đơn hàng</h1>
+        <div th:replace="~{fragments/billing :: flash}"></div>
+        <div th:replace="~{fragments/billing :: sandboxNotice}"></div>
+
+        <!-- Đơn đang chờ thanh toán của cùng gói (giá đã chốt) -->
+        <div th:if="${pendingOrder != null}" class="bl-alert info">
+            Bạn đang có đơn <strong th:text="${pendingOrder.orderCode}">HT...</strong> chờ thanh toán cho gói này
+            (giá đã chốt <strong th:text="${pendingOrder.totalAmountText}">99.000đ</strong>).
+            Xác nhận bên dưới sẽ tiếp tục thanh toán đơn đó.
+            <a th:href="@{/subscription/payment/{c}(c=${pendingOrder.orderCode})}">Xem đơn</a>
+        </div>
+
+        <div class="bl-grid cols-2" style="align-items:start;">
+            <div class="bl-card">
+                <h2 style="font-family:var(--font-heading);font-size:18px;font-weight:800;margin:0 0 6px;">Thông tin gói học</h2>
+                <dl class="bl-detail-list" style="grid-template-columns:130px 1fr;">
+                    <dt>Gói học</dt><dd th:text="${plan.name}">Premium</dd>
+                    <dt>Thời hạn</dt><dd th:text="${plan.durationText}">30 ngày</dd>
+                    <dt>Giá gói</dt><dd th:text="${plan.priceText}">99.000đ</dd>
+                </dl>
+                <div th:if="${currentSub != null and currentSub.premium}" class="bl-alert info" style="margin:0;">
+                    Bạn đang có Premium đến <strong th:text="${currentSub.endsAtText}">--</strong>.
+                    Thời hạn mới sẽ được <strong>cộng thêm</strong> vào ngày hết hạn hiện tại sau khi thanh toán được xác nhận.
+                </div>
+                <h3 style="font-size:15px;font-weight:800;margin:16px 0 8px;">Thông tin người mua</h3>
+                <dl class="bl-detail-list" style="grid-template-columns:130px 1fr;margin:0;">
+                    <dt>Họ tên</dt><dd th:text="${buyer.displayName}">Học viên</dd>
+                    <dt>Email</dt><dd th:text="${buyer.email}">email</dd>
+                </dl>
+            </div>
+
+            <div class="bl-card">
+                <h2 style="font-family:var(--font-heading);font-size:18px;font-weight:800;margin:0 0 6px;">Tóm tắt đơn hàng</h2>
+                <dl class="bl-detail-list" style="grid-template-columns:130px 1fr;">
+                    <dt>Tạm tính</dt><dd th:text="${plan.priceText}">99.000đ</dd>
+                    <dt>Tổng thanh toán</dt><dd style="font-size:22px;color:var(--ssak-primary-dark);" th:text="${plan.priceText}">99.000đ</dd>
+                    <dt>Phương thức</dt><dd>VNPay Sandbox <span class="bl-sandbox-tag">🧪 SANDBOX</span></dd>
+                </dl>
+                <p style="font-size:13px;color:var(--ssak-text-muted);">
+                    Bạn sẽ được chuyển đến trang thanh toán thử nghiệm chính thức của VNPay Sandbox. HOT TOPIK không thu thập số thẻ, OTP
+                    hay mật khẩu ngân hàng. Hãy dùng thông tin thẻ thử nghiệm do VNPay Sandbox cung cấp, không dùng thẻ thật.
+                </p>
+                <div th:unless="${gatewayReady}" class="bl-alert error">
+                    Hệ thống chưa được cấu hình VNPay Sandbox nên chưa thể thanh toán. Vui lòng liên hệ quản trị viên.
+                </div>
+                <form method="post" th:action="@{/subscription/checkout}" class="js-once">
+                    <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                    <input type="hidden" name="planId" th:value="${plan.id}">
+                    <!-- Giá học viên đang nhìn thấy: backend chỉ dùng để phát hiện giá vừa thay đổi, số tiền luôn lấy từ database -->
+                    <input type="hidden" name="expectedPrice" th:value="${plan.price}">
+                    <button type="submit" class="bl-btn primary" style="width:100%;justify-content:center;height:46px;font-size:15px;"
+                            th:disabled="${!gatewayReady}">Xác nhận và thanh toán qua VNPay Sandbox</button>
+                </form>
+                <a th:href="@{/subscription/plans}" class="bl-btn" style="width:100%;justify-content:center;margin-top:8px;">Chọn gói khác</a>
+            </div>
+        </div>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+<script th:replace="~{fragments/billing :: confirmScript}"></script>
+</body>
+</html>

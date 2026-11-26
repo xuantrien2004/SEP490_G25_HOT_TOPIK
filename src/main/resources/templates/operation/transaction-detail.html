@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/billing.css}">
+<div class="bl-admin">
+    <aside th:replace="~{fragments/billing :: sidebar}"></aside>
+    <main class="bl-main">
+        <div class="bl-crumb"><a th:href="@{'/' + ${portal} + '/transactions'}">Giao dịch Sandbox</a> › <span th:text="${txn.txnRef}">ref</span></div>
+        <div class="bl-header">
+            <h1 class="bl-title">Chi tiết giao dịch</h1>
+            <span class="bl-status" th:classappend="'st-' + ${txn.status}" th:text="${txn.statusLabel}">--</span>
+        </div>
+        <div th:replace="~{fragments/billing :: flash}"></div>
+        <div th:replace="~{fragments/billing :: sandboxNotice}"></div>
+
+        <div class="bl-grid cols-2" style="align-items:start;">
+            <div class="bl-card">
+                <dl class="bl-detail-list">
+                    <dt>Mã đơn hàng</dt><dd th:text="${txn.orderCode}">HT</dd>
+                    <dt>Trạng thái đơn</dt><dd><span class="bl-status" th:classappend="'st-' + ${txn.orderStatus}" th:text="${txn.orderStatusLabel}">--</span></dd>
+                    <dt>Mã tham chiếu (vnp_TxnRef)</dt><dd th:text="${txn.txnRef}">ref</dd>
+                    <dt>Mã giao dịch VNPay</dt><dd th:text="${txn.transactionNo != null ? txn.transactionNo : '—'}">—</dd>
+                    <dt>Người mua</dt><dd th:text="${txn.buyerName + ' (' + txn.buyerEmail + ')'}">--</dd>
+                    <dt>Gói học</dt><dd th:text="${txn.planName}">--</dd>
+                    <dt>Số tiền đơn hàng</dt><dd th:text="${txn.amountText}">--</dd>
+                    <dt>Số tiền VNPay báo về</dt><dd th:text="${txn.paidAmountText}">--</dd>
+                    <dt>Ngân hàng</dt><dd th:text="${txn.bankCode != null ? txn.bankCode : '—'}">—</dd>
+                    <dt>Mã phản hồi / trạng thái</dt><dd th:text="${(txn.responseCode != null ? txn.responseCode : '—') + ' / ' + (txn.transactionStatus != null ? txn.transactionStatus : '—')}">—</dd>
+                    <dt>Ghi chú</dt><dd th:text="${txn.failureReason != null ? txn.failureReason : '—'}">—</dd>
+                    <dt>Môi trường</dt><dd><span class="bl-sandbox-tag" th:text="${txn.environment}">SANDBOX</span></dd>
+                    <dt>Ngày tạo</dt><dd th:text="${txn.createdAtText}">--</dd>
+                    <dt>Ngày thanh toán</dt><dd th:text="${txn.paidAtText}">--</dd>
+                </dl>
+                <form th:if="${portal == 'admin'}" method="post" th:action="@{/admin/transactions/{id}/reconcile(id=${txn.id})}" class="js-confirm"
+                      data-confirm="Đối soát giao dịch này với VNPay Sandbox (QueryDR)? Hệ thống chỉ ghi nhận kết quả đã được VNPay xác thực.">
+                    <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                    <button type="submit" class="bl-btn primary">🔄 Đối soát với VNPay Sandbox</button>
+                </form>
+            </div>
+
+            <div class="bl-card">
+                <h2 style="font-family:var(--font-heading);font-size:18px;font-weight:800;margin:0 0 10px;">Nhật ký callback / đối soát</h2>
+                <div th:if="${#lists.isEmpty(callbackLogs)}" class="bl-empty" style="padding:16px;">Chưa có callback nào.</div>
+                <table class="bl-table" th:unless="${#lists.isEmpty(callbackLogs)}">
+                    <thead><tr><th>Loại</th><th>Kết quả</th><th>Thời gian</th><th>Ghi chú</th></tr></thead>
+                    <tbody>
+                    <tr th:each="l : ${callbackLogs}">
+                        <td th:text="${l.callbackType}">IPN</td>
+                        <td th:text="${l.processingStatus}">PROCESSED</td>
+                        <td th:text="${#temporals.format(l.receivedAt, 'dd/MM/yyyy HH:mm:ss')}">--</td>
+                        <td th:text="${l.errorMessage != null ? l.errorMessage : '—'}">—</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+<script th:replace="~{fragments/billing :: confirmScript}"></script>
+</body>
+</html>

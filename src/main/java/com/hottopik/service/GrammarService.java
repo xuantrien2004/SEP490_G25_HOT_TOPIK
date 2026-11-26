@@ -17,6 +17,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.hottopik.service.VocabularySyncService;
 
+/** Nghiệp vụ ngữ pháp: thêm / sửa / ẩn / xóa mẫu ngữ pháp (kèm ví dụ) và truy vấn cho trang lý thuyết của học viên. */
 @Service
 public class GrammarService {
 
@@ -28,6 +29,9 @@ public class GrammarService {
 
     @Autowired(required = false)
     private VocabularySyncService syncService;
+
+    @Autowired(required = false)
+    private com.hottopik.repository.UserSavedGrammarRepository savedGrammarRepository;
 
     public GrammarService(
             GrammarRepository grammarRepository,
@@ -269,6 +273,8 @@ public class GrammarService {
 
         // Nếu question_options đang tham chiếu đến ngữ pháp này,
         // khóa ngoại trong SQL Server có thể ngăn việc xóa.
+        // Xóa các bản lưu "Sổ ngữ pháp" của học viên trước để khóa ngoại user_saved_grammars không chặn.
+        if (savedGrammarRepository != null) savedGrammarRepository.deleteByGrammarId(id);
         grammarRepository.delete(grammar);
     }
 
@@ -311,6 +317,13 @@ public class GrammarService {
                 && form.getMeaning().length() > 1000) {
             throw new IllegalArgumentException(
                     "Ý nghĩa không được vượt quá 1000 ký tự."
+            );
+        }
+
+        if (form.getNotes() != null
+                && form.getNotes().length() > 4000) {
+            throw new IllegalArgumentException(
+                    "Ghi chú không được vượt quá 4000 ký tự."
             );
         }
 
@@ -452,6 +465,16 @@ public class GrammarService {
         return grammarRepository.findActiveByGrammarGroupIdWithExamples(groupId, "ACTIVE");
     }
 
+    // Chi tiết cho học viên: chỉ trả về khi cả mẫu ngữ pháp và nhóm của nó đang ACTIVE (nhóm bị ẩn thì mẫu cũng ẩn theo).
+    @Transactional(readOnly = true)
+    public java.util.Optional<Grammar> getActiveGrammarDetail(Long id) {
+        if (id == null) return java.util.Optional.empty();
+        return grammarRepository.findDetailById(id)
+                .filter(g -> "ACTIVE".equalsIgnoreCase(g.getStatus()))
+                .filter(g -> g.getGrammarGroup() != null && "ACTIVE".equalsIgnoreCase(g.getGrammarGroup().getStatus()));
+    }
+
+    /** Ngữ pháp đang hiển thị theo cấp TOPIK (dùng cho trang lý thuyết). */
     @Transactional(readOnly = true)
     public List<Grammar> getActiveGrammarsByLevel(Short level) {
         return grammarRepository.findActiveByLevelAndStatus(level, "ACTIVE");

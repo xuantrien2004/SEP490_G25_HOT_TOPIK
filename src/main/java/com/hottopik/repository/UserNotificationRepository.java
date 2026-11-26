@@ -9,4 +9,6 @@ public interface UserNotificationRepository extends JpaRepository<UserNotificati
     List<UserNotification> findByUserIdOrderByCreatedAtDesc(Long userId);
     List<UserNotification> findTop10ByUserIdOrderByCreatedAtDesc(Long userId);
     long countByUserIdAndReadFalse(Long userId);
+    // Module gói học: chống gửi trùng thông báo nhắc hạn Premium
+    boolean existsByUserIdAndTypeAndLink(Long userId, String type, String link);
 }

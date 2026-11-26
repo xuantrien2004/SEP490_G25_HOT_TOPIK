@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/billing.css}">
+<div class="bl-admin">
+    <aside th:replace="~{fragments/billing :: sidebar}"></aside>
+    <main class="bl-main">
+        <div class="bl-crumb"><a th:href="@{/admin}">Admin</a> › Phê duyệt gói học</div>
+        <h1 class="bl-title">Phê duyệt thay đổi gói học</h1>
+        <p class="bl-subtitle">
+            Có <strong th:text="${pendingCount}">0</strong> yêu cầu đang chờ. Các yêu cầu này cũng hiển thị trong hộp duyệt chung ở bảng điều khiển Admin.
+        </p>
+        <div th:replace="~{fragments/billing :: flash}"></div>
+
+        <form method="get" class="bl-filter" style="margin-top:14px;">
+            <div><label for="status">Trạng thái</label>
+                <select id="status" name="status" class="bl-input" onchange="this.form.submit()">
+                    <option value="">Tất cả</option>
+                    <option th:each="s : ${requestStatuses}" th:value="${s.name()}" th:text="${s.label}" th:selected="${s.name() == statusFilter}"></option>
+                </select></div>
+        </form>
+
+        <div class="bl-card bl-table-wrap" style="padding:0;">
+            <div th:if="${requests.empty}" class="bl-empty"><span class="icon">✅</span>Không có yêu cầu nào.</div>
+            <table class="bl-table" th:unless="${requests.empty}">
+                <thead><tr><th>Mã yêu cầu</th><th>Loại yêu cầu</th><th>Tên gói</th><th>Người yêu cầu</th><th>Thời gian yêu cầu</th><th>Trạng thái</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="r : ${requests.content}">
+                    <td th:text="${'#' + r.id}">#1</td>
+                    <td th:text="${r.requestTypeLabel}">Thay đổi giá</td>
+                    <td th:text="${r.planName}">Gói</td>
+                    <td th:text="${r.requestedByName}">OM</td>
+                    <td th:text="${r.requestedAtText}">--</td>
+                    <td><span class="bl-status" th:classappend="'st-' + ${r.status}" th:text="${r.statusLabel}">Chờ duyệt</span></td>
+                    <td><a class="bl-btn sm primary" th:href="@{/admin/subscription-requests/{id}(id=${r.id})}">Xem chi tiết</a></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:replace="~{fragments/billing :: pager(${requests})}"></div>
+    </main>
+</div>
+</body>
+</html>

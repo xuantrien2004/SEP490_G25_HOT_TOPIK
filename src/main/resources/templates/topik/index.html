@@ -316,8 +316,8 @@
                 <p class="text-muted small mb-0">Cảm nhận thực tế của các học viên đã ôn luyện cẩm nang và đề thi trên HOT TOPIK.</p>
             </div>
             <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                <button type="button" onclick="openFeedbackModal()" class="btn-ssak-primary px-4 py-2 rounded-pill fw-bold">
-                    <i class="bi bi-star-fill me-1"></i> Viết đánh giá của bạn
+                <button type="button" onclick="openFeedbackModal()" class="btn-ssak-primary px-4 py-2 rounded-pill fw-bold js-open-feedback">
+                    <i class="bi bi-star-fill me-1"></i> <span class="js-open-feedback-label">Viết đánh giá của bạn</span>
                 </button>
             </div>
         </div>
@@ -329,7 +329,16 @@
                 <div class="text-muted small">Dựa trên <strong th:text="${totalReviews}">1,248</strong> đánh giá xác thực</div>
             </div>
             <div class="col-md-8">
-                <div class="text-muted small">Hệ thống ghi nhận các đánh giá thực tế từ học viên đã qua kiểm duyệt vận hành.</div>
+                <div class="text-muted small mb-2 fw-bold">Lọc xem theo mức độ hài lòng:</div>
+                <div class="d-flex flex-wrap gap-2" id="ratingFilterBtns">
+                    <button type="button" data-filter="all" onclick="filterReviews('all')" class="btn btn-sm rounded-pill px-3 fw-bold filter-btn">Tất cả</button>
+                    <button type="button" data-filter="5" onclick="filterReviews(5)" class="btn btn-sm rounded-pill px-3 fw-bold filter-btn">⭐ 5 Sao</button>
+                    <button type="button" data-filter="4" onclick="filterReviews(4)" class="btn btn-sm rounded-pill px-3 fw-bold filter-btn">⭐ 4 Sao</button>
+                    <button type="button" data-filter="3" onclick="filterReviews(3)" class="btn btn-sm rounded-pill px-3 fw-bold filter-btn">⭐ 3 Sao</button>
+                    <button type="button" data-filter="2" onclick="filterReviews(2)" class="btn btn-sm rounded-pill px-3 fw-bold filter-btn">⭐ 2 Sao</button>
+                    <button type="button" data-filter="1" onclick="filterReviews(1)" class="btn btn-sm rounded-pill px-3 fw-bold filter-btn">⭐ 1 Sao</button>
+                </div>
+                <div class="text-muted small mt-2">Hệ thống ghi nhận các đánh giá thực tế từ học viên đã qua kiểm duyệt vận hành.</div>
             </div>
         </div>
 
@@ -338,8 +347,11 @@
             <div class="col-md-12" th:if="${#lists.isEmpty(approvedReviews)}">
                 <p class="text-muted small fst-italic text-center py-4">Chưa có đánh giá công khai nào. Hãy là người đầu tiên chia sẻ cảm nhận!</p>
             </div>
-            <!-- Mỗi review có class review-item để JS nhận diện -->
-            <div class="col-md-6 review-item" th:each="rev : ${approvedReviews}">
+            <div class="col-md-12" id="emptyFilterMsg" hidden>
+                <p class="text-muted small fst-italic text-center py-4">Chưa có đánh giá nào cho mức lọc này.</p>
+            </div>
+            <!-- Mỗi review có class review-item để JS nhận diện; data-rating dùng cho bộ lọc theo sao -->
+            <div class="col-md-6 review-item" th:each="rev : ${approvedReviews}" th:attr="data-rating=${rev.rating}">
                 <div class="p-3 border rounded-4 bg-white shadow-sm h-100">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <div class="fw-bold" th:text="${rev.user != null ? rev.user.displayName : 'Học viên HOT TOPIK'}">Tên học viên</div>
@@ -369,8 +381,11 @@
     <div style="background: #FFFFFF; width: 500px; max-width: 90%; border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); position: relative;">
         <button onclick="closeFeedbackModal()" style="position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 20px; cursor: pointer; color: #53646C;">✕</button>
 
-        <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: var(--ssak-text-main); margin-bottom: 8px;">Đánh giá trải nghiệm</h3>
-        <p class="text-muted small mb-4">Ý kiến của cậu giúp đội ngũ phát triển hoàn thiện HOT TOPIK mỗi ngày!</p>
+        <h3 id="feedbackModalTitle" style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: var(--ssak-text-main); margin-bottom: 8px;">Đánh giá trải nghiệm</h3>
+        <p class="text-muted small mb-4">Ý kiến của cậu giúp đội ngũ phát triển hoàn thiện HOT TOPIK mỗi ngày! Mỗi tài khoản có 1 đánh giá, cậu có thể sửa lại bất cứ lúc nào.</p>
+        <div id="feedbackHiddenNote" style="display: none; margin: -12px 0 16px 0; font-size: 13px; font-weight: 700; color: #9C4A2E; background: #FBE6DA; border-radius: 10px; padding: 10px 12px;">
+            Đánh giá của cậu đang tạm ẩn bởi Ban vận hành. Cậu vẫn có thể sửa nội dung, đánh giá sẽ hiển thị lại khi được duyệt.
+        </div>
 
         <!-- Chọn số sao -->
         <div class="text-center mb-3">
@@ -392,7 +407,7 @@
 
         <div class="d-flex justify-content-end gap-2">
             <button type="button" onclick="closeFeedbackModal()" class="btn btn-light rounded-pill px-4 fw-bold">Hủy</button>
-            <button type="button" onclick="submitFeedback()" class="btn-ssak-primary rounded-pill px-4 fw-bold">Gửi đánh giá</button>
+            <button type="button" id="feedbackSubmitBtn" onclick="submitFeedback()" class="btn-ssak-primary rounded-pill px-4 fw-bold">Gửi đánh giá</button>
         </div>
     </div>
 </div>
@@ -429,6 +444,8 @@
     function openFeedbackModal() {
         document.getElementById('feedbackModal').style.display = 'flex';
         setRating(5);
+        // review-form.js: đã có đánh giá thì điền sẵn số sao + nội dung để sửa
+        if (window.fillFeedbackModal) window.fillFeedbackModal();
     }
 
     function closeFeedbackModal() {
@@ -493,35 +510,55 @@
             });
     }
 
+    // --- LỌC THEO SỐ SAO (chạy hoàn toàn trên trình duyệt vì trang đã có sẵn mọi review đã duyệt) ---
+    let activeFilter = 'all';
+
+    function filterReviews(rating) {
+        activeFilter = String(rating);
+        document.querySelectorAll('#ratingFilterBtns .filter-btn').forEach(btn => {
+            const active = btn.dataset.filter === activeFilter;
+            btn.style.background = active ? 'var(--ssak-primary)' : '#fff';
+            btn.style.color = active ? 'white' : '#333';
+            btn.style.border = active ? 'none' : '1px solid #ddd';
+        });
+        initClientPagination();
+    }
+
     // --- SCRIPT PHÂN TRANG BẰNG JAVASCRIPT ---
     const itemsPerPage = 4; // Số lượng review hiển thị trên mỗi trang
     let currentPage = 1;
 
     function initClientPagination() {
-        const items = document.querySelectorAll('.review-item');
+        const allItems = document.querySelectorAll('.review-item');
+        const items = Array.from(allItems).filter(item => activeFilter === 'all' || item.dataset.rating === activeFilter);
+        allItems.forEach(item => { if (!items.includes(item)) item.style.display = 'none'; });
+
+        const emptyMsg = document.getElementById('emptyFilterMsg');
+        if (emptyMsg) emptyMsg.hidden = !(allItems.length > 0 && items.length === 0);
+
+        const paginationEl = document.getElementById('paginationContainer');
         const totalPages = Math.ceil(items.length / itemsPerPage);
 
-        if (totalPages <= 1) return; // Nếu ít hơn hoặc bằng 1 trang thì không cần hiện phân trang
-
-        function showPage(page) {
+        // Chỉ cuộn tới khu vực đánh giá khi người dùng bấm chuyển trang, không cuộn lúc mở trang hay lúc lọc
+        function showPage(page, scroll) {
             currentPage = page;
             items.forEach((item, index) => {
                 item.style.display = (index >= (page - 1) * itemsPerPage && index < page * itemsPerPage) ? 'block' : 'none';
             });
 
-            renderPaginationControls(totalPages);
-            document.getElementById('reviewsSection').scrollIntoView({ behavior: 'smooth' });
+            if (totalPages > 1) renderPaginationControls(totalPages);
+            else paginationEl.innerHTML = '';
+            if (scroll) document.getElementById('reviewsSection').scrollIntoView({ behavior: 'smooth' });
         }
 
         function renderPaginationControls(totalPages) {
-            const paginationEl = document.getElementById('paginationContainer');
             paginationEl.innerHTML = '';
 
             // Nút Trước
             const prevLi = document.createElement('li');
             prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
             prevLi.innerHTML = `<a class="page-link rounded-start-pill px-3" href="javascript:void(0);">Trước</a>`;
-            prevLi.onclick = () => { if (currentPage > 1) showPage(currentPage - 1); };
+            prevLi.onclick = () => { if (currentPage > 1) showPage(currentPage - 1, true); };
             paginationEl.appendChild(prevLi);
 
             // Các nút số trang
@@ -529,7 +566,7 @@
                 const pageLi = document.createElement('li');
                 pageLi.className = `page-item ${currentPage === i ? 'active' : ''}`;
                 pageLi.innerHTML = `<a class="page-link" href="javascript:void(0);">${i}</a>`;
-                pageLi.onclick = () => showPage(i);
+                pageLi.onclick = () => showPage(i, true);
                 paginationEl.appendChild(pageLi);
             }
 
@@ -537,18 +574,19 @@
             const nextLi = document.createElement('li');
             nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
             nextLi.innerHTML = `<a class="page-link rounded-end-pill px-3" href="javascript:void(0);">Sau</a>`;
-            nextLi.onclick = () => { if (currentPage < totalPages) showPage(currentPage + 1); };
+            nextLi.onclick = () => { if (currentPage < totalPages) showPage(currentPage + 1, true); };
             paginationEl.appendChild(nextLi);
         }
 
-        showPage(1);
+        showPage(1, false);
     }
 
     document.addEventListener("DOMContentLoaded", function() {
-        initClientPagination();
+        filterReviews('all');
     });
 </script>
 
 <div th:replace="~{fragments/footer :: footer}"></div>
+<script th:src="@{/js/review-form.js}"></script>
 </body>
 </html>

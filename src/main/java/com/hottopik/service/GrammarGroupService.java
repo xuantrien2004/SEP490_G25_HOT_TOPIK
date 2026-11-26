@@ -13,6 +13,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.hottopik.service.VocabularySyncService;
 
+/** Quản lý nhóm ngữ pháp theo cấp TOPIK 1–6: tạo / đổi tên (không trùng tên trong cùng cấp, tối đa 14 nhóm mỗi cấp) và ẩn / hiện nhóm. */
 @Service
 public class GrammarGroupService {
 
@@ -42,12 +43,14 @@ public class GrammarGroupService {
                 .findByLevelOrderByGroupNoAsc(level);
     }
 
+    /** Các nhóm đang hiển thị của một cấp TOPIK, theo số thứ tự nhóm. */
     @Transactional(readOnly = true)
     public List<GrammarGroup> getActiveGroupsByLevel(Short level) {
         validateLevel(level);
         return grammarGroupRepository.findByLevelAndStatusOrderByGroupNoAsc(level, "ACTIVE");
     }
 
+    /** Tất cả nhóm đang hiển thị. */
     @Transactional(readOnly = true)
     public List<GrammarGroup> getActiveGroups() {
         return grammarGroupRepository.findAllByOrderByLevelAscGroupNoAsc().stream()
@@ -103,6 +106,7 @@ public class GrammarGroupService {
         return saved;
     }
 
+    /** Ẩn (INACTIVE) hoặc hiện (ACTIVE) một nhóm ngữ pháp. */
     @Transactional
     public GrammarGroup toggleStatus(Integer id, boolean active) {
         GrammarGroup group = getGroupById(id);

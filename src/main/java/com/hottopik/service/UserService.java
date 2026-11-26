@@ -657,8 +657,9 @@ public class UserService {
         dto.setLockedUntil(u.getLockedUntil());
         dto.setLockReason(u.getLockReason());
         dto.setTimezone(u.getTimezone() != null ? u.getTimezone() : "Asia/Ho_Chi_Minh");
+        // Thời gian subscription lưu theo giờ Việt Nam (Asia/Ho_Chi_Minh), thống nhất với module gói học.
         boolean vip = userRepository.countActiveSubscriptions(u.getId(),
-                LocalDateTime.now(java.time.ZoneOffset.UTC)) > 0;
+                com.hottopik.util.PaymentDateTimeUtil.now()) > 0;
         dto.setVip(vip);
         dto.setVipPackage(vip ? "VIP" : null);
         dto.setDailyGoalMinutes(u.getDailyGoalMinutes() != null ? u.getDailyGoalMinutes().intValue() : 20);
@@ -933,6 +934,16 @@ public class UserService {
         }
 
         return updated;
+    }
+
+    /**
+     * Quyền VIP cấp bù đang lưu in-memory (applyVipCompensation) còn hiệu lực hay không.
+     * Module gói học dùng để không tắt nhầm quyền VIP cấp bù khi đồng bộ Premium theo database.
+     */
+    public boolean hasLegacyVipGrant(Long userId) {
+        UserDTO mem = userId == null ? null : users.get(userId);
+        return mem != null && mem.isVip()
+                && (mem.getVipExpireAt() == null || mem.getVipExpireAt().isAfter(LocalDateTime.now()));
     }
 
     /**

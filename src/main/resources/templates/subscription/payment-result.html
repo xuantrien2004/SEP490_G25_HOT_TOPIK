@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/billing.css}">
+<div class="bl-page">
+    <div th:replace="~{fragments/navbar :: navbar('vip')}"></div>
+
+    <main class="bl-container narrow">
+        <div th:replace="~{fragments/billing :: sandboxNotice}"></div>
+
+        <!-- Dữ liệu trả về không hợp lệ (sai chữ ký / không tìm thấy giao dịch) -->
+        <div th:if="${invalidReturn}" class="bl-card bl-result">
+            <div class="icon">⚠️</div>
+            <h1 class="bl-title" style="font-size:24px;">Không xác minh được kết quả thanh toán</h1>
+            <p class="bl-subtitle">Dữ liệu trả về không hợp lệ nên hệ thống không ghi nhận thay đổi nào. Premium chưa được kích hoạt.</p>
+            <div style="margin-top:16px;">
+                <a th:href="@{/subscription/transactions}" class="bl-btn primary">Xem lịch sử giao dịch</a>
+                <a th:href="@{/}" class="bl-btn">Về trang chủ</a>
+            </div>
+        </div>
+
+        <div th:if="${status != null}" id="resultCard" class="bl-card bl-result" th:attr="data-order=${status.orderCode},data-final=${status.finalState}">
+            <div class="icon" id="rIcon"
+                 th:text="${status.state == 'SUCCESS'} ? '✅' : (${status.state == 'VERIFYING'} ? '⏳' : (${status.state == 'REQUIRES_REVIEW'} ? '🔎' : (${status.state == 'PENDING'} ? '🕒' : '❌')))">⏳</div>
+            <h1 class="bl-title" style="font-size:24px;margin-top:10px;" id="rTitle"
+                th:text="${status.state == 'SUCCESS'} ? 'Thanh toán thử nghiệm thành công' : (${status.state == 'VERIFYING'} ? 'Giao dịch đang được xác minh' : (${status.state == 'REQUIRES_REVIEW'} ? 'Giao dịch cần đối soát' : (${status.state == 'CANCELLED'} ? 'Thanh toán đã bị hủy' : (${status.state == 'EXPIRED'} ? 'Giao dịch hết hạn' : (${status.state == 'PENDING'} ? 'Đơn hàng chờ thanh toán' : 'Thanh toán thất bại')))))">Kết quả</h1>
+            <p class="bl-subtitle" id="rMessage" th:text="${status.message}"></p>
+            <div id="rSpinner" class="bl-spinner" style="margin-top:14px;" th:style="${status.state == 'VERIFYING'} ? '' : 'display:none'"></div>
+
+            <dl class="bl-detail-list" style="max-width:520px;margin:20px auto;">
+                <dt>Trạng thái</dt><dd><span id="rState" class="bl-status" th:classappend="'st-' + ${status.state}" th:text="${status.state}">VERIFYING</span></dd>
+                <dt>Mã đơn hàng</dt><dd th:text="${status.orderCode}">HT...</dd>
+                <dt>Mã giao dịch VNPay</dt><dd id="rTxnNo" th:text="${status.transactionNo != null ? status.transactionNo : '—'}">—</dd>
+                <dt>Gói học</dt><dd th:text="${status.planName}">Premium</dd>
+                <dt>Số tiền thử nghiệm</dt><dd th:text="${status.amountText}">99.000đ</dd>
+                <dt>Thời gian thanh toán</dt><dd id="rPaidAt" th:text="${status.paidAtText != null ? status.paidAtText : '—'}">—</dd>
+                <dt>Bắt đầu Premium</dt><dd id="rStart" th:text="${status.premiumStartText != null ? status.premiumStartText : '—'}">—</dd>
+                <dt>Hết hạn Premium</dt><dd id="rEnd" th:text="${status.premiumEndText != null ? status.premiumEndText : '—'}">—</dd>
+                <dt>Lý do</dt><dd id="rReason" th:text="${status.failureReason != null ? status.failureReason : '—'}">—</dd>
+            </dl>
+
+            <div class="bl-actions" style="justify-content:center;">
+                <a id="btnStart" th:href="@{/hom-nay}" class="bl-btn primary" th:style="${status.state == 'SUCCESS'} ? '' : 'display:none'">Bắt đầu học</a>
+                <a th:href="@{/subscription/transactions}" class="bl-btn">Xem lịch sử giao dịch</a>
+                <button id="btnCheck" type="button" class="bl-btn" th:style="${status.state == 'VERIFYING'} ? '' : 'display:none'">Kiểm tra lại trạng thái</button>
+                <form id="retryForm" method="post" th:action="@{/subscription/payment/{c}/retry(c=${status.orderCode})}" class="js-once"
+                      th:style="${status.canRetry} ? '' : 'display:none'" style="display:inline;">
+                    <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                    <button type="submit" class="bl-btn">Thử thanh toán lại</button>
+                </form>
+                <a th:href="@{/}" class="bl-btn">Về trang chủ</a>
+            </div>
+        </div>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+<script th:replace="~{fragments/billing :: confirmScript}"></script>
+<script>
+    // Polling trạng thái từ backend mỗi 4 giây (tối đa ~2 phút); dừng khi giao dịch đạt trạng thái kết thúc.
+    (function () {
+        var card = document.getElementById('resultCard');
+        if (!card) return;
+        var orderCode = card.getAttribute('data-order');
+        var tries = 0, timer = null;
+        var titles = { SUCCESS: 'Thanh toán thử nghiệm thành công', VERIFYING: 'Giao dịch đang được xác minh', REQUIRES_REVIEW: 'Giao dịch cần đối soát',
+            CANCELLED: 'Thanh toán đã bị hủy', EXPIRED: 'Giao dịch hết hạn', PENDING: 'Đơn hàng chờ thanh toán', FAILED: 'Thanh toán thất bại' };
+        var icons = { SUCCESS: '✅', VERIFYING: '⏳', REQUIRES_REVIEW: '🔎', PENDING: '🕒' };
+        function set(id, value) { var el = document.getElementById(id); if (el) el.textContent = value || '—'; }
+        function show(id, visible) { var el = document.getElementById(id); if (el) el.style.display = visible ? '' : 'none'; }
+        function render(s) {
+            set('rIcon', icons[s.state] || '❌');
+            set('rTitle', titles[s.state] || 'Kết quả thanh toán');
+            set('rMessage', s.message);
+            var st = document.getElementById('rState');
+            st.className = 'bl-status st-' + s.state; st.textContent = s.state;
+            set('rTxnNo', s.transactionNo); set('rPaidAt', s.paidAtText); set('rStart', s.premiumStartText);
+            set('rEnd', s.premiumEndText); set('rReason', s.failureReason);
+            show('rSpinner', s.state === 'VERIFYING'); show('btnCheck', s.state === 'VERIFYING');
+            show('btnStart', s.state === 'SUCCESS'); show('retryForm', s.canRetry);
+        }
+        function poll() {
+            tries++;
+            fetch('/api/payments/' + encodeURIComponent(orderCode) + '/status', { cache: 'no-store' })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (s) {
+                    if (!s) return;
+                    render(s);
+                    if (s.finalState) stop();
+                })
+                .catch(function () {});
+            if (tries >= 30) stop();
+        }
+        function stop() { if (timer) { clearInterval(timer); timer = null; } }
+        if (card.getAttribute('data-final') !== 'true') timer = setInterval(poll, 4000);
+        var btn = document.getElementById('btnCheck');
+        if (btn) btn.addEventListener('click', function () { tries = 0; poll(); if (!timer) timer = setInterval(poll, 4000); });
+    })();
+</script>
+</body>
+</html>

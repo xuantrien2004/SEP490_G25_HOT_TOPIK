@@ -18,4 +18,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query(value = "SELECT COUNT(*) FROM dbo.subscriptions WHERE user_id = :userId AND status = 'ACTIVE' "
             + "AND starts_at <= :now AND (ends_at IS NULL OR ends_at > :now)", nativeQuery = true)
     long countActiveSubscriptions(Long userId, LocalDateTime now);
+
+    // Module gói học: tìm người mua theo email / tên khi lọc giao dịch
+    List<User> findTop200ByEmailContainingIgnoreCaseOrDisplayNameContainingIgnoreCase(String email, String displayName);
 }

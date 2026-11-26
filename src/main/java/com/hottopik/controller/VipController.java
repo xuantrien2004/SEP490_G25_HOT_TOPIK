@@ -1,40 +1,31 @@
 package com.hottopik.controller;
 
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
+/**
+ * Các đường dẫn VIP cũ (giá viết cứng trong HTML, trang kết quả thanh toán giả) được chuyển sang module
+ * gói học mới: giá lấy từ database và thanh toán qua VNPay Sandbox. Giữ URL cũ để link trong navbar
+ * và các trang khác của nhóm vẫn hoạt động. Template vip/*.html cũ không bị xóa.
+ */
 @Controller
 public class VipController {
 
-    @GetMapping("/vip")
-    public String vip(Model model) {
-        model.addAttribute("pageTitle", "Gói học VIP · HOT TOPIK");
-        model.addAttribute("activePage", "vip");
-        return "vip/index";
+    /** Đường dẫn VIP cũ: chuyển sang bảng giá mới. */
+    @GetMapping({"/vip", "/vip/thanh-toan"})
+    public String vip() {
+        return "redirect:/subscription/plans";
     }
 
-    @GetMapping("/vip/thanh-toan")
-    public String checkout(@RequestParam(value = "package", defaultValue = "M3") String pkg, Model model) {
-        model.addAttribute("pageTitle", "Thanh toán gói VIP · HOT TOPIK");
-        model.addAttribute("activePage", "vip");
-        model.addAttribute("selectedPackage", pkg);
-        return "vip/checkout";
-    }
-
+    /** Trang kết quả VIP cũ: chuyển sang lịch sử giao dịch. */
     @GetMapping("/vip/ket-qua")
-    public String result(@RequestParam(value = "order_id", required = false) String orderId, Model model) {
-        model.addAttribute("pageTitle", "Kết quả thanh toán · HOT TOPIK");
-        model.addAttribute("activePage", "vip");
-        model.addAttribute("orderId", orderId != null ? orderId : "ORD-8921");
-        return "vip/result";
+    public String result() {
+        return "redirect:/subscription/transactions";
     }
 
+    /** Trang "Gói của tôi" cũ: chuyển sang trang gói hiện tại mới. */
     @GetMapping({"/goi-cua-toi", "/vip/my-package"})
-    public String myPackage(Model model) {
-        model.addAttribute("pageTitle", "Gói của tôi & Đơn hàng · HOT TOPIK");
-        model.addAttribute("activePage", "vip");
-        return "vip/my-package";
+    public String myPackage() {
+        return "redirect:/subscription/my-plan";
     }
 }

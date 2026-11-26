@@ -39,3 +39,8 @@ outputs/
 
 ### Dữ liệu chạy local (H2 + file upload) ###
 data/
+
+### VNPay Sandbox credentials (không commit) ###
+.env
+*.env.local
+vnpay-sandbox.properties

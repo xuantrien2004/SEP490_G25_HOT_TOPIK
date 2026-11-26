@@ -116,6 +116,24 @@ class GrammarGroupServiceTest {
     }
 
     @Test
+    void rejectsLevelOutsideOneToSix() {
+        assertEquals("Cấp TOPIK phải nằm trong khoảng 1 đến 6.",
+                assertThrows(IllegalArgumentException.class, () -> service.saveGroup(form(null, 0, "Mới"))).getMessage());
+        assertEquals("Cấp TOPIK phải nằm trong khoảng 1 đến 6.",
+                assertThrows(IllegalArgumentException.class, () -> service.saveGroup(form(null, 7, "Mới"))).getMessage());
+        verify(repo, never()).save(any());
+    }
+
+    @Test
+    void rejectsBlankOrTooLongName() {
+        assertEquals("Tên nhóm không được để trống và tối đa 100 ký tự.",
+                assertThrows(IllegalArgumentException.class, () -> service.saveGroup(form(null, 6, "   "))).getMessage());
+        assertEquals("Tên nhóm không được để trống và tối đa 100 ký tự.",
+                assertThrows(IllegalArgumentException.class, () -> service.saveGroup(form(null, 6, "a".repeat(101)))).getMessage());
+        verify(repo, never()).save(any());
+    }
+
+    @Test
     void rejectsWhenLevelAlreadyHasFourteenGroups() {
         GrammarGroup[] full = new GrammarGroup[14];
         for (int i = 0; i < 14; i++) full[i] = group(i + 1, 1, i + 1, "N" + i);

@@ -9,10 +9,13 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebMvcConfig implements WebMvcConfigurer {
 
     private final RoleSecurityInterceptor roleSecurityInterceptor;
+    private final SubscriptionSessionInterceptor subscriptionSessionInterceptor;
 
     @Autowired
-    public WebMvcConfig(RoleSecurityInterceptor roleSecurityInterceptor) {
+    public WebMvcConfig(RoleSecurityInterceptor roleSecurityInterceptor,
+                        SubscriptionSessionInterceptor subscriptionSessionInterceptor) {
         this.roleSecurityInterceptor = roleSecurityInterceptor;
+        this.subscriptionSessionInterceptor = subscriptionSessionInterceptor;
     }
 
     @Override
@@ -20,5 +23,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(roleSecurityInterceptor)
                 .addPathPatterns("/admin/**", "/content/**", "/operation/**", "/teacher/**")
                 .excludePathPatterns("/css/**", "/js/**", "/images/**", "/static/**", "/error");
+        // Module gói học: cập nhật quyền Premium của học viên theo database ở mỗi request.
+        registry.addInterceptor(subscriptionSessionInterceptor)
+                .addPathPatterns("/**")
+                .excludePathPatterns("/css/**", "/js/**", "/images/**", "/static/**", "/error", "/favicon.ico",
+                        "/payment/vnpay/ipn");
     }
 }

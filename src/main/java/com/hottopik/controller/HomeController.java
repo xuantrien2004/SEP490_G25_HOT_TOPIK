@@ -2,10 +2,10 @@ package com.hottopik.controller;
 
 import com.hottopik.entity.Review;
 import com.hottopik.repository.ReviewRepository;
+import com.hottopik.service.ReviewService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -21,6 +21,18 @@ public class HomeController {
     @Autowired
     private ReviewRepository reviewRepository; // Tiêm ReviewRepository vào đây
 
+    @Autowired
+    private ReviewService reviewService;
+
+    // Danh sách bình luận chỉ gồm review đang hiển thị, nhưng điểm trung bình + tổng số tính trên TẤT CẢ review
+    // (kể cả review bị ẩn) và không phụ thuộc bộ lọc sao, để ẩn review không làm điểm trung bình đẹp hơn.
+    private void addRatingSummary(Model model) {
+        ReviewService.RatingSummary summary = reviewService.getRatingSummary();
+        model.addAttribute("avgRating", summary.average());
+        model.addAttribute("totalReviews", summary.total());
+    }
+
+    /** GET / – trang chủ; hiển thị đánh giá đang công khai (lọc theo số sao nếu có) và điểm trung bình đánh giá. */
     @Transactional(readOnly = true)
     @GetMapping("/")
     public String index(
@@ -31,53 +43,30 @@ public class HomeController {
 
         // Lọc theo số sao hoặc lấy tất cả
         if (rating != null) {
-            approvedReviews = reviewRepository.findByStatusAndRating("APPROVED", rating.shortValue(), Sort.by("createdAt").descending());
+            approvedReviews = reviewRepository.findByStatusAndRatingWithUser("APPROVED", rating.shortValue());
         } else {
             approvedReviews = reviewRepository.findByStatusWithUser("APPROVED");
-        }
-
-        double avgRating = 5.0;
-        int totalReviews = approvedReviews.size();
-
-        if (totalReviews > 0) {
-            double sum = 0;
-            for (Review r : approvedReviews) {
-                sum += (r.getRating() != null ? r.getRating() : 5);
-            }
-            avgRating = Math.round((sum / totalReviews) * 10.0) / 10.0;
         }
 
         // Truyền toàn bộ danh sách sang view để JS tự phân trang client
         model.addAttribute("approvedReviews", approvedReviews);
         model.addAttribute("selectedRating", rating);
-        model.addAttribute("avgRating", avgRating);
-        model.addAttribute("totalReviews", totalReviews);
+        addRatingSummary(model);
 
         model.addAttribute("pageTitle", "HOT TOPIK — Nền tảng luyện thi TOPIK chuẩn Hàn Quốc");
         model.addAttribute("activePage", "home");
         return "guest/home";
     }
 
+    /** GET /ve-topik – trang Về TOPIK, kèm danh sách đánh giá công khai và điểm trung bình. */
     @Transactional(readOnly = true) // Giữ transaction cho phép Lazy Loading User cho trang Về TOPIK
     @GetMapping({"/ve-topik", "/about-topik"})
     public String aboutTopik(Model model) {
         // Lấy toàn bộ danh sách review đã duyệt kèm theo thông tin User để hiển thị ở trang Về TOPIK
         List<Review> approvedReviews = reviewRepository.findByStatusWithUser("APPROVED");
 
-        double avgRating = 5.0;
-        int totalReviews = approvedReviews.size();
-
-        if (totalReviews > 0) {
-            double sum = 0;
-            for (Review r : approvedReviews) {
-                sum += (r.getRating() != null ? r.getRating() : 5);
-            }
-            avgRating = Math.round((sum / totalReviews) * 10.0) / 10.0;
-        }
-
         model.addAttribute("approvedReviews", approvedReviews);
-        model.addAttribute("avgRating", avgRating);
-        model.addAttribute("totalReviews", totalReviews);
+        addRatingSummary(model);
 
         model.addAttribute("pageTitle", "Về kỳ thi TOPIK · HOT TOPIK");
         model.addAttribute("activePage", "ve-topik");

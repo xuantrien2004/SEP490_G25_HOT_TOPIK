@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/billing.css}">
+<div class="bl-page">
+    <div th:replace="~{fragments/navbar :: navbar('vip')}"></div>
+
+    <main class="bl-container">
+        <div class="bl-crumb"><a th:href="@{/subscription/my-plan}">Gói của tôi</a> › Lịch sử giao dịch</div>
+        <h1 class="bl-title">Lịch sử giao dịch</h1>
+        <div th:replace="~{fragments/billing :: flash}"></div>
+        <div th:replace="~{fragments/billing :: sandboxNotice}"></div>
+
+        <form method="get" class="bl-filter">
+            <div>
+                <label for="status">Trạng thái</label>
+                <select id="status" name="status" class="bl-input" onchange="this.form.submit()">
+                    <option value="">Tất cả</option>
+                    <option th:each="s : ${orderStatuses}" th:value="${s.name()}" th:text="${s.label}" th:selected="${s.name() == statusFilter}"></option>
+                </select>
+            </div>
+        </form>
+
+        <div class="bl-card bl-table-wrap" style="padding:0;">
+            <div th:if="${orders.empty}" class="bl-empty"><span class="icon">🧾</span>Chưa có giao dịch nào.
+                <div style="margin-top:10px;"><a th:href="@{/subscription/plans}" class="bl-btn primary">Xem bảng giá</a></div>
+            </div>
+            <table class="bl-table" th:unless="${orders.empty}">
+                <thead>
+                <tr><th>Mã đơn hàng</th><th>Gói học</th><th>Số tiền</th><th>Phương thức</th><th>Môi trường</th><th>Ngày giao dịch</th><th>Trạng thái</th><th></th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="o : ${orders.content}">
+                    <td th:text="${o.orderCode}">HT</td>
+                    <td th:text="${o.planNameSnapshot}">Premium</td>
+                    <td th:text="${o.totalAmountText}">99.000đ</td>
+                    <td>VNPay</td>
+                    <td><span class="bl-sandbox-tag" th:text="${o.paymentEnvironment}">SANDBOX</span></td>
+                    <td th:text="${o.createdAtText}">--</td>
+                    <td><span class="bl-status" th:classappend="'st-' + ${o.status.name()}" th:text="${o.status.label}">--</span></td>
+                    <td><a th:href="@{/subscription/transactions/{c}(c=${o.orderCode})}" class="bl-btn sm">Chi tiết</a></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:replace="~{fragments/billing :: pager(${orders})}"></div>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+</body>
+</html>

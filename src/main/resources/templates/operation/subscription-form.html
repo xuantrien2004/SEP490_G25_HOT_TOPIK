@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/billing.css}">
+<div class="bl-admin">
+    <aside th:replace="~{fragments/billing :: sidebar}"></aside>
+    <main class="bl-main">
+        <div class="bl-crumb"><a th:href="@{/operation/subscriptions}">Gói học</a> › <span th:text="${mode == 'create'} ? 'Tạo bản nháp' : 'Chỉnh sửa'">Tạo</span></div>
+        <h1 class="bl-title" th:text="${mode == 'create' ? 'Tạo bản nháp gói học' : 'Chỉnh sửa ' + plan.name}">Gói học</h1>
+        <div th:replace="~{fragments/billing :: flash}"></div>
+
+        <div th:if="${mode == 'edit' and !plan.isDraft()}" class="bl-alert info">
+            Gói này đã được phê duyệt. Lưu thay đổi sẽ <strong>tạo yêu cầu phê duyệt</strong> gửi Admin; giá và thông tin chính thức
+            chỉ thay đổi sau khi được duyệt. Học viên đã mua không bị ảnh hưởng.
+        </div>
+
+        <!-- Tạo mới -->
+        <form th:if="${mode == 'create'}" method="post" th:action="@{/operation/subscriptions/create}" th:object="${form}" class="bl-card bl-form js-once" style="max-width:720px;">
+            <input type="hidden" name="_csrf" th:value="${csrfToken}">
+            <div class="row-field"><label for="code">Mã gói (duy nhất)</label>
+                <input id="code" th:field="*{code}" class="bl-input" style="width:100%;" required maxlength="40" pattern="[A-Za-z0-9_]{2,40}" placeholder="VD: PREMIUM_2M"></div>
+            <div class="row-field"><label for="name">Tên gói</label>
+                <input id="name" th:field="*{name}" class="bl-input" style="width:100%;" required maxlength="100"></div>
+            <div class="row-field"><label for="description">Mô tả</label>
+                <textarea id="description" th:field="*{description}" class="bl-input" style="width:100%;" rows="3" maxlength="1000"></textarea></div>
+            <div class="bl-grid cols-2">
+                <div class="row-field"><label for="price">Giá (VNĐ)</label>
+                    <input id="price" th:field="*{price}" type="number" min="1" step="1" class="bl-input" style="width:100%;" required></div>
+                <div class="row-field"><label for="durationDays">Thời hạn (ngày)</label>
+                    <input id="durationDays" th:field="*{durationDays}" type="number" min="1" max="3650" class="bl-input" style="width:100%;" required></div>
+                <div class="row-field"><label for="sortOrder">Thứ tự hiển thị</label>
+                    <input id="sortOrder" th:field="*{sortOrder}" type="number" min="0" class="bl-input" style="width:100%;"></div>
+                <div class="row-field"><label>&nbsp;</label><label style="display:flex;gap:8px;align-items:center;color:inherit;">
+                    <input type="checkbox" th:field="*{featured}"> Gói đề xuất</label></div>
+            </div>
+            <p style="font-size:13px;color:var(--ssak-text-muted);">Bản nháp chưa hiển thị cho học viên. Sau khi tạo, bấm "Gửi duyệt" để Admin phê duyệt mở bán.
+                Quyền lợi của gói Premium dùng nhóm quyền lợi Premium chung.</p>
+            <button type="submit" class="bl-btn primary">Lưu bản nháp</button>
+            <a th:href="@{/operation/subscriptions}" class="bl-btn">Hủy</a>
+        </form>
+
+        <!-- Chỉnh sửa -->
+        <form th:if="${mode == 'edit'}" method="post" th:action="@{/operation/subscriptions/{id}/update(id=${plan.id})}" th:object="${form}"
+              class="bl-card bl-form" th:classappend="${plan.isDraft()} ? 'js-once' : 'js-confirm'" style="max-width:720px;"
+              data-confirm="Gửi yêu cầu thay đổi này cho Admin phê duyệt?">
+            <input type="hidden" name="_csrf" th:value="${csrfToken}">
+            <div class="row-field"><label>Mã gói</label><code th:text="${plan.code}">CODE</code></div>
+            <div class="row-field"><label for="ename">Tên gói</label>
+                <input id="ename" th:field="*{name}" class="bl-input" style="width:100%;" required maxlength="100"></div>
+            <div class="row-field"><label for="edesc">Mô tả</label>
+                <textarea id="edesc" th:field="*{description}" class="bl-input" style="width:100%;" rows="3" maxlength="1000"></textarea></div>
+            <div class="bl-grid cols-2">
+                <div class="row-field"><label for="eprice">Giá (VNĐ) – hiện tại <span th:text="${plan.priceText}"></span></label>
+                    <input id="eprice" th:field="*{price}" type="number" min="1" step="1" class="bl-input" style="width:100%;" required></div>
+                <div class="row-field"><label for="edur">Thời hạn (ngày)</label>
+                    <input id="edur" th:field="*{durationDays}" type="number" min="1" max="3650" class="bl-input" style="width:100%;" required></div>
+                <div class="row-field"><label for="esort">Thứ tự hiển thị</label>
+                    <input id="esort" th:field="*{sortOrder}" type="number" min="0" class="bl-input" style="width:100%;"></div>
+                <div class="row-field"><label>&nbsp;</label><label style="display:flex;gap:8px;align-items:center;color:inherit;">
+                    <input type="checkbox" th:field="*{featured}"> Gói đề xuất</label></div>
+            </div>
+            <div class="row-field" th:unless="${plan.isDraft()}">
+                <label>Quyền lợi Premium (quyền lợi Free luôn có sẵn)</label>
+                <div th:if="${#lists.isEmpty(premiumFeatures)}" style="font-size:13px;color:var(--ssak-text-muted);">Chưa có quyền lợi Premium nào đang bật.</div>
+                <label th:each="f : ${premiumFeatures}" style="display:flex;gap:8px;align-items:center;color:inherit;font-weight:600;">
+                    <input type="checkbox" name="featureCodes" th:value="${f.code}" th:checked="${form.featureCodes != null and form.featureCodes.contains(f.code)}">
+                    <span th:text="${f.name}"></span>
+                </label>
+            </div>
+            <div class="row-field" th:unless="${plan.isDraft()}"><label for="ereason">Lý do thay đổi (bắt buộc)</label>
+                <textarea id="ereason" th:field="*{reason}" class="bl-input" style="width:100%;" rows="3" maxlength="1000" required></textarea></div>
+            <button type="submit" class="bl-btn primary" th:text="${plan.isDraft()} ? 'Lưu bản nháp' : 'Gửi yêu cầu phê duyệt'">Lưu</button>
+            <a th:href="@{/operation/subscriptions}" class="bl-btn">Hủy</a>
+        </form>
+    </main>
+</div>
+<script th:replace="~{fragments/billing :: confirmScript}"></script>
+</body>
+</html>

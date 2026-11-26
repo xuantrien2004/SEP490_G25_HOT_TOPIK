@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/billing.css}">
+<div class="bl-admin">
+    <aside th:replace="~{fragments/billing :: sidebar}"></aside>
+    <main class="bl-main">
+        <div class="bl-crumb"><a th:href="@{'/' + ${portal}}" th:text="${portal == 'admin' ? 'Admin' : 'Vận hành'}">Vận hành</a> › Doanh thu Sandbox</div>
+        <div class="bl-header">
+            <div>
+                <h1 class="bl-title">Báo cáo doanh thu thử nghiệm – Sandbox</h1>
+                <p class="bl-subtitle">Doanh thu mô phỏng, chỉ tính giao dịch VNPay Sandbox thành công đã được xác minh. Đây không phải doanh thu tiền thật.</p>
+            </div>
+            <a class="bl-btn" th:href="@{/{p}/revenue/export(p=${portal},range=${range.key()},from=${fromFilter},to=${toFilter})}">⬇ Xuất Excel</a>
+        </div>
+        <div th:replace="~{fragments/billing :: sandboxNotice}"></div>
+
+        <form method="get" class="bl-filter">
+            <div><label for="range">Khoảng thời gian</label>
+                <select id="range" name="range" class="bl-input">
+                    <option value="today" th:selected="${range.key() == 'today'}">Hôm nay</option>
+                    <option value="7d" th:selected="${range.key() == '7d'}">7 ngày gần nhất</option>
+                    <option value="30d" th:selected="${range.key() == '30d'}">30 ngày gần nhất</option>
+                    <option value="month" th:selected="${range.key() == 'month'}">Tháng này</option>
+                    <option value="year" th:selected="${range.key() == 'year'}">Năm nay</option>
+                    <option value="custom" th:selected="${range.key() == 'custom'}">Tùy chỉnh</option>
+                </select></div>
+            <div><label for="from">Từ ngày</label><input id="from" name="from" type="date" class="bl-input" th:value="${fromFilter}"></div>
+            <div><label for="to">Đến ngày</label><input id="to" name="to" type="date" class="bl-input" th:value="${toFilter}"></div>
+            <button class="bl-btn primary" type="submit">Xem báo cáo</button>
+        </form>
+        <p style="font-size:13px;color:var(--ssak-text-muted);margin-top:-6px;"
+           th:text="${'Đang xem: ' + dashboard.rangeLabel() + ' (' + dashboard.fromText() + ' – ' + dashboard.toText() + ')'}"></p>
+
+        <div class="bl-grid cols-4">
+            <div class="bl-card bl-kpi"><span class="label">Doanh thu mô phỏng trong kỳ</span><span class="value" th:text="${dashboard.money(dashboard.revenueInRange())}">0đ</span></div>
+            <div class="bl-card bl-kpi"><span class="label">Hôm nay (mô phỏng)</span><span class="value" th:text="${dashboard.money(dashboard.revenueToday())}">0đ</span></div>
+            <div class="bl-card bl-kpi"><span class="label">Tháng này (mô phỏng)</span><span class="value" th:text="${dashboard.money(dashboard.revenueThisMonth())}">0đ</span></div>
+            <div class="bl-card bl-kpi"><span class="label">Tổng từ trước đến nay</span><span class="value" th:text="${dashboard.money(dashboard.totalRevenueAllTime())}">0đ</span></div>
+            <div class="bl-card bl-kpi"><span class="label">Giao dịch thành công</span><span class="value" th:text="${dashboard.successCountInRange()}">0</span></div>
+            <div class="bl-card bl-kpi"><span class="label">Gói bán thử nghiệm</span><span class="value" th:text="${dashboard.plansSoldInRange()}">0</span></div>
+            <div class="bl-card bl-kpi"><span class="label">Giá trị TB mỗi đơn</span><span class="value" th:text="${dashboard.money(dashboard.averageOrderValue())}">0đ</span></div>
+            <div class="bl-card bl-kpi"><span class="label">Học viên Premium hoạt động</span><span class="value" th:text="${dashboard.activePremiumUsers()}">0</span></div>
+        </div>
+
+        <div class="bl-grid cols-2 bl-section">
+            <div class="bl-card"><h2 style="font-size:17px;">Doanh thu mô phỏng theo thời gian</h2><canvas id="revenueChart" height="220" aria-label="Biểu đồ doanh thu"></canvas></div>
+            <div class="bl-card"><h2 style="font-size:17px;">Số gói học đã bán thử nghiệm</h2><canvas id="countChart" height="220" aria-label="Biểu đồ số gói đã bán"></canvas></div>
+        </div>
+
+        <div class="bl-grid cols-2 bl-section" style="align-items:start;">
+            <div class="bl-card bl-table-wrap">
+                <h2 style="font-size:17px;">Doanh thu theo gói học</h2>
+                <div th:if="${#lists.isEmpty(dashboard.byPlan())}" class="bl-empty">Chưa có giao dịch thành công trong kỳ.</div>
+                <table class="bl-table" th:unless="${#lists.isEmpty(dashboard.byPlan())}">
+                    <thead><tr><th>Gói học</th><th>Số gói</th><th>Doanh thu mô phỏng</th></tr></thead>
+                    <tbody><tr th:each="p : ${dashboard.byPlan()}"><td th:text="${p.planName()}">Gói</td><td th:text="${p.count()}">0</td><td th:text="${p.revenueText}">0đ</td></tr></tbody>
+                </table>
+            </div>
+            <div class="bl-card bl-table-wrap">
+                <h2 style="font-size:17px;">Giao dịch thành công gần đây</h2>
+                <div th:if="${#lists.isEmpty(dashboard.recent())}" class="bl-empty">Chưa có giao dịch.</div>
+                <table class="bl-table" th:unless="${#lists.isEmpty(dashboard.recent())}">
+                    <thead><tr><th>Mã đơn</th><th>Người mua</th><th>Gói</th><th>Số tiền</th><th>Thời gian</th></tr></thead>
+                    <tbody><tr th:each="t : ${dashboard.recent()}">
+                        <td><a th:href="@{'/' + ${portal} + '/transactions/' + ${t.id}}" th:text="${t.orderCode}">HT</a></td>
+                        <td th:text="${t.buyerName}">Tên</td><td th:text="${t.planName}">Gói</td>
+                        <td th:text="${t.paidAmountText}">0đ</td><td th:text="${t.paidAtText}">--</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script th:inline="javascript">
+    (function () {
+        var labels = /*[[${dashboard.chartLabels()}]]*/ [];
+        var revenue = /*[[${dashboard.chartRevenue()}]]*/ [];
+        var counts = /*[[${dashboard.chartCount()}]]*/ [];
+        if (!window.Chart) return;
+        var green = getComputedStyle(document.documentElement).getPropertyValue('--ssak-primary').trim() || '#2E7D67';
+        var honey = getComputedStyle(document.documentElement).getPropertyValue('--ssak-honey').trim() || '#F4C45A';
+        new Chart(document.getElementById('revenueChart'), {
+            type: 'line',
+            data: { labels: labels, datasets: [{ label: 'Doanh thu mô phỏng (VNĐ)', data: revenue, borderColor: green, backgroundColor: green + '22', fill: true, tension: .25 }] },
+            options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (c) { return Number(c.parsed.y).toLocaleString('vi-VN') + 'đ'; } } } },
+                scales: { y: { beginAtZero: true, ticks: { callback: function (v) { return Number(v).toLocaleString('vi-VN'); } } } } }
+        });
+        new Chart(document.getElementById('countChart'), {
+            type: 'bar',
+            data: { labels: labels, datasets: [{ label: 'Số gói đã bán', data: counts, backgroundColor: honey }] },
+            options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+        });
+    })();
+</script>
+</body>
+</html>

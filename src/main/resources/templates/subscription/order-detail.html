@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{fragments/head :: head(${pageTitle})}"></head>
+<body>
+<link rel="stylesheet" th:href="@{/css/billing.css}">
+<div class="bl-page">
+    <div th:replace="~{fragments/navbar :: navbar('vip')}"></div>
+
+    <main class="bl-container narrow">
+        <div class="bl-crumb"><a th:href="@{/subscription/transactions}">Lịch sử giao dịch</a> › <span th:text="${order.orderCode}">HT</span></div>
+        <div class="bl-header">
+            <h1 class="bl-title">Đơn hàng <span th:text="${order.orderCode}">HT</span></h1>
+            <span class="bl-status" th:classappend="'st-' + ${order.status.name()}" th:text="${order.status.label}">Chờ thanh toán</span>
+        </div>
+        <div th:replace="~{fragments/billing :: flash}"></div>
+        <div th:replace="~{fragments/billing :: sandboxNotice}"></div>
+
+        <div class="bl-card">
+            <dl class="bl-detail-list">
+                <dt>Gói học</dt><dd th:text="${order.planNameSnapshot}">Premium</dd>
+                <dt>Thời hạn</dt><dd th:text="${order.durationDaysSnapshot + ' ngày'}">30 ngày</dd>
+                <dt>Số tiền (giá đã chốt)</dt><dd th:text="${order.totalAmountText}">99.000đ</dd>
+                <dt>Phương thức</dt><dd>VNPay Sandbox <span class="bl-sandbox-tag">🧪 SANDBOX</span></dd>
+                <dt>Ngày tạo</dt><dd th:text="${order.createdAtText}">--</dd>
+                <dt>Hạn thanh toán</dt><dd th:text="${order.expiresAtText}">--</dd>
+                <dt>Ngày thanh toán</dt><dd th:text="${order.paidAtText}">--</dd>
+                <dt>Kết quả</dt><dd th:text="${status.message}">--</dd>
+            </dl>
+            <div class="bl-actions">
+                <form th:if="${order.status.name() == 'PENDING_PAYMENT' and status.canRetry}" method="post"
+                      th:action="@{/subscription/payment/{c}/retry(c=${order.orderCode})}" class="js-once">
+                    <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                    <button type="submit" class="bl-btn primary" th:disabled="${!gatewayReady}"
+                            th:text="${#lists.isEmpty(attempts)} ? 'Thanh toán qua VNPay Sandbox' : 'Thử thanh toán lại'">Thanh toán</button>
+                </form>
+                <a th:if="${status.state == 'VERIFYING'}" th:href="@{/subscription/payment/result(orderCode=${order.orderCode})}" class="bl-btn primary">Kiểm tra trạng thái</a>
+                <form th:if="${order.status.name() == 'PENDING_PAYMENT'}" method="post"
+                      th:action="@{/subscription/payment/{c}/cancel(c=${order.orderCode})}" class="js-confirm"
+                      data-confirm="Hủy đơn hàng này? Hệ thống sẽ kiểm tra lại với VNPay Sandbox trước khi hủy.">
+                    <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                    <button type="submit" class="bl-btn danger">Hủy đơn hàng</button>
+                </form>
+                <a th:if="${order.status.name() == 'PAID'}" th:href="@{/subscription/my-plan}" class="bl-btn primary">Xem gói của tôi</a>
+                <a th:href="@{/subscription/plans}" class="bl-btn">Bảng giá</a>
+            </div>
+        </div>
+
+        <div class="bl-section">
+            <h2>Các lần thanh toán</h2>
+            <div class="bl-card bl-table-wrap" style="padding:0;">
+                <div th:if="${#lists.isEmpty(attempts)}" class="bl-empty"><span class="icon">💳</span>Chưa có lần thanh toán nào.</div>
+                <table class="bl-table" th:unless="${#lists.isEmpty(attempts)}">
+                    <thead><tr><th>Mã tham chiếu</th><th>Mã VNPay</th><th>Ngân hàng</th><th>Thời gian</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead>
+                    <tbody>
+                    <tr th:each="t : ${attempts}">
+                        <td th:text="${t.providerTxnRef}">ref</td>
+                        <td th:text="${t.providerTransactionNo != null ? t.providerTransactionNo : '—'}">—</td>
+                        <td th:text="${t.bankCode != null ? t.bankCode : '—'}">—</td>
+                        <td th:text="${t.createdAtText}">--</td>
+                        <td><span class="bl-status" th:classappend="'st-' + ${t.status.name()}" th:text="${t.status.label}">Đang chờ</span></td>
+                        <td th:text="${t.failureReason != null ? t.failureReason : '—'}">—</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+<script th:replace="~{fragments/billing :: confirmScript}"></script>
+</body>
+</html>
