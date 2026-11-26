@@ -86,15 +86,28 @@
 
     <!-- Khung Bảng danh sách từ vựng -->
     <div class="p-4 rounded-4 bg-white border shadow-sm">
-        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-            <div class="btn-group btn-group-sm" role="group">
-                <button type="button" class="btn btn-outline-secondary active" id="btnFilterAll" onclick="filterVocabTable('all')">
-                    Tất cả (<span id="filterAllCount" th:text="${vocabList != null ? vocabList.size() : 0}">0</span>)
-                </button>
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 450px;">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light border-end-0 text-muted" style="border-radius: 20px 0 0 20px;">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" id="vocabSearchInput" class="form-control border-start-0" 
+                           placeholder="Tìm kiếm từ vựng (Tiếng Hàn, Tiếng Việt hoặc Phiên âm)..." 
+                           oninput="onVocabSearchInput(this.value)"
+                           style="border-radius: 0 20px 20px 0; font-size: 13.5px;">
+                </div>
             </div>
 
-            <div class="small text-muted">
-                * Bấm biểu tượng ⭐ để dồn từ vào <strong>Sổ chưa thuộc</strong> · Bấm biểu tượng 🔊 để nghe phát âm
+            <div class="d-flex align-items-center gap-3">
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-secondary active" id="btnFilterAll" onclick="resetVocabSearch()">
+                        Tất cả (<span id="filterAllCount" th:text="${vocabList != null ? vocabList.size() : 0}">0</span>)
+                    </button>
+                </div>
+                <div class="small text-muted d-none d-md-block">
+                    * Bấm ⭐ để dồn từ vào <strong>Sổ chưa thuộc</strong> · Bấm 🔊 để nghe phát âm
+                </div>
             </div>
         </div>
 
@@ -294,9 +307,38 @@
         container.innerHTML = infoHtml + btnHtml;
     }
 
+    let currentSearchKeyword = '';
+
+    function onVocabSearchInput(val) {
+        currentSearchKeyword = (val || '').trim().toLowerCase();
+        renderStudentVocabPage(1);
+    }
+
+    function resetVocabSearch() {
+        const input = document.getElementById('vocabSearchInput');
+        if (input) input.value = '';
+        currentSearchKeyword = '';
+        renderStudentVocabPage(1);
+    }
+
     function renderStudentVocabPage(page = 1) {
-        const rows = Array.from(document.querySelectorAll('#vocabTableBody tr.vocab-row'));
-        const total = rows.length;
+        const allRows = Array.from(document.querySelectorAll('#vocabTableBody tr.vocab-row'));
+        
+        // Lọc song ngữ Tiếng Hàn / Tiếng Việt / Phiên âm
+        const filteredRows = allRows.filter(row => {
+            if (!currentSearchKeyword) return true;
+            const textContent = (row.innerText || '').toLowerCase();
+            return textContent.includes(currentSearchKeyword);
+        });
+
+        // Ẩn tất cả các dòng không khớp tìm kiếm
+        allRows.forEach(row => {
+            if (!filteredRows.includes(row)) {
+                row.style.display = 'none';
+            }
+        });
+
+        const total = filteredRows.length;
         const totalPages = Math.max(1, Math.ceil(total / STUDENT_VOCAB_PAGE_SIZE));
         
         if (page < 1) page = 1;
@@ -306,13 +348,16 @@
         const startIdx = (page - 1) * STUDENT_VOCAB_PAGE_SIZE;
         const endIdx = startIdx + STUDENT_VOCAB_PAGE_SIZE;
         
-        rows.forEach((row, idx) => {
+        filteredRows.forEach((row, idx) => {
             if (idx >= startIdx && idx < endIdx) {
                 row.style.display = '';
             } else {
                 row.style.display = 'none';
             }
         });
+
+        const countBadge = document.getElementById('filterAllCount');
+        if (countBadge) countBadge.innerText = total;
         
         renderCompactPagination('studentVocabPaginationContainer', currentStudentVocabPage, totalPages, 'renderStudentVocabPage', total, STUDENT_VOCAB_PAGE_SIZE, 'từ vựng');
     }
@@ -321,10 +366,25 @@
         renderStudentVocabPage(1);
     }
 
-    // Phát âm tiếng Hàn chuẩn dùng Web Speech API kết hợp Google Korean TTS trực tuyến
+    // ==========================================
+    // AUDIO & TTS PHÁT ÂM TIẾNG HÀN CHUẨN
+    // ==========================================
+    let activeVocabAudio = null;
+
     function speakKorean(word, audioUrl) {
         if (!word || !word.trim()) return;
         word = word.trim();
+
+        // Dừng âm thanh đang phát trước đó nếu có
+        if (activeVocabAudio) {
+            try {
+                activeVocabAudio.pause();
+                activeVocabAudio.currentTime = 0;
+            } catch (e) {}
+            activeVocabAudio = null;
+        }
+
+        // 1. Nếu có file âm thanh tùy chỉnh audioUrl hợp lệ
         if (audioUrl && typeof audioUrl === 'string' && audioUrl.trim() !== '' && audioUrl !== 'null' && audioUrl !== 'undefined') {
             let normalizedUrl = audioUrl.trim();
             if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://') && !normalizedUrl.startsWith('/')) {
@@ -332,57 +392,53 @@
             }
             try {
                 const audio = new Audio(normalizedUrl);
-                audio.play().catch(() => playSpeech(word));
+                activeVocabAudio = audio;
+                const p = audio.play();
+                if (p && typeof p.then === 'function') {
+                    p.catch(e => {
+                        console.warn("[Audio] Custom audio failed, fallback to TTS:", e);
+                        playOnlineKoreanTTS(word);
+                    });
+                }
                 return;
             } catch (e) {
-                console.log("Audio URL fallback to TTS:", e);
+                console.warn("[Audio] Exception playing custom audio:", e);
             }
         }
-        playSpeech(word);
+
+        // 2. Trực tiếp gọi server proxy TTS /api/tts (chuẩn và ổn định trên mọi browser)
+        playOnlineKoreanTTS(word);
     }
 
     function playSpeech(word) {
-        if ('speechSynthesis' in window) {
-            try {
-                const utterance = new SpeechSynthesisUtterance(word);
-                utterance.lang = 'ko-KR';
-                utterance.rate = 0.9;
-
-                const voices = window.speechSynthesis.getVoices();
-                const koVoice = voices.find(v => v.lang && (v.lang.startsWith('ko') || v.lang.includes('KR')));
-                if (koVoice) utterance.voice = koVoice;
-
-                let hasSpoken = false;
-                utterance.onstart = function() { hasSpoken = true; };
-                utterance.onerror = function() { playOnlineKoreanTTS(word); };
-
-                if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-                window.speechSynthesis.speak(utterance);
-
-                setTimeout(() => {
-                    if (!hasSpoken && !window.speechSynthesis.speaking) {
-                        playOnlineKoreanTTS(word);
-                    }
-                }, 600);
-                return;
-            } catch (e) {
-                console.warn('[TTS] Web Speech failed:', e);
-            }
-        }
         playOnlineKoreanTTS(word);
     }
 
     function playOnlineKoreanTTS(word) {
         try {
+            if (activeVocabAudio) {
+                try { activeVocabAudio.pause(); activeVocabAudio.currentTime = 0; } catch (e) {}
+            }
             const url = '/api/tts?text=' + encodeURIComponent(word);
             const audio = new Audio(url);
-            audio.play().catch(e => {
-                console.warn('[TTS] Backend audio failed, trying direct:', e);
-                const directUrl = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=ko&client=tw-ob&q=' + encodeURIComponent(word);
-                new Audio(directUrl).play().catch(() => {});
-            });
+            activeVocabAudio = audio;
+            const playPromise = audio.play();
+            if (playPromise && typeof playPromise.then === 'function') {
+                playPromise.catch(e => {
+                    console.warn('[TTS] Backend /api/tts failed, fallback to Web Speech:', e);
+                    if ('speechSynthesis' in window) {
+                        try {
+                            window.speechSynthesis.cancel();
+                            const u = new SpeechSynthesisUtterance(word);
+                            u.lang = 'ko-KR';
+                            u.rate = 0.85;
+                            window.speechSynthesis.speak(u);
+                        } catch(err) {}
+                    }
+                });
+            }
         } catch (err) {
-            console.error('[TTS] Error creating Audio:', err);
+            console.error('[TTS] Error playing online TTS:', err);
         }
     }
 

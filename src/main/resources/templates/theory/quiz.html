@@ -158,6 +158,50 @@
     let score = 0;
     let wrongWords = [];
 
+    // Khóa lưu tiến độ bài Quiz theo Cấp độ & Chủ đề hoặc Chế độ học
+    const QUIZ_PROGRESS_STORAGE_KEY = 'hottopik_quiz_progress_' + (mode ? mode : (currentLevelNum + '_' + encodeURIComponent(currentTopicName)));
+
+    function saveQuizProgress() {
+        try {
+            const data = {
+                questions: questions,
+                currentQIdx: currentQIdx,
+                score: score,
+                wrongWords: wrongWords,
+                timestamp: Date.now()
+            };
+            localStorage.setItem(QUIZ_PROGRESS_STORAGE_KEY, JSON.stringify(data));
+            sessionStorage.setItem(QUIZ_PROGRESS_STORAGE_KEY, JSON.stringify(data));
+        } catch (e) {
+            console.warn('[Quiz] Error saving progress:', e);
+        }
+    }
+
+    function loadSavedQuizProgress() {
+        try {
+            const raw = localStorage.getItem(QUIZ_PROGRESS_STORAGE_KEY) || sessionStorage.getItem(QUIZ_PROGRESS_STORAGE_KEY);
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            if (!data || !Array.isArray(data.questions) || data.questions.length === 0) return null;
+            if (typeof data.currentQIdx !== 'number') return null;
+            
+            // Nếu đã làm xong hết câu hỏi hoặc phiên quá 7 ngày thì không khôi phục
+            if (data.currentQIdx >= data.questions.length) return null;
+            if (data.timestamp && (Date.now() - data.timestamp > 7 * 24 * 60 * 60 * 1000)) return null;
+
+            return data;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function clearSavedQuizProgress() {
+        try {
+            localStorage.removeItem(QUIZ_PROGRESS_STORAGE_KEY);
+            sessionStorage.removeItem(QUIZ_PROGRESS_STORAGE_KEY);
+        } catch (e) {}
+    }
+
     // Danh sách đáp án dự phòng để tạo 4 lựa chọn nếu số từ ít
     const fallbackDistractors = [
         'Học sinh', 'Trường học', 'Gia đình', 'Hôm nay', 'Ngày mai', 'Ăn cơm', 'Uống nước',
@@ -202,6 +246,27 @@
     }
 
     function init() {
+        // Kiểm tra xem có tiến độ làm dở trước đó khi F5 hoặc mở lại tab không
+        const saved = loadSavedQuizProgress();
+        if (saved && saved.currentQIdx > 0 && saved.currentQIdx < saved.questions.length) {
+            questions = saved.questions;
+            currentQIdx = saved.currentQIdx;
+            score = saved.score || 0;
+            wrongWords = saved.wrongWords || [];
+            
+            const total = questions.length;
+            document.getElementById('totalQuestionsNum').innerText = total;
+            document.getElementById('correctScore').innerText = score;
+            document.getElementById('quizQuestionBox').classList.remove('d-none');
+            document.getElementById('quizResultBox').classList.add('d-none');
+
+            if (typeof showSsakToast === 'function') {
+                showSsakToast(`Tiếp tục bài Quiz tại câu ${currentQIdx + 1}/${total} (Điểm hiện tại: ${score})`);
+            }
+            renderQuestion();
+            return;
+        }
+
         buildQuestions();
         const total = questions.length;
         document.getElementById('totalQuestionsNum').innerText = total;
@@ -232,9 +297,12 @@
 
     function renderQuestion() {
         if (currentQIdx >= questions.length) {
+            clearSavedQuizProgress();
             showResults();
             return;
         }
+
+        saveQuizProgress(); // Lưu trạng thái câu hỏi hiện tại
 
         const q = questions[currentQIdx];
         document.getElementById('currentQuestionNum').innerText = (currentQIdx + 1);
@@ -309,6 +377,7 @@
     }
 
     function restartQuiz() {
+        clearSavedQuizProgress();
         init();
     }
 

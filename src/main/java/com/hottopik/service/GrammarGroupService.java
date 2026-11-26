@@ -42,6 +42,9 @@ public class GrammarGroupService {
                 .findByLevelOrderByGroupNoAsc(level);
     }
 
+    /**
+     * Lấy danh sách nhóm ngữ pháp đang ở trạng thái ACTIVE theo cấp TOPIK.
+     */
     @Transactional(readOnly = true)
     public List<GrammarGroup> getActiveGroupsByLevel(Short level) {
         validateLevel(level);
@@ -103,6 +106,9 @@ public class GrammarGroupService {
         return saved;
     }
 
+    /**
+     * Bật/tắt trạng thái hiển thị (ACTIVE / HIDDEN) của một nhóm ngữ pháp và phát sự kiện đồng bộ.
+     */
     @Transactional
     public GrammarGroup toggleStatus(Integer id, boolean active) {
         GrammarGroup group = getGroupById(id);
@@ -119,6 +125,9 @@ public class GrammarGroupService {
         if (syncService != null) syncService.broadcast(action, payload);
     }
 
+    /**
+     * Xóa nhóm ngữ pháp theo ID. Nếu nhóm đang chứa ngữ pháp con thì chặn xóa và báo số lượng cụ thể.
+     */
     // Xóa nhóm theo ID
     @Transactional
     public void deleteGroup(Integer id) {
@@ -130,8 +139,9 @@ public class GrammarGroupService {
         // Nếu nhóm đang có ngữ pháp, khóa ngoại sẽ ngăn việc xóa.
         if (group.getGrammars() != null
                 && !group.getGrammars().isEmpty()) {
+            int count = group.getGrammars().size();
             throw new IllegalStateException(
-                    "Không thể xóa nhóm đang chứa ngữ pháp."
+                    "Không thể xóa nhóm này vì đang chứa " + count + " ngữ pháp con. Vui lòng di chuyển hoặc xóa ngữ pháp con trước!"
             );
         }
 
