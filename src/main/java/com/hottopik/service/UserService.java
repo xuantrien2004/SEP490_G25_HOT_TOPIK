@@ -197,21 +197,21 @@ public class UserService {
     @Transactional
     public Optional<UserDTO> authenticate(String identifier, String password) {
         if (identifier == null || password == null) {
-            return Optional.empty();
+            return Optional.empty(); // Thiếu thông tin đăng nhập
         }
-        String cleanId = identifier.trim().toLowerCase();
-        String cleanPass = password.trim();
+        String cleanId = identifier.trim().toLowerCase(); // Chuẩn hóa email/username về chữ thường
+        String cleanPass = password.trim(); // Xóa khoảng trắng thừa ở mật khẩu
 
         // 1. Thử xác thực trực tiếp từ Database SQL Server
         try {
-            Optional<User> dbUserOpt = userRepository.findByEmail(cleanId);
+            Optional<User> dbUserOpt = userRepository.findByEmail(cleanId); // Tìm user theo email trong DB
             if (dbUserOpt.isPresent()) {
                 User user = dbUserOpt.get();
 
                 // Kiểm tra nếu tài khoản đang bị khóa tạm thời
                 if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(LocalDateTime.now())) {
                     UserDTO lockedDto = mapToDTO(user);
-                    lockedDto.setStatus("LOCKED");
+                    lockedDto.setStatus("LOCKED"); // Gán trạng thái LOCKED để controller chặn đăng nhập
                     return Optional.of(lockedDto);
                 }
 
@@ -220,24 +220,24 @@ public class UserService {
                 String storedHash = user.getPasswordHash();
                 if (storedHash != null) {
                     if (storedHash.startsWith("$2a$") || storedHash.startsWith("$2b$") || storedHash.startsWith("$2y$")) {
-                        matches = passwordEncoder.matches(cleanPass, storedHash);
+                        matches = passwordEncoder.matches(cleanPass, storedHash); // So khớp BCrypt hash
                     } else {
-                        matches = storedHash.equals(cleanPass) || storedHash.equals("<bcrypt-hash>");
+                        matches = storedHash.equals(cleanPass) || storedHash.equals("<bcrypt-hash>"); // So khớp chuỗi demo
                     }
                 }
 
                 if (matches) {
-                    user.setFailedLoginCount((short) 0);
-                    user.setLockedUntil(null);
-                    user.setLastLoginAt(LocalDateTime.now());
+                    user.setFailedLoginCount((short) 0); // Đăng nhập đúng -> reset bộ đếm sai
+                    user.setLockedUntil(null); // Xóa mốc khóa tạm thời nếu có
+                    user.setLastLoginAt(LocalDateTime.now()); // Cập nhật thời điểm đăng nhập cuối
                     userRepository.save(user);
 
                     return Optional.of(mapToDTO(user));
                 } else {
-                    short failed = (short) ((user.getFailedLoginCount() != null ? user.getFailedLoginCount() : 0) + 1);
+                    short failed = (short) ((user.getFailedLoginCount() != null ? user.getFailedLoginCount() : 0) + 1); // Tăng số lần sai mật khẩu
                     user.setFailedLoginCount(failed);
                     if (failed >= 5) {
-                        user.setLockedUntil(LocalDateTime.now().plusMinutes(15));
+                        user.setLockedUntil(LocalDateTime.now().plusMinutes(15)); // Sai 5 lần -> khóa 15 phút
                         user.setLockReason("Đăng nhập sai quá 5 lần liên tiếp");
                         log.warn("Tài khoản {} bị tạm khóa 15 phút do nhập sai mật khẩu 5 lần", user.getEmail());
                     }
@@ -266,9 +266,9 @@ public class UserService {
         if (email == null || rawPassword == null || displayName == null) {
             return false;
         }
-        String cleanEmail = email.trim().toLowerCase();
-        String cleanName = displayName.trim();
-        String otpCode = generateOtpCode();
+        String cleanEmail = email.trim().toLowerCase(); // Chuẩn hóa email
+        String cleanName = displayName.trim(); // Xóa khoảng trắng thừa ở tên hiển thị
+        String otpCode = generateOtpCode(); // Sinh mã OTP 6 số ngẫu nhiên
 
         // Lưu OTP vào in-memory store (hạn 5 phút)
         otpStore.put(cleanEmail, otpCode);
@@ -276,7 +276,7 @@ public class UserService {
 
         // 1. Thử lưu vào DB
         try {
-            Optional<User> existingUserOpt = userRepository.findByEmail(cleanEmail);
+            Optional<User> existingUserOpt = userRepository.findByEmail(cleanEmail); // Kiểm tra email đã tồn tại chưa
             User userToSave;
 
             if (existingUserOpt.isPresent()) {
@@ -286,9 +286,10 @@ public class UserService {
                 }
                 // Nếu đang PENDING_VERIFY thì cho phép cập nhật lại thông tin và nhận OTP mới
                 existing.setDisplayName(cleanName);
-                existing.setPasswordHash(passwordEncoder.encode(rawPassword.trim()));
+                existing.setPasswordHash(passwordEncoder.encode(rawPassword.trim())); // Băm mật khẩu mới bằng BCrypt
                 userToSave = userRepository.save(existing);
             } else {
+                // Tạo tài khoản mới với vai trò STUDENT và trạng thái chờ xác thực OTP
                 User newUser = User.builder()
                         .email(cleanEmail)
                         .passwordHash(passwordEncoder.encode(rawPassword.trim()))
@@ -303,6 +304,7 @@ public class UserService {
 
                 userToSave = userRepository.save(newUser);
 
+                // Tạo cấu hình học tập mặc định cho tài khoản mới
                 UserSetting setting = UserSetting.builder()
                         .userId(userToSave.getId())
                         .theme("LIGHT")
@@ -438,16 +440,17 @@ public class UserService {
         if (email == null || otpCode == null) {
             return Optional.empty();
         }
-        String cleanEmail = email.trim().toLowerCase();
-        String cleanOtp = otpCode.trim();
+        String cleanEmail = email.trim().toLowerCase(); // Chuẩn hóa email
+        String cleanOtp = otpCode.trim(); // Xóa khoảng trắng thừa của OTP
 
         // 1. Kiểm tra qua DB
         try {
-            String tokenHash = authTokenService.hashToken(cleanOtp + "_" + cleanEmail);
+            String tokenHash = authTokenService.hashToken(cleanOtp + "_" + cleanEmail); // Băm chuỗi otp_email để đối chiếu DB
             Optional<AuthToken> tokenOpt = authTokenRepository.findByTokenHash(tokenHash);
 
             if (tokenOpt.isPresent()) {
                 AuthToken token = tokenOpt.get();
+                // Kiểm tra đúng loại VERIFY, chưa sử dụng và chưa hết hạn
                 if ("VERIFY".equalsIgnoreCase(token.getType())
                         && token.getUsedAt() == null
                         && token.getExpiresAt().isAfter(LocalDateTime.now())) {
@@ -455,17 +458,17 @@ public class UserService {
                     Optional<User> userOpt = userRepository.findById(token.getUserId());
                     if (userOpt.isPresent()) {
                         User user = userOpt.get();
-                        user.setStatus("ACTIVE");
-                        user.setEmailVerifiedAt(LocalDateTime.now());
+                        user.setStatus("ACTIVE"); // Kích hoạt tài khoản
+                        user.setEmailVerifiedAt(LocalDateTime.now()); // Ghi nhận thời điểm xác thực email
                         userRepository.save(user);
 
-                        token.setUsedAt(LocalDateTime.now());
+                        token.setUsedAt(LocalDateTime.now()); // Đánh dấu token đã dùng để chống dùng lại
                         authTokenRepository.save(token);
 
-                        UserDTO dto = mapToDTO(user);
+                        UserDTO dto = mapToDTO(user); // Map sang DTO và đồng bộ vào RAM
                         users.put(user.getId(), dto);
 
-                        otpStore.remove(cleanEmail);
+                        otpStore.remove(cleanEmail); // Xóa OTP tạm trong RAM
                         otpExpiry.remove(cleanEmail);
 
                         log.info(">>> [HOT TOPIK] Kích hoạt tài khoản thành công qua OTP cho email: {}", cleanEmail);
@@ -851,17 +854,17 @@ public class UserService {
     @Transactional
     public boolean lockUserTemporarily(Long id, int days, String reason) {
         if (id == null) return false;
-        int lockDays = days > 0 ? days : 7;
+        int lockDays = days > 0 ? days : 7; // Mặc định tạm khóa 7 ngày nếu truyền số ngày <= 0
         String lockRsn = (reason != null && !reason.trim().isEmpty()) ? reason.trim() : "Tạm khóa theo quy định vận hành";
-        LocalDateTime until = LocalDateTime.now().plusDays(lockDays);
+        LocalDateTime until = LocalDateTime.now().plusDays(lockDays); // Tính mốc thời gian hết hạn khóa
         boolean found = false;
         try {
             Optional<User> uOpt = userRepository.findById(id);
             if (uOpt.isPresent()) {
                 User u = uOpt.get();
-                u.setStatus("LOCKED");
-                u.setLockedUntil(until);
-                u.setLockReason(lockRsn);
+                u.setStatus("LOCKED"); // Chuyển trạng thái sang LOCKED
+                u.setLockedUntil(until); // Lưu thời điểm mở khóa
+                u.setLockReason(lockRsn); // Lưu lý do khóa
                 userRepository.save(u);
                 found = true;
 
@@ -947,10 +950,10 @@ public class UserService {
             Optional<User> uOpt = userRepository.findById(id);
             if (uOpt.isPresent()) {
                 User u = uOpt.get();
-                u.setStatus("ACTIVE");
-                u.setLockedUntil(null);
-                u.setLockReason(null);
-                u.setFailedLoginCount((short) 0);
+                u.setStatus("ACTIVE"); // Khôi phục trạng thái hoạt động
+                u.setLockedUntil(null); // Xóa mốc khóa
+                u.setLockReason(null); // Xóa lý do khóa
+                u.setFailedLoginCount((short) 0); // Đặt lại số lần đăng nhập sai
                 userRepository.save(u);
                 found = true;
 

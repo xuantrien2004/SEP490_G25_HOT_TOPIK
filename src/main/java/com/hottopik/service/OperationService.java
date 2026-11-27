@@ -131,13 +131,14 @@ public class OperationService {
      * Operation Manager: Gửi đề nghị hoàn tiền lên Admin để phê duyệt
      */
     public boolean requestRefundApproval(Long orderId, String requesterName, String reason) {
-        OrderDTO order = orders.get(orderId);
+        OrderDTO order = orders.get(orderId); // Tìm đơn hàng theo ID
         if (order == null) return false;
 
-        order.setStatus("REFUND_REQUESTED");
+        order.setStatus("REFUND_REQUESTED"); // Đánh dấu đơn hàng đang chờ duyệt hoàn tiền
         order.setRefundReason(reason != null && !reason.trim().isEmpty() ? reason.trim() : "Operation Manager yêu cầu hoàn tiền");
 
         if (approvalService != null) {
+            // Đẩy yêu cầu hoàn tiền sang ApprovalService để Admin phê duyệt
             approvalService.submitTargetedRequest(
                     requesterName != null ? requesterName : "Operation Manager",
                     "Operation Manager",

@@ -52,9 +52,10 @@ public class AuthController {
                         @RequestParam(value = "resetSuccess", required = false) String resetSuccess,
                         Model model,
                         HttpSession session) {
-        model.addAttribute("pageTitle", "Đăng nhập · Đăng ký · HOT TOPIK");
-        model.addAttribute("activeTab", tab);
+        model.addAttribute("pageTitle", "Đăng nhập · Đăng ký · HOT TOPIK"); // Tiêu đề trang
+        model.addAttribute("activeTab", tab); // Tab đang chọn (login hoặc register)
 
+        // Gắn thông báo lỗi hoặc thành công tương ứng với query param truyền vào
         if (error != null) {
             model.addAttribute("errorMessage", "Tài khoản hoặc mật khẩu không chính xác! Vui lòng kiểm tra lại.");
         } else if (unauthorized != null) {
@@ -69,12 +70,12 @@ public class AuthController {
             model.addAttribute("successMessage", "Đặt lại mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới ngay.");
         }
 
-        UserDTO loggedIn = (UserDTO) session.getAttribute("LOGGED_IN_USER");
+        UserDTO loggedIn = (UserDTO) session.getAttribute("LOGGED_IN_USER"); // Kiểm tra nếu đã đăng nhập sẵn trong session
         if (loggedIn != null) {
             model.addAttribute("currentUser", loggedIn);
         }
 
-        return "auth/login";
+        return "auth/login"; // Trả về template auth/login.html
     }
     // ================= 2. XỬ LÝ ĐĂNG NHẬP PHÂN QUYỀN =================
     /* =========================================================================================
@@ -109,14 +110,16 @@ public class AuthController {
                               @RequestParam(value = "password", required = false) String password,
                               HttpSession session,
                               Model model) {
+        // Kiểm tra dữ liệu đầu vào rỗng
         if (email == null || password == null || email.trim().isEmpty() || password.trim().isEmpty()) {
             model.addAttribute("errorMessage", "Vui lòng nhập đầy đủ thông tin đăng nhập.");
             model.addAttribute("activeTab", "login");
             return "auth/login";
         }
 
-        Optional<UserDTO> authResult = userService.authenticate(email, password);
+        Optional<UserDTO> authResult = userService.authenticate(email, password); // Gọi service xác thực email & mật khẩu
 
+        // Sai email hoặc sai mật khẩu -> trả về form kèm email đã nhập
         if (!authResult.isPresent()) {
             model.addAttribute("errorMessage", "Tài khoản hoặc mật khẩu không chính xác! Vui lòng kiểm tra lại.");
             model.addAttribute("activeTab", "login");
@@ -124,13 +127,14 @@ public class AuthController {
             return "auth/login";
         }
 
-        UserDTO user = authResult.get();
+        UserDTO user = authResult.get(); // Lấy thông tin user đã xác thực
 
         // Kiểm tra nếu tài khoản chưa xác thực OTP
         if ("PENDING_VERIFY".equalsIgnoreCase(user.getStatus())) {
-            return "redirect:/verify-otp?email=" + URLEncoder.encode(user.getEmail(), StandardCharsets.UTF_8);
+            return "redirect:/verify-otp?email=" + URLEncoder.encode(user.getEmail(), StandardCharsets.UTF_8); // Chuyển sang trang nhập OTP
         }
 
+        // Kiểm tra nếu tài khoản đang bị khóa (tạm thời hoặc vĩnh viễn)
         if ("LOCKED".equalsIgnoreCase(user.getStatus())) {
             model.addAttribute("errorMessage", "Tài khoản " + user.getEmail() + " đang bị tạm khóa (do sai mật khẩu 5 lần hoặc vi phạm). Vui lòng thử lại sau.");
             model.addAttribute("activeTab", "login");
@@ -142,15 +146,15 @@ public class AuthController {
 
         // PHÂN QUYỀN VÀ ĐIỀU HƯỚNG CHUẨN XÁC THEO ROLE
         if (user.isAdmin()) {
-            return "redirect:/admin";
+            return "redirect:/admin"; // Cổng Quản trị viên
         } else if (user.isContentManager()) {
-            return redirectContent(session);
+            return redirectContent(session); // Cổng Quản lý nội dung (hoặc URL trước khi login)
         } else if (user.isOperationManager()) {
-            return "redirect:/operation";
+            return "redirect:/operation"; // Cổng Quản lý vận hành
         } else if (user.isMentor()) {
-            return "redirect:/teacher";
+            return "redirect:/teacher"; // Cổng Giảng viên chấm bài
         } else {
-            // Học viên
+            // Học viên: nếu chưa chọn mục tiêu thì sang Onboarding, ngược lại vào trang học hôm nay
             if (user.getTargetLevel() == null || "TOPIK_0".equals(user.getTargetLevel())) {
                 return "redirect:/onboarding";
             }
@@ -214,22 +218,25 @@ public class AuthController {
                                  @RequestParam("password") String password,
                                  @RequestParam("confirmPassword") String confirmPassword,
                                  RedirectAttributes redirectAttributes) {
+        // Kiểm tra các trường bắt buộc
         if (displayName == null || email == null || password == null || confirmPassword == null) {
             redirectAttributes.addFlashAttribute("errorMessage", "Vui lòng điền đầy đủ các trường thông tin!");
             return "redirect:/login?tab=register";
         }
 
+        // Mật khẩu tối thiểu 6 ký tự
         if (password.length() < 6) {
             redirectAttributes.addFlashAttribute("errorMessage", "Mật khẩu phải có tối thiểu 6 ký tự!");
             return "redirect:/login?tab=register";
         }
 
+        // Kiểm tra mật khẩu xác nhận phải trùng khớp
         if (!password.equals(confirmPassword)) {
             redirectAttributes.addFlashAttribute("errorMessage", "Mật khẩu xác nhận không khớp! Vui lòng nhập lại.");
             return "redirect:/login?tab=register";
         }
 
-        boolean registered = userService.registerStudent(displayName, email, password);
+        boolean registered = userService.registerStudent(displayName, email, password); // Lưu user PENDING_VERIFY và gửi OTP
         if (!registered) {
             redirectAttributes.addFlashAttribute("errorMessage", "Email " + email + " đã được đăng ký và kích hoạt trước đó!");
             return "redirect:/login?tab=login";
@@ -280,14 +287,15 @@ public class AuthController {
                                   @RequestParam("otpCode") String otpCode,
                                   HttpSession session,
                                   Model model) {
-        Optional<UserDTO> userOpt = userService.verifyRegistrationOtp(email, otpCode);
+        Optional<UserDTO> userOpt = userService.verifyRegistrationOtp(email, otpCode); // Kiểm tra mã OTP trong DB/RAM
 
         if (userOpt.isPresent()) {
-            UserDTO activeUser = userOpt.get();
-            session.setAttribute("LOGGED_IN_USER", activeUser);
+            UserDTO activeUser = userOpt.get(); // Lấy user vừa được kích hoạt (ACTIVE)
+            session.setAttribute("LOGGED_IN_USER", activeUser); // Đăng nhập tự động vào session
             // Kích hoạt thành công -> chuyển ngay sang Onboarding để học viên chọn mục tiêu
             return "redirect:/onboarding";
         } else {
+            // Sai hoặc hết hạn OTP -> giữ lại trang nhập OTP và báo lỗi
             model.addAttribute("errorMessage", "Mã OTP không chính xác hoặc đã hết hạn (quá 5 phút). Vui lòng thử lại!");
             model.addAttribute("email", email);
             model.addAttribute("pageTitle", "Nhập mã OTP kích hoạt tài khoản · HOT TOPIK");
@@ -341,21 +349,23 @@ public class AuthController {
                                          @RequestParam("confirmPassword") String confirmPassword,
                                          Model model,
                                          RedirectAttributes redirectAttributes) {
+        // Kiểm tra độ dài mật khẩu mới
         if (newPassword == null || newPassword.length() < 6) {
             model.addAttribute("errorMessage", "Mật khẩu mới phải có tối thiểu 6 ký tự!");
             model.addAttribute("email", email);
             return "auth/reset-password-otp";
         }
 
+        // Kiểm tra xác nhận mật khẩu mới
         if (!newPassword.equals(confirmPassword)) {
             model.addAttribute("errorMessage", "Mật khẩu xác nhận không khớp!");
             model.addAttribute("email", email);
             return "auth/reset-password-otp";
         }
 
-        boolean success = userService.resetPasswordWithOtp(email, otpCode, newPassword);
+        boolean success = userService.resetPasswordWithOtp(email, otpCode, newPassword); // Xác thực OTP và cập nhật mật khẩu mới
         if (success) {
-            redirectAttributes.addFlashAttribute("resetSuccess", "1");
+            redirectAttributes.addFlashAttribute("resetSuccess", "1"); // Báo thành công ở trang login
             return "redirect:/login?tab=login";
         } else {
             model.addAttribute("errorMessage", "Mã OTP không đúng hoặc đã hết hạn (quá 5 phút). Vui lòng thử lại!");
@@ -423,7 +433,7 @@ public class AuthController {
             @RequestBody Map<String, String> payload,
             HttpSession session) {
 
-        String credential = payload.get("credential");
+        String credential = payload.get("credential"); // Lấy ID token Google từ request JSON
         if (credential == null || credential.trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Thiếu credential token từ Google."));
         }
@@ -436,21 +446,21 @@ public class AuthController {
                     .GET()
                     .build();
 
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString()); // Gửi HTTP GET tới Google
 
             if (response.statusCode() != 200) {
                 log.warn("Google token verification failed: HTTP {}", response.statusCode());
                 return ResponseEntity.badRequest().body(Map.of("error", "Token Google không hợp lệ hoặc đã hết hạn."));
             }
 
-            String body = response.body();
+            String body = response.body(); // Chuỗi JSON Google trả về
 
             // Parse JSON response thủ công (tránh dependency thêm)
-            String email = extractJsonValue(body, "email");
-            String name = extractJsonValue(body, "name");
-            String picture = extractJsonValue(body, "picture");
-            String emailVerified = extractJsonValue(body, "email_verified");
-            String aud = extractJsonValue(body, "aud");
+            String email = extractJsonValue(body, "email"); // Email tài khoản Google
+            String name = extractJsonValue(body, "name"); // Tên hiển thị
+            String picture = extractJsonValue(body, "picture"); // Ảnh đại diện
+            String emailVerified = extractJsonValue(body, "email_verified"); // Trạng thái xác thực email
+            String aud = extractJsonValue(body, "aud"); // Client ID nhận token
 
             if (email == null || email.isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Không lấy được email từ tài khoản Google."));
@@ -468,6 +478,7 @@ public class AuthController {
                 return ResponseEntity.badRequest().body(Map.of("error", "Không thể tạo hoặc tìm tài khoản."));
             }
 
+            // Chặn đăng nhập nếu tài khoản đang bị khóa
             if ("LOCKED".equalsIgnoreCase(user.getStatus())) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Tài khoản " + email + " đang bị tạm khóa."));
             }
@@ -495,7 +506,7 @@ public class AuthController {
                 }
             }
 
-            return ResponseEntity.ok(Map.of("redirect", redirectUrl, "success", "true"));
+            return ResponseEntity.ok(Map.of("redirect", redirectUrl, "success", "true")); // Trả URL điều hướng cho JS frontend
 
         } catch (Exception ex) {
             log.error("Lỗi xử lý Google Sign-In: {}", ex.getMessage(), ex);

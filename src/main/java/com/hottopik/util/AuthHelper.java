@@ -12,10 +12,10 @@ public class AuthHelper {
      * Lấy thông tin người dùng đang đăng nhập từ HttpSession.
      */
     public static UserDTO getLoggedInUser(HttpSession session) {
-        if (session == null) return null;
-        Object obj = session.getAttribute(SESSION_KEY);
+        if (session == null) return null; // Chưa có session thì trả về null
+        Object obj = session.getAttribute(SESSION_KEY); // Lấy attribute LOGGED_IN_USER từ session
         if (obj instanceof UserDTO) {
-            return (UserDTO) obj;
+            return (UserDTO) obj; // Ép kiểu về UserDTO nếu đúng loại
         }
         return null;
     }
@@ -24,14 +24,14 @@ public class AuthHelper {
      * Kiểm tra người dùng trong session có thuộc một trong các vai trò được phép hay không.
      */
     public static boolean hasRole(HttpSession session, String... allowedRoles) {
-        UserDTO user = getLoggedInUser(session);
+        UserDTO user = getLoggedInUser(session); // Lấy user hiện tại
         if (user == null || user.getRole() == null) {
-            return false;
+            return false; // Chưa đăng nhập hoặc chưa có role
         }
-        String uRole = normalizeRole(user.getRole());
+        String uRole = normalizeRole(user.getRole()); // Chuẩn hóa role của user
         for (String r : allowedRoles) {
             if (uRole.equalsIgnoreCase(normalizeRole(r))) {
-                return true;
+                return true; // Khớp với ít nhất 1 role được phép
             }
         }
         return false;
@@ -42,12 +42,12 @@ public class AuthHelper {
      */
     private static String normalizeRole(String role) {
         if (role == null) return "";
-        String r = role.trim().toUpperCase();
+        String r = role.trim().toUpperCase(); // Xóa khoảng trắng và viết hoa
         if (r.startsWith("ROLE_")) {
-            r = r.substring(5);
+            r = r.substring(5); // Cắt bỏ tiền tố "ROLE_"
         }
-        if ("TEACHER".equals(r)) return "MENTOR";
-        if ("USER".equals(r) || "VIP".equals(r)) return "STUDENT";
+        if ("TEACHER".equals(r)) return "MENTOR"; // Quy đổi TEACHER về MENTOR
+        if ("USER".equals(r) || "VIP".equals(r)) return "STUDENT"; // Quy đổi USER/VIP về STUDENT
         return r;
     }
 }

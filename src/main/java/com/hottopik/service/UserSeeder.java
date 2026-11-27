@@ -48,17 +48,17 @@ public class UserSeeder implements ApplicationRunner {
     @Transactional
     public void run(ApplicationArguments args) {
         for (SeedUser seed : ACCOUNTS) {
-            if (userRepository.existsByEmail(seed.email())) continue;
-            User user = User.builder()
+            if (userRepository.existsByEmail(seed.email())) continue; // Bỏ qua nếu email đã tồn tại trong DB
+            User user = User.builder() // Tạo thực thể User mới từ cấu hình mẫu
                     .email(seed.email())
-                    .passwordHash(passwordEncoder.encode(seed.rawPassword()))
+                    .passwordHash(passwordEncoder.encode(seed.rawPassword())) // Băm mật khẩu bằng BCrypt
                     .displayName(seed.displayName())
                     .role(seed.role())
-                    .status("ACTIVE")
+                    .status("ACTIVE") // Kích hoạt sẵn để đăng nhập được ngay
                     .currentLevel(seed.currentLevel())
                     .targetLevel(seed.targetLevel())
                     .build();
-            userRepository.save(user);
+            userRepository.save(user); // Lưu tài khoản vào bảng users
         }
     }
 }

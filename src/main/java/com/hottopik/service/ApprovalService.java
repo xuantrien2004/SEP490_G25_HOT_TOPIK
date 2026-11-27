@@ -173,21 +173,21 @@ public class ApprovalService {
      * nếu listener ném lỗi thì yêu cầu vẫn ở trạng thái PENDING.
      */
     public boolean decideRequest(Long id, boolean approve, String note, String deciderName) {
-        ApprovalRequestDTO req = requests.get(id);
+        ApprovalRequestDTO req = requests.get(id); // Tìm yêu cầu theo ID
         if (req == null) return false;
         if (!"PENDING".equalsIgnoreCase(req.getStatus())) {
-            throw new IllegalStateException("Yêu cầu này đã được xử lý.");
+            throw new IllegalStateException("Yêu cầu này đã được xử lý."); // Chặn xử lý lại yêu cầu đã đóng
         }
         if (deciderName != null && deciderName.equalsIgnoreCase(req.getRequesterName())) {
-            throw new IllegalStateException("Không được duyệt yêu cầu do chính mình gửi; cần một Admin khác.");
+            throw new IllegalStateException("Không được duyệt yêu cầu do chính mình gửi; cần một Admin khác."); // Nguyên tắc tách biệt người gửi và người duyệt
         }
         if (eventPublisher != null) {
-            eventPublisher.publishEvent(new ApprovalDecidedEvent(req, approve, deciderName, note));
+            eventPublisher.publishEvent(new ApprovalDecidedEvent(req, approve, deciderName, note)); // Phát sự kiện để listener thực thi payload nếu có
         }
-        req.setStatus(approve ? "APPROVED" : "REJECTED");
-        req.setDecisionNote(note);
-        req.setDecidedBy(deciderName);
-        req.setDecidedAt(LocalDateTime.now().format(FORMATTER));
+        req.setStatus(approve ? "APPROVED" : "REJECTED"); // Cập nhật trạng thái duyệt hoặc từ chối
+        req.setDecisionNote(note); // Lưu ghi chú quyết định
+        req.setDecidedBy(deciderName); // Lưu tên người quyết định
+        req.setDecidedAt(LocalDateTime.now().format(FORMATTER)); // Ghi nhận thời điểm quyết định
         return true;
     }
 

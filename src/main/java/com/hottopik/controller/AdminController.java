@@ -40,13 +40,14 @@ public class AdminController {
      */
     @GetMapping
     public String adminDashboard(HttpSession session, Model model) {
-        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session); // Lấy user đang đăng nhập từ session
 
-        // Security check
+        // Security check: chỉ Admin mới được vào /admin
         if (currentUser == null) {
-            return "redirect:/login";
+            return "redirect:/login"; // Chưa đăng nhập -> về trang login
         }
         if (!currentUser.isAdmin()) {
+            // Điều hướng đúng cổng nếu là vai trò khác
             if (currentUser.isContentManager()) {
                 return "redirect:/content";
             } else if (currentUser.isOperationManager()) {
@@ -55,15 +56,16 @@ public class AdminController {
             return "redirect:/today";
         }
 
+        // Nạp dữ liệu tổng quan cho Dashboard Admin
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("pageTitle", "Cổng Quản trị viên (Administrator) · HOT TOPIK");
-        model.addAttribute("pendingRequests", approvalService.getPendingRequests());
-        model.addAttribute("allRequests", approvalService.getAllRequests());
-        model.addAttribute("staffUsers", userService.getStaffUsers());
-        model.addAttribute("auditLogs", adminSystemService.getAuditLogs());
-        model.addAttribute("breakGlassActive", adminSystemService.isBreakGlassActive());
+        model.addAttribute("pendingRequests", approvalService.getPendingRequests()); // Yêu cầu đang chờ duyệt
+        model.addAttribute("allRequests", approvalService.getAllRequests()); // Toàn bộ lịch sử yêu cầu
+        model.addAttribute("staffUsers", userService.getStaffUsers()); // Danh sách nhân sự nội bộ
+        model.addAttribute("auditLogs", adminSystemService.getAuditLogs()); // Nhật ký kiểm toán hệ thống
+        model.addAttribute("breakGlassActive", adminSystemService.isBreakGlassActive()); // Trạng thái chế độ khẩn cấp
 
-        return "admin/dashboard";
+        return "admin/dashboard"; // Render template admin/dashboard.html
     }
 
     /**
@@ -77,16 +79,17 @@ public class AdminController {
             @RequestParam(value = "days", required = false, defaultValue = "7") Integer days,
             @RequestParam(value = "reason", required = false) String reason,
             HttpSession session) {
-        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
-        Map<String, Object> resp = new HashMap<>();
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session); // Lấy user hiện tại
+        Map<String, Object> resp = new HashMap<>(); // Map JSON trả về cho client
 
+        // Kiểm tra quyền Admin
         if (currentUser == null || !currentUser.isAdmin()) {
             resp.put("success", false);
             resp.put("message", "Từ chối quyền truy cập.");
             return ResponseEntity.status(403).body(resp);
         }
 
-        UserDTO target = userService.findById(userId).orElse(null);
+        UserDTO target = userService.findById(userId).orElse(null); // Tìm học viên cần khóa
         if (target == null) {
             resp.put("success", false);
             resp.put("message", "Không tìm thấy học viên.");
@@ -97,9 +100,9 @@ public class AdminController {
         String lockRsn = (reason != null && !reason.trim().isEmpty()) ? reason.trim() : "Khóa bởi Admin";
 
         if ("PERMANENT".equalsIgnoreCase(lockType)) {
-            boolean ok = userService.lockUserPermanently(userId, lockRsn);
+            boolean ok = userService.lockUserPermanently(userId, lockRsn); // Khóa vĩnh viễn
             if (ok) {
-                adminSystemService.logAction(
+                adminSystemService.logAction( // Ghi audit log khóa vĩnh viễn
                         currentUser.getFullName(),
                         currentUser.getRole(),
                         "LOCK_LEARNER_PERMANENT",
@@ -115,11 +118,11 @@ public class AdminController {
                 resp.put("message", "Không thể khóa tài khoản.");
             }
         } else {
-            int lockDays = (days != null && days > 0) ? days : 7;
-            boolean ok = userService.lockUserTemporarily(userId, lockDays, lockRsn);
+            int lockDays = (days != null && days > 0) ? days : 7; // Mặc định tạm khóa 7 ngày
+            boolean ok = userService.lockUserTemporarily(userId, lockDays, lockRsn); // Khóa tạm thời
             if (ok) {
                 String expiryStr = java.time.LocalDateTime.now().plusDays(lockDays).format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
-                adminSystemService.logAction(
+                adminSystemService.logAction( // Ghi audit log tạm khóa
                         currentUser.getFullName(),
                         currentUser.getRole(),
                         "LOCK_LEARNER_TEMP",
@@ -254,7 +257,7 @@ public class AdminController {
             return ResponseEntity.status(403).body(resp);
         }
 
-        java.util.Optional<com.hottopik.dto.ApprovalRequestDTO> reqOpt = approvalService.getRequestById(requestId);
+        java.util.Optional<com.hottopik.dto.ApprovalRequestDTO> reqOpt = approvalService.getRequestById(requestId); // Tìm yêu cầu theo ID
         if (reqOpt.isEmpty()) {
             resp.put("success", false);
             resp.put("message", "Không tìm thấy yêu cầu.");
@@ -262,18 +265,18 @@ public class AdminController {
         }
 
         com.hottopik.dto.ApprovalRequestDTO req = reqOpt.get();
-        boolean approve = "approve".equalsIgnoreCase(decision);
+        boolean approve = "approve".equalsIgnoreCase(decision); // Xác định quyết định: duyệt hay từ chối
         if (!approve && (note == null || note.trim().length() < 5)) {
             resp.put("success", false);
-            resp.put("message", "Từ chối cần nhập lý do ít nhất 5 ký tự.");
+            resp.put("message", "Từ chối cần nhập lý do ít nhất 5 ký tự."); // Bắt buộc có lý do khi từ chối
             return ResponseEntity.badRequest().body(resp);
         }
         boolean success;
         try {
-            success = approvalService.decideRequest(requestId, approve, note, currentUser.getFullName());
+            success = approvalService.decideRequest(requestId, approve, note, currentUser.getFullName()); // Chốt trạng thái yêu cầu
         } catch (IllegalStateException | com.hottopik.service.exam.ExamDomainException e) {
             resp.put("success", false);
-            resp.put("message", e.getMessage());
+            resp.put("message", e.getMessage()); // Trả lỗi nghiệp vụ (vd: tự duyệt yêu cầu của mình)
             return ResponseEntity.badRequest().body(resp);
         }
 

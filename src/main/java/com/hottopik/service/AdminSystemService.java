@@ -50,8 +50,8 @@ public class AdminSystemService {
      * Lấy toàn bộ nhật ký hoạt động hệ thống, sắp xếp mới nhất trước.
      */
     public List<AuditLogDTO> getAuditLogs() {
-        List<AuditLogDTO> list = new ArrayList<>(auditLogs);
-        list.sort((a, b) -> Long.compare(b.getId(), a.getId()));
+        List<AuditLogDTO> list = new ArrayList<>(auditLogs); // Sao chép danh sách log để tránh ConcurrentModification
+        list.sort((a, b) -> Long.compare(b.getId(), a.getId())); // Sắp xếp ID giảm dần (mới nhất lên đầu)
         return list;
     }
 
@@ -61,13 +61,13 @@ public class AdminSystemService {
     public List<AuditLogDTO> getAuditLogsForRole(String role) {
         List<AuditLogDTO> list;
         if (role == null || role.equals("ROLE_ADMIN")) {
-            list = new ArrayList<>(auditLogs);
+            list = new ArrayList<>(auditLogs); // Admin xem toàn bộ log
         } else {
-            list = auditLogs.stream()
+            list = auditLogs.stream() // Lọc log theo actorRole tương ứng
                     .filter(l -> l.getActorRole() != null && l.getActorRole().equalsIgnoreCase(role))
                     .collect(Collectors.toList());
         }
-        list.sort((a, b) -> Long.compare(b.getId(), a.getId()));
+        list.sort((a, b) -> Long.compare(b.getId(), a.getId())); // Sắp xếp mới nhất trước
         return list;
     }
 
@@ -75,19 +75,19 @@ public class AdminSystemService {
      * Ghi nhận một bản ghi nhật ký thao tác mới vào đầu danh sách.
      */
     public void logAction(String actorName, String actorRole, String action, String targetEntity, String details, String ip) {
-        long id = logIdGen.incrementAndGet();
+        long id = logIdGen.incrementAndGet(); // Sinh ID tự tăng thread-safe
         AuditLogDTO entry = new AuditLogDTO(id, actorName, actorRole, action, targetEntity, details, ip != null ? ip : "127.0.0.1", LocalDateTime.now().format(FORMATTER));
-        auditLogs.add(0, entry);
+        auditLogs.add(0, entry); // Chèn lên đầu danh sách
     }
 
     /**
      * Cập nhật hạn mức chi tiêu hàng tháng (USD) và ngưỡng cảnh báo (%) cho một dịch vụ AI.
      */
     public boolean updateAiBudget(Long id, double limit, int threshold) {
-        AiBudgetDTO budget = aiBudgets.get(id);
+        AiBudgetDTO budget = aiBudgets.get(id); // Tìm cấu hình ngân sách theo ID
         if (budget != null) {
-            budget.setMonthlyLimitUsd(limit);
-            budget.setAlertThresholdPercent(threshold);
+            budget.setMonthlyLimitUsd(limit); // Cập nhật hạn mức tháng (USD)
+            budget.setAlertThresholdPercent(threshold); // Cập nhật ngưỡng % cảnh báo
             return true;
         }
         return false;
@@ -97,17 +97,17 @@ public class AdminSystemService {
      * Kiểm tra chế độ khẩn cấp Break-glass có đang kích hoạt hay không.
      */
     public boolean isBreakGlassActive() {
-        return breakGlassMode.get();
+        return breakGlassMode.get(); // Đọc cờ trạng thái AtomicBoolean
     }
 
     /**
      * Bật/tắt chế độ khẩn cấp Break-glass và ghi nhật ký bảo mật.
      */
     public boolean toggleBreakGlass(String reason) {
-        boolean current = breakGlassMode.get();
-        breakGlassMode.set(!current);
+        boolean current = breakGlassMode.get(); // Lấy trạng thái hiện tại
+        breakGlassMode.set(!current); // Đảo trạng thái bật <-> tắt
         logAction("Vũ Minh Quân", "ROLE_ADMIN", "BREAK_GLASS", "SYSTEM_SECURITY",
-                (!current ? "KÍCH HOẠT" : "TẮT") + " chế độ khẩn cấp Break-glass. Lý do: " + (reason != null ? reason : "Kiểm tra bảo mật"), "127.0.0.1");
+                (!current ? "KÍCH HOẠT" : "TẮT") + " chế độ khẩn cấp Break-glass. Lý do: " + (reason != null ? reason : "Kiểm tra bảo mật"), "127.0.0.1"); // Ghi audit log
         return breakGlassMode.get();
     }
 }

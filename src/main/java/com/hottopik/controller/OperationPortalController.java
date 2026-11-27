@@ -46,28 +46,30 @@ public class OperationPortalController {
      */
     @GetMapping
     public String dashboard(HttpSession session, Model model) {
-        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session); // Lấy user hiện tại từ session
 
         // Security check: Only Operation Manager (or Admin supervising)
         if (currentUser == null) {
-            return "redirect:/login";
+            return "redirect:/login"; // Chưa đăng nhập -> về trang login
         }
         if (!currentUser.isOperationManager() && !currentUser.isAdmin()) {
             if (currentUser.isContentManager()) {
                 return "redirect:/content";
             }
-            return "redirect:/today";
+            return "redirect:/today"; // Học viên -> về trang học hôm nay
         }
 
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("pageTitle", "Cổng Operation Manager · HOT TOPIK");
 
+        // Lấy danh sách học viên và đánh dấu nếu đang có yêu cầu khóa vĩnh viễn chờ duyệt
         java.util.List<UserDTO> learners = userService.getLearners();
         for (UserDTO l : learners) {
             l.setPendingPermanentLock(approvalService.hasPendingPermanentLockRequest(l.getId()));
         }
         model.addAttribute("learners", learners);
 
+        // Nạp dữ liệu đơn hàng, bảng giá, lịch sử cấp bù, đánh giá, thông báo, ngân sách AI và log
         model.addAttribute("orders", operationService.getOrders());
         model.addAttribute("packagePrices", operationService.getPackagePrices());
         model.addAttribute("compensationHistory", operationService.getCompensationHistory());
@@ -164,22 +166,24 @@ public class OperationPortalController {
             @RequestParam(value = "days", required = false, defaultValue = "7") Integer days,
             @RequestParam("reason") String reason,
             HttpSession session) {
-        UserDTO currentUser = AuthHelper.getLoggedInUser(session);
-        Map<String, Object> resp = new HashMap<>();
+        UserDTO currentUser = AuthHelper.getLoggedInUser(session); // Lấy user hiện tại
+        Map<String, Object> resp = new HashMap<>(); // Map JSON trả về
 
+        // Kiểm tra quyền Operation Manager hoặc Admin
         if (currentUser == null || (!currentUser.isOperationManager() && !currentUser.isAdmin())) {
             resp.put("success", false);
             resp.put("message", "Từ chối quyền truy cập.");
             return ResponseEntity.status(403).body(resp);
         }
 
+        // Bắt buộc phải có lý do khi khóa học viên
         if (reason == null || reason.trim().isEmpty()) {
             resp.put("success", false);
             resp.put("message", "Vui lòng nhập lý do khóa tài khoản học viên.");
             return ResponseEntity.badRequest().body(resp);
         }
 
-        UserDTO target = userService.findById(userId).orElse(null);
+        UserDTO target = userService.findById(userId).orElse(null); // Tìm học viên mục tiêu
         if (target == null) {
             resp.put("success", false);
             resp.put("message", "Không tìm thấy học viên tương ứng.");
@@ -360,9 +364,9 @@ public class OperationPortalController {
         }
 
         String refundRsn = (reason != null && !reason.trim().isEmpty()) ? reason.trim() : "Khách hàng yêu cầu hoàn tiền";
-        boolean ok = operationService.requestRefundApproval(orderId, currentUser.getFullName(), refundRsn);
+        boolean ok = operationService.requestRefundApproval(orderId, currentUser.getFullName(), refundRsn); // Gửi yêu cầu hoàn tiền lên Admin duyệt
         if (ok) {
-            adminSystemService.logAction(
+            adminSystemService.logAction( // Ghi nhật ký đề xuất hoàn tiền
                     currentUser.getFullName(),
                     currentUser.getRole(),
                     "SUBMIT_REFUND_PROPOSAL",
@@ -551,12 +555,14 @@ public class OperationPortalController {
             return ResponseEntity.status(403).body(resp);
         }
 
+        // Validate tiêu đề và nội dung thông báo
         if (title == null || title.trim().isEmpty() || content == null || content.trim().isEmpty()) {
             resp.put("success", false);
             resp.put("message", "Vui lòng nhập đầy đủ tiêu đề và nội dung thông báo.");
             return ResponseEntity.badRequest().body(resp);
         }
 
+        // Nếu gửi đích danh thì tìm tên/email người nhận để lưu hiển thị
         String targetUserName = null;
         if (targetUserId != null) {
             UserDTO u = userService.findById(targetUserId).orElse(null);
@@ -565,7 +571,7 @@ public class OperationPortalController {
             }
         }
 
-        AnnouncementDTO ann = operationService.sendAnnouncement(
+        AnnouncementDTO ann = operationService.sendAnnouncement( // Tạo và phát thông báo qua NotificationService
                 title.trim(), content.trim(), audience, targetUserId, targetUserName, currentUser.getFullName()
         );
 

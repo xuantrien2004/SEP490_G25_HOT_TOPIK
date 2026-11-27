@@ -72,19 +72,19 @@ public class EmailService {
 
         if (mailSender == null) {
             log.warn("JavaMailSender chưa được cấu hình. Chỉ in OTP ra console để kiểm thử.");
-            return;
+            return; // Thoát sớm nếu chưa cấu hình SMTP
         }
 
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+            MimeMessage message = mailSender.createMimeMessage(); // Tạo đối tượng MIME message
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name()); // Bật multipart và UTF-8
 
-            helper.setFrom(fromEmail, "HOT TOPIK · Bé Ssak");
-            helper.setTo(toEmail);
-            helper.setSubject(subject);
-            helper.setText(htmlContent, true);
+            helper.setFrom(fromEmail, "HOT TOPIK · Bé Ssak"); // Gán địa chỉ và tên người gửi
+            helper.setTo(toEmail); // Gán người nhận
+            helper.setSubject(subject); // Gán tiêu đề email
+            helper.setText(htmlContent, true); // Gán nội dung dạng HTML
 
-            mailSender.send(message);
+            mailSender.send(message); // Gửi email qua máy chủ SMTP
             log.info("✅ Gửi email thật thành công tới: {}", toEmail);
 
         } catch (Exception ex) {
